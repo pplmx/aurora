@@ -213,8 +213,8 @@ func (r *Registry) Expose() string {
 	fmt.Fprintln(&b, "# HELP aurora_http_requests_total Total HTTP requests handled.")
 	fmt.Fprintln(&b, "# TYPE aurora_http_requests_total counter")
 	fmt.Fprintf(&b, "aurora_http_requests_total %d\n", r.total)
-	fmt.Fprintln(&b, "# HELP aurora_http_requests_by_status HTTP requests by response status code.")
-	fmt.Fprintln(&b, "# TYPE aurora_http_requests_by_status counter")
+	fmt.Fprintln(&b, "# HELP aurora_http_requests_by_status_total HTTP requests by response status code.")
+	fmt.Fprintln(&b, "# TYPE aurora_http_requests_by_status_total counter")
 
 	statuses := make([]int, 0, len(r.status))
 	for s := range r.status {
@@ -222,20 +222,20 @@ func (r *Registry) Expose() string {
 	}
 	sort.Ints(statuses)
 	for _, s := range statuses {
-		fmt.Fprintf(&b, "aurora_http_requests_by_status{code=\"%d\"} %d\n", s, r.status[s])
+		fmt.Fprintf(&b, "aurora_http_requests_by_status_total{code=\"%d\"} %d\n", s, r.status[s])
 	}
 
-	fmt.Fprintln(&b, "# HELP aurora_http_requests_by_module HTTP requests by module.")
-	fmt.Fprintln(&b, "# TYPE aurora_http_requests_by_module counter")
-	fmt.Fprintln(&b, "# HELP aurora_http_requests_by_module_status HTTP requests by module and response status code.")
-	fmt.Fprintln(&b, "# TYPE aurora_http_requests_by_module_status counter")
+	fmt.Fprintln(&b, "# HELP aurora_http_requests_by_module_total HTTP requests by module.")
+	fmt.Fprintln(&b, "# TYPE aurora_http_requests_by_module_total counter")
+	fmt.Fprintln(&b, "# HELP aurora_http_requests_by_module_status_total HTTP requests by module and response status code.")
+	fmt.Fprintln(&b, "# TYPE aurora_http_requests_by_module_status_total counter")
 	modules := make([]string, 0, len(r.moduleTotal))
 	for m := range r.moduleTotal {
 		modules = append(modules, m)
 	}
 	sort.Strings(modules)
 	for _, m := range modules {
-		fmt.Fprintf(&b, "aurora_http_requests_by_module{module=\"%s\"} %d\n", m, r.moduleTotal[m])
+		fmt.Fprintf(&b, "aurora_http_requests_by_module_total{module=\"%s\"} %d\n", m, r.moduleTotal[m])
 
 		st := r.moduleStatus[m]
 		codes := make([]int, 0, len(st))
@@ -244,7 +244,7 @@ func (r *Registry) Expose() string {
 		}
 		sort.Ints(codes)
 		for _, c := range codes {
-			fmt.Fprintf(&b, "aurora_http_requests_by_module_status{module=\"%s\",code=\"%d\"} %d\n", m, c, st[c])
+			fmt.Fprintf(&b, "aurora_http_requests_by_module_status_total{module=\"%s\",code=\"%d\"} %d\n", m, c, st[c])
 		}
 	}
 

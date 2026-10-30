@@ -62,9 +62,9 @@ AURORA_SERVER_HOST=127.0.0.1 AURORA_SERVER_PORT=9090 ./aurora-api
 `/metrics` 输出 Prometheus 文本，全部指标带 `aurora_` 前缀：
 
 - `aurora_http_requests_total`；
-- `aurora_http_requests_by_status{code}`；
-- `aurora_http_requests_by_module{module}` 与
-  `aurora_http_requests_by_module_status{module,code}`；
+- `aurora_http_requests_by_status_total{code}`；
+- `aurora_http_requests_by_module_total{module}` 与
+  `aurora_http_requests_by_module_status_total{module,code}`；
 - `aurora_http_request_duration_seconds`（直方图）。
 
 `/metrics/oracle` 输出每个数据源的抓取健康度：
@@ -76,9 +76,9 @@ AURORA_SERVER_HOST=127.0.0.1 AURORA_SERVER_PORT=9090 ./aurora-api
 # HELP aurora_http_requests_total Total HTTP requests handled.
 # TYPE aurora_http_requests_total counter
 aurora_http_requests_total 3
-# TYPE aurora_http_requests_by_status counter
-aurora_http_requests_by_status{code="200"} 2
-aurora_http_requests_by_status{code="404"} 1
+# TYPE aurora_http_requests_by_status_total counter
+aurora_http_requests_by_status_total{code="200"} 2
+aurora_http_requests_by_status_total{code="404"} 1
 ```
 
 ## 抽奖
