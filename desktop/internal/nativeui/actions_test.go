@@ -125,6 +125,35 @@ func TestFileActionsPauseWhileAWriteOwnsTheDatabase(t *testing.T) {
 	require.Empty(t, calls)
 }
 
+// TestPaletteCopiesDiagnostics: the support copy is reachable from the keyboard
+// switcher, not only from the Settings card.
+func TestPaletteCopiesDiagnostics(t *testing.T) {
+	app := New(&fakeServices{})
+	app.SetActions(Actions{
+		Version:     "v1.2.3",
+		BuildTime:   "2026-10-26T09:00:00Z",
+		DBPath:      "/tmp/aurora/aurora.db",
+		LedgerFacts: func() (int, string, bool, bool) { return 5, "009c4a0820ab", true, true },
+	})
+	tester := ui.NewTester(app.View, 1280, 900)
+	tester.Frame()
+
+	tester.Key(platformRefreshModifier(), ui.KeyK)
+	tester.Frame()
+	tester.Type("diagnostics")
+	tester.Frame()
+	matches := app.paletteMatches()
+	require.Len(t, matches, 1)
+	require.Equal(t, "Copy Diagnostics", matches[0].title)
+
+	tester.Key(0, ui.KeyEnter)
+	tester.Frame()
+	require.Equal(t,
+		"Version: v1.2.3\nBuild time: 2026-10-26T09:00:00Z\nDatabase: /tmp/aurora/aurora.db\nLedger: 5 blocks, head 009c4a0820ab — chain valid",
+		tester.Clipboard())
+	require.False(t, app.paletteOpen)
+}
+
 // TestPaletteRunsShowDataFolder covers the file command the palette was
 // missing: the folder that holds the database and backups is reachable from
 // the keyboard switcher, not only from the File menu.

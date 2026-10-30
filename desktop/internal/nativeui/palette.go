@@ -16,7 +16,9 @@ type paletteEntry struct {
 	detail string
 	icon   *ui.SVG
 	page   page
-	action func()
+	// action receives the frame's context so an entry can copy to the
+	// clipboard; navigating entries leave it nil.
+	action func(*ui.Context)
 }
 
 // commandPalette lets a keyboard-first operator jump to a page or run a file
@@ -72,7 +74,7 @@ func (a *App) commandPalette(c *ui.Context) {
 				if clicked || (submitted && i == a.paletteChoice) {
 					a.paletteOpen = false
 					if entry.action != nil {
-						entry.action()
+						entry.action(c)
 					} else {
 						a.setPage(entry.page)
 					}
@@ -125,33 +127,42 @@ func (a *App) paletteMatches() []paletteEntry {
 		if a.page != pageSettings {
 			entries = append(entries, paletteEntry{
 				title: "Refresh current page", detail: "Reload the data shown on this page",
-				icon: refreshIcon, action: a.refresh,
+				icon: refreshIcon, action: func(*ui.Context) { a.refresh() },
 			})
 		}
 		if a.actions.BackUpDatabase != nil {
 			entries = append(entries, paletteEntry{
 				title: "Back up database…", detail: "Create a WAL-complete snapshot",
-				icon: backupIcon, action: a.actions.BackUpDatabase,
+				icon: backupIcon, action: func(*ui.Context) { a.actions.BackUpDatabase() },
 			})
 		}
 		if a.actions.ExportLotteries != nil {
 			entries = append(entries, paletteEntry{
 				title: "Export lotteries…", detail: "Write the portable lottery document",
-				icon: exportIcon, action: a.actions.ExportLotteries,
+				icon: exportIcon, action: func(*ui.Context) { a.actions.ExportLotteries() },
 			})
 		}
 		if a.actions.ImportLotteries != nil {
 			entries = append(entries, paletteEntry{
 				title: "Import lotteries…", detail: "Load a portable lottery document",
-				icon: importIcon, action: a.actions.ImportLotteries,
+				icon: importIcon, action: func(*ui.Context) { a.actions.ImportLotteries() },
 			})
 		}
 		if a.actions.ShowDataFolder != nil {
 			entries = append(entries, paletteEntry{
 				title: "Show data folder", detail: "Open the folder that holds the database and backups",
-				icon: folderIcon, action: a.actions.ShowDataFolder,
+				icon: folderIcon, action: func(*ui.Context) { a.actions.ShowDataFolder() },
 			})
 		}
+	}
+	// Read-only and always available: a support reply should be copyable while
+	// a background write owns the database.
+	if a.actions.Version != "" {
+		entries = append(entries, paletteEntry{
+			title:  "Copy Diagnostics",
+			detail: "Put the build, database and ledger facts on the clipboard",
+			icon:   shieldCheckIcon, action: a.copyDiagnostics,
+		})
 	}
 	matches := entries[:0]
 	for _, entry := range entries {
