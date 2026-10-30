@@ -996,7 +996,16 @@ func TestSettingsShowsTheDatabaseSize(t *testing.T) {
 	require.True(t, tester.HasText("Database size"))
 	require.True(t, tester.HasText("1.5 MiB"))
 
+	// The label follows the language switch like every other readout.
+	tr := i18n.GetTranslator()
+	before := tr.GetLocale()
+	tr.SetLocale("zh")
+	t.Cleanup(func() { tr.SetLocale(before) })
+	tester.Frame()
+	require.True(t, tester.HasText("数据库大小"))
+
+	// A window built before the shell is ready omits the row entirely.
 	app.SetActions(Actions{})
 	tester.Frame()
-	require.False(t, tester.HasText("Database size"))
+	require.False(t, tester.HasText("数据库大小"))
 }

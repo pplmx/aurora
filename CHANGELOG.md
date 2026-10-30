@@ -11,11 +11,17 @@ documented in their per-milestone ROADMAP files.
 
 ### Changed
 
+- **The database's disk usage is visible in both surfaces**: `aurora lottery
+  db-info` printed the path and block count but not the size, and Settings
+  showed the path alone; both now sum the database and its `-wal`/`-shm`
+  siblings through one formatter, and Settings measures it as the card draws so
+  the number cannot go stale.
 - **An oversized import file is refused before it is read**: the CLI and the
   desktop read the dropped/selected JSON whole, so a wrong file (a video, a
   multi-gigabyte dump) grew the process by its size before the parser rejected
-  it. Both now go through one reader capped at 64 MiB, and the CLI reference
-  states the limit.
+  it. Both now go through one reader capped at 64 MiB, name the limit in the
+  active language instead of echoing a byte count, and the CLI reference states
+  it.
 - **Metrics carry an `aurora_` namespace**: the exporter emitted bare
   `http_requests_total` and `oracle_fetch_*`, which collide with other
   exporters on a shared scrape; every family is now `aurora_…` with the
