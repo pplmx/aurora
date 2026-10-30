@@ -280,3 +280,24 @@ func TestVerifyInput_TamperedRecordIsReported(t *testing.T) {
 		t.Fatalf("report must name the mismatch: %+v", report.Checks)
 	}
 }
+
+// TestVerifyInput_SubstringPicksTheNewestMatch pins the ambiguity rule: a
+// reference that matches several draws resolves to the first one in the
+// repository's newest-first history, so the same input never flips between two
+// reports on different machines.
+func TestVerifyInput_SubstringPicksTheNewestMatch(t *testing.T) {
+	newest := &lottery.LotteryRecord{ID: "bb11cc22dd334455", Seed: "weekly-2026-10"}
+	older := &lottery.LotteryRecord{ID: "aa11cc22dd334466", Seed: "weekly-2026-09"}
+	repo := &scriptedRepo{
+		byIDErr: lottery.ErrNotFound,
+		all:     []*lottery.LotteryRecord{newest, older},
+	}
+
+	report, err := VerifyInput(repo, "weekly-2026")
+	if err != nil {
+		t.Fatalf("VerifyInput: %v", err)
+	}
+	if report.Record != newest {
+		t.Fatalf("an ambiguous reference must resolve the newest match, got %q", report.Record.Seed)
+	}
+}

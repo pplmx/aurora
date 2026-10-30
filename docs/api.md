@@ -208,7 +208,8 @@ curl -s -H "X-API-Key: $KEY" -H 'Content-Type: application/json' \
 
 `GET /lottery/{id}/verify` 返回完整校验报告：
 `{"record":{"id":"c2421dfb187c8ee9",…},"checks":[{"status":"ok","message":"…"}],"integrity_ok":true,"proof_verified":true}`。
-`{id}` 可以写抽奖 ID、区块高度或 ID/seed 子串（与 CLI 的解析顺序一致）；证明或
+`{id}` 可以写抽奖 ID、区块高度或 ID/seed 子串（与 CLI 的解析顺序一致；多个子串
+命中时取最新的一条）；证明或
 中奖集合对不上时 HTTP 仍是 200，`integrity_ok` 为 `false`，`checks` 里
 `status:"fail"` 的条目说明原因。
 
