@@ -170,6 +170,10 @@ func TestCLIDocsPathsMatchTheCommandTree(t *testing.T) {
 	for _, path := range cliCommandPaths(t, filepath.Join(root, "cmd", "aurora", "cmd")) {
 		known["aurora "+path] = true
 	}
+	// Cobra adds the completion command when the root executes; it has no
+	// source declaration, so a documented `aurora completion <shell>` line is
+	// legitimate even though the scan above cannot see it.
+	known["aurora completion"] = true
 	hasChildren := map[string]bool{}
 	for path := range known {
 		words := strings.Fields(path)
