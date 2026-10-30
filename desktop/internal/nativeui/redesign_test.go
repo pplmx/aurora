@@ -150,7 +150,7 @@ func TestDashboardCompositionStacksAtMinimumWidth(t *testing.T) {
 
 	lottery, ok := tester.Find("Total Lotteries")
 	require.True(t, ok)
-	voting, ok := tester.Find("3 measures")
+	voting, ok := tester.Find("Votes, candidates and sessions")
 	require.True(t, ok)
 	oracle, ok := tester.Find("Registered data feeds")
 	require.True(t, ok)
