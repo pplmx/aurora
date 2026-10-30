@@ -633,6 +633,51 @@ func TestLotteryReset_RestartsBlockHeightAfterCreate(t *testing.T) {
 	})
 }
 
+// TestLotteryInfoCommandsPrintJSON: the summary and the database report are the
+// two commands an operator scripts against, so both print one document. The
+// latest block is omitted before the first draw rather than reported as zero
+// (which is the genesis height).
+func TestLotteryInfoCommandsPrintJSON(t *testing.T) {
+	withTempDir(t, func(t *testing.T) {
+		setTestLocale(t, "en")
+
+		out, err := runCmd(t, "lottery", "stats", "--json")
+		require.NoError(t, err)
+		var stats struct {
+			Total       int    `json:"total"`
+			DBPath      string `json:"db_path"`
+			LatestBlock *int64 `json:"latest_block"`
+		}
+		require.NoError(t, json.Unmarshal([]byte(out), &stats), "got %q", out)
+		assert.Equal(t, 0, stats.Total)
+		assert.NotEmpty(t, stats.DBPath)
+		assert.Nil(t, stats.LatestBlock, "no draw yet: latest_block is omitted")
+
+		out, err = runCmd(t, "lottery", "db-info", "--json")
+		require.NoError(t, err)
+		var info struct {
+			Path      string `json:"path"`
+			SizeBytes int64  `json:"size_bytes"`
+			Blocks    int    `json:"blocks"`
+		}
+		require.NoError(t, json.Unmarshal([]byte(out), &info), "got %q", out)
+		assert.NotEmpty(t, info.Path)
+		assert.Greater(t, info.SizeBytes, int64(0))
+		assert.Equal(t, 0, info.Blocks)
+
+		_, err = runCmd(t, "lottery", "create",
+			"--participants", "A,B", "--seed", "info-json", "--count", "1")
+		require.NoError(t, err)
+
+		out, err = runCmd(t, "lottery", "stats", "--json")
+		require.NoError(t, err)
+		require.NoError(t, json.Unmarshal([]byte(out), &stats))
+		assert.Equal(t, 1, stats.Total)
+		require.NotNil(t, stats.LatestBlock)
+		assert.Equal(t, int64(1), *stats.LatestBlock)
+	})
+}
+
 func TestLotteryDBInfo(t *testing.T) {
 	withTempDir(t, func(t *testing.T) {
 		out, err := runCmd(t, "lottery", "db-info")
