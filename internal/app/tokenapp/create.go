@@ -44,5 +44,7 @@ func (uc *Create) Execute(req *CreateTokenRequest) (*CreateTokenResponse, error)
 		TotalSupply: t.TotalSupply().String(),
 		Decimals:    t.Decimals(),
 		Owner:       base64.StdEncoding.EncodeToString(t.Owner()),
+		Mintable:    t.IsMintable(),
+		Burnable:    t.IsBurnable(),
 	}, nil
 }

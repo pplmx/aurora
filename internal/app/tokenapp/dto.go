@@ -17,6 +17,11 @@ type CreateTokenResponse struct {
 	TotalSupply string `json:"total_supply"`
 	Decimals    int8   `json:"decimals"`
 	Owner       string `json:"owner"`
+	// The flags ride along so the REST info/list and the CLI's `token info`
+	// answer with one shape; a create always produces a mintable, burnable
+	// token, but a later revision of the domain may not.
+	Mintable bool `json:"mintable"`
+	Burnable bool `json:"burnable"`
 }
 
 type MintRequest struct {
