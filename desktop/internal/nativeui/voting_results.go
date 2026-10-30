@@ -103,7 +103,14 @@ func (a *App) votingResultsBody(c *ui.Context) {
 		return
 	}
 	if !matches {
-		emptyPanel(c, pageIcons[pageVoting], pageAccent(c, pageVoting), "No tally loaded yet.")
+		// An empty field is a missing first step, not a finished empty read:
+		// the session is chosen in Setup or pasted in, and only a session that
+		// has not been read yet gets the "not loaded" line.
+		note := "No tally loaded yet."
+		if id == "" {
+			note = "Choose a session in Setup or enter its ID first."
+		}
+		emptyPanel(c, pageIcons[pageVoting], pageAccent(c, pageVoting), note)
 		return
 	}
 	if len(a.voting.results) == 0 {

@@ -257,6 +257,7 @@ var desktopMessages = map[string]string{
 	"Total votes":                                                            "总票数",
 	"Votes":                                                                  "票数",
 	"No tally loaded yet.":                                                   "还没有加载计票。",
+	"Choose a session in Setup or enter its ID first.":                       "在“准备”中选择会期，或先输入它的 ID。",
 	"No votes recorded for this session.":                                    "此会期还没有投票。",
 	"Voting results":                                                         "投票结果",
 	"Failed to load results":                                                 "加载计票失败",
