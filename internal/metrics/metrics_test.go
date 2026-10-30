@@ -281,3 +281,77 @@ func TestMiddleware_RecordsModule(t *testing.T) {
 		t.Errorf("expected token 200 module-status 1")
 	}
 }
+
+// TestExpositionFollowsPrometheusConventions pins the checks `promtool check
+// metrics` performs: a family declares HELP and TYPE before its first sample,
+// and a counter's name ends in _total. The exposition has no schema, so a
+// missing HELP or a counter without the suffix otherwise reaches a dashboard
+// unnoticed (CI has no promtool to catch it).
+func TestExpositionFollowsPrometheusConventions(t *testing.T) {
+	reg := NewRegistry()
+	reg.Observe(http.StatusOK, 5*time.Millisecond, "token")
+	reg.Observe(http.StatusNotFound, time.Second, "other")
+	out := reg.Expose()
+
+	help := make(map[string]bool)
+	kind := make(map[string]string)
+	seen := make(map[string]bool)
+
+	for _, line := range strings.Split(out, "\n") {
+		switch {
+		case strings.HasPrefix(line, "# HELP "):
+			name := strings.Fields(line)[2]
+			if seen[name] {
+				t.Fatalf("HELP for %s comes after its samples:\n%s", name, out)
+			}
+			if help[name] {
+				t.Fatalf("duplicate HELP for %s", name)
+			}
+			help[name] = true
+		case strings.HasPrefix(line, "# TYPE "):
+			fields := strings.Fields(line)
+			name, typ := fields[2], fields[3]
+			if seen[name] {
+				t.Fatalf("TYPE for %s comes after its samples:\n%s", name, out)
+			}
+			kind[name] = typ
+		case line == "" || strings.HasPrefix(line, "#"):
+			continue
+		default:
+			name := line
+			if i := strings.IndexByte(name, '{'); i >= 0 {
+				name = name[:i]
+			}
+			name = strings.SplitN(name, " ", 2)[0]
+			seen[name] = true
+
+			family := name
+			if base, ok := histogramFamily(name, kind); ok {
+				family = base
+			}
+			if !help[family] {
+				t.Fatalf("sample %s has no HELP line for %s:\n%s", name, family, out)
+			}
+			if kind[family] == "" {
+				t.Fatalf("sample %s has no TYPE line for %s:\n%s", name, family, out)
+			}
+		}
+	}
+
+	for name, typ := range kind {
+		if typ == "counter" && !strings.HasSuffix(name, "_total") {
+			t.Errorf("counter %s must end in _total", name)
+		}
+	}
+}
+
+// histogramFamily maps a histogram's _bucket/_sum/_count sample back to the
+// family its TYPE line declares.
+func histogramFamily(sample string, kind map[string]string) (string, bool) {
+	for _, suffix := range []string{"_bucket", "_sum", "_count"} {
+		if base, ok := strings.CutSuffix(sample, suffix); ok && kind[base] == "histogram" {
+			return base, true
+		}
+	}
+	return "", false
+}
