@@ -193,6 +193,8 @@ func TestLotteryHistorySearchesBeyondTheLoadedPage(t *testing.T) {
 	tester.Frame()
 	require.True(t, tester.HasText("draw-104"),
 		"the search must reach an old draw outside the loaded page")
+	require.Contains(t, tester.Announcements(), "1 result.",
+		"the repaint is visual; the count must also be spoken")
 }
 
 // TestOracleSourceSearchAndSelection covers the source list the same way:

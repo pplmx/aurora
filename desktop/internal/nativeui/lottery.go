@@ -218,9 +218,11 @@ func (a *App) lotteryHistory(c *ui.Context) {
 
 func (a *App) lotteryHistoryBody(c *ui.Context) {
 	search := strings.TrimSpace(a.lottery.search)
-	if search != a.lottery.queriedSearch {
+	queryChanged := search != a.lottery.queriedSearch
+	if queryChanged {
 		// A search runs in storage: reload from the newest match instead of
-		// filtering whichever page happened to be loaded.
+		// filtering whichever page happened to be loaded. The flag is captured
+		// before the load, which records the term it fetched.
 		a.lottery.selected = -1
 		a.loadLotteryPage(0)
 	}
@@ -247,7 +249,7 @@ func (a *App) lotteryHistoryBody(c *ui.Context) {
 		}
 		return
 	}
-	announceSearchResults(c, false, len(a.lottery.rows))
+	announceSearchResults(c, queryChanged, len(a.lottery.rows))
 	if len(a.lottery.rows) == 0 {
 		emptyNote(c, fmt.Sprintf(tr("No draws match “%s”."), search))
 		return
