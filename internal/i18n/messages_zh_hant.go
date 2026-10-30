@@ -233,6 +233,7 @@ var traditionalMessages = map[string]string{
 	"lottery.db_info":                           "顯示數據庫信息",
 	"lottery.db_info_title":                     "數據庫信息",
 	"lottery.db_path":                           "數據庫",
+	"lottery.db_size":                           "數據庫大小",
 	"lottery.error.count_blocks":                "統計區塊數失敗",
 	"lottery.error.create":                      "創建抽獎失敗",
 	"lottery.error.create_repo":                 "創建抽獎倉儲失敗",

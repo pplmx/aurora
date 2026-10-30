@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/pplmx/aurora/internal/app/lotteryapp"
@@ -9,6 +10,7 @@ import (
 	"github.com/pplmx/aurora/internal/infra/blockchain"
 	"github.com/pplmx/aurora/internal/infra/sqlite"
 	"github.com/pplmx/aurora/internal/logger"
+	"github.com/pplmx/aurora/internal/utils"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -426,7 +428,15 @@ var dbInfoCmd = &cobra.Command{
 
 		fmt.Println("\n📁 " + i18n.GetText("lottery.db_info_title"))
 		fmt.Println("────────────────────────────")
-		fmt.Printf("  %s: %s\n", i18n.GetText("lottery.db_path"), blockchain.DBPath())
+		path := blockchain.DBPath()
+		var size int64
+		for _, file := range append([]string{path}, utils.SQLiteSidecarPaths(path)...) {
+			if info, statErr := os.Stat(file); statErr == nil {
+				size += info.Size()
+			}
+		}
+		fmt.Printf("  %s: %s\n", i18n.GetText("lottery.db_path"), path)
+		fmt.Printf("  %s: %s\n", i18n.GetText("lottery.db_size"), utils.FormatBytes(size))
 		fmt.Printf("  %s: %d\n", i18n.GetText("lottery.total_blocks"), count)
 		return nil
 	},
