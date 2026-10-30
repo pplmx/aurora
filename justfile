@@ -19,6 +19,14 @@ lint:
 test:
     CGO_ENABLED=0 go test ./...
 
+# Enforce the documented coverage floor on the module domain and app packages
+# (the composition root under internal/app/container is wiring, not a module).
+
+# Check the domain and app coverage floor
+coverage-floor:
+    CGO_ENABLED=0 go test -coverprofile=coverage-floor.out ./internal/domain/... ./internal/app/...
+    CGO_ENABLED=0 go run ./tools/coverfloor -profile coverage-floor.out -floor 80
+
 # Run tests with coverage
 test-coverage:
     CGO_ENABLED=0 go test ./... -coverprofile=coverage.out
