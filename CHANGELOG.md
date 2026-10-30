@@ -156,6 +156,349 @@ documented in their per-milestone ROADMAP files.
   on" strip puts the record's id on the accent and turns amber when no record is
   chosen, and each dashboard counter's number takes the hue of the module it
   opens instead of body ink, matching the glyph beside it.
+- **The desktop window has a new visual system**: the palette moved to a deeper
+  layered night tone with a per-module accent (lottery amber, voting violet,
+  token emerald, oracle sky, NFT pink, blockchain indigo), and the shared
+  spacing, radius, type and surface helpers now live in `design.go` instead of
+  being repeated per view. Cards use a subtle gradient, softer elevation and a
+  top hairline; primary actions are a lit gradient, secondary actions a glass
+  outline, and the destructive action stays solid red behind its dialog.
+- **The shell exposes navigation instead of hiding it**: the sidebar gained a
+  gradient brand mark, a "Jump to" control that opens the same Ctrl/Cmd+K
+  command palette, and a local-ledger/version footer when the shell supplies a
+  version. The page header now uses the module tile, a 28pt title and a refresh
+  control that prints its chord.
+- **The dashboard leads with the ledger verdict**: integrity is a full-width
+  hero panel with icon, word and route to the audit page, followed by six
+  module counters (including the chain's block count) and the existing
+  activity and quick-start cards. Settings is a two-column page, and the
+  Blockchain summary uses stat chips plus a verdict pill instead of a
+  full-width readout for two numbers.
+- **Small details now follow the same system**: a fresh dashboard names its
+  first move instead of explaining an empty chain, ledger module cells carry
+  their module's hue, the command palette prints its arrow/Enter/Escape keys,
+  and every page's filter is built by one helper so its accessible label stays
+  translated. Token and NFT moved Inspect under the write tabs, so both
+  columns of their workbench end at roughly the same height instead of leaving
+  most of the action column empty.
+- **Voting works as a two-column workbench on every stage**: Ballot puts Cast
+  Vote beside Session Controls, and Results puts the session query beside a
+  tally card that draws each candidate's votes as a leader-scaled bar while
+  keeping the exact count and an accessible "candidate: N votes" label. The
+  record layout still takes over at enlarged text.
+- **Feed Health uses records at every width**: its five columns never fit the
+  half-width workbench, so headers ellipsised and the last error disappeared
+  first; the record layout keeps the source name, all three counters and the
+  verbatim error. The Settings shortcut list now renders each chord as a key
+  cap, and the Voting lists and empty ledger states carry their own marks.
+- **Oracle source actions live in the workbench column**: Source Actions sits
+  under Add Source with the selected endpoint, cadence and a 2x2 grid of
+  Enable/Disable/Fetch/Delete, so it stays usable while reading Health or
+  Readings. Its delete confirmation is mounted once for the page instead of
+  only from the Sources tab.
+- **Verify offers the latest draw**: the verification card gains a "Use latest
+  draw" action whenever History has a row, so re-checking the draw just
+  recorded no longer starts with copying its id out of the table.
+- **The desktop is on MyGo v0.7.1**: the nested module upgraded from v0.6.3 and
+  its Go directive to 1.27.3, and `just desktop-deps` / `just desktop-update-mygo`
+  make the fast-moving dependency deliberate to check and refresh. Renovate
+  now schedules MyGo updates at any time with a desktop label.
+- **The ledger subsystem is no longer presented as a domain package**:
+  `internal/domain/blockchain` moved out of domain and now lives at
+  `internal/infra/blockchain`, where its SQLite
+  bootstrap, singleton and file-permission work no longer blur the pure
+  `domain` boundary. The package API and behavior are unchanged; a new
+  `docs/architecture.md` records the dependency contract and the remaining
+  refactor order.
+- **Desktop UI copy now lives beside the views**: the desktop catalog moved
+  from `internal/i18n` to `desktop/internal/nativeui/messages_zh.go`; the core
+  translator keeps CLI/service keys only, and `tr`/`Translate` falls back to it
+  for service errors and menu entries. `LoadLocaleFile` now writes to a cloned
+  map instead of a package-level catalog.
+- **The layer contract is executable**: `internal/repocheck/layers_test.go`
+  parses production imports and fails if domain reaches infra/app/api, a use
+  case imports `infra/sqlite`, or infra imports its callers. The architecture
+  document is now backed by a test instead of review memory.
+- **The storage composition root is now explicit**: `internal/app/container`
+  opens the database, repositories, event bus, replay protection, token service
+  and ledger singleton, and owns their close order. `api.Server` delegates
+  `Services`/`Close` to it and only builds HTTP handlers and the oracle
+  scheduler; the desktop continues to receive the same container instance.
+- **The ledger API now reads as one concept**: `BlockChain` became `Chain`;
+  `NewBlockChain`/`NewBlockChainWithDB`/`InitBlockChain`/`GetBlockChain`
+  became `New`/`NewWithDB`/`Init`/`Get`; and `AddLotteryRecord` /
+  `WithLotteryRecordTransaction` became `AddRecord` / `WithRecordTransaction`.
+  The old names implied a lottery-only writer and a type that was really the
+  shared ledger.
+- **Desktop file import/export shares the runtime repository**: `Shell` takes
+  the container's `lottery.Repository`, so File → Export/Import and a dropped
+  export no longer open a second SQLite writer beside the app. An unwired shell
+  reports "lottery repository is not ready"; the SQLite fallback is gone.
+- **The API/desktop ledger no longer uses a process singleton**: `container.Open`
+  calls `blockchain.OpenDB` and `NewWithDB` and owns the DB/Chain handles; only
+  the CLI keeps the `InitDB`/`Init` convenience singleton. This lets API tests
+  and desktop runtimes close their ledger without affecting another handle.
+- **The ledger implementation now lives under infrastructure**: the
+  SQLite-backed `blockchain` package moved to `internal/infra/blockchain`;
+  `internal/ledger` holds the pure writer/transaction contracts and report
+  types. The desktop adapter uses a narrow `ledgerChain` interface, so
+  `native_*.go` no longer imports the implementation.
+- **The token service is split by operation**: service.go now holds the
+  contracts, constructor, transaction helpers and request types; queries, mint,
+  transfer, approval and burn live in service_*.go files. The 811-line file is
+  now a 223-line core plus focused units.
+- **The oracle scheduler has an application runtime**: `oracleapp.Runtime` owns
+  the fetch use case, scheduler, cancellation and stats/metrics view. The HTTP
+  server only starts it and hands the same stats provider to the handler.
+- **Desktop commands and long lists have real scope**: the Ctrl/Cmd+K palette now
+  runs Refresh, Back up, Export and Import as well as pages. The ledger and NFT
+  collection page through limit/offset (Previous/Next); a write disables only
+  the page body, and a slow write shows a timeout reassurance.
+- **Desktop forms gate their primary actions**: Create/Mint/Transfer/Approve/Cast
+  buttons stay disabled until their required fields are present, and an
+  in-flight write disables the frame so edits cannot race its result.
+- **Desktop titles and outcome lines are explicit**: the native window title
+  follows the visible page (and language), and the fixed status strip can be
+  dismissed so a stale "Done" does not describe the next action.
+- **Desktop writes have a busy state**: the real window moves service writes off
+  the frame thread, paints a spinner/“working” banner in the fixed chrome, and
+  applies the result on the frame thread. Tests keep the synchronous path.
+- **Desktop has a command palette and richer empty states**: Ctrl/Cmd+K opens a
+  keyboard-first page switcher (type to filter, arrows to move, Enter/Escape);
+  Token/NFT/Oracle empty lists show the module icon, title and next move. The
+  sidebar narrows from 216px to 184px below 1000px.
+- **The dashboard counters reflow for the minimum window**: three cards per
+  row on wide windows, two below 1100px, one below 760px, so the label/note
+  pair does not wrap inside a 200px card.
+- **The dashboard now leads with state and acts as shortcuts**: metric cards
+  open their module, a recent-activity row opens the page that wrote it, and a
+  non-empty dashboard shows counters/activity before the Quick start card (the
+  empty dashboard keeps Quick start first). Live pages carry a `Live · 10s`
+  badge, and Settings documents the window shortcuts.
+- **Desktop backup uses the container port**: `Shell` takes a backup function
+  from `container.Services` instead of constructing `infra/backup` itself;
+  `deskapp` production code now has no `internal/infra` import.
+- **HTTP handlers no longer import infrastructure**: lottery/NFT handlers take
+  ledger writers, the blockchain handler takes an integrity verifier, the
+  oracle handler takes an injected fetcher, and the rate-limit error moved to
+  `oracle.ErrRateLimited`. The outbox drainer moved to the container, so
+  `internal/api` production code has no `internal/infra` import.
+- **Presentation layers see a narrow service port**: `container.Services`
+  exposes domain repositories, token service, transaction managers, a ledger
+  view and the oracle fetcher; `api.Server.Services()` no longer returns the
+  concrete container or any `*sqlite.*`/DB handle.
+- **Handler transaction managers come from the container**: the container now
+  exposes `VotingTx` alongside `NFTTx`, so `api/handlers.go` no longer imports
+  `infra/sqlite` or constructs transaction managers.
+- **API handler assembly has its own seam**: `internal/api/handlers.go` builds
+  the six handlers from a container; `Server` keeps lifecycle, metrics and the
+  scheduler. Router tests may still construct a handler-less server without a
+  nil dereference.
+- **Transaction management is one shared port**: token, NFT and voting domain
+  packages now alias `ledger.TransactionManager` instead of declaring three
+  identical interfaces. Existing mocks and constructors stay source-compatible.
+- **The ledger has a pure port package**: `internal/ledger` now owns
+  `BlockWriter`, transaction writer interfaces and the transactional append
+  helpers. Domain services, application use cases and handlers depend on that
+  port; only `app/container` imports the SQLite-backed
+  `internal/infra/blockchain`.
+  The layer test forbids the old direction.
+- **Application use cases no longer construct an HTTP client**: `oracleapp`'s
+  default `http.NewFetcher` moved to the composition root; the API, CLI and
+  desktop inject a fetcher, and a nil fetcher returns a clear error instead of
+  panicking. The layer check now forbids every `internal/infra` import outside
+  `app/container`.
+- **The view package's widget grab bag is split by responsibility**:
+  `components.go` became `controls.go`, `layout.go` and `values.go`, with the
+  package comment in `doc.go`. No behavior changed.
+- **The view package separates page identity and status from widgets**:
+  `pages.go` owns the page enum/IDs/order, `status.go` owns the success/failure
+  line and error localization. `components.go` now holds only controls and
+  layout primitives.
+- **The view package separates its data contract from its state machine**:
+  `nativeui.Services` moved to `services.go` and the row DTOs to `rows.go`;
+  `app.go` keeps the App state, construction and navigation. The contract now
+  names the desktop adapter, not `api.Server`.
+- **The desktop adapter now depends on domain ports, not SQLite types**:
+  `nativeServices` fields/constructor use `lottery.Repository`,
+  `voting.TransactableRepository`, `nft.TransactableRepository` and
+  `oracle.Repository`; the container injects the NFT transaction manager.
+  `ports_test.go` keeps `native_*.go` from importing infra/api again.
+- **The desktop service adapter is split by module**: `native_services.go`
+  keeps only the struct and constructor; lottery, ledger, voting, token, oracle,
+  NFT and key-pair mappings live in their own files. The 779-line adapter is
+  now an 80-line seam plus focused files, so a domain mapping change has one
+  obvious home.
+- **Application use cases no longer import SQLite for error classification**:
+  the generic not-found sentinel now lives in `internal/domain/repoerr`, and
+  SQLite keeps compatibility aliases for it and `voting.ErrAlreadyVoted`.
+  `oracleapp`/`votingapp` depend on domain errors only, so the storage
+  implementation can change without editing a use case.
+- **The whole desktop follows the language switch, not only its menu**: page
+  titles and purposes, navigation, buttons, field labels, hints, empty states,
+  table headers, guides, dialogs and status lines go through `nativeui.tr`.
+  English literals are the keys, so a missing entry falls back to readable
+  English; Chinese translations live in
+  `desktop/internal/nativeui/messages_zh.go`. Known service errors are translated by
+  their message (a wrapped "seed: seed too short" keeps its prefix); unknown
+  or dynamic diagnostics stay verbatim, and the backend log is unchanged.
+- **Every module page has a "How this works" guide**: the steps state the
+  order of operations in plain language, including which private key each
+  write needs and that keys are never stored. The guide starts collapsed so
+  the page stays task-first; it is one click away instead of leaving the
+  operator to infer the workflow from card headings.
+- **The desktop guides the first move and hides fields most uses do not
+  need**: the dashboard now has a Quick start card ("Run a draw", "Create a
+  token", "Register a voter", "Add a data source", "Mint an NFT") and each
+  page title states a task instead of a module description. Token decimals,
+  history paging, NFT optional metadata and oracle transport headers sit
+  behind labelled disclosures; a preset opens the oracle disclosure so its
+  filled fields are reviewable.
+- **Selecting or creating a token fills the owner accounts and drops the
+  previous secrets**: the record already knows its owner public key, so Mint
+  To, Transfer From, Approve Owner, Burn From, balance and history owners start
+  from it instead of asking for the same base64 key six times. Private keys,
+  recipients and spenders from the previous token are cleared, and a token
+  created with a generated key offers "Use generated owner key" in the owner-
+  signed forms while that token is the subject; an NFT minted with a generated
+  creator key offers the same shortcut in Transfer/Burn while the creator is
+  still its holder.
+- **Results and Readings load the object already chosen**: switching to
+  Voting's Results stage loads the selected session's tally, and Oracle's
+  Readings stage queries the selected source and its latest value. The
+  explicit buttons remain the retry path; the loaded source/limit is tracked so
+  a tab does not re-query every frame.
+- **A successful create highlights its record**: token, NFT, lottery, candidate
+  and session creation clear a search/filter that would hide the new row,
+  select it, and move the page context to it. Before this, the status sentence
+  said "Created" while the list still showed an unrelated or empty selection.
+- **The desktop's dense pages became tabbed workbenches**: the Token page's
+  six write forms and the NFT page's Transfer/Burn/History now show one
+  operation at a time; Voting is split into Setup (register/create), Ballot
+  (start/end, cast) and Results; Oracle's right column is Sources, Health and
+  Readings. Scrolling past five hidden forms to reach Burn, or down four cards
+  to find the tally, was work the operator did not need to do.
+- **The desktop stacks its two columns on a narrow window**: below 1000px the
+  second column moves under the first, so the 900px minimum no longer squeezes
+  every card to about 300px. Tests pin the side-by-side layout at 1280 and the
+  stacked one at 900.
+- **Every id the window shows can be copied**: the active token, the inspected
+  NFT, the draw in the Verify field, the selected source, session and candidate
+  now carry copy rows; the tables truncate ids and native text is not
+  selectable, so previously the only full id was a field that could be read but
+  not copied.
+- **The desktop no longer has a menu bar on Linux and Windows**: pages are
+  navigated from the sidebar and refreshed from the header, so the
+  File/Edit/Go/View/Window/Help bar was chrome the window did not need. The app
+  installs no application menu there at all; `AutoHideMenuBar` is only a
+  fallback if a host supplies one. Cmd/Ctrl+E/I/B are registered by the window;
+  backup, export/import and recent exports live in a sidebar **File** menu, and
+  language, data location, appearance and build facts live in a **Settings**
+  page under the sidebar's Application section (Ctrl/Cmd+, also opens it).
+- **Live updates are opt-in and persisted**: Settings can refresh the open
+  Dashboard, Oracle health and open readings every 10 seconds; forms keep
+  their text and Settings itself never starts a background refresh. The choice lives in
+  `desktop-settings.json` beside the database and is loaded on the next launch;
+  a failed write is shown in Settings instead of silently resetting.
+- macOS
+  cannot remove its global
+  bar, so it keeps only the platform roles (app menu, File→Close, Edit, Window);
+  Aurora's own entries appear in the window on all three platforms, so the menu
+  contents no longer fork.
+- **The desktop has a high-contrast variant of its palette**: when the OS asks
+  for increased contrast, the same polar-night design uses brighter hairlines,
+  primary/secondary text, focus ring and selection tint (`auroraTheme(true)`).
+  A WCAG contrast-ratio test compares every pair against the normal theme and
+  fails if the variant stops being stronger.
+- **The desktop follows the OS text size**: every explicit FontSize in the view
+  layer now goes through `textSize`, which multiplies the system TextScale
+  preference. MyGo's theme only scaled text without an explicit size, which in
+  this window was almost none of it; Reduce Motion already worked because MyGo
+  sends animations straight to their target. `TestTextScaleIsHonoured` renders
+  at 1.5x and fails if the header does not grow.
+- **Choosing a desktop session shows who is on its ballot**: the row cannot
+  carry the roster, so the selected session now prints its candidate names
+  under the table (ids shortened when a candidate was deleted), which is what
+  the operator needs before starting or ending it.
+- **The desktop uses text areas for its long free-text fields**: the oracle
+  Request Headers JSON and the NFT Description were single-line inputs; both
+  are `ui.TextArea` now, so a header object can be read while it is edited.
+- **The desktop numeric fields are real number inputs**: winner count, token decimals,
+  oracle poll interval and the query/history page sizes are `ui.NumberInput` with
+  the domain bounds and a step, instead of text parsed on submit; the interval
+  ceiling is the domain's 30 days, and list sizes are capped at 1000 before they
+  reach the repository. A value can no longer be rejected for its spelling.
+- **The desktop menu bar has a Go menu for the seven pages**: the window's
+  Ctrl/Cmd+1..7 shortcuts existed but nothing in the UI named them. A Go menu
+  lists the pages in sidebar order (`nativeui.PageTitles`) with the same
+  accelerators and calls the window's `ShowPage`; it is built after the app
+  state exists, so `NewMenu` takes the page switcher and omits the menu when it
+  is nil. `menu_test.go` pins the titles, accelerators and click target.
+- **The desktop candidate list can build a session roster**: the Create Session
+  card takes comma-separated candidate ids, so any roster other than "every
+  candidate" meant copying UUIDs out of the shortened candidate table by hand.
+  Choosing a candidate and pressing "Add to session roster" appends it (once)
+  to the form's roster field, and the status line confirms which candidate was
+  added; `TestCandidateCardBuildsACustomRoster` drives the clicks and creates a
+  session from the built roster.
+- **The desktop collections are searchable, and the tally states its total**:
+  the Tokens and NFTs lists load every stored row and had no way to narrow them,
+  so a long-lived store required scrolling for a name. Each list now has a
+  `ui.SearchField` filtering by id/name (and symbol for tokens) as the user
+  types, case-insensitively; the NFT search composes with the owner filter, a
+  filtered row still fills the forms with its full id, and an empty result says
+  "no match" rather than "nothing stored". The voting page's candidate and
+  session lists gained the same field (id/name/party and id/title/status), as did
+  the draw history (id/seed/participant/winner) and the oracle source list
+  (name/id/type/URL), with selection resolved against the filtered rows so a
+  search can never act on a different row than the one on screen, and a new
+  query clearing the old row highlight rather than letting one index describe
+  two different records. The ledger page filters by module/payload/height and
+  bounds the table with a Show row limit (default 200, "Showing the newest N of
+  M" when cut), while its counters still describe the whole chain. The voting
+  Results card also prints the sum of the per-candidate counts, which is what a
+  reader checks before trusting the rows.
+- **The desktop dashboard lists recent chain activity**: the landing page showed
+  six counters and a ledger verdict, which answer "how much is there" but not
+  "what happened lately". A Recent activity card now lists the newest five
+  chain entries (block, module, payload summary) from the application layer's
+  `LedgerBlocks`, with its own failure line so a chain read error cannot blank
+  the counters. The empty dashboard's onboarding line now has an "Open Lottery"
+  button that selects the page, so the first move is one click rather than a
+  sidebar hunt. `design_test.go` proves only the newest five are listed and the
+  button switches pages.
+- **The desktop window has one design system instead of ad-hoc widgets**: the
+  sidebar now has a brand block, its own tone and a hairline against content,
+  and every module row carries a Lucide glyph (`icons.go`) that takes the row's
+  colour; the page header repeats that glyph beside the title and purpose.
+  Cards are lifted with a soft shadow and a one-pixel top highlight rather than
+  a border alone. Every action button comes from one of four styles —
+  `primaryButton`, `secondaryButton`, `dangerButton` (destructive, still behind
+  its dialog) and the small `quietButton` for copies — all `ui.ButtonBase` with
+  one height, radius and weight plus hover/press colour and scale feedback,
+  following GoRex and the MyGo NetEase client. Ctrl/Cmd+1…7 selects a page in
+  sidebar order. The live window was captured under Xvfb to check the new
+  chrome renders (sidebar and content tones differ; no panic in the log).
+- **The desktop window draws native Go, and the web UI is gone**: the app used
+  to host the same HTML the REST gateway served, which made a Go project depend
+  on a browser engine and 3.6k lines of HTML/CSS/JavaScript — and it produced a
+  defect only a browser could catch: a CSP without `'unsafe-eval'` silently
+  disabled every Alpine directive, so no form in the HTTP UI could be
+  submitted while the desktop masked it by stripping CSP. The window now builds
+  seven pages from `desktop/internal/nativeui` with MyGo's own widgets over the
+  same `api.Services` the REST handlers use. Removed with it: `web/`, the root
+  embed package, the gateway's static-file branch and API-key HTML injection,
+  the per-response CSP builder, the desktop CSP-stripping transport, and the
+  `--web-root` flag. Irreversible actions (burn token/NFT, delete oracle
+  source) ask through a native dialog, matching the CLI's `--confirm`. The view
+  suite renders every page through `ui.Tester`, so the interface is testable
+  without a window or an X server.
+- **The five application packages took an `app` suffix**: `app/lottery` is now
+  `app/lotteryapp` (and likewise voting, nft, token, oracle), so a domain
+  package and its application package no longer share a name. That removed 41
+  of 73 import aliases that existed only to tell them apart, and use-case
+  constructors lost their stutter — `lottery.NewCreateLotteryUseCase` is
+  `lotteryapp.NewCreate`.
 
 ### Added
 
@@ -1419,352 +1762,6 @@ documented in their per-milestone ROADMAP files.
   the same indexes, so a fresh database, a migrated one and a rebuilt one
   agree. `internal/infra/sqlite/query_plan_test.go` pins both plans and fails
   if the sort reappears.
-
-### Changed
-
-- **The desktop window has a new visual system**: the palette moved to a deeper
-  layered night tone with a per-module accent (lottery amber, voting violet,
-  token emerald, oracle sky, NFT pink, blockchain indigo), and the shared
-  spacing, radius, type and surface helpers now live in `design.go` instead of
-  being repeated per view. Cards use a subtle gradient, softer elevation and a
-  top hairline; primary actions are a lit gradient, secondary actions a glass
-  outline, and the destructive action stays solid red behind its dialog.
-- **The shell exposes navigation instead of hiding it**: the sidebar gained a
-  gradient brand mark, a "Jump to" control that opens the same Ctrl/Cmd+K
-  command palette, and a local-ledger/version footer when the shell supplies a
-  version. The page header now uses the module tile, a 28pt title and a refresh
-  control that prints its chord.
-- **The dashboard leads with the ledger verdict**: integrity is a full-width
-  hero panel with icon, word and route to the audit page, followed by six
-  module counters (including the chain's block count) and the existing
-  activity and quick-start cards. Settings is a two-column page, and the
-  Blockchain summary uses stat chips plus a verdict pill instead of a
-  full-width readout for two numbers.
-- **Small details now follow the same system**: a fresh dashboard names its
-  first move instead of explaining an empty chain, ledger module cells carry
-  their module's hue, the command palette prints its arrow/Enter/Escape keys,
-  and every page's filter is built by one helper so its accessible label stays
-  translated. Token and NFT moved Inspect under the write tabs, so both
-  columns of their workbench end at roughly the same height instead of leaving
-  most of the action column empty.
-- **Voting works as a two-column workbench on every stage**: Ballot puts Cast
-  Vote beside Session Controls, and Results puts the session query beside a
-  tally card that draws each candidate's votes as a leader-scaled bar while
-  keeping the exact count and an accessible "candidate: N votes" label. The
-  record layout still takes over at enlarged text.
-- **Feed Health uses records at every width**: its five columns never fit the
-  half-width workbench, so headers ellipsised and the last error disappeared
-  first; the record layout keeps the source name, all three counters and the
-  verbatim error. The Settings shortcut list now renders each chord as a key
-  cap, and the Voting lists and empty ledger states carry their own marks.
-- **Oracle source actions live in the workbench column**: Source Actions sits
-  under Add Source with the selected endpoint, cadence and a 2x2 grid of
-  Enable/Disable/Fetch/Delete, so it stays usable while reading Health or
-  Readings. Its delete confirmation is mounted once for the page instead of
-  only from the Sources tab.
-- **Verify offers the latest draw**: the verification card gains a "Use latest
-  draw" action whenever History has a row, so re-checking the draw just
-  recorded no longer starts with copying its id out of the table.
-- **The desktop is on MyGo v0.7.1**: the nested module upgraded from v0.6.3 and
-  its Go directive to 1.27.3, and `just desktop-deps` / `just desktop-update-mygo`
-  make the fast-moving dependency deliberate to check and refresh. Renovate
-  now schedules MyGo updates at any time with a desktop label.
-- **The ledger subsystem is no longer presented as a domain package**:
-  `internal/domain/blockchain` moved out of domain and now lives at
-  `internal/infra/blockchain`, where its SQLite
-  bootstrap, singleton and file-permission work no longer blur the pure
-  `domain` boundary. The package API and behavior are unchanged; a new
-  `docs/architecture.md` records the dependency contract and the remaining
-  refactor order.
-- **Desktop UI copy now lives beside the views**: the desktop catalog moved
-  from `internal/i18n` to `desktop/internal/nativeui/messages_zh.go`; the core
-  translator keeps CLI/service keys only, and `tr`/`Translate` falls back to it
-  for service errors and menu entries. `LoadLocaleFile` now writes to a cloned
-  map instead of a package-level catalog.
-- **The layer contract is executable**: `internal/repocheck/layers_test.go`
-  parses production imports and fails if domain reaches infra/app/api, a use
-  case imports `infra/sqlite`, or infra imports its callers. The architecture
-  document is now backed by a test instead of review memory.
-- **The storage composition root is now explicit**: `internal/app/container`
-  opens the database, repositories, event bus, replay protection, token service
-  and ledger singleton, and owns their close order. `api.Server` delegates
-  `Services`/`Close` to it and only builds HTTP handlers and the oracle
-  scheduler; the desktop continues to receive the same container instance.
-- **The ledger API now reads as one concept**: `BlockChain` became `Chain`;
-  `NewBlockChain`/`NewBlockChainWithDB`/`InitBlockChain`/`GetBlockChain`
-  became `New`/`NewWithDB`/`Init`/`Get`; and `AddLotteryRecord` /
-  `WithLotteryRecordTransaction` became `AddRecord` / `WithRecordTransaction`.
-  The old names implied a lottery-only writer and a type that was really the
-  shared ledger.
-- **Desktop file import/export shares the runtime repository**: `Shell` takes
-  the container's `lottery.Repository`, so File → Export/Import and a dropped
-  export no longer open a second SQLite writer beside the app. An unwired shell
-  reports "lottery repository is not ready"; the SQLite fallback is gone.
-- **The API/desktop ledger no longer uses a process singleton**: `container.Open`
-  calls `blockchain.OpenDB` and `NewWithDB` and owns the DB/Chain handles; only
-  the CLI keeps the `InitDB`/`Init` convenience singleton. This lets API tests
-  and desktop runtimes close their ledger without affecting another handle.
-- **The ledger implementation now lives under infrastructure**: the
-  SQLite-backed `blockchain` package moved to `internal/infra/blockchain`;
-  `internal/ledger` holds the pure writer/transaction contracts and report
-  types. The desktop adapter uses a narrow `ledgerChain` interface, so
-  `native_*.go` no longer imports the implementation.
-- **The token service is split by operation**: service.go now holds the
-  contracts, constructor, transaction helpers and request types; queries, mint,
-  transfer, approval and burn live in service_*.go files. The 811-line file is
-  now a 223-line core plus focused units.
-- **The oracle scheduler has an application runtime**: `oracleapp.Runtime` owns
-  the fetch use case, scheduler, cancellation and stats/metrics view. The HTTP
-  server only starts it and hands the same stats provider to the handler.
-- **Desktop commands and long lists have real scope**: the Ctrl/Cmd+K palette now
-  runs Refresh, Back up, Export and Import as well as pages. The ledger and NFT
-  collection page through limit/offset (Previous/Next); a write disables only
-  the page body, and a slow write shows a timeout reassurance.
-- **Desktop forms gate their primary actions**: Create/Mint/Transfer/Approve/Cast
-  buttons stay disabled until their required fields are present, and an
-  in-flight write disables the frame so edits cannot race its result.
-- **Desktop titles and outcome lines are explicit**: the native window title
-  follows the visible page (and language), and the fixed status strip can be
-  dismissed so a stale "Done" does not describe the next action.
-- **Desktop writes have a busy state**: the real window moves service writes off
-  the frame thread, paints a spinner/“working” banner in the fixed chrome, and
-  applies the result on the frame thread. Tests keep the synchronous path.
-- **Desktop has a command palette and richer empty states**: Ctrl/Cmd+K opens a
-  keyboard-first page switcher (type to filter, arrows to move, Enter/Escape);
-  Token/NFT/Oracle empty lists show the module icon, title and next move. The
-  sidebar narrows from 216px to 184px below 1000px.
-- **The dashboard counters reflow for the minimum window**: three cards per
-  row on wide windows, two below 1100px, one below 760px, so the label/note
-  pair does not wrap inside a 200px card.
-- **The dashboard now leads with state and acts as shortcuts**: metric cards
-  open their module, a recent-activity row opens the page that wrote it, and a
-  non-empty dashboard shows counters/activity before the Quick start card (the
-  empty dashboard keeps Quick start first). Live pages carry a `Live · 10s`
-  badge, and Settings documents the window shortcuts.
-- **Desktop backup uses the container port**: `Shell` takes a backup function
-  from `container.Services` instead of constructing `infra/backup` itself;
-  `deskapp` production code now has no `internal/infra` import.
-- **HTTP handlers no longer import infrastructure**: lottery/NFT handlers take
-  ledger writers, the blockchain handler takes an integrity verifier, the
-  oracle handler takes an injected fetcher, and the rate-limit error moved to
-  `oracle.ErrRateLimited`. The outbox drainer moved to the container, so
-  `internal/api` production code has no `internal/infra` import.
-- **Presentation layers see a narrow service port**: `container.Services`
-  exposes domain repositories, token service, transaction managers, a ledger
-  view and the oracle fetcher; `api.Server.Services()` no longer returns the
-  concrete container or any `*sqlite.*`/DB handle.
-- **Handler transaction managers come from the container**: the container now
-  exposes `VotingTx` alongside `NFTTx`, so `api/handlers.go` no longer imports
-  `infra/sqlite` or constructs transaction managers.
-- **API handler assembly has its own seam**: `internal/api/handlers.go` builds
-  the six handlers from a container; `Server` keeps lifecycle, metrics and the
-  scheduler. Router tests may still construct a handler-less server without a
-  nil dereference.
-- **Transaction management is one shared port**: token, NFT and voting domain
-  packages now alias `ledger.TransactionManager` instead of declaring three
-  identical interfaces. Existing mocks and constructors stay source-compatible.
-- **The ledger has a pure port package**: `internal/ledger` now owns
-  `BlockWriter`, transaction writer interfaces and the transactional append
-  helpers. Domain services, application use cases and handlers depend on that
-  port; only `app/container` imports the SQLite-backed
-  `internal/infra/blockchain`.
-  The layer test forbids the old direction.
-- **Application use cases no longer construct an HTTP client**: `oracleapp`'s
-  default `http.NewFetcher` moved to the composition root; the API, CLI and
-  desktop inject a fetcher, and a nil fetcher returns a clear error instead of
-  panicking. The layer check now forbids every `internal/infra` import outside
-  `app/container`.
-- **The view package's widget grab bag is split by responsibility**:
-  `components.go` became `controls.go`, `layout.go` and `values.go`, with the
-  package comment in `doc.go`. No behavior changed.
-- **The view package separates page identity and status from widgets**:
-  `pages.go` owns the page enum/IDs/order, `status.go` owns the success/failure
-  line and error localization. `components.go` now holds only controls and
-  layout primitives.
-- **The view package separates its data contract from its state machine**:
-  `nativeui.Services` moved to `services.go` and the row DTOs to `rows.go`;
-  `app.go` keeps the App state, construction and navigation. The contract now
-  names the desktop adapter, not `api.Server`.
-- **The desktop adapter now depends on domain ports, not SQLite types**:
-  `nativeServices` fields/constructor use `lottery.Repository`,
-  `voting.TransactableRepository`, `nft.TransactableRepository` and
-  `oracle.Repository`; the container injects the NFT transaction manager.
-  `ports_test.go` keeps `native_*.go` from importing infra/api again.
-- **The desktop service adapter is split by module**: `native_services.go`
-  keeps only the struct and constructor; lottery, ledger, voting, token, oracle,
-  NFT and key-pair mappings live in their own files. The 779-line adapter is
-  now an 80-line seam plus focused files, so a domain mapping change has one
-  obvious home.
-- **Application use cases no longer import SQLite for error classification**:
-  the generic not-found sentinel now lives in `internal/domain/repoerr`, and
-  SQLite keeps compatibility aliases for it and `voting.ErrAlreadyVoted`.
-  `oracleapp`/`votingapp` depend on domain errors only, so the storage
-  implementation can change without editing a use case.
-- **The whole desktop follows the language switch, not only its menu**: page
-  titles and purposes, navigation, buttons, field labels, hints, empty states,
-  table headers, guides, dialogs and status lines go through `nativeui.tr`.
-  English literals are the keys, so a missing entry falls back to readable
-  English; Chinese translations live in
-  `desktop/internal/nativeui/messages_zh.go`. Known service errors are translated by
-  their message (a wrapped "seed: seed too short" keeps its prefix); unknown
-  or dynamic diagnostics stay verbatim, and the backend log is unchanged.
-- **Every module page has a "How this works" guide**: the steps state the
-  order of operations in plain language, including which private key each
-  write needs and that keys are never stored. The guide starts collapsed so
-  the page stays task-first; it is one click away instead of leaving the
-  operator to infer the workflow from card headings.
-- **The desktop guides the first move and hides fields most uses do not
-  need**: the dashboard now has a Quick start card ("Run a draw", "Create a
-  token", "Register a voter", "Add a data source", "Mint an NFT") and each
-  page title states a task instead of a module description. Token decimals,
-  history paging, NFT optional metadata and oracle transport headers sit
-  behind labelled disclosures; a preset opens the oracle disclosure so its
-  filled fields are reviewable.
-- **Selecting or creating a token fills the owner accounts and drops the
-  previous secrets**: the record already knows its owner public key, so Mint
-  To, Transfer From, Approve Owner, Burn From, balance and history owners start
-  from it instead of asking for the same base64 key six times. Private keys,
-  recipients and spenders from the previous token are cleared, and a token
-  created with a generated key offers "Use generated owner key" in the owner-
-  signed forms while that token is the subject; an NFT minted with a generated
-  creator key offers the same shortcut in Transfer/Burn while the creator is
-  still its holder.
-- **Results and Readings load the object already chosen**: switching to
-  Voting's Results stage loads the selected session's tally, and Oracle's
-  Readings stage queries the selected source and its latest value. The
-  explicit buttons remain the retry path; the loaded source/limit is tracked so
-  a tab does not re-query every frame.
-- **A successful create highlights its record**: token, NFT, lottery, candidate
-  and session creation clear a search/filter that would hide the new row,
-  select it, and move the page context to it. Before this, the status sentence
-  said "Created" while the list still showed an unrelated or empty selection.
-- **The desktop's dense pages became tabbed workbenches**: the Token page's
-  six write forms and the NFT page's Transfer/Burn/History now show one
-  operation at a time; Voting is split into Setup (register/create), Ballot
-  (start/end, cast) and Results; Oracle's right column is Sources, Health and
-  Readings. Scrolling past five hidden forms to reach Burn, or down four cards
-  to find the tally, was work the operator did not need to do.
-- **The desktop stacks its two columns on a narrow window**: below 1000px the
-  second column moves under the first, so the 900px minimum no longer squeezes
-  every card to about 300px. Tests pin the side-by-side layout at 1280 and the
-  stacked one at 900.
-- **Every id the window shows can be copied**: the active token, the inspected
-  NFT, the draw in the Verify field, the selected source, session and candidate
-  now carry copy rows; the tables truncate ids and native text is not
-  selectable, so previously the only full id was a field that could be read but
-  not copied.
-- **The desktop no longer has a menu bar on Linux and Windows**: pages are
-  navigated from the sidebar and refreshed from the header, so the
-  File/Edit/Go/View/Window/Help bar was chrome the window did not need. The app
-  installs no application menu there at all; `AutoHideMenuBar` is only a
-  fallback if a host supplies one. Cmd/Ctrl+E/I/B are registered by the window;
-  backup, export/import and recent exports live in a sidebar **File** menu, and
-  language, data location, appearance and build facts live in a **Settings**
-  page under the sidebar's Application section (Ctrl/Cmd+, also opens it).
-- **Live updates are opt-in and persisted**: Settings can refresh the open
-  Dashboard, Oracle health and open readings every 10 seconds; forms keep
-  their text and Settings itself never starts a background refresh. The choice lives in
-  `desktop-settings.json` beside the database and is loaded on the next launch;
-  a failed write is shown in Settings instead of silently resetting.
-- macOS
-  cannot remove its global
-  bar, so it keeps only the platform roles (app menu, File→Close, Edit, Window);
-  Aurora's own entries appear in the window on all three platforms, so the menu
-  contents no longer fork.
-- **The desktop has a high-contrast variant of its palette**: when the OS asks
-  for increased contrast, the same polar-night design uses brighter hairlines,
-  primary/secondary text, focus ring and selection tint (`auroraTheme(true)`).
-  A WCAG contrast-ratio test compares every pair against the normal theme and
-  fails if the variant stops being stronger.
-- **The desktop follows the OS text size**: every explicit FontSize in the view
-  layer now goes through `textSize`, which multiplies the system TextScale
-  preference. MyGo's theme only scaled text without an explicit size, which in
-  this window was almost none of it; Reduce Motion already worked because MyGo
-  sends animations straight to their target. `TestTextScaleIsHonoured` renders
-  at 1.5x and fails if the header does not grow.
-- **Choosing a desktop session shows who is on its ballot**: the row cannot
-  carry the roster, so the selected session now prints its candidate names
-  under the table (ids shortened when a candidate was deleted), which is what
-  the operator needs before starting or ending it.
-- **The desktop uses text areas for its long free-text fields**: the oracle
-  Request Headers JSON and the NFT Description were single-line inputs; both
-  are `ui.TextArea` now, so a header object can be read while it is edited.
-- **The desktop numeric fields are real number inputs**: winner count, token decimals,
-  oracle poll interval and the query/history page sizes are `ui.NumberInput` with
-  the domain bounds and a step, instead of text parsed on submit; the interval
-  ceiling is the domain's 30 days, and list sizes are capped at 1000 before they
-  reach the repository. A value can no longer be rejected for its spelling.
-- **The desktop menu bar has a Go menu for the seven pages**: the window's
-  Ctrl/Cmd+1..7 shortcuts existed but nothing in the UI named them. A Go menu
-  lists the pages in sidebar order (`nativeui.PageTitles`) with the same
-  accelerators and calls the window's `ShowPage`; it is built after the app
-  state exists, so `NewMenu` takes the page switcher and omits the menu when it
-  is nil. `menu_test.go` pins the titles, accelerators and click target.
-- **The desktop candidate list can build a session roster**: the Create Session
-  card takes comma-separated candidate ids, so any roster other than "every
-  candidate" meant copying UUIDs out of the shortened candidate table by hand.
-  Choosing a candidate and pressing "Add to session roster" appends it (once)
-  to the form's roster field, and the status line confirms which candidate was
-  added; `TestCandidateCardBuildsACustomRoster` drives the clicks and creates a
-  session from the built roster.
-- **The desktop collections are searchable, and the tally states its total**:
-  the Tokens and NFTs lists load every stored row and had no way to narrow them,
-  so a long-lived store required scrolling for a name. Each list now has a
-  `ui.SearchField` filtering by id/name (and symbol for tokens) as the user
-  types, case-insensitively; the NFT search composes with the owner filter, a
-  filtered row still fills the forms with its full id, and an empty result says
-  "no match" rather than "nothing stored". The voting page's candidate and
-  session lists gained the same field (id/name/party and id/title/status), as did
-  the draw history (id/seed/participant/winner) and the oracle source list
-  (name/id/type/URL), with selection resolved against the filtered rows so a
-  search can never act on a different row than the one on screen, and a new
-  query clearing the old row highlight rather than letting one index describe
-  two different records. The ledger page filters by module/payload/height and
-  bounds the table with a Show row limit (default 200, "Showing the newest N of
-  M" when cut), while its counters still describe the whole chain. The voting
-  Results card also prints the sum of the per-candidate counts, which is what a
-  reader checks before trusting the rows.
-- **The desktop dashboard lists recent chain activity**: the landing page showed
-  six counters and a ledger verdict, which answer "how much is there" but not
-  "what happened lately". A Recent activity card now lists the newest five
-  chain entries (block, module, payload summary) from the application layer's
-  `LedgerBlocks`, with its own failure line so a chain read error cannot blank
-  the counters. The empty dashboard's onboarding line now has an "Open Lottery"
-  button that selects the page, so the first move is one click rather than a
-  sidebar hunt. `design_test.go` proves only the newest five are listed and the
-  button switches pages.
-- **The desktop window has one design system instead of ad-hoc widgets**: the
-  sidebar now has a brand block, its own tone and a hairline against content,
-  and every module row carries a Lucide glyph (`icons.go`) that takes the row's
-  colour; the page header repeats that glyph beside the title and purpose.
-  Cards are lifted with a soft shadow and a one-pixel top highlight rather than
-  a border alone. Every action button comes from one of four styles —
-  `primaryButton`, `secondaryButton`, `dangerButton` (destructive, still behind
-  its dialog) and the small `quietButton` for copies — all `ui.ButtonBase` with
-  one height, radius and weight plus hover/press colour and scale feedback,
-  following GoRex and the MyGo NetEase client. Ctrl/Cmd+1…7 selects a page in
-  sidebar order. The live window was captured under Xvfb to check the new
-  chrome renders (sidebar and content tones differ; no panic in the log).
-- **The desktop window draws native Go, and the web UI is gone**: the app used
-  to host the same HTML the REST gateway served, which made a Go project depend
-  on a browser engine and 3.6k lines of HTML/CSS/JavaScript — and it produced a
-  defect only a browser could catch: a CSP without `'unsafe-eval'` silently
-  disabled every Alpine directive, so no form in the HTTP UI could be
-  submitted while the desktop masked it by stripping CSP. The window now builds
-  seven pages from `desktop/internal/nativeui` with MyGo's own widgets over the
-  same `api.Services` the REST handlers use. Removed with it: `web/`, the root
-  embed package, the gateway's static-file branch and API-key HTML injection,
-  the per-response CSP builder, the desktop CSP-stripping transport, and the
-  `--web-root` flag. Irreversible actions (burn token/NFT, delete oracle
-  source) ask through a native dialog, matching the CLI's `--confirm`. The view
-  suite renders every page through `ui.Tester`, so the interface is testable
-  without a window or an X server.
-- **The five application packages took an `app` suffix**: `app/lottery` is now
-  `app/lotteryapp` (and likewise voting, nft, token, oracle), so a domain
-  package and its application package no longer share a name. That removed 41
-  of 73 import aliases that existed only to tell them apart, and use-case
-  constructors lost their stutter — `lottery.NewCreateLotteryUseCase` is
-  `lotteryapp.NewCreate`.
 
 ### Removed
 
