@@ -94,6 +94,7 @@ func TestLotteryHandler_Verify_ValidDraw(t *testing.T) {
 	handler.Verify(rr, req)
 
 	assert.Equal(t, http.StatusOK, rr.Code)
+	requireSnakeCaseJSON(t, rr.Body.Bytes())
 	var resp struct {
 		ID    string `json:"id"`
 		Valid bool   `json:"valid"`
@@ -123,6 +124,7 @@ func TestLotteryHandler_Verify_TamperedWinnerAddress(t *testing.T) {
 	handler.Verify(rr, req)
 
 	assert.Equal(t, http.StatusOK, rr.Code)
+	requireSnakeCaseJSON(t, rr.Body.Bytes())
 	var resp struct {
 		Valid  bool   `json:"valid"`
 		Reason string `json:"reason"`
@@ -141,6 +143,7 @@ func TestLotteryHandler_History(t *testing.T) {
 	handler.History(rr, req)
 
 	assert.Equal(t, http.StatusOK, rr.Code)
+	requireSnakeCaseJSON(t, rr.Body.Bytes())
 	assert.Equal(t, "application/json", rr.Header().Get("Content-Type"))
 }
 
@@ -161,6 +164,7 @@ func TestLotteryHandler_HistoryPagination(t *testing.T) {
 		rr := httptest.NewRecorder()
 		handler.History(rr, req)
 		assert.Equal(t, http.StatusOK, rr.Code)
+		requireSnakeCaseJSON(t, rr.Body.Bytes())
 		var got []*lottery.LotteryRecord
 		require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &got))
 		require.Len(t, got, defaultLotteryHistoryLimit, "no-flag history must be bounded to the default page size")
@@ -344,6 +348,7 @@ func TestLotteryHandler_Get_WithValidID(t *testing.T) {
 	handler.Get(rr, req)
 
 	assert.Equal(t, http.StatusOK, rr.Code)
+	requireSnakeCaseJSON(t, rr.Body.Bytes())
 }
 
 type mockLotteryRepoWithData struct{}
@@ -377,6 +382,7 @@ func TestLotteryHandler_History_EmptyArray(t *testing.T) {
 	handler.History(rr, req)
 
 	assert.Equal(t, http.StatusOK, rr.Code)
+	requireSnakeCaseJSON(t, rr.Body.Bytes())
 	assert.Equal(t, "[]\n", rr.Body.String(), "empty history must encode as [], not null")
 }
 

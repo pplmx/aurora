@@ -259,6 +259,7 @@ func TestTokenHandler_History_CapsUnboundedLimit(t *testing.T) {
 	handler.History(rr, req)
 
 	assert.Equal(t, http.StatusOK, rr.Code)
+	requireSnakeCaseJSON(t, rr.Body.Bytes())
 	assert.Equal(t, maxHistoryLimit, svc.gotLimit, "unbounded ?limit must be capped")
 }
 
@@ -278,6 +279,7 @@ func TestTokenHandler_History_DefaultsToServiceLimit(t *testing.T) {
 	handler.History(rr, req)
 
 	assert.Equal(t, http.StatusOK, rr.Code)
+	requireSnakeCaseJSON(t, rr.Body.Bytes())
 	// 50 is the shared default across the service layer fallback (limit<=0)
 	// and the CLI's --limit resolution; the REST default must match it.
 	assert.Equal(t, 50, svc.gotLimit,
@@ -294,6 +296,7 @@ func TestTokenHandler_History_CapsUnboundedOffset(t *testing.T) {
 	handler.History(rr, req)
 
 	assert.Equal(t, http.StatusOK, rr.Code)
+	requireSnakeCaseJSON(t, rr.Body.Bytes())
 	assert.Equal(t, maxHistoryOffset, svc.gotOffset, "unbounded ?offset must be capped")
 }
 
@@ -352,6 +355,7 @@ func TestTokenHandler_Approve_Success(t *testing.T) {
 	handler.Approve(rr, req)
 
 	assert.Equal(t, http.StatusOK, rr.Code)
+	requireSnakeCaseJSON(t, rr.Body.Bytes())
 	assert.Equal(t, "application/json", rr.Header().Get("Content-Type"))
 }
 
@@ -374,6 +378,7 @@ func TestTokenHandler_Allowance_Success(t *testing.T) {
 	handler.Allowance(rr, req)
 
 	assert.Equal(t, http.StatusOK, rr.Code)
+	requireSnakeCaseJSON(t, rr.Body.Bytes())
 	assert.Equal(t, "application/json", rr.Header().Get("Content-Type"))
 }
 
@@ -396,6 +401,7 @@ func TestTokenHandler_List_EmptyArray(t *testing.T) {
 	h.List(rr, req)
 
 	assert.Equal(t, http.StatusOK, rr.Code)
+	requireSnakeCaseJSON(t, rr.Body.Bytes())
 	assert.Equal(t, "[]\n", rr.Body.String(), "an empty list must encode as []")
 }
 
