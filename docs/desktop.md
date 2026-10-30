@@ -658,8 +658,7 @@ Developer ID、公证或 Authenticode，也不会让未签名包变成可发布�
   `ci_test.go` 同时锁住这条契约，防止发布矩阵退回“只看文件在不在”。
 - **真实窗口验收**：`just desktop-shot`（可跟页名，如
   `just desktop-shot token nft`；写成 `voting:Results` 会先切到该阶段再截图，
-  并断言只有该阶段才有的控件，默认覆盖每个页面的主要 tab）用 MyGo 的
-  automation 插件打开真实窗口，
+  默认覆盖每个页面的主要 tab）用 MyGo 的 automation 插件打开真实窗口，
   在同一个窗口里按侧栏的稳定 key 逐页切换，截图到 `dist/e2e/<page>.png`，
   并断言无障碍树里出现该页标题。插件只在 `e2e` build tag 下被
   `cmd/aurora-desktop/automation_e2e.go` 引入，发布构建不含监听器；客户端是
@@ -669,7 +668,8 @@ Developer ID、公证或 Authenticode，也不会让未签名包变成可发布�
   行的标签是“Select btc”而不是“btc”）。
   `AURORA_E2E_SEED=1 just desktop-shot` 会先用 CLI 往同一个数据库写入抽奖、
   代币、NFT、预言机数据源、候选人与会期，截图展示的是有数据的页面，而不是
-  首次记录引导页。
+  首次记录引导页。种子模式还会补上只有存在记录时才有的写入阶段（`token:Burn`、
+  `nft:Burn`、`nft:History`），并断言这些阶段专有的控件。
   离屏 `ui.Tester` 覆盖渲染与行为，打包 job 的 Xvfb 冒烟只证明进程能起，
   这条路径补的是“真实后端画出来的就是测试期望的样子”。需要显示器；Linux
   无显示器时脚本会起一个关掉 GLX 的 Xvfb（带 NVIDIA EGL 的容器里 Xvfb 会
