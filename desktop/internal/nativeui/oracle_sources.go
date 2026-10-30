@@ -18,7 +18,7 @@ func (a *App) oracleSourcesBody(c *ui.Context) {
 		return
 	}
 	if len(a.oracle.sources) == 0 {
-		emptyState(c, pageOracle, "No sources yet", "Add an HTTP feed on the left to start reading values.")
+		emptyState(c, pageOracle, "No sources yet", "Add an HTTP feed in Add Source to start reading values.")
 		return
 	}
 	queryChanged := a.oracle.search != a.oracle.appliedSearch

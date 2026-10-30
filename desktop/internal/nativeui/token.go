@@ -193,8 +193,8 @@ func (a *App) tokenView(c *ui.Context) {
 		// The first-record panel is the page's guide. A second collapsible
 		// explanation above it would repeat the same three moves.
 		guide(c, &a.guides.token,
-			"Select a token in the left column, or create one. Its owner public key fills the account fields for you.",
-			"Choose a write on the right: Mint, Transfer, Approve, Transfer From or Burn. Read a spender's remaining allowance from the left card.",
+			"Select a token in Tokens, or create one. Its owner public key fills the account fields for you.",
+			"Choose a write in the action tabs: Mint, Transfer, Approve, Transfer From or Burn. A spender's remaining allowance is in Allowance.",
 			"Mint/Approve/Burn sign with the owner private key; Transfer with the sender's; Transfer From with the spender's. Keys are never stored, and Use generated owner key works only for the token that key created.",
 		)
 		twoColumns(c, func() {
@@ -234,7 +234,7 @@ func (a *App) tokenList(c *ui.Context) {
 			return
 		}
 		if len(a.token.tokens) == 0 {
-			emptyState(c, pageToken, "No tokens yet", "Create the first token above; the list, forms and history follow it.")
+			emptyState(c, pageToken, "No tokens yet", "Create the first token below; the list, forms and history follow it.")
 			return
 		}
 		queryChanged := a.token.search != a.token.appliedSearch

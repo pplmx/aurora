@@ -133,7 +133,8 @@ func TestNFTFilterIsTheListState(t *testing.T) {
 	app.filterNFTs()
 	tester.Frame()
 	require.True(t, tester.HasText("No NFTs for this owner. Show All restores the collection."))
-	require.False(t, tester.HasText("No NFTs yet. Mint one above."))
+	require.False(t, tester.HasText("No NFTs yet"),
+		"an owner filter with no rows must not claim the store is empty")
 }
 
 // TestManualNFTIDsMoveOnlyTheirHolderContext covers typed ids in the two write

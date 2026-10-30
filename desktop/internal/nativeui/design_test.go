@@ -261,7 +261,7 @@ func TestChineseUIRendersTheWorkbench(t *testing.T) {
 
 	require.NoError(t, tester.Click("工作方式"))
 	tester.Frame()
-	require.True(t, tester.HasText("在左栏选择或创建一个代币。它的所有者公钥会自动填入账户字段。"))
+	require.True(t, tester.HasText("在“代币”列表选择或创建一个代币。它的所有者公钥会自动填入账户字段。"))
 
 	app.ShowPage("Settings")
 	tester.Frame()
@@ -353,9 +353,9 @@ func TestEveryContentPageHasAHowThisWorksGuide(t *testing.T) {
 	}{
 		{"Lottery", "Create the draw: the result and its VRF proof are recorded on the ledger."},
 		{"Voting", "Create a session with a roster and a start/end window."},
-		{"Token", "Select a token in the left column, or create one. Its owner public key fills the account fields for you."},
+		{"Token", "Select a token in Tokens, or create one. Its owner public key fills the account fields for you."},
 		{"Oracle", "Select a source in Sources to fetch it now, enable/disable it, or delete it."},
-		{"NFT", "Transfer or Burn in the right column; the current holder's private key signs. A generated creator key can be reused while the creator still holds the asset."},
+		{"NFT", "Transfer or Burn in the action tabs; the current holder's private key signs. A generated creator key can be reused while the creator still holds the asset."},
 		{"Blockchain", "The badge verifies the chain. Search matches module, payload or height across the whole chain; Show sets the page size."},
 	}
 	for _, tc := range cases {
@@ -714,7 +714,7 @@ func TestEmptyCollectionKeepsItsEmptyStateWhenAQueryIsOpen(t *testing.T) {
 	app.ShowPage("Token")
 	tester.Frame()
 	require.True(t, tester.HasText("No tokens yet"))
-	require.True(t, tester.HasText("Create the first token above; the list, forms and history follow it."))
+	require.True(t, tester.HasText("Create the first token below; the list, forms and history follow it."))
 }
 
 // TestCommandPaletteArrowSelection moves the highlight before Enter instead of
