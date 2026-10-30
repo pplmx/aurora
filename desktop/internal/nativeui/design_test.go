@@ -767,11 +767,12 @@ func TestCommandPaletteKeepsLongListReachableAtMinimumHeight(t *testing.T) {
 	for _, scale := range []float32{1, 1.5, 2} {
 		t.Run(fmt.Sprintf("scale-%g", scale), func(t *testing.T) {
 			app := New(&fakeServices{})
-			imported := false
+			shown := false
 			app.SetActions(Actions{
 				BackUpDatabase:  func() {},
 				ExportLotteries: func() {},
-				ImportLotteries: func() { imported = true },
+				ImportLotteries: func() {},
+				ShowDataFolder:  func() { shown = true },
 			})
 			tester := ui.NewTester(app.View, 900, 600)
 			if scale != 1 {
@@ -784,7 +785,7 @@ func TestCommandPaletteKeepsLongListReachableAtMinimumHeight(t *testing.T) {
 			matches := app.paletteMatches()
 			require.Greater(t, len(matches), 10)
 			last := tr(matches[len(matches)-1].title)
-			require.Equal(t, tr("Import lotteries…"), last)
+			require.Equal(t, tr("Show data folder"), last)
 
 			for range matches[1:] {
 				tester.Key(0, ui.KeyDown)
@@ -800,7 +801,7 @@ func TestCommandPaletteKeepsLongListReachableAtMinimumHeight(t *testing.T) {
 
 			tester.Key(0, ui.KeyEnter)
 			tester.Frame()
-			require.True(t, imported, "the visible selection must still run its command")
+			require.True(t, shown, "the visible selection must still run its command")
 			require.False(t, app.paletteOpen)
 		})
 	}

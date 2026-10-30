@@ -146,6 +146,12 @@ func (a *App) paletteMatches() []paletteEntry {
 				icon: importIcon, action: a.actions.ImportLotteries,
 			})
 		}
+		if a.actions.ShowDataFolder != nil {
+			entries = append(entries, paletteEntry{
+				title: "Show data folder", detail: "Open the folder that holds the database and backups",
+				icon: folderIcon, action: a.actions.ShowDataFolder,
+			})
+		}
 	}
 	matches := entries[:0]
 	for _, entry := range entries {
