@@ -29,3 +29,19 @@ func TestOutboxGaugeReportsThePendingCount(t *testing.T) {
 	assert.NotContains(t, out, "aurora_outbox_pending_events")
 	assert.NotContains(t, out, "aurora_ledger_blocks", "no reader means no line")
 }
+
+// TestRegisterBuildInfo pins the identity metric: version and toolchain as
+// labels with value 1, sorted for a byte-stable scrape, and build_time only
+// when the linker injected a real one.
+func TestRegisterBuildInfo(t *testing.T) {
+	srv := &Server{metrics: metrics.NewRegistry()}
+	srv.RegisterBuildInfo("v1.2.3", "unknown", "go1.27.3")
+	out := srv.metrics.Expose()
+	assert.Contains(t, out, `aurora_build_info{go="go1.27.3",version="v1.2.3"} 1`)
+	assert.NotContains(t, out, "build_time", "an unknown build time is omitted")
+
+	withTime := &Server{metrics: metrics.NewRegistry()}
+	withTime.RegisterBuildInfo("v1.2.3", "2026-09-03T00:00:00Z", "go1.27.3")
+	out = withTime.metrics.Expose()
+	assert.Contains(t, out, `build_time="2026-09-03T00:00:00Z"`)
+}

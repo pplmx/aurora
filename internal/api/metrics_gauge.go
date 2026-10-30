@@ -30,3 +30,14 @@ func registerRuntimeGauges(reg *metrics.Registry, pending func(context.Context) 
 			return float64(blocks()), true
 		})
 }
+
+// RegisterBuildInfo exposes the binary's identity as aurora_build_info, the
+// Prometheus convention for "which build is this instance": the labels carry
+// the version and toolchain, and the build time when the linker injected one.
+func (s *Server) RegisterBuildInfo(version, buildTime, goVersion string) {
+	labels := map[string]string{"version": version, "go": goVersion}
+	if buildTime != "" && buildTime != "unknown" {
+		labels["build_time"] = buildTime
+	}
+	s.metrics.RegisterConstantGauge("aurora_build_info", "Build identity of this binary.", labels, 1)
+}
