@@ -27,8 +27,8 @@ func withLocale(t *testing.T, locale string, fn func()) {
 
 // TestAuroraLocale covers the tag mapping MyGo's answer goes through. MyGo
 // reports normalized BCP 47 tags of the languages it was told the app is
-// written in; Aurora ships "en" and "zh" only, and a Chinese reader of any
-// variant must not fall back to English.
+// written in; Aurora ships "en", "zh" and "zh-Hant", and a Chinese reader of
+// either script must not fall back to English.
 func TestAuroraLocale(t *testing.T) {
 	for _, tt := range []struct{ tag, want string }{
 		{"en", "en"},
@@ -36,7 +36,9 @@ func TestAuroraLocale(t *testing.T) {
 		{"", "en"},
 		{"zh", "zh"},
 		{"zh-Hans", "zh"},
-		{"zh-Hant-TW", "zh"},
+		{"zh-Hant-TW", "zh-Hant"},
+		{"zh-TW", "zh-Hant"},
+		{"zh-HK", "zh-Hant"},
 		{"ZH-cn", "zh"},
 		{"ja", "en"},
 	} {
@@ -64,7 +66,9 @@ func TestSyncLocale(t *testing.T) {
 
 	assert.True(t, syncLocale("zh-Hans"), "switching to Chinese is a change")
 	assert.Equal(t, "zh", tr.GetLocale())
-	assert.False(t, syncLocale("zh-TW"), "another Chinese tag is the same language, not a change")
+	assert.True(t, syncLocale("zh-TW"), "Traditional reads a different catalog, so it is a change")
+	assert.Equal(t, "zh-Hant", tr.GetLocale())
+	assert.False(t, syncLocale("zh-Hant-TW"), "another Traditional tag is the same catalog")
 	assert.True(t, syncLocale("en-GB"), "switching back to English is a change")
 	assert.Equal(t, "en", tr.GetLocale())
 }

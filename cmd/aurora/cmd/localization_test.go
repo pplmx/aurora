@@ -586,3 +586,15 @@ func TestLotteryResultsLocalizeChinese(t *testing.T) {
 		assert.Contains(t, out, "确定性中奖者匹配")
 	})
 }
+
+// TestCLIChineseHonorsTraditionalScript: a zh-Hant locale used to fold into
+// the Simplified catalog, so a zh_TW environment saw Simplified help and
+// messages even though the desktop menu was Traditional.
+func TestCLIChineseHonorsTraditionalScript(t *testing.T) {
+	setTestLocale(t, "zh-Hant")
+
+	out, err := runCmd(t, "version")
+	require.NoError(t, err)
+	assert.Contains(t, out, "區塊鏈系統")
+	assert.NotContains(t, out, "区块链系统", "no Simplified text may slip through")
+}

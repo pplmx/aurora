@@ -4,6 +4,7 @@ package nativeui
 // literal is the key (see tr), so a missing entry falls back to readable
 // English instead of a lookup name. The table lives beside the views, not in
 // the core CLI catalog, so the core module does not carry desktop vocabulary.
+// messages_zh_hant.go is generated from it (OpenCC s2t); fix wording here.
 var desktopMessages = map[string]string{
 	// Chrome and navigation.
 	"Dashboard":               "仪表盘",

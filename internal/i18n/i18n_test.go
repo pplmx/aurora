@@ -29,7 +29,10 @@ func TestTranslator_NormalizesSupportedLocaleTags(t *testing.T) {
 		{tag: "zh.UTF-8", want: "zh"},
 		{tag: "zh-CN", want: "zh"},
 		{tag: "zh-Hans", want: "zh"},
-		{tag: "zh-Hant-TW", want: "zh"},
+		{tag: "zh-Hant", want: "zh-Hant"},
+		{tag: "zh-Hant-TW", want: "zh-Hant"},
+		{tag: "zh-TW", want: "zh-Hant"},
+		{tag: "zh_HK.UTF-8", want: "zh-Hant"},
 	} {
 		t.Run(tt.tag, func(t *testing.T) {
 			tr := Init(tt.tag)
@@ -42,8 +45,20 @@ func TestTranslator_SetLocaleNormalizesSupportedLocaleTags(t *testing.T) {
 	tr := Init("en")
 	tr.SetLocale("zh-Hant-TW")
 
-	assert.Equal(t, "zh", tr.GetLocale())
-	assert.Equal(t, "版本", tr.T("app.version"))
+	assert.Equal(t, "zh-Hant", tr.GetLocale())
+	assert.Equal(t, "Aurora - 區塊鏈系統", tr.T("app.name"))
+}
+
+// TestTraditionalCatalogCoversEveryChineseKey: the Traditional table is
+// generated from the Simplified one, so a key added to only one side would
+// silently fall back to Simplified (or English) at run time. Equal key sets
+// keep every string present in both scripts.
+func TestTraditionalCatalogCoversEveryChineseKey(t *testing.T) {
+	for key := range chineseMessages {
+		require.Containsf(t, traditionalMessages, key, "%q has no Traditional entry", key)
+	}
+	assert.Len(t, traditionalMessages, len(chineseMessages),
+		"the Traditional table must not carry keys the Simplified table lacks")
 }
 
 func TestTranslator_T(t *testing.T) {
@@ -191,12 +206,12 @@ func TestDetectLocale_UsesPOSIXPrecedence(t *testing.T) {
 		want     string
 	}{
 		{name: "LC_ALL wins", lcAll: "zh_CN.UTF-8", messages: "en_US.UTF-8", lang: "en_US.UTF-8", want: "zh"},
-		{name: "LC_MESSAGES before LANG", messages: "zh_TW.UTF-8", lang: "en_US.UTF-8", want: "zh"},
+		{name: "LC_MESSAGES before LANG", messages: "zh_TW.UTF-8", lang: "en_US.UTF-8", want: "zh-Hant"},
 		{name: "LANGUAGE preference", language: "fr_FR:zh_CN", lang: "en_US.UTF-8", want: "zh"},
 		{name: "LANGUAGE first supported", language: "en_US:zh_CN", lang: "zh_CN.UTF-8", want: "en"},
 		{name: "LANG fallback", lang: "zh_CN.UTF-8", want: "zh"},
 		{name: "C locale forces English", lcAll: "C", lang: "zh_CN.UTF-8", want: "en"},
-		{name: "locale tags are case-insensitive", lang: "ZH_TW.UTF-8", want: "zh"},
+		{name: "locale tags are case-insensitive", lang: "ZH_TW.UTF-8", want: "zh-Hant"},
 		{name: "nothing configured", want: "en"},
 	} {
 		t.Run(tt.name, func(t *testing.T) {

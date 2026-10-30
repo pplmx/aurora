@@ -948,3 +948,38 @@ func TestSlowWriteShowsTimeoutNotice(t *testing.T) {
 	tester.Frame()
 	require.True(t, tester.HasText("Still working…"))
 }
+
+// TestTraditionalChineseUIRendersTheWorkbench: choosing 繁體中文 used to render
+// the Simplified table, so the option named a script the window never showed.
+// The Hant catalog keeps the chrome, lists and forms Traditional.
+func TestTraditionalChineseUIRendersTheWorkbench(t *testing.T) {
+	tr := i18n.GetTranslator()
+	before := tr.GetLocale()
+	t.Cleanup(func() { tr.SetLocale(before) })
+
+	tr.SetLocale("zh-Hant")
+	app := New(workbenchFakes())
+	tester := ui.NewTester(app.View, 1280, 1600)
+	tester.Frame()
+	for _, want := range []string{"儀表盤", "快速開始", "運行抽獎", "抽獎總數", "賬本完整性"} {
+		require.Truef(t, tester.HasText(want), "the Traditional dashboard must show %q", want)
+	}
+
+	app.ShowPage("Token")
+	tester.Frame()
+	for _, want := range []string{"代幣", "創建代幣", "鑄造", "轉賬", "查看", "歷史"} {
+		require.Truef(t, tester.HasText(want), "the Traditional Token page must show %q", want)
+	}
+	require.False(t, tester.HasText("仪表盘"), "no Simplified chrome may slip through")
+}
+
+// TestTraditionalDesktopCatalogCoversEveryKey: the Hant table is generated from
+// the Simplified one, so a key added on one side only would fall back to
+// English (or Simplified) at run time.
+func TestTraditionalDesktopCatalogCoversEveryKey(t *testing.T) {
+	for key := range desktopMessages {
+		require.Containsf(t, desktopMessagesHant, key, "%q has no Traditional entry", key)
+	}
+	require.Len(t, desktopMessagesHant, len(desktopMessages),
+		"the Traditional table must not carry keys the Simplified table lacks")
+}

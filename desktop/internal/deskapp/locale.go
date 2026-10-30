@@ -33,15 +33,19 @@ var appLocale = func() string { return mygo.App.Locale() }
 // auroraLocale maps a BCP 47 tag - what MyGo reports, e.g. "zh-Hans",
 // "zh-Hant-TW", "en-GB" - onto one of the locales internal/i18n ships.
 //
-// Aurora is written in English and translated to Chinese only, so every
-// Chinese variant reads the simplified table rather than English: a
-// Traditional Chinese reader gets readable Chinese, which is closer to right
-// than the language MyGo picked for its own menu roles.
+// A Traditional tag selects the zh-Hant catalog; every other Chinese spelling
+// keeps Simplified. Folding both Chinese variants into one table made 繁體中文
+// render Simplified strings, which is why the Hant catalog exists.
 func auroraLocale(tag string) string {
-	if strings.HasPrefix(strings.ToLower(strings.TrimSpace(tag)), "zh") {
+	lower := strings.ToLower(strings.TrimSpace(tag))
+	switch {
+	case strings.HasPrefix(lower, "zh-hant"), strings.HasPrefix(lower, "zh-tw"), strings.HasPrefix(lower, "zh-hk"):
+		return "zh-Hant"
+	case strings.HasPrefix(lower, "zh"):
 		return "zh"
+	default:
+		return "en"
 	}
-	return "en"
 }
 
 // InitLocale initializes the translator for the desktop process, the way
@@ -52,9 +56,8 @@ func InitLocale() { i18n.DetectAndInit() }
 
 // mygoTag maps one of Aurora's locales onto a language MyGo can show. MyGo
 // cannot be handed "zh": it is not a language on its own, only a script
-// family. A configured Traditional tag keeps MyGo's own roles Traditional
-// (Aurora's strings still come from the one Chinese table internal/i18n
-// ships), and every other Chinese tag means Simplified.
+// family. A Traditional tag keeps MyGo's own roles and Aurora's strings
+// Traditional; every other Chinese tag means Simplified.
 func mygoTag(locale string) string {
 	tag := strings.ToLower(strings.TrimSpace(locale))
 	switch {
