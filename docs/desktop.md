@@ -240,6 +240,9 @@ just check && just test
   已销毁 NFT 的审计记录仍能继续向前翻。
 - **About 可复制诊断信息**：Settings → About 卡片把版本、构建时间、数据库路径与
   占用原样写入剪贴板，支持人员拿到的就是窗口里的事实。
+- **复验结论可复制**：Lottery 的 Verify 卡片在结论下方提供「复制结论」，把
+  `Draw ID …：Verified/Failed` 与逐条检查原样写进剪贴板，工单里引用的就是窗口
+  显示的内容。
 - **页面是卡片**：每页把工作拆成卡片，成对的工作并排（代币：列表/创建/
   Allowance/历史对写操作与 Inspect；NFT：Collection/Mint 对
   Transfer/Burn/History 与 Inspect；投票：选民、候选人与会期列表对选票与
