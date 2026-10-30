@@ -299,6 +299,17 @@ var importCmd = &cobra.Command{
 		if err != nil {
 			return wrapCLIError("lottery.error.import_records", err)
 		}
+		if jsonRequested(cmd) {
+			// The document always prints; a partial import still exits non-zero
+			// so a script notices the rejected indices.
+			if err := printJSON(result); err != nil {
+				return err
+			}
+			if len(result.Rejected) > 0 {
+				return newCLIError("lottery.import_partial_error", len(result.Rejected), result.Total)
+			}
+			return nil
+		}
 
 		if len(result.Rejected) == 0 {
 			fmt.Printf("✅ %s\n", i18n.GetTextF("lottery.imported", result.Imported))
@@ -489,6 +500,7 @@ func init() {
 	addJSONFlag(verifyCmd)
 	lotteryCmd.AddCommand(exportCmd)
 	lotteryCmd.AddCommand(importCmd)
+	addJSONFlag(importCmd)
 	lotteryCmd.AddCommand(statsCmd)
 	addJSONFlag(statsCmd)
 	lotteryCmd.AddCommand(resetCmd)
