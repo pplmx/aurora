@@ -252,7 +252,7 @@ func (r *VotingRepository) GetVotesByCandidate(candidateID string) ([]*voting.Vo
 		 FROM votes v
 		 LEFT JOIN vote_sessions vs ON vs.vote_id = v.id
 		 WHERE v.candidate_id = ?
-		 ORDER BY v.timestamp DESC`,
+		 ORDER BY v.timestamp DESC, v.id DESC`,
 		candidateID,
 	)
 	if err != nil {
@@ -298,7 +298,7 @@ func (r *VotingRepository) GetVotesByVoter(voterPK string) ([]*voting.Vote, erro
 		 FROM votes v
 		 LEFT JOIN vote_sessions vs ON vs.vote_id = v.id
 		 WHERE v.voter_pk = ?
-		 ORDER BY v.timestamp DESC`,
+		 ORDER BY v.timestamp DESC, v.id DESC`,
 		voterPK,
 	)
 	if err != nil {
