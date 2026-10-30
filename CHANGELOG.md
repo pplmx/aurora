@@ -11,6 +11,11 @@ documented in their per-milestone ROADMAP files.
 
 ### Changed
 
+- **A mistyped `[log] level` warns instead of falling back silently**:
+  `level = "warning"` (the level is spelled `warn`) produced info-level output
+  with no signal; the logger now names the rejected value and the fallback on
+  stderr. The CLI reference also records that logs are appended without
+  rotation, so long-running deployments rotate them externally.
 - **`aurora-api` accepts `--config`**: the server only searched
   `$HOME/aurora.toml` and `./config/aurora.toml`, so a service unit or container
   could not point it at its own file, while the CLI had the flag all along. An

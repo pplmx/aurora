@@ -61,6 +61,10 @@ func Init() {
 	}
 	level, err := zerolog.ParseLevel(levelName)
 	if err != nil {
+		// ParseLevel accepts the documented names ("warn", "error", ...), so a
+		// rejected value is a typo like "warning". Falling back silently gave
+		// the operator a different log stream than the one they configured.
+		warn(fmt.Sprintf("unknown log level %q; using %q", cfg.LogLevel, "info"))
 		level = zerolog.InfoLevel
 	}
 	zerolog.SetGlobalLevel(level)
@@ -156,6 +160,13 @@ func closeFile() {
 		_ = logFile.Close()
 		logFile = nil
 	}
+}
+
+// warn reports a startup configuration problem. Logs may be going to a file
+// the operator is not watching, so the terminal that started the process still
+// has to hear about it.
+func warn(msg string) {
+	fmt.Fprintf(os.Stderr, "logger: %s\n", msg)
 }
 
 // fallbackToConsole writes a warning message to stderr when file-based logging

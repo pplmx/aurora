@@ -176,7 +176,10 @@ aurora migrate repair --confirm # 清除失败迁移留下的脏标记
   发布失败时打印“已提交、请勿重试”的专用警告，退出码同样非零。
 - `[log] level/path` 在命令执行前加载，默认写入 `./logs/aurora.log`；Unix-like
   系统上目录为 `0700`、文件为 `0600`。日志文件不可用时，结构化回退日志写入
-  `stderr`，`stdout` 只保留命令结果。
+  `stderr`，`stdout` 只保留命令结果。`[log] level` 无法解析时（例如写成
+  `warning`，合法值是 `warn`）会在启动时向 `stderr` 警告并退回 `info`。
+- 日志按追加写入，不做自动轮转；长期运行的服务请用 logrotate、systemd-journald
+  等外部机制按大小或时间切分，`aurora.log` 位于 `[log] path`。
 - 显式 `--config` 缺失或配置文件语法错误会直接中止，不会静默回退到默认数据库；
   只有默认 `$HOME` / `./config` 搜索不到配置时才使用默认值。
 - 全局 `--http-timeout` 覆盖 `[http] timeout`，即 CLI 读取预言机数据源时的
