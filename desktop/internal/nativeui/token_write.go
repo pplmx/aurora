@@ -98,7 +98,7 @@ func (a *App) tokenWrites(c *ui.Context) {
 			ui.Row(c).Children(func() {
 				// A destructive action carries the danger style, and the
 				// confirmation still stands between it and the write.
-				burn := dangerButton(c, "Burn…").Disabled(!burnReady).Bind(&a.token.burnTrigger)
+				burn := dangerButton(c, "Burn…", burnReady).Bind(&a.token.burnTrigger)
 				if burn.Clicked() {
 					a.token.askBurn = true
 				}

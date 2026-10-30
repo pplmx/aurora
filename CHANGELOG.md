@@ -28,6 +28,11 @@ documented in their per-milestone ROADMAP files.
 - **The command palette ranks matches by where the query hits**: a title prefix
   outranks a title substring, which outranks a description, with the sidebar
   order kept inside each group. Typing "t" now puts Token above Lottery.
+- **A disabled destructive action reads as disabled**: Burn, Burn NFT and
+  Delete used to stay filled red while unusable, which made them look armed;
+  they now take the same quiet surface as other disabled submits and turn red
+  only when their inputs are ready. The confirmation dialog still stands in
+  front of the write.
 
 - **The desktop dashboard is a ledger story, not a grid of equal counters**:
   the integrity hero now gives only the chain verdict; a single Ledger

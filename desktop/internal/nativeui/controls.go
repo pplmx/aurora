@@ -198,11 +198,48 @@ func secondaryButton(c *ui.Context, label string) ui.Element {
 	return glassButton(c, label, c.Theme().Text)
 }
 
-func dangerButton(c *ui.Context, label string) ui.Element {
+// dangerButton draws the destructive action. Pass ready=false for the disabled
+// form: a quiet surface instead of a red fill, because a red button that cannot
+// be pressed still reads as armed, and a destructive action must never look
+// available before its inputs are. The confirmation dialog remains between a
+// ready button and the write.
+func dangerButton(c *ui.Context, label string, ready ...bool) ui.Element {
+	enabled := true
+	if len(ready) > 0 {
+		enabled = ready[0]
+	}
+	label = tr(label)
 	red := c.Theme().Danger
-	return filledButton(c, label, red,
-		red.Mix(ui.RGB(255, 255, 255), 0.14), red.Mix(ui.RGB(0, 0, 0), 0.16),
-		c.Theme().Background, red.Alpha(0.35))
+	fill, textColor, glow := red, c.Theme().Background, red.Alpha(0.35)
+	if !enabled {
+		fill, textColor, glow = disabledFill(c), c.Theme().TextMuted, ui.Transparent
+	}
+	b := ui.ButtonBase(c).Height(max(buttonHeight, textSize(c, buttonHeight))).
+		PaddingX(max(space4-2, textSize(c, 14))).Radius(radiusSmall + 2).
+		AlignItems(ui.Center).Label(label).TextColor(textColor).Disabled(!enabled)
+	state := fill
+	if enabled {
+		switch {
+		case b.Pressed():
+			state = red.Mix(ui.RGB(0, 0, 0), 0.16)
+		case b.Hovered():
+			state = red.Mix(ui.RGB(255, 255, 255), 0.14)
+		}
+		b.Shadow(0, 8, 20, -10, glow)
+		b.InsetShadow(0, 1, 0, 0, ui.RGBA(255, 255, 255, 0.18))
+	} else {
+		b.BorderWidth(1).BorderColor(c.Theme().Border)
+	}
+	b.Background(b.AnimateColor("fill", state, ui.Animation{Duration: 120 * time.Millisecond}))
+	pose := ui.Pose{}
+	if b.Pressed() {
+		pose.Scale = 0.97
+	}
+	b.AnimatePose(pose, ui.Snappy)
+	b.Children(func() {
+		ui.Text(c, label).FontSize(textSize(c, 13)).FontWeight(600).SingleLine().TextColor(textColor)
+	})
+	return b
 }
 
 // quietButton is the small, low-emphasis action used inside a card: copying a
@@ -335,35 +372,6 @@ func glassButton(c *ui.Context, label string, textColor ui.Color) ui.Element {
 	}
 	b.Gradient(from, to, 180)
 	b.BorderWidth(1).BorderColor(outline)
-	pose := ui.Pose{}
-	if b.Pressed() {
-		pose.Scale = 0.97
-	}
-	b.AnimatePose(pose, ui.Snappy)
-	b.Children(func() {
-		ui.Text(c, label).FontSize(textSize(c, 13)).FontWeight(600).SingleLine().TextColor(textColor)
-	})
-	return b
-}
-
-// filledButton is a solid button with two states and an optional glow, used
-// for the destructive action. The label colour is passed in because red needs
-// the dark window ink while the accent needs its own on-accent tone.
-func filledButton(c *ui.Context, label string, fill, hover, pressed, textColor ui.Color, glow ui.Color) ui.Element {
-	label = tr(label)
-	b := ui.ButtonBase(c).Height(max(buttonHeight, textSize(c, buttonHeight))).
-		PaddingX(max(space4-2, textSize(c, 14))).Radius(radiusSmall + 2).
-		AlignItems(ui.Center).Label(label).TextColor(textColor)
-	state := fill
-	switch {
-	case b.Pressed():
-		state = pressed
-	case b.Hovered():
-		state = hover
-	}
-	b.Background(b.AnimateColor("fill", state, ui.Animation{Duration: 120 * time.Millisecond}))
-	b.Shadow(0, 8, 20, -10, glow)
-	b.InsetShadow(0, 1, 0, 0, ui.RGBA(255, 255, 255, 0.18))
 	pose := ui.Pose{}
 	if b.Pressed() {
 		pose.Scale = 0.97
