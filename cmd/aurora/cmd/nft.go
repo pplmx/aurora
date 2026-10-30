@@ -150,7 +150,7 @@ var burnCmd = &cobra.Command{
 	Short: i18n.GetText("nft.burn"),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Burning permanently destroys an NFT; require -y/--confirm first
-		// (matches backup restore --confirm / lottery reset --yes).
+		// (the same gate every destructive command uses).
 		if err := requireConfirm(cmd, "cli.confirm.nft_burn"); err != nil {
 			return err
 		}

@@ -81,8 +81,8 @@ var rootCmd = &cobra.Command{
 }
 
 // addConfirmFlag registers the standard -y/--confirm guard on a destructive
-// command, mirroring `backup restore --confirm` (backup.go:91) and
-// `lottery reset --yes` (lottery.go:557). Burn/delete/down permanently destroy
+// command, mirroring `backup restore` and `lottery reset`. Burn/delete/down
+// permanently destroy
 // value or data, so they must not run without an explicit confirmation —
 // otherwise a typo like a mis-ordered flag silently destroys assets.
 //

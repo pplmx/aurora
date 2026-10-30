@@ -88,7 +88,7 @@ aurora lottery db-info
 #### 重置数据库
 
 ```bash
-aurora lottery reset --yes
+aurora lottery reset --confirm
 ```
 
 ## 配置文件
