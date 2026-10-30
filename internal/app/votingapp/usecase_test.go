@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/pplmx/aurora/internal/domain/repoerr"
 	"github.com/pplmx/aurora/internal/domain/voting"
 	"github.com/pplmx/aurora/internal/infra/sqlite"
 	"github.com/stretchr/testify/require"
@@ -1671,4 +1672,40 @@ func TestCreateSessionUseCase_RejectsDuplicateCandidateIDs(t *testing.T) {
 	_, err := uc.Execute(req)
 	require.ErrorIs(t, err, voting.ErrDuplicateCandidate,
 		"duplicate candidate in the roster must be rejected so results never double-count")
+}
+
+// TestGetSessionUseCase covers the mapping the API depends on: a missing row —
+// the sqlite sentinel, or the (nil, nil) an in-memory fake returns — becomes
+// voting.ErrSessionNotFound so the handler answers 404, while a genuine read
+// failure stays a wrapped server error so an outage is not disguised as a
+// missing session (TASK-171, ISS-166).
+func TestGetSessionUseCase(t *testing.T) {
+	session := &voting.Session{ID: "s1", Title: "Budget"}
+
+	t.Run("returns the stored session", func(t *testing.T) {
+		got, err := NewGetSessionUseCase(&mockVotingRepo{
+			sessions: []*voting.Session{session},
+		}).Execute("s1")
+		require.NoError(t, err)
+		require.Equal(t, session, got)
+	})
+
+	t.Run("maps the repository sentinel to not found", func(t *testing.T) {
+		_, err := NewGetSessionUseCase(&mockVotingRepo{errGetSession: repoerr.ErrNotFound}).Execute("s1")
+		require.ErrorIs(t, err, voting.ErrSessionNotFound)
+	})
+
+	t.Run("normalizes the nil session a fake returns", func(t *testing.T) {
+		_, err := NewGetSessionUseCase(&mockVotingRepo{}).Execute("missing")
+		require.ErrorIs(t, err, voting.ErrSessionNotFound)
+	})
+
+	t.Run("keeps a real read failure a server error", func(t *testing.T) {
+		cause := errors.New("database is locked")
+		_, err := NewGetSessionUseCase(&mockVotingRepo{errGetSession: cause}).Execute("s1")
+		require.Error(t, err)
+		require.ErrorIs(t, err, cause)
+		require.NotErrorIs(t, err, voting.ErrSessionNotFound)
+		require.Contains(t, err.Error(), "failed to get session")
+	})
 }
