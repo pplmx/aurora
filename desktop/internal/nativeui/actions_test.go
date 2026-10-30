@@ -125,6 +125,30 @@ func TestFileActionsPauseWhileAWriteOwnsTheDatabase(t *testing.T) {
 	require.Empty(t, calls)
 }
 
+// TestPaletteRunsShowDataFolder covers the file command the palette was
+// missing: the folder that holds the database and backups is reachable from
+// the keyboard switcher, not only from the File menu.
+func TestPaletteRunsShowDataFolder(t *testing.T) {
+	app := New(&fakeServices{})
+	shown := false
+	app.SetActions(Actions{ShowDataFolder: func() { shown = true }})
+	tester := ui.NewTester(app.View, 1280, 900)
+	tester.Frame()
+
+	tester.Key(platformRefreshModifier(), ui.KeyK)
+	tester.Frame()
+	tester.Type("folder")
+	tester.Frame()
+	matches := app.paletteMatches()
+	require.Len(t, matches, 1)
+	require.Equal(t, "Show data folder", matches[0].title)
+
+	tester.Key(0, ui.KeyEnter)
+	tester.Frame()
+	require.True(t, shown)
+	require.False(t, app.paletteOpen)
+}
+
 // TestFileMenuFollowsTheLanguage proves the sidebar's File label follows the
 // translator. The native menu used to carry this label; now the sidebar does.
 func TestFileMenuFollowsTheLanguage(t *testing.T) {
