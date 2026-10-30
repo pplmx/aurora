@@ -44,6 +44,91 @@ AURORA_SERVER_HOST=127.0.0.1 AURORA_SERVER_PORT=9090 ./aurora-api
   而不是 `Authorization`，因此不能依赖 HTTP 缓存对鉴权请求的默认保护；创建
   响应与预言机配置还可能包含一次性私钥或上游请求头。
 
+## 错误响应
+
+失败时返回 `{"error": "...", "code": "..."}`：`code` 是稳定的机器可读值，
+`error` 是给人看的说明，措辞可能调整；未被分类的失败返回 `500` 与
+`INTERNAL_ERROR`。中间件层另有 `BODY_TOO_LARGE`（413）、`INVALID_REQUEST`
+（400）、`NOT_FOUND`（404）与 `RATE_LIMITED`（429）。同一个 `code` 可能
+用于多个模块（如 `INVALID_SIGNATURE`），下表按首次出现的模块列出。
+
+| 模块   | code                           | HTTP |
+| ------ | ------------------------------ | ---- |
+| 代币   | `TOKEN_NOT_FOUND`              | 404  |
+| 代币   | `TOKEN_EXISTS`                 | 409  |
+| 代币   | `INSUFFICIENT_BALANCE`         | 400  |
+| 代币   | `INSUFFICIENT_ALLOWANCE`       | 400  |
+| 代币   | `INVALID_SIGNATURE`            | 401  |
+| 代币   | `AMOUNT_MUST_BE_POSITIVE`      | 400  |
+| 代币   | `NOT_TOKEN_OWNER`              | 403  |
+| 代币   | `ZERO_OWNER`                   | 400  |
+| 代币   | `TOKEN_NOT_MINTABLE`           | 400  |
+| 代币   | `TOKEN_NOT_BURNABLE`           | 400  |
+| 代币   | `UNAUTHORIZED`                 | 401  |
+| 代币   | `TRANSFER_TO_ZERO`             | 400  |
+| 代币   | `INVALID_AMOUNT`               | 400  |
+| 代币   | `AMOUNT_TOO_LARGE`             | 400  |
+| 代币   | `INVALID_DECIMALS`             | 400  |
+| 代币   | `DUPLICATE_TRANSFER`           | 409  |
+| 代币   | `TOKEN_NAME_REQUIRED`          | 400  |
+| 代币   | `TOKEN_NAME_TOO_LONG`          | 400  |
+| 代币   | `TOKEN_SYMBOL_REQUIRED`        | 400  |
+| 代币   | `TOKEN_SYMBOL_TOO_LONG`        | 400  |
+| 代币   | `PUBLIC_KEY_REQUIRED`          | 400  |
+| 代币   | `INVALID_PUBLIC_KEY_LENGTH`    | 400  |
+| 代币   | `PRIVATE_KEY_REQUIRED`         | 400  |
+| 代币   | `INVALID_PRIVATE_KEY_LENGTH`   | 400  |
+| 代币   | `INVALID_BASE64`               | 400  |
+| 代币   | `AUDIT_PUBLISH_FAILED`         | 500  |
+| NFT    | `NFT_NOT_FOUND`                | 404  |
+| NFT    | `NAME_REQUIRED`                | 400  |
+| NFT    | `OWNER_REQUIRED`               | 400  |
+| NFT    | `NOT_NFT_OWNER`                | 403  |
+| NFT    | `KEY_MISMATCH`                 | 401  |
+| NFT    | `INVALID_PRIVATE_KEY`          | 400  |
+| NFT    | `INVALID_PUBLIC_KEY`           | 400  |
+| NFT    | `ZERO_ADDRESS`                 | 400  |
+| NFT    | `NAME_TOO_LONG`                | 400  |
+| NFT    | `DESCRIPTION_TOO_LONG`         | 400  |
+| NFT    | `IMAGE_URL_TOO_LONG`           | 400  |
+| NFT    | `TOKEN_URI_TOO_LONG`           | 400  |
+| 抽奖   | `LOTTERY_NOT_FOUND`            | 404  |
+| 抽奖   | `EMPTY_PARTICIPANT_NAME`       | 400  |
+| 抽奖   | `PARTICIPANT_NAME_TOO_LONG`    | 400  |
+| 抽奖   | `INVALID_PARTICIPANT_NAME`     | 400  |
+| 抽奖   | `SEED_TOO_SHORT`               | 400  |
+| 抽奖   | `SEED_TOO_LONG`                | 400  |
+| 抽奖   | `NO_PARTICIPANTS`              | 400  |
+| 抽奖   | `TOO_MANY_PARTICIPANTS`        | 400  |
+| 抽奖   | `DUPLICATE_PARTICIPANT`        | 400  |
+| 抽奖   | `WINNER_COUNT_NOT_POSITIVE`    | 400  |
+| 抽奖   | `TOO_MANY_WINNERS`             | 400  |
+| 抽奖   | `WINNERS_EXCEED_PARTICIPANTS`  | 400  |
+| 预言机 | `INVALID_SOURCE`               | 400  |
+| 预言机 | `SOURCE_NOT_FOUND`             | 404  |
+| 预言机 | `SOURCE_DISABLED`              | 400  |
+| 预言机 | `RATE_LIMITED`                 | 429  |
+| 投票   | `SESSION_NOT_FOUND`            | 404  |
+| 投票   | `SESSION_NOT_STARTED`          | 400  |
+| 投票   | `SESSION_ENDED`                | 400  |
+| 投票   | `VOTER_NOT_REGISTERED`         | 404  |
+| 投票   | `CANDIDATE_NOT_FOUND`          | 400  |
+| 投票   | `CANDIDATE_NOT_IN_SESSION`     | 400  |
+| 投票   | `ALREADY_VOTED`                | 409  |
+| 投票   | `INVALID_VOTE_SIGNATURE`       | 401  |
+| 投票   | `VOTER_NAME_REQUIRED`          | 400  |
+| 投票   | `CANDIDATE_NAME_REQUIRED`      | 400  |
+| 投票   | `SESSION_TITLE_REQUIRED`       | 400  |
+| 投票   | `INVALID_SESSION_TIME`         | 400  |
+| 投票   | `CANDIDATES_REQUIRED`          | 400  |
+| 投票   | `DUPLICATE_CANDIDATE`          | 400  |
+| 投票   | `VOTER_NAME_TOO_LONG`          | 400  |
+| 投票   | `CANDIDATE_NAME_TOO_LONG`      | 400  |
+| 投票   | `CANDIDATE_PARTY_TOO_LONG`     | 400  |
+| 投票   | `CANDIDATE_PROGRAM_TOO_LONG`   | 400  |
+| 投票   | `SESSION_TITLE_TOO_LONG`       | 400  |
+| 投票   | `SESSION_DESCRIPTION_TOO_LONG` | 400  |
+
 ## 健康与指标
 
 | 方法 | 路径              | 说明                                   |
