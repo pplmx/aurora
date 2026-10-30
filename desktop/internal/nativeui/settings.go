@@ -231,6 +231,16 @@ func (a *App) settingsAboutCard(c *ui.Context) {
 			}
 		}
 		readout(c, rows)
+		// Support asks for the build facts; copying the card's own rows keeps the
+		// reply exact instead of a typed paraphrase.
+		diagnostics := make([]string, 0, len(rows))
+		for _, row := range rows {
+			diagnostics = append(diagnostics, tr(row.label)+": "+row.value)
+		}
+		if quietButton(c, tr("Copy")+" "+tr("Diagnostics")).Clicked() {
+			c.Services().WriteClipboard(strings.Join(diagnostics, "\n"))
+			c.Toast(tr("Diagnostics are on the clipboard"))
+		}
 		a.settingsButton(c, "Open About Dialog", "", a.actions.ShowAbout)
 	})
 }
