@@ -617,7 +617,8 @@ The milestone notes under `.planning/` are history, not current instructions.
   `voting session create`), the token writes (`mint`, `transfer`, `approve`,
   `transfer-from`, `burn`), `nft transfer`/`burn`, `voting vote` and the session
   start/end transitions, `lottery import` (with `total`/`imported`/`rejected`),
-  `migrate status`, `backup create`/`verify`, `version`, `lottery stats`,
+  `migrate status|up|down|repair`, `backup create`/`verify`, `version`,
+  `lottery stats`,
   `lottery db-info` and the two
   blockchain commands take `--json` and print the same fields the REST API
   returns, with `[]` for an empty collection and no banner before the document,
