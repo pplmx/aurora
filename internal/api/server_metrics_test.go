@@ -39,7 +39,7 @@ func TestServer_MetricsHandlerExportsLiveCounters(t *testing.T) {
 	if !strings.Contains(body, "aurora_http_requests_total 2") {
 		t.Errorf("exported metrics did not reflect 2 requests:\n%s", body)
 	}
-	if !strings.Contains(body, `aurora_http_requests_by_module{module="health"} 2`) {
+	if !strings.Contains(body, `aurora_http_requests_by_module_total{module="health"} 2`) {
 		t.Errorf("expected health module bucket to show 2:\n%s", body)
 	}
 }

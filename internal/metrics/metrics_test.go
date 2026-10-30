@@ -24,10 +24,10 @@ func TestRegistry_ObserveAndExpose(t *testing.T) {
 	if !strings.Contains(out, "aurora_http_requests_total 3") {
 		t.Errorf("expected total 3, got:\n%s", out)
 	}
-	if !strings.Contains(out, `aurora_http_requests_by_status{code="200"} 2`) {
+	if !strings.Contains(out, `aurora_http_requests_by_status_total{code="200"} 2`) {
 		t.Errorf("expected 200=2, got:\n%s", out)
 	}
-	if !strings.Contains(out, `aurora_http_requests_by_status{code="404"} 1`) {
+	if !strings.Contains(out, `aurora_http_requests_by_status_total{code="404"} 1`) {
 		t.Errorf("expected 404=1, got:\n%s", out)
 	}
 	if !strings.Contains(out, "aurora_http_request_duration_seconds_count 3") {
@@ -239,7 +239,7 @@ func TestRegistry_UnknownModuleLabelsStayBounded(t *testing.T) {
 	out := reg.Expose()
 	sc := bufio.NewScanner(strings.NewReader(out))
 	for sc.Scan() {
-		if strings.HasPrefix(sc.Text(), "aurora_http_requests_by_module{") {
+		if strings.HasPrefix(sc.Text(), "aurora_http_requests_by_module_total{") {
 			counted++
 		}
 	}
@@ -255,13 +255,13 @@ func TestRegistry_PerModuleExpose(t *testing.T) {
 	reg.Observe(http.StatusOK, time.Millisecond, "nft")
 
 	out := reg.Expose()
-	if !strings.Contains(out, `aurora_http_requests_by_module{module="token"} 2`) {
+	if !strings.Contains(out, `aurora_http_requests_by_module_total{module="token"} 2`) {
 		t.Errorf("expected token module total 2 in:\n%s", out)
 	}
-	if !strings.Contains(out, `aurora_http_requests_by_module{module="nft"} 1`) {
+	if !strings.Contains(out, `aurora_http_requests_by_module_total{module="nft"} 1`) {
 		t.Errorf("expected nft module total 1 in:\n%s", out)
 	}
-	if !strings.Contains(out, `aurora_http_requests_by_module_status{module="token",code="418"} 1`) {
+	if !strings.Contains(out, `aurora_http_requests_by_module_status_total{module="token",code="418"} 1`) {
 		t.Errorf("expected token 418 module-status 1 in:\n%s", out)
 	}
 }
