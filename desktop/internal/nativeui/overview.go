@@ -109,81 +109,30 @@ func (a *App) dashboardView(c *ui.Context) {
 	}
 
 	a.scrollPage(c, func() {
-		// The verdict leads the page: it is the one fact that can be bad news,
-		// and it decides whether anything else on the dashboard is trustworthy.
-		a.dashboardHero(c)
-		// The counters below answer "how much"; the activity card answers
-		// "what changed"; the shortcuts come last for a store that already has
-		// content. A fresh store reverses the priority: its first move is the
-		// only useful thing on the page.
-		// Each counter's number takes the hue of the module it opens: the
-		// glyph beside it already carries that hue, and the value is what the
-		// eye lands on first. The notes stay in body ink, so the reading order
-		// is still "how many" then "of what".
-		tone := func(p page) ui.Color { return pageAccent(c, p) }
-		metrics := []struct {
-			label   string
-			value   string
-			note    string
-			tone    ui.Color
-			numeric bool
-			target  page
-		}{
-			{"Total Lotteries", strconv.Itoa(a.dashboard.Lotteries), "VRF draws recorded", tone(pageLottery), true, pageLottery},
-			{"Total Votes", strconv.Itoa(a.dashboard.Votes), "Signed ballots cast", tone(pageVoting), true, pageVoting},
-			{"Candidates", strconv.Itoa(a.dashboard.Candidates), "Registered contenders", tone(pageVoting), true, pageVoting},
-			{"Voting Sessions", strconv.Itoa(a.dashboard.Sessions), "Governance windows", tone(pageVoting), true, pageVoting},
-			{"Oracle Feeds", strconv.Itoa(a.dashboard.Oracle), "Registered data feeds", tone(pageOracle), true, pageOracle},
-			{"Ledger Blocks", strconv.Itoa(a.dashboard.Blocks), "Entries on the audit chain", tone(pageBlockchain), true, pageBlockchain},
-		}
-		showMetrics := func() {
-			// Three counters per row on a wide window; two at the minimum
-			// width so a label and its note keep their line instead of
-			// wrapping inside a 200px card.
-			sectionRule(c, "At a glance")
-			width, _ := c.Size()
-			// The breakpoints scale with the text preference: at 2x a card
-			// that held one label and a note at 1x needs the width of two.
-			scale := textScale(c)
-			columns := 3
-			if width < 1100*scale {
-				columns = 2
-			}
-			if width < 760*scale {
-				columns = 1
-			}
-			for start := 0; start < len(metrics); start += columns {
-				start := start
-				row := metrics[start:min(start+columns, len(metrics))]
-				metricRow(c, len(row), func(i int) {
-					m := row[i]
-					if metricCard(c, m.label, m.value, m.note, m.tone, m.numeric, m.target) {
-						a.setPage(m.target)
-					}
-				})
-			}
-		}
+		// The page has three reading levels: integrity is the verdict, the
+		// module rails show the shape of the ledger, and the timeline is what
+		// changed. A fresh store still starts with the first move, because an
+		// empty composition has nothing to explain until the operator creates
+		// its first record.
 		if a.dashboardIsEmpty() {
-			// A fresh install has nothing to summarize yet. Start with the
-			// first move, then show the (zero) counters and the empty chain.
+			a.dashboardHero(c)
 			a.dashboardQuickStart(c)
-			showMetrics()
+			a.dashboardComposition(c)
 			a.dashboardRecent(c)
 			return
 		}
-		// Returning users come here for the state, then for what changed;
-		// the action card is the last thing, not the first.
-		showMetrics()
+		a.dashboardHero(c)
+		a.dashboardComposition(c)
 		a.dashboardRecent(c)
 		a.dashboardQuickStart(c)
 	})
 	a.liveRefresh(c, a.loadDashboard)
 }
 
-// dashboardHero is the page's verdict panel: the chain's integrity, spelled
-// out in a word, with the explanation that makes the word mean something and
-// the one route to the full audit page. It replaces a sixth counter card: the
-// one value an operator must not miss deserves more than a third of a row.
+// dashboardHero is the page's verdict panel. It answers only the question that
+// can be bad news: whether the stored chain verifies. The composition below
+// owns every total, so the verdict does not repeat a block count or compete
+// with the module rails for attention.
 func (a *App) dashboardHero(c *ui.Context) {
 	verified := a.dashboard.Integrity == "verified"
 	tone := c.Theme().Success
@@ -202,11 +151,11 @@ func (a *App) dashboardHero(c *ui.Context) {
 		InsetShadow(0, 1, 0, 0, ui.RGBA(255, 255, 255, 0.05))
 	accentHairline(c, panel, tone)
 	panel.Children(func() {
-		ui.Row(c).FillWidth().Gap(space4).AlignItems(ui.Center).Children(func() {
+		verdict := func() {
 			iconTile(c, shieldCheckIcon, tone, iconTileLarge)
 			ui.Column(c).Grow(1).Shrink(1).MinWidth(0).Gap(space1).Children(func() {
 				eyebrow(c, "Ledger Integrity")
-				ui.Row(c).Gap(space3).AlignItems(ui.Center).Children(func() {
+				ui.Row(c).Wrap().Gap(space3).AlignItems(ui.Center).Children(func() {
 					ui.Text(c, tr(a.dashboard.Integrity)).FontSize(textSize(c, 26)).FontWeight(700).
 						TextColor(tone).SingleLine()
 					ui.Row(c).Padding(2, space2).Radius(999).Background(tone.Alpha(0.12)).
@@ -217,14 +166,156 @@ func (a *App) dashboardHero(c *ui.Context) {
 				})
 				ui.Text(c, tr(description)).FontSize(textSize(c, 12)).TextColor(c.Theme().TextMuted)
 			})
-			ui.Column(c).AlignItems(ui.End).Children(func() {
-				inspect := secondaryButton(c, "Inspect ledger")
-				if inspect.Clicked() {
-					a.setPage(pageBlockchain)
-				}
+		}
+		openLedger := func() {
+			if quietButton(c, "Open ledger").Clicked() {
+				a.setPage(pageBlockchain)
+			}
+		}
+		width, _ := c.Size()
+		if width < 860*textScale(c) {
+			ui.Column(c).FillWidth().Gap(space3).Children(func() {
+				ui.Row(c).FillWidth().Gap(space4).AlignItems(ui.Center).Children(verdict)
+				ui.Row(c).FillWidth().Justify(ui.End).Children(openLedger)
+			})
+			return
+		}
+		ui.Row(c).FillWidth().Gap(space4).AlignItems(ui.Center).Children(func() {
+			verdict()
+			ui.Spacer(c)
+			openLedger()
+		})
+	})
+}
+
+// dashboardComposition is the only place on the page that reports totals. A
+// ledger is not a list of unrelated counters: voting has two scales (people
+// and sessions), the audit chain contains every module, and the
+// lottery/oracle counts are smaller independent streams. The rail makes that
+// shape visible before a single number is read.
+func (a *App) dashboardComposition(c *ui.Context) {
+	sectionRule(c, "Ledger composition")
+	card(c, func() {
+		sectionHeading(c, "What the ledger is made of",
+			"Module records first; the audit chain carries all of them.")
+		width, _ := c.Size()
+		if width < twoColumnMinWidth*textScale(c) {
+			ui.Column(c).FillWidth().Gap(space2).Children(func() {
+				a.dashboardModuleRail(c, pageLottery, "Total Lotteries", strconv.Itoa(a.dashboard.Lotteries), "VRF draws recorded")
+				a.dashboardModuleRail(c, pageVoting, "Voting", strconv.Itoa(a.dashboard.Votes+a.dashboard.Candidates+a.dashboard.Sessions), "3 measures")
+				a.dashboardModuleRail(c, pageOracle, "Oracle Feeds", strconv.Itoa(a.dashboard.Oracle), "Registered data feeds")
+				a.dashboardModuleRail(c, pageBlockchain, "Ledger Blocks", strconv.Itoa(a.dashboard.Blocks), "Entries on the audit chain")
+			})
+		} else {
+			ui.Row(c).FillWidth().Gap(space2).Children(func() {
+				ui.Column(c).Grow(1).Shrink(1).Gap(space2).Children(func() {
+					a.dashboardModuleRail(c, pageLottery, "Total Lotteries", strconv.Itoa(a.dashboard.Lotteries), "VRF draws recorded")
+					a.dashboardModuleRail(c, pageOracle, "Oracle Feeds", strconv.Itoa(a.dashboard.Oracle), "Registered data feeds")
+				})
+				ui.Column(c).Grow(1).Shrink(1).Gap(space2).Children(func() {
+					a.dashboardModuleRail(c, pageVoting, "Voting", strconv.Itoa(a.dashboard.Votes+a.dashboard.Candidates+a.dashboard.Sessions), "3 measures")
+					a.dashboardModuleRail(c, pageBlockchain, "Ledger Blocks", strconv.Itoa(a.dashboard.Blocks), "Entries on the audit chain")
+				})
+			})
+		}
+		ui.Column(c).FillWidth().Gap(space1).Children(func() {
+			eyebrow(c, "Voting detail")
+			ui.Row(c).FillWidth().Wrap().Gap(space4).Children(func() {
+				a.dashboardModuleMetric(c, "Total Votes", strconv.Itoa(a.dashboard.Votes), "Signed ballots cast", pageVoting)
+				a.dashboardModuleMetric(c, "Candidates", strconv.Itoa(a.dashboard.Candidates), "Registered contenders", pageVoting)
+				a.dashboardModuleMetric(c, "Voting Sessions", strconv.Itoa(a.dashboard.Sessions), "Governance windows", pageVoting)
 			})
 		})
 	})
+}
+
+// dashboardModuleRail is one module's share of the composition. The rail
+// length is intentionally proportional to the module's visible count, with a
+// floor so a zero still reads as a registered module rather than an error.
+func (a *App) dashboardModuleRail(c *ui.Context, target page, title, value, note string) {
+	tone := pageAccent(c, target)
+	share := dashboardShare(target, a.dashboard.DashboardStats)
+	b := ui.ButtonBase(c).FillWidth().Padding(space3).Gap(space2).
+		Radius(radiusSmall + 2).AlignItems(ui.Start).Label(tr(title)).
+		Description(tr(note)).Tooltip(tr(note))
+	fill, outline := c.Theme().Background.Mix(c.Theme().Surface, 0.2), c.Theme().Border
+	switch {
+	case b.Pressed():
+		fill = c.Theme().SurfacePressed
+		outline = tone.Alpha(0.6)
+	case b.Hovered():
+		fill = c.Theme().SurfaceHover
+		outline = tone.Alpha(0.6)
+	}
+	b.Background(b.AnimateColor("module-rail", fill, ui.Animation{Duration: 100 * time.Millisecond}))
+	b.BorderWidth(1).BorderColor(outline)
+	b.Children(func() {
+		ui.Row(c).FillWidth().Gap(space2).AlignItems(ui.Start).Children(func() {
+			iconTile(c, pageIcons[target], tone, iconTileSmall)
+			ui.Column(c).Grow(1).Shrink(1).MinWidth(0).Gap(space1).Children(func() {
+				ui.Text(c, tr(title)).FontSize(textSize(c, 10.5)).FontWeight(600).
+					TextColor(c.Theme().TextMuted).SingleLine()
+				ui.Text(c, value).FontSize(textSize(c, 22)).FontWeight(700).
+					TextColor(tone).Font("monospace").FontFeatures("tnum").SingleLine()
+				ui.Text(c, tr(note)).FontSize(textSize(c, 10)).TextColor(c.Theme().TextMuted)
+			})
+		})
+		ui.Row(c).FillWidth().Height(3).Radius(1.5).Background(c.Theme().Border).Children(func() {
+			ui.Row(c).WidthPercent(share).Height(3).Radius(1.5).Background(tone)
+		})
+	})
+	if b.Clicked() {
+		a.setPage(target)
+	}
+}
+
+// dashboardModuleMetric is the second level of the composition: it gives the
+// voting module's three stored scales their own labels without returning to a
+// grid of equal cards.
+func (a *App) dashboardModuleMetric(c *ui.Context, label, value, note string, target page) {
+	b := ui.ButtonBase(c).Grow(1).Shrink(1).Padding(space2, space3).Radius(radiusSmall).
+		AlignItems(ui.Start).Label(tr(label)).Description(tr(note))
+	fill := c.Theme().Background.Mix(c.Theme().Surface, 0.18)
+	if b.Hovered() || b.Pressed() {
+		fill = c.Theme().SurfaceHover
+	}
+	b.Background(fill).BorderWidth(1).BorderColor(c.Theme().Border)
+	b.Children(func() {
+		ui.Column(c).Gap(1).Children(func() {
+			eyebrow(c, label)
+			ui.Text(c, value).FontSize(textSize(c, 18)).FontWeight(700).
+				TextColor(pageAccent(c, target)).Font("monospace").FontFeatures("tnum").SingleLine()
+			ui.Text(c, tr(note)).FontSize(textSize(c, 10)).TextColor(c.Theme().TextMuted).SingleLine()
+		})
+	})
+	if b.Clicked() {
+		a.setPage(target)
+	}
+}
+
+// dashboardShare gives each module rail a visible proportion. The audit chain
+// always has a floor because it contains the module records themselves; the
+// other modules share the remaining space by their own counts. Voting's rail
+// represents all three stored scales, so its sum participates in the
+// denominator just like the other visible modules.
+func dashboardShare(target page, d DashboardStats) float32 {
+	const floor = 10
+	largest := max(1, d.Lotteries, d.Votes+d.Candidates+d.Sessions, d.Oracle, d.Blocks)
+	var value int
+	switch target {
+	case pageLottery:
+		value = d.Lotteries
+	case pageVoting:
+		value = d.Votes + d.Candidates + d.Sessions
+	case pageOracle:
+		value = d.Oracle
+	case pageBlockchain:
+		value = d.Blocks
+	}
+	if value <= 0 {
+		return floor
+	}
+	return min(100, float32(floor)+float32(value)/float32(largest)*90)
 }
 
 // dashboardIsEmpty distinguishes a fresh store from a partial one. Every
@@ -250,7 +341,7 @@ func (a *App) dashboardQuickStart(c *ui.Context) {
 		if a.dashboardIsEmpty() {
 			emptyNote(c, "Nothing recorded yet — run a draw to create the first ledger entry.")
 		}
-		ui.Row(c).Wrap().Gap(space2).Children(func() {
+		ui.Row(c).FillWidth().Wrap().Gap(space2).Children(func() {
 			a.quickAction(c, "Run a draw", pageLottery)
 			a.quickAction(c, "Create a token", pageToken)
 			a.quickAction(c, "Register a voter", pageVoting)
@@ -297,9 +388,9 @@ func (a *App) quickAction(c *ui.Context, label string, target page) {
 	}
 }
 
-// dashboardRecent draws the newest chain entries. The counters say how much
-// the store holds; this card says what happened, which is what an operator
-// opening the window usually wants to know first.
+// dashboardRecent draws the newest chain entries. The composition says how
+// much the store holds; this card says what happened, and every record opens
+// the module that wrote it.
 func (a *App) dashboardRecent(c *ui.Context) {
 	title := tr("Recent activity")
 	panel := card(c, func() {
@@ -310,9 +401,6 @@ func (a *App) dashboardRecent(c *ui.Context) {
 			ui.Row(c).Gap(space2).AlignItems(ui.Center).Children(func() {
 				if n := len(a.dashboard.recent); n > 0 {
 					badge(c, fmt.Sprintf("%d", n), c.Theme().Selection, c.Theme().Text)
-				}
-				if quietButton(c, "View all").Clicked() {
-					a.setPage(pageBlockchain)
 				}
 			})
 		})
@@ -338,10 +426,11 @@ func (a *App) dashboardRecent(c *ui.Context) {
 		// The whole record is the navigation target: it names where the entry
 		// came from, and taking the reader there is more useful than leaving a
 		// highlight behind.
-		ui.Column(c).FillWidth().Gap(8).Children(func() {
-			for _, entry := range a.dashboard.recent {
+		ui.Column(c).FillWidth().Gap(0).Children(func() {
+			for i, entry := range a.dashboard.recent {
 				entry := entry
-				if _, clicked := selectableBlockRecord(c, entry); clicked {
+				last := i == len(a.dashboard.recent)-1
+				if clicked := dashboardTimelineEntry(c, entry, last); clicked {
 					if target, ok := pageForBlockModule(entry.Module); ok {
 						a.setPage(target)
 					}
@@ -350,6 +439,48 @@ func (a *App) dashboardRecent(c *ui.Context) {
 		})
 	})
 	panel.Label(title)
+}
+
+// dashboardTimelineEntry draws one event as a point on a vertical ledger
+// spine. The spine is painted from the row's laid-out height rather than a
+// fixed segment, so a wrapped record cannot leave a gap between events. The
+// last record ends at its dot instead of drawing a line into empty space.
+func dashboardTimelineEntry(c *ui.Context, entry BlockRow, last bool) bool {
+	tone := recordModuleTone(c, entry.Module)
+	var clicked bool
+	row := ui.Row(c).FillWidth().Gap(space3).AlignItems(ui.Start)
+	row.Draw(func(p *ui.Painter, r ui.Rect) {
+		if last {
+			return
+		}
+		p.Fill(ui.Rect{X: r.X + 8.5, Y: r.Y, W: 1, H: r.H}, c.Theme().Border, 0)
+	})
+	row.Children(func() {
+		ui.Column(c).Width(18).AlignItems(ui.Center).Children(func() {
+			statusDot(c, tone, 9)
+		})
+		b := ui.ButtonBase(c).FillWidth().Padding(space3+2, space4).Gap(space2 + 2).
+			Radius(radiusSmall + 2).AlignItems(ui.Start).Label(blockRecordLabel(entry))
+		fill, outline := c.Theme().Background.Mix(c.Theme().Surface, 0.35), c.Theme().Border
+		switch {
+		case b.Pressed():
+			fill = c.Theme().SurfacePressed
+			outline = tone.Alpha(0.55)
+		case b.Hovered():
+			fill = c.Theme().SurfaceHover
+			outline = tone.Alpha(0.55)
+		}
+		b.Background(b.AnimateColor("timeline-fill", fill, ui.Animation{Duration: 100 * time.Millisecond}))
+		b.BorderWidth(1).BorderColor(outline)
+		b.Children(func() {
+			ui.Column(c).FillWidth().Gap(space2).Children(func() {
+				recordSentence(c, entry, false, nil)
+				recordFacts(c, entry)
+			})
+		})
+		clicked = b.Clicked()
+	})
+	return clicked
 }
 
 func (a *App) loadBlockchain() {

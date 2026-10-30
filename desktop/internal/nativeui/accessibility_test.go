@@ -234,27 +234,6 @@ func TestBackgroundWorkIsStatusAndAnnouncedOnce(t *testing.T) {
 	tester.Frame()
 }
 
-// TestActionCardIsKeyboardOperable pins the whole-card dashboard shortcut to
-// the button behavior it visually imitates: Tab reaches it and Enter activates
-// it without a pointer.
-func TestActionCardIsKeyboardOperable(t *testing.T) {
-	activated := false
-	tester := ui.NewTester(func(c *ui.Context) {
-		if actionCard(c, "Open token", func() {
-			ui.Text(c, "Token body")
-		}).Clicked() {
-			activated = true
-		}
-	}, 420, 180)
-	tester.Frame()
-
-	tester.Key(0, ui.KeyTab)
-	require.True(t, tester.Focused(tr("Open token")))
-	tester.Key(0, ui.KeyEnter)
-	tester.Frame()
-	require.True(t, activated)
-}
-
 // TestTabsAreKeyboardOperable covers the custom focus ring and wrapping tab
 // row: arrows select adjacent tabs and follow the focus, including at an end.
 func TestTabsAreKeyboardOperable(t *testing.T) {

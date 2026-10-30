@@ -387,9 +387,13 @@ func TestDashboardQuickStartNavigates(t *testing.T) {
 		{"Mint an NFT", pageNFT},
 	} {
 		app := New(&fakeServices{})
-		tester := ui.NewTester(app.View, 1280, 1000)
+		tester := ui.NewTester(app.View, 1280, 860)
 		tester.Frame()
 		require.Equalf(t, pageDashboard, app.page, "%s must start from the dashboard", tc.label)
+		quick, ok := tester.Find("Quick start")
+		require.Truef(t, ok, "the dashboard must offer Quick start")
+		app.scroll.Y = max(0, quick.Y-160)
+		tester.Frame()
 		require.NoErrorf(t, tester.Click(tc.label), "click %q", tc.label)
 		tester.Frame()
 		require.Equalf(t, tc.want, app.page, "%q must open its page", tc.label)
@@ -513,21 +517,22 @@ func TestSettingsShortcut(t *testing.T) {
 }
 
 // TestDashboardPrioritisesStateOverActions keeps the returning dashboard's
-// hierarchy: counters and recent activity come before the quick-start card.
+// hierarchy: composition and recent activity come before the quick-start card.
 func TestDashboardPrioritisesStateOverActions(t *testing.T) {
 	app := New(&fakeServices{blocks: []BlockRow{{Height: 1, Module: "lottery", Summary: "draw"}}})
 	tester := ui.NewTester(app.View, 1280, 2200)
 	tester.Frame()
 
-	metrics, ok := tester.Find("Total Lotteries")
+	composition, ok := tester.Find("What the ledger is made of")
 	require.True(t, ok)
 	quick, ok := tester.Find("Quick start")
 	require.True(t, ok)
-	require.Less(t, metrics.Y, quick.Y, "counters must precede the action card")
+	require.Less(t, composition.Y, quick.Y, "the composition must precede the action card")
 }
 
-// TestDashboardMetricCardNavigates makes the overview cards real shortcuts.
-func TestDashboardMetricCardNavigates(t *testing.T) {
+// TestDashboardCompositionRailNavigates makes the overview rails real
+// shortcuts rather than decoration.
+func TestDashboardCompositionRailNavigates(t *testing.T) {
 	app := New(&fakeServices{})
 	tester := ui.NewTester(app.View, 1280, 1600)
 	tester.Frame()
@@ -588,23 +593,6 @@ func TestSettingsDocumentsTheWindowShortcuts(t *testing.T) {
 	require.True(t, tester.HasText("Import lotteries"))
 	require.True(t, tester.HasText(shortcutChord("I")))
 	require.True(t, tester.HasText(shortcutChord(",")))
-}
-
-// TestDashboardMetricGridUsesTwoColumnsAtMinimumWidth keeps the counters
-// readable at the 900px window minimum instead of squeezing three cards.
-func TestDashboardMetricGridUsesTwoColumnsAtMinimumWidth(t *testing.T) {
-	app := New(&fakeServices{})
-	tester := ui.NewTester(app.View, 900, 2200)
-	tester.Frame()
-
-	first, ok := tester.Find("Total Lotteries")
-	require.True(t, ok)
-	second, ok := tester.Find("Total Votes")
-	require.True(t, ok)
-	third, ok := tester.Find("Candidates")
-	require.True(t, ok)
-	require.InDelta(t, float64(first.Y), float64(second.Y), 1, "two cards share the first row")
-	require.Greater(t, third.Y, second.Y, "the third card wraps to the next row")
 }
 
 // TestCommandPaletteOpensAndNavigates pins the keyboard-first page switcher:

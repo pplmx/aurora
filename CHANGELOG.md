@@ -11,6 +11,17 @@ documented in their per-milestone ROADMAP files.
 
 ### Changed
 
+- **The desktop dashboard is a ledger story, not a grid of equal counters**:
+  the integrity hero now gives only the chain verdict; a single Ledger
+  composition panel owns every total and shows lottery, voting, oracle and
+  chain scale as module rails with proportional tracks. Voting expands into
+  ballots, candidates and sessions, and its rail uses the sum of all three
+  measures in the shared denominator. Recent activity is now a vertical
+  timeline whose rule follows each record's real height, so wrapped entries
+  stay connected; every record still opens the module that wrote it. The
+  dashboard drops the three competing ledger links, the old metric-card
+  helpers and their fixed value slot, while keeping Quick start first on an
+  empty store and last once records exist.
 - **The desktop has two semantic appearances instead of one fixed dark palette**:
   Appearance now offers Follow System, Light and Dark and saves the choice in
   `desktop-settings.json`; an older file without a theme field still opens in

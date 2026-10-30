@@ -104,19 +104,19 @@ func TestDataTablesSitInTheirOwnFrame(t *testing.T) {
 }
 
 // TestSectionRuleFadesOut pins the separators above a band of cards. A
-// full-width border under "At a glance" ran across the page like a table edge;
+// full-width border under "Ledger composition" ran across the page like a table edge;
 // the rule's right end must reach the background, so the heading groups what
 // follows instead of closing a region.
 func TestSectionRuleFadesOut(t *testing.T) {
 	tester := ui.NewTester(func(c *ui.Context) {
 		ui.Column(c).Width(600).Padding(20).Children(func() {
-			sectionRule(c, "At a glance")
+			sectionRule(c, "Ledger composition")
 		})
 	}, 640, 120)
 	tester.Frame()
 	img := tester.Image()
 
-	label, ok := tester.Find("At a glance")
+	label, ok := tester.Find("Ledger composition")
 	require.True(t, ok)
 	row := int(label.Y + label.H/2)
 	background := img.At(300, int(label.Y-10))

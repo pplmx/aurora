@@ -25,7 +25,6 @@ const (
 
 	pageTitleSize  float32 = 28
 	sectionSize    float32 = 16
-	statValueSize  float32 = 30
 	eyebrowSize    float32 = 10
 	buttonHeight   float32 = 36
 	iconTileSmall  float32 = 30
@@ -178,7 +177,7 @@ func verdictPill(c *ui.Context, ok bool, label string) ui.Element {
 		})
 }
 
-// hoverRaise is the hover motion shared by the dashboard's cards: they grow a
+// hoverRaise is the hover motion shared by the dashboard's quick actions: they grow a
 // fraction and warm their border instead of changing colour abruptly. The
 // motion is a scale rather than an upward shift because a shifted element moves
 // out from under a pointer resting on its last pixel, which flickers the hover
@@ -228,21 +227,4 @@ func sectionRule(c *ui.Context, label string) {
 			}}, 0)
 		})
 	})
-}
-
-// cardAccent lights the top edge of a card with a module's hue. It is the
-// quietest possible statement of "this card belongs to that module": two
-// pixels of light along the rim, gone before the title, so six counters in one
-// grid still scan as one family instead of six coloured blocks.
-func cardAccent(e ui.Element, tone ui.Color) ui.Element {
-	e.Draw(func(p *ui.Painter, r ui.Rect) {
-		inset := radiusPanel + space2
-		p.FillGradient(ui.Rect{X: r.X + inset, Y: r.Y, W: r.W - 2*inset, H: 3},
-			ui.LinearGradient{Angle: 90, Stops: []ui.GradientStop{
-				{Color: tone.Alpha(0), At: 0},
-				{Color: tone.Alpha(0.72), At: 0.5},
-				{Color: tone.Alpha(0), At: 1},
-			}}, 1)
-	})
-	return e
 }

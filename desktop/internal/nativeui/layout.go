@@ -86,8 +86,8 @@ func heading(c *ui.Context, text string, size float32, level int) ui.Element {
 }
 
 // card draws a raised panel: the surface every section's content sits on.
-// A card is what separates one concern from the next now that the sidebar no
-// longer does it with rules, and it is the unit the dashboard grid repeats.
+// A card separates one concern from the next, and the dashboard repeats it
+// for the composition and timeline rather than for a grid of equal counters.
 func card(c *ui.Context, fn func()) ui.Element {
 	// A card fills its column's width and is as tall as its content: growing
 	// it would stretch a three-field form down the page. The soft shadow and
@@ -155,80 +155,6 @@ func selectableRecordPanel(c *ui.Context, selected bool, label string, fn func()
 		ui.Column(c).FillWidth().Gap(space1 + 1).Children(fn)
 	})
 	return panel
-}
-
-// metricCard draws one counter: a label, the value, and what it counts. A
-// numeric value is the largest type on the page so the eye lands on it first;
-// a word verdict ("verified") is drawn smaller, because 30pt of lowercase
-// reads as an error rather than a summary. The module's glyph sits in the
-// corner so the four counters that open the same page are still told apart,
-// and a hairline of the module's hue runs along the card's top edge.
-func metricCard(c *ui.Context, label, value, note string, tone ui.Color, numeric bool, target page) bool {
-	body := func() {
-		ui.Row(c).FillWidth().Gap(space2).AlignItems(ui.Center).Children(func() {
-			eyebrow(c, label).Grow(1).Shrink(1).MinWidth(0)
-			iconTile(c, pageIcons[target], pageAccent(c, target), iconTileSmall)
-		})
-		// The value sits in a fixed-height slot so a word verdict and a
-		// one-digit number put their note on the same line across the row.
-		size := float32(20)
-		if numeric {
-			size = statValueSize
-		}
-		ui.Column(c).Height(textSize(c, 40)).Justify(ui.Center).Children(func() {
-			ui.Text(c, tr(value)).FontSize(textSize(c, size)).FontWeight(700).
-				TextColor(tone).Font("monospace").
-				FontFeatures("tnum").SingleLine()
-		})
-		ui.Text(c, tr(note)).FontSize(textSize(c, 11.5)).TextColor(c.Theme().TextMuted)
-	}
-	if target == pageDashboard {
-		card(c, body)
-		return false
-	}
-	return cardAccent(actionCard(c, label, body), pageAccent(c, target)).Clicked()
-}
-
-// actionCard is a whole card that opens another page. It keeps the card's
-// surface, border and lift, but adds the button's hover/press state so the
-// dashboard counters read as shortcuts rather than decoration.
-func actionCard(c *ui.Context, label string, body func()) ui.Element {
-	b := ui.ButtonBase(c).FillWidth().Label(tr(label)).
-		Padding(space5, space4+space1).Radius(radiusPanel).AlignItems(ui.Start).
-		LinearGradient(panelFill(c)).
-		BorderWidth(1).BorderColor(c.Theme().Border).
-		Shadow(0, 20, 46, -22, cardShadow(c)).
-		InsetShadow(0, 1, 0, 0, cardHighlight(c))
-	switch {
-	case b.Pressed():
-		b.LinearGradient(ui.LinearGradient{
-			Angle: 165,
-			From:  c.Theme().SurfacePressed,
-			To:    c.Theme().Surface,
-		})
-	case b.Hovered():
-		b.LinearGradient(ui.LinearGradient{
-			Angle: 150,
-			From:  c.Theme().SurfaceHover,
-			To:    c.Theme().Surface,
-		})
-		b.BorderColor(c.Theme().Accent.Alpha(0.5))
-	}
-	hoverRaise(c, b, b.Hovered())
-	b.Children(func() { ui.Column(c).FillWidth().Gap(space3).Children(body) })
-	return b
-}
-
-// metricRow lays out cards in equal columns. A ui.Grid sizes its tracks from
-// its children, which let the dashboard's six cards run past the window's
-// right edge; rows of growing columns stay inside the content width.
-func metricRow(c *ui.Context, n int, fn func(i int)) {
-	ui.Row(c).FillWidth().AlignItems(ui.Start).Gap(14).Children(func() {
-		for i := range n {
-			i := i
-			ui.Column(c).Grow(1).Shrink(1).Children(func() { fn(i) })
-		}
-	})
 }
 
 // sectionHeading draws a section's title and its one-line purpose, the shape

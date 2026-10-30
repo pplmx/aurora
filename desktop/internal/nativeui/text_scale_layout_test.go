@@ -11,32 +11,6 @@ import (
 	"github.com/pplmx/aurora/internal/i18n"
 )
 
-// TestMetricCardKeepsValueAndNoteApartAtLargeText covers the dashboard's
-// fixed-height value slot. The value font scales with the OS text setting but
-// the slot used not to, so at 2x the large number painted over its label and
-// the sentence explaining what it counts.
-func TestMetricCardKeepsValueAndNoteApartAtLargeText(t *testing.T) {
-	tester := ui.NewTester(func(c *ui.Context) {
-		ui.Column(c).Width(360).Padding(24).Children(func() {
-			metricCard(c, "Records", "123", "Exact stored rows", c.Theme().Text, true, pageDashboard)
-		})
-	}, 420, 300)
-	tester.SetPreferences(ui.Preferences{TextScale: 2})
-	tester.Frame()
-
-	label, ok := tester.Find("Records")
-	require.True(t, ok)
-	value, ok := tester.Find("123")
-	require.True(t, ok)
-	note, ok := tester.Find("Exact stored rows")
-	require.True(t, ok)
-
-	require.LessOrEqual(t, label.Y+label.H, value.Y,
-		"the enlarged value must start below its label")
-	require.LessOrEqual(t, value.Y+value.H, note.Y,
-		"the note must start below the enlarged value")
-}
-
 // TestSidebarScrollsAtLargeText keeps every module reachable in the shortest
 // supported window. At 2x the navigation is taller than the fixed sidebar, so
 // the Settings row and File action used to paint below the window edge with no
