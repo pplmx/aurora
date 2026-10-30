@@ -590,8 +590,9 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 - **The CLI's read commands print JSON**: every list (`lottery history`,
   `token list`, `nft list`, the three voting lists, `oracle source list`), the
-  single-record reads (`lottery verify`, `token balance`/`allowance`, `nft get`,
-  `oracle data`/`latest`, `voting results`), `lottery stats`, `lottery db-info`
+  single-record reads (`lottery verify`, `token balance`/`allowance`/`history`,
+  `nft get`/`history`, `oracle data`/`latest`, `voting results`), `lottery stats`,
+  `lottery db-info`
   and the two blockchain commands take `--json` and print the same fields the
   REST API returns, with `[]` for an empty collection and no banner before the
   document, so a script can pipe the CLI into `jq` instead of parsing tables.

@@ -13,7 +13,8 @@ aurora version                    # 版本、构建时间、Go 工具链
 `voting candidate|voter|session list`、`oracle source list`、`blockchain verify|blocks`）
 都支持 `--json`：输出一个 JSON 文档，字段与 REST 一致，stdout 没有横幅；
 空集合输出 `[]`，可直接 `| jq`。单条读取（`lottery verify`、`token balance`、
-`token allowance`、`nft get`、`oracle data`/`latest`、`voting results`）以及
+`token allowance`、`token history`、`nft get`、`nft history`、`oracle data`/`latest`、
+`voting results`）以及
 `lottery stats` 与 `lottery db-info` 也支持 `--json`：
 分别输出对应 REST 文档（例如 `stats` 为 `total`/`db_path`/`latest_block`，
 无记录时省略后者；`db-info` 为 `path`/`size_bytes`/`blocks`）。

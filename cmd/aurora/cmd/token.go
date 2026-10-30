@@ -100,6 +100,7 @@ func init() {
 	tokenCmd.AddCommand(tokenAllowanceCmd)
 	addJSONFlag(tokenAllowanceCmd)
 	tokenCmd.AddCommand(tokenHistoryCmd)
+	addJSONFlag(tokenHistoryCmd)
 	tokenCmd.AddCommand(tokenInfoCmd)
 	tokenCmd.AddCommand(tokenListCmd)
 	addJSONFlag(tokenListCmd)

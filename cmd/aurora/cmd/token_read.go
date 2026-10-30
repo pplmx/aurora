@@ -126,6 +126,12 @@ var tokenHistoryCmd = &cobra.Command{
 		if err != nil {
 			return wrapCLIError("token.error.get_history", err)
 		}
+		if jsonRequested(cmd) {
+			if resp.Transfers == nil {
+				resp.Transfers = []tokenapp.TransferResponse{}
+			}
+			return printJSON(resp)
+		}
 
 		fmt.Printf("\n📜 %s: %d\n", i18n.GetText("token.history_heading"), len(resp.Transfers))
 		if len(resp.Transfers) == 0 {
