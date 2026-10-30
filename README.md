@@ -264,7 +264,7 @@ Docker 镜像只包含 CLI，没有 HTTP 监听器；`aurora-api` 只提供 REST
 - [docs/cli.md](docs/cli.md)：完整 CLI 与运维命令参考
 - [docs/api.md](docs/api.md)：REST API、鉴权、限流、可观测性
 - [docs/ablation.md](docs/ablation.md)：纯 Go 构建边界与模块消融结论
-- [docs/lottery/](docs/lottery/)：抽奖模块的 API、测试与使用说明
+- [docs/superpowers/lottery/](docs/superpowers/lottery/)：抽奖模块的早期设计记录（VRF 说明与当时的使用方式，保持原样）
 - [CHANGELOG.md](CHANGELOG.md)：逐版本变更
 - [SECURITY.md](SECURITY.md)：漏洞报告流程
 
