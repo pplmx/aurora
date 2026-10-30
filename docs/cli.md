@@ -161,7 +161,10 @@ aurora migrate repair --confirm # 清除失败迁移留下的脏标记
 `backup create` 先写同目录临时文件再原子改名，失败不会破坏上一份可用备份。
 `db.path` 若使用磁盘型 SQLite `file:` URI，备份与恢复会先解码到真实文件路径；
 `:memory:` 或 `mode=memory` 数据库没有可备份的磁盘状态，会在创建输出目录前
-直接报错。
+直接报错。`backup restore` 会先把当前数据库快照成 `<备份目录>.pre_restore`，
+并写成可校验的完整备份；恢复错了用
+`aurora backup restore <备份目录>.pre_restore --confirm` 回滚，命令结束时会打印
+这条路径。
 
 ## 确认门与错误输出
 

@@ -1031,3 +1031,35 @@ func TestRestore_CancelledMidPromotionRollsBack(t *testing.T) {
 		"the promoted database must be rolled back to its pre-restore content")
 	assert.Equal(t, "LIVE", readKV(t, dstB, "answer"))
 }
+
+// TestRestore_PreRestoreArchiveIsRestorable pins the undo path: the safety copy
+// is written with metadata, so Verify accepts it and a second Restore brings
+// the pre-restore data back without copying files by hand.
+func TestRestore_PreRestoreArchiveIsRestorable(t *testing.T) {
+	tmp := t.TempDir()
+	dstDB := filepath.Join(tmp, "dst", "blockchain.db")
+	backupDir := filepath.Join(tmp, "backup")
+	backupDB := filepath.Join(backupDir, "blockchain.db")
+
+	newDB(t, backupDB,
+		"CREATE TABLE kv (k TEXT PRIMARY KEY, v TEXT NOT NULL)",
+		"INSERT INTO kv (k, v) VALUES ('answer', '42')",
+	)
+	newDB(t, dstDB,
+		"CREATE TABLE kv (k TEXT PRIMARY KEY, v TEXT NOT NULL)",
+		"INSERT INTO kv (k, v) VALUES ('answer', 'WRONG')",
+	)
+	writeMeta(t, backupDir, "blockchain")
+
+	svc := NewBackupService(map[string]string{"blockchain": dstDB})
+	require.NoError(t, svc.Restore(context.Background(), backupDir))
+	require.Equal(t, "42", readKV(t, dstDB, "answer"))
+
+	undo := backupDir + ".pre_restore"
+	require.NoError(t, svc.Verify(context.Background(), undo),
+		"the undo copy must be a complete archive, not a bare database")
+
+	require.NoError(t, svc.Restore(context.Background(), undo))
+	require.Equal(t, "WRONG", readKV(t, dstDB, "answer"),
+		"restoring the undo copy must bring the previous database back")
+}

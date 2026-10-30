@@ -1107,6 +1107,10 @@ func (s *BackupService) Restore(ctx context.Context, backupPath string) error {
 		cleanupRestoreTemps(operations)
 		return err
 	}
+	if err := writePreRestoreMetadata(preRestoreDir, operations); err != nil {
+		cleanupRestoreTemps(operations)
+		return err
+	}
 
 	promoted, err := s.promoteRestore(ctx, operations)
 	if err != nil {
@@ -1192,6 +1196,55 @@ func (s *BackupService) planRestore(backupDir string, metadata *BackupMetadata) 
 // prepareRestore makes every safety snapshot and replacement file before the
 // first destination is renamed. Any preparation failure therefore leaves all
 // live databases untouched.
+// writePreRestoreMetadata turns the pre-restore copies into a verifiable
+// archive. Without metadata.json the undo copy was a bare database that Verify
+// and Restore refused, so an operator who restored the wrong backup could only
+// copy files back by hand — the one documented recovery path that the safety
+// copy did not actually support. A first-time restore, with no previous
+// database, writes nothing.
+func writePreRestoreMetadata(dir string, operations []restoreOperation) error {
+	metadata := BackupMetadata{
+		Version:           "1.2",
+		Timestamp:         time.Now().UTC().Format(time.RFC3339),
+		DatabaseChecksums: make(map[string]string, len(operations)),
+	}
+	for i := range operations {
+		op := &operations[i]
+		if !op.hadDest {
+			continue
+		}
+		sum, err := fileSHA256(op.prePath)
+		if err != nil {
+			return fmt.Errorf("checksum pre-restore %s: %w", op.name, err)
+		}
+		metadata.Databases = append(metadata.Databases, op.name)
+		metadata.DatabaseChecksums[op.name] = sum
+		if v := querySchemaVersion(op.prePath); v > metadata.SchemaVersion {
+			metadata.SchemaVersion = v
+		}
+	}
+	if len(metadata.Databases) == 0 {
+		return nil
+	}
+	checksumData, err := json.Marshal(metadata)
+	if err != nil {
+		return fmt.Errorf("marshal pre-restore metadata: %w", err)
+	}
+	metadata.Checksum = fmt.Sprintf("%x", sha256.Sum256(checksumData))
+	data, err := json.MarshalIndent(metadata, "", "  ")
+	if err != nil {
+		return fmt.Errorf("marshal pre-restore metadata: %w", err)
+	}
+	path := filepath.Join(dir, "metadata.json")
+	if err := os.WriteFile(path, data, 0o600); err != nil {
+		return fmt.Errorf("write pre-restore metadata: %w", err)
+	}
+	if err := restrictBackupFile(path); err != nil {
+		return fmt.Errorf("restrict pre-restore metadata: %w", err)
+	}
+	return syncFileAtPath(path)
+}
+
 func prepareRestore(operations []restoreOperation, preRestoreDir string) error {
 	for i := range operations {
 		op := &operations[i]

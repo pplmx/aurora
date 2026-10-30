@@ -11,6 +11,13 @@ documented in their per-milestone ROADMAP files.
 
 ### Changed
 
+- **A restore can be undone with a command**: `backup restore` keeps the
+  previous database in `<archive>.pre_restore`, but that copy was a bare
+  database with no metadata, so Verify and Restore refused it and an operator
+  who restored the wrong archive had to copy files back by hand. The safety
+  copy is now a complete backup with checksums, `backup verify` accepts it, and
+  the command prints the undo line:
+  `aurora backup restore <archive>.pre_restore --confirm`.
 - **A stacked Oracle page leads with its stage**: below 1240px, or at a text
   scale that crosses it, the two columns stack and the tall add form came
   first, so Sources, Health and Readings sat two screens down and opening

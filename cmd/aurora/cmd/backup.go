@@ -3,6 +3,8 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
 
 	"github.com/pplmx/aurora/internal/i18n"
 	"github.com/pplmx/aurora/internal/infra/backup"
@@ -79,6 +81,13 @@ var backupRestoreCmd = &cobra.Command{
 			return wrapCLIError("backup.error.restore", err)
 		}
 		fmt.Println(i18n.GetTextF("backup.restore_done", args[0]))
+		// The safety copy is a complete archive, so an undo is one command
+		// instead of copying database files by hand; print it only when this
+		// restore had a previous database to keep.
+		undo := filepath.Clean(args[0]) + ".pre_restore"
+		if _, err := os.Stat(filepath.Join(undo, "metadata.json")); err == nil {
+			fmt.Println(i18n.GetTextF("backup.restore_undo", undo, undo))
+		}
 		return nil
 	},
 }
