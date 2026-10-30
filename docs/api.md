@@ -73,6 +73,7 @@ AURORA_SERVER_HOST=127.0.0.1 AURORA_SERVER_PORT=9090 ./aurora-api
 `aurora_oracle_fetch_failures_total{source}`；调度器启动前该端点返回空内容。
 
 ```text
+# HELP aurora_http_requests_total Total HTTP requests handled.
 # TYPE aurora_http_requests_total counter
 aurora_http_requests_total 3
 # TYPE aurora_http_requests_by_status counter

@@ -297,8 +297,11 @@ func (s *Scheduler) Stats() []SourceStat {
 func (s *Scheduler) PrometheusText() string {
 	stats := s.Stats()
 	var b strings.Builder
+	fmt.Fprintln(&b, "# HELP aurora_oracle_fetch_attempts_total Oracle source fetch attempts.")
 	fmt.Fprintln(&b, "# TYPE aurora_oracle_fetch_attempts_total counter")
+	fmt.Fprintln(&b, "# HELP aurora_oracle_fetch_successes_total Oracle source fetches that returned a reading.")
 	fmt.Fprintln(&b, "# TYPE aurora_oracle_fetch_successes_total counter")
+	fmt.Fprintln(&b, "# HELP aurora_oracle_fetch_failures_total Oracle source fetches that failed.")
 	fmt.Fprintln(&b, "# TYPE aurora_oracle_fetch_failures_total counter")
 	for _, st := range stats {
 		fmt.Fprintf(&b, "aurora_oracle_fetch_attempts_total{source=%q} %d\n", st.SourceID, st.Attempts)
