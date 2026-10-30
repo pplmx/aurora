@@ -33,9 +33,18 @@ seed=${AURORA_E2E_SEED:-0}
 pages=("$@")
 if [ ${#pages[@]} -eq 0 ]; then
   # page[:tab] — a tab is pressed inside the page before the capture, so the
-  # default run covers the stages that are otherwise one click away.
-  pages=(dashboard lottery voting voting:Ballot voting:Results token token:Burn
-    oracle oracle:Health oracle:Readings nft nft:Burn nft:History blockchain settings)
+  # default run covers the stages that are otherwise one click away. The write
+  # stages exist only once a record does: the first-run pages replace the work
+  # bench, so they join the default list only when the database is seeded.
+  pages=(dashboard lottery voting voting:Ballot voting:Results token)
+  if [ "$seed" = "1" ]; then
+    pages+=(token:Burn)
+  fi
+  pages+=(oracle oracle:Health oracle:Readings nft)
+  if [ "$seed" = "1" ]; then
+    pages+=(nft:Burn nft:History)
+  fi
+  pages+=(blockchain settings)
 fi
 
 echo "building aurora-desktop (e2e) and automation-shot"
@@ -162,10 +171,10 @@ for spec in "${pages[@]}"; do
   if [ "$page" != "$spec" ]; then
     stage=${spec#*:}
     press="$page,$stage"
-    if marker=$(stageMarker "$spec"); then
+    # An empty store replaces the stage body with its own first-run copy, so
+    # the stage-only marker is meaningful only when the database is seeded.
+    if [ "$seed" = "1" ] && marker=$(stageMarker "$spec"); then
       expect="$marker,"
-    else
-      expect="$stage,"
     fi
   fi
   if ! title=$(pageTitle "$page"); then
