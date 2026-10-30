@@ -366,6 +366,7 @@ nft, token) and operational commands (migrate, backup, version).`,
 	"oracle.error.source_required":  "a source is required: pass --id <source-id>",
 
 	// ===== COMMON =====
+	"common.error.json":       "failed to encode JSON",
 	"common.id":               "ID",
 	"common.json":             "Print JSON instead of a table",
 	"common.name":             "Name",

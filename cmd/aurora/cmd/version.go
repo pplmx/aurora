@@ -30,6 +30,19 @@ var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: i18n.GetText("version.short"),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if jsonRequested(cmd) {
+			return printJSON(struct {
+				Name      string `json:"name"`
+				Version   string `json:"version"`
+				BuildTime string `json:"build_time"`
+				GoVersion string `json:"go_version"`
+			}{
+				Name:      i18n.GetText("app.name"),
+				Version:   Version,
+				BuildTime: BuildTime,
+				GoVersion: runtime.Version(),
+			})
+		}
 		out := cmd.OutOrStdout()
 		fmt.Fprintln(out, i18n.GetText("app.name"))
 		fmt.Fprintf(out, "%s: %s\n", i18n.GetText("app.version"), Version)
@@ -41,4 +54,5 @@ var versionCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(versionCmd)
+	addJSONFlag(versionCmd)
 }

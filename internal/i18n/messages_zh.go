@@ -362,6 +362,7 @@ nft、token）和运维命令（migrate、backup、version）。`,
 	"oracle.error.source_required":  "必须指定数据源：请传入 --id <source-id>",
 
 	// ===== COMMON =====
+	"common.error.json":       "生成 JSON 失败",
 	"common.id":               "ID",
 	"common.json":             "以 JSON 输出而不是表格",
 	"common.name":             "名称",
