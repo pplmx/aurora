@@ -94,6 +94,15 @@ curl -s -H "X-API-Key: $KEY" -H 'Content-Type: application/json' \
 且当前时间位于会期窗口内时，`/vote` 才会接收选票。`ended`、未知状态或窗口外
 的请求都会以 `SESSION_NOT_STARTED` / `SESSION_ENDED` 拒绝。
 
+`GET /voting/session/{id}` 与 `POST /session/{id}/start`、`/end` 返回与
+`/voting/sessions` 完全相同的字段（snake_case），可以用同一个结构解析：
+
+```json
+{"id":"95f640cd-cc8e-4178-b5fa-8e9b89073125","title":"Budget 2026",
+ "description":"","status":"draft","candidates":["5974ffa1-2d14-4b95-96c0-8d4c2d211f27"],
+ "start_time":1793376742,"end_time":1793463142,"created_at":1793376742}
+```
+
 每个会期对同一选民只接收一票；同一次投票的 claim、选票记录和候选人计数在同一个
 SQLite 事务内提交。上一会期的选票不会阻止该选民参加下一会期。计票只统计每个
 `(session_id, voter_pk)` claim 对应的那一张选票；迁移保留的历史重复审计记录不会
@@ -163,6 +172,9 @@ NFT 操作历史按最新优先从存储层分页，`limit` 上限 100，`offset
 `/oracle/sources` 在存储层按最新优先分页，`limit` 上限 100，`offset` 上限
 10000；调度器仍在内部读取全部数据源，因为它必须检查每一个启用项。
 `/oracle/health` 的每项同时带 `source_name`，健康表无需再按当前源码页反查名称。
+Oracle 的读取接口是包装对象：`/oracle/sources` 返回 `{"sources": [...]}`，
+`/oracle/query` 与 `/oracle/latest` 返回 `{"data": ...}`；其它模块的列表是裸数组，
+解析时按各接口的示例处理。
 
 `POST /api/v1/oracle/sources` 的 `headers` 接受 JSON 对象，例如
 `{"Authorization":"Bearer ...","X-API-Key":"..."}`；`method` 必须是 HTTP token，

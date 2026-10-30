@@ -221,7 +221,7 @@ func (h *VotingHandler) GetSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, session)
+	writeJSON(w, http.StatusOK, votingapp.SessionResponseOf(session))
 }
 
 // GetResults returns the per-candidate tally for a session (v1.23 Voting
@@ -259,7 +259,7 @@ func (h *VotingHandler) updateSessionStatus(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	writeJSON(w, http.StatusOK, session)
+	writeJSON(w, http.StatusOK, votingapp.SessionResponseOf(session))
 }
 
 func (h *VotingHandler) StartSession(w http.ResponseWriter, r *http.Request) {

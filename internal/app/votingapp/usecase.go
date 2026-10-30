@@ -459,17 +459,26 @@ func (uc *ListSessionsUseCase) Execute(req *ListSessionsRequest) ([]*SessionResp
 	}
 	responses := make([]*SessionResponse, len(sessions))
 	for i, s := range sessions {
-		responses[i] = &SessionResponse{
-			ID:          s.ID,
-			Title:       s.Title,
-			Description: s.Description,
-			Status:      s.Status,
-			Candidates:  s.Candidates,
-			StartTime:   s.StartTime,
-			EndTime:     s.EndTime,
-		}
+		responses[i] = SessionResponseOf(s)
 	}
 	return responses, nil
+}
+
+// SessionResponseOf renders a stored session for the API. The domain struct
+// cannot do this itself: its exported fields serialize as PascalCase (ID,
+// Title, StartTime), so the single-session endpoint returned a different shape
+// from the list until it went through this mapping.
+func SessionResponseOf(s *voting.Session) *SessionResponse {
+	return &SessionResponse{
+		ID:          s.ID,
+		Title:       s.Title,
+		Description: s.Description,
+		Status:      s.Status,
+		Candidates:  s.Candidates,
+		StartTime:   s.StartTime,
+		EndTime:     s.EndTime,
+		CreatedAt:   s.CreatedAt,
+	}
 }
 
 // GetSessionUseCase returns one voting session by id, mapping the sqlite
