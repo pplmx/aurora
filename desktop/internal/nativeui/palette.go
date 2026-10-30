@@ -2,6 +2,7 @@ package nativeui
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/egoist/mygo/ui"
@@ -156,7 +157,33 @@ func (a *App) paletteMatches() []paletteEntry {
 			matches = append(matches, entry)
 		}
 	}
+	// Order by where the query hits, not by sidebar order: typing "t" used to
+	// list Lottery and Voting before Token because they come first on the
+	// sidebar. A stable sort keeps the page/command order inside each group.
+	query := strings.TrimSpace(a.paletteQuery)
+	sort.SliceStable(matches, func(i, j int) bool {
+		return paletteRank(matches[i], query) < paletteRank(matches[j], query)
+	})
 	return matches
+}
+
+// paletteRank scores where a query matches an entry, lowest first: a title
+// that starts with it, then a title that contains it, then a description.
+func paletteRank(entry paletteEntry, query string) int {
+	query = strings.ToLower(query)
+	if query == "" {
+		return 0
+	}
+	title := strings.ToLower(entry.title)
+	translated := strings.ToLower(tr(entry.title))
+	switch {
+	case strings.HasPrefix(title, query), strings.HasPrefix(translated, query):
+		return 0
+	case strings.Contains(title, query), strings.Contains(translated, query):
+		return 1
+	default:
+		return 2
+	}
 }
 
 func paletteRow(c *ui.Context, entry paletteEntry, selected bool) (ui.Element, bool) {
