@@ -371,9 +371,10 @@ path 与 query 都可能包含凭据，因此 `/oracle/health` 的 `last_error` 
 
 ## 区块链
 
-| 方法 | 路径                          | 说明                     |
-| ---- | ----------------------------- | ------------------------ |
-| GET  | `/api/v1/blockchain/verify`   | 校验本地区块链完整性     |
+| 方法 | 路径                          | 说明                                       |
+| ---- | ----------------------------- | ------------------------------------------ |
+| GET  | `/api/v1/blockchain/verify`   | 校验本地区块链完整性                       |
+| GET  | `/api/v1/blockchain/blocks`   | 审计记录分页（默认 20，`limit` 上限 100）  |
 
 ```json
 {"valid":true,"length":3,"first_broken_index":-1}
@@ -381,6 +382,13 @@ path 与 query 都可能包含凭据，因此 `/oracle/health` 的 `last_error` 
 
 `first_broken_index` 为 `-1` 表示整条链通过；否则指向第一处哈希断开的区块下标，
 `valid` 为 `false`。
+
+`/blockchain/blocks` 按最新在前返回创世块之外的记录，`payload` 是模块写入的原始
+文本；`total` 不含创世块，`offset` 以条目计而不是区块高度：
+
+```json
+{"blocks": [{"height": 2, "timestamp": 1793385489, "payload": "b8dfb283-1b87-449e-a0aa-271b441e5d54|Star|AQIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyA="}], "total": 2, "limit": 20, "offset": 0}
+```
 
 ## 错误格式
 
