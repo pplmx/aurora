@@ -320,22 +320,31 @@ var statsCmd = &cobra.Command{
 			return wrapCLIError("lottery.error.read_history", err)
 		}
 
+		var latest int64 = -1
+		for _, r := range records {
+			if r.BlockHeight > latest {
+				latest = r.BlockHeight
+			}
+		}
+		if jsonRequested(cmd) {
+			out := struct {
+				Total       int    `json:"total"`
+				DBPath      string `json:"db_path"`
+				LatestBlock *int64 `json:"latest_block,omitempty"`
+			}{Total: len(records), DBPath: blockchain.DBPath()}
+			if latest >= 0 {
+				out.LatestBlock = &latest
+			}
+			return printJSON(out)
+		}
+
 		fmt.Println("\n📊 " + i18n.GetText("lottery.statistics"))
 		fmt.Println("────────────────────────────")
 		fmt.Printf("  %s: %d\n", i18n.GetText("lottery.total"), len(records))
 		fmt.Printf("  %s: %s\n", i18n.GetText("lottery.db_path"), blockchain.DBPath())
 
-		if len(records) > 0 {
-			// Report the highest recorded block height across persisted draws.
-			var latest int64 = -1
-			for _, r := range records {
-				if r.BlockHeight > latest {
-					latest = r.BlockHeight
-				}
-			}
-			if latest >= 0 {
-				fmt.Printf("  %s: #%d\n", i18n.GetText("lottery.latest_block"), latest)
-			}
+		if latest >= 0 {
+			fmt.Printf("  %s: #%d\n", i18n.GetText("lottery.latest_block"), latest)
 		}
 
 		return nil
@@ -437,11 +446,20 @@ var dbInfoCmd = &cobra.Command{
 			return wrapCLIError("lottery.error.count_blocks", err)
 		}
 
+		path := blockchain.DBPath()
+		size := utils.SQLiteDiskUsage(path)
+		if jsonRequested(cmd) {
+			return printJSON(struct {
+				Path      string `json:"path"`
+				SizeBytes int64  `json:"size_bytes"`
+				Blocks    int    `json:"blocks"`
+			}{Path: path, SizeBytes: size, Blocks: count})
+		}
+
 		fmt.Println("\n📁 " + i18n.GetText("lottery.db_info_title"))
 		fmt.Println("────────────────────────────")
-		path := blockchain.DBPath()
 		fmt.Printf("  %s: %s\n", i18n.GetText("lottery.db_path"), path)
-		fmt.Printf("  %s: %s\n", i18n.GetText("lottery.db_size"), utils.FormatBytes(utils.SQLiteDiskUsage(path)))
+		fmt.Printf("  %s: %s\n", i18n.GetText("lottery.db_size"), utils.FormatBytes(size))
 		fmt.Printf("  %s: %d\n", i18n.GetText("lottery.total_blocks"), count)
 		return nil
 	},
@@ -456,8 +474,10 @@ func init() {
 	lotteryCmd.AddCommand(exportCmd)
 	lotteryCmd.AddCommand(importCmd)
 	lotteryCmd.AddCommand(statsCmd)
+	addJSONFlag(statsCmd)
 	lotteryCmd.AddCommand(resetCmd)
 	lotteryCmd.AddCommand(dbInfoCmd)
+	addJSONFlag(dbInfoCmd)
 
 	createCmd.Flags().StringP("participants", "p", "", i18n.GetText("lottery.participants"))
 	createCmd.Flags().StringP("seed", "s", "", i18n.GetText("lottery.seed"))
