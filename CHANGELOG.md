@@ -12,6 +12,10 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The version document is locale-independent**: `aurora version --json`
+  printed the translated application name, so a script keying on `name` broke
+  when the locale switched; the document now carries the stable `Aurora` while
+  the table keeps its translated title.
 - **The chain head lives in the integrity report**: `head` was computed in three
   places (a `Chain.Head` method for the doctor, the desktop status and the
   diagnostics), each hex-encoding and trimming it. The integrity report now
