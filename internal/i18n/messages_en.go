@@ -5,11 +5,22 @@ package i18n
 // code: the lookup order and locking stay in i18n.go.
 var englishMessages = map[string]string{
 	// App
-	"app.name":       "Aurora - Blockchain System",
-	"app.version":    "Version",
-	"app.go_version": "Go Version",
-	"app.build_time": "Build Time",
-	"version.short":  "Show version information",
+	"app.name":                "Aurora - Blockchain System",
+	"blockchain.cmd":          "Ledger integrity and verification",
+	"blockchain.long":         "Inspect the append-only ledger that records every module write.",
+	"blockchain.verify":       "Verify the local chain's integrity",
+	"blockchain.verify_title": "Chain integrity",
+	"blockchain.length":       "Blocks",
+	"blockchain.state":        "State",
+	"blockchain.valid":        "valid",
+	"blockchain.broken_at":    "broken at block %d: %s",
+	"blockchain.no_reason":    "no reason recorded",
+	"blockchain.error.init":   "failed to initialize blockchain",
+	"blockchain.invalid":      "chain integrity check failed",
+	"app.version":             "Version",
+	"app.go_version":          "Go Version",
+	"app.build_time":          "Build Time",
+	"version.short":           "Show version information",
 
 	// Root help
 	"cli.root.long": `Aurora is a blockchain-based digital systems suite: VRF lottery,

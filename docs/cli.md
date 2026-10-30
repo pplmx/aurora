@@ -153,12 +153,18 @@ aurora migrate up             # 应用全部待迁移
 aurora migrate up 2           # 应用接下来两步
 aurora migrate down --confirm # 回滚一步
 aurora migrate repair --confirm # 清除失败迁移留下的脏标记
+
+aurora blockchain verify      # 校验本地区块链的哈希连续性
 ```
 
 迁移失败时，记录的目标版本会被标记为 dirty，此后 `up` 与 `down` 都拒绝执行——
 运行器无法判断半执行的 SQL 是否已提交，这是有意的安全选择。`migrate repair`
 只清除这个标记，不撤销也不重跑失败的迁移；确认表结构后，再用 `up` / `down`
 把版本推进或回退到正确位置。没有它时，唯一的出路是删库重建。
+
+`blockchain verify` 打印区块数、状态与第一处断点原因；链无效时退出码非 0，脚本
+可以直接按退出码判断。REST 的 `/api/v1/blockchain/verify` 与桌面的 Blockchain 页
+给出同一份结论。
 
 备份目录不能被指定为数据库自身所在目录（会把 live DB 覆盖成快照）；
 `backup create` 先写同目录临时文件再原子改名，失败不会破坏上一份可用备份。
