@@ -158,6 +158,7 @@ aurora oracle latest -i <source-id>
 ## 运维命令
 
 ```bash
+aurora doctor                # 配置/数据库/迁移/账本/outbox 一次自检（--json 可脚本化）
 aurora backup create ./backups/backup-$(date +%Y%m%d)    # WAL 完整快照 + 元数据
 aurora backup verify ./backups/backup-$(date +%Y%m%d)    # 校验内容哈希与表结构
 aurora backup restore ./backups/backup-$(date +%Y%m%d) --confirm
@@ -173,6 +174,12 @@ aurora blockchain blocks      # 审计记录（最新在前，排除创世块）
 aurora blockchain blocks -l 50 -p 100
 aurora blockchain blocks -s transfer   # 按记录文本过滤（不区分大小写）
 ```
+
+`doctor` 按固定顺序检查五项：配置来源、数据库路径与占用、迁移版本、账本完整性、
+审计 outbox 积压。`ok` 为通过，`warn`（如待执行迁移、待投递事件、读不到
+`migrations/` 目录）不改变退出码，`fail`（如账本断链、dirty 迁移）使退出码为
+非 0；`--json` 输出 `{"checks":[{"name","status","detail"}],"ok":bool}`，`name`
+是稳定的英文键（`config`/`database`/`migrations`/`ledger`/`outbox`）。
 
 迁移失败时，记录的目标版本会被标记为 dirty，此后 `up` 与 `down` 都拒绝执行——
 运行器无法判断半执行的 SQL 是否已提交，这是有意的安全选择。`migrate repair`
