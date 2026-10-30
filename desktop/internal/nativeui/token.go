@@ -177,11 +177,6 @@ func (a *App) loadTokenPage(offset int) bool {
 func (a *App) tokenView(c *ui.Context) {
 	a.syncTokenSubject()
 	a.scrollPage(c, func() {
-		guide(c, &a.guides.token,
-			"Select a token in the left column, or create one. Its owner public key fills the account fields for you.",
-			"Choose a write on the right: Mint, Transfer, Approve, Transfer From or Burn. Read a spender's remaining allowance from the left card.",
-			"Mint/Approve/Burn sign with the owner private key; Transfer with the sender's; Transfer From with the spender's. Keys are never stored, and Use generated owner key works only for the token that key created.",
-		)
 		if a.tokenNeedsFirstRecord() {
 			twoColumns(c, func() {
 				a.tokenCreate(c)
@@ -196,6 +191,13 @@ func (a *App) tokenView(c *ui.Context) {
 			a.renderBurnDialog(c)
 			return
 		}
+		// The first-record panel is the page's guide. A second collapsible
+		// explanation above it would repeat the same three moves.
+		guide(c, &a.guides.token,
+			"Select a token in the left column, or create one. Its owner public key fills the account fields for you.",
+			"Choose a write on the right: Mint, Transfer, Approve, Transfer From or Burn. Read a spender's remaining allowance from the left card.",
+			"Mint/Approve/Burn sign with the owner private key; Transfer with the sender's; Transfer From with the spender's. Keys are never stored, and Use generated owner key works only for the token that key created.",
+		)
 		twoColumns(c, func() {
 			a.tokenList(c)
 			a.tokenCreate(c)
