@@ -186,6 +186,11 @@ aurora migrate repair --confirm # 清除失败迁移留下的脏标记
   出站请求超时；接受 `30s`、`1m` 这样的时长或直接写秒数 `10`。无法解析的值
   会在命令执行前报错退出，不会静默退回默认的 10s（`[http] timeout` 同样作用于
   服务端的出站抓取，见 `config/aurora.toml`）。
+- 配置文件里的时长同样校验：`[http] timeout`、`http.rateLimit.window`、
+  `oracle.scheduler.checkInterval` 写成 `1am` 这类无法解析的值时，CLI 会在命令
+  执行前、`aurora-api` 会在绑定端口前中止并指出具体键；`0s` 与负值不属于错误，
+  仍按文档回退到默认值，但字符串形式不会再绕过这条规则（`net/http` 会把
+  非正的客户端超时当作完全不超时）。
 - 所有输出遵循语言环境变量 `LC_ALL` → `LANGUAGE` → `LC_MESSAGES` → `LANG`
   的优先级；全未设置时才使用 `[i18n] locale`。`aurora <cmd> --help` 同样
   本地化，命令结果中的字段名、分页偏移、状态、操作类型和完整错误路径也会

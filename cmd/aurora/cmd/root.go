@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/pplmx/aurora/internal/config"
 	"github.com/pplmx/aurora/internal/domain/token"
 	"github.com/pplmx/aurora/internal/i18n"
 	"github.com/pplmx/aurora/internal/infra/blockchain"
@@ -204,6 +205,14 @@ func initConfig() {
 	// config. Reinitialize after ReadInConfig so a configured [i18n] locale
 	// reaches command output, while an explicit locale environment still wins
 	// inside DetectAndInit.
+	// The flag shadows http.timeout and the root hook validates it with its own
+	// message, so a flag typo is never blamed on the config file.
+	if httpTimeout == "" {
+		if err := config.ValidateDurationValues(); err != nil {
+			configErr = wrapCLIError("cli.error.invalid_duration", err)
+			return
+		}
+	}
 	i18n.DetectAndInit()
 	fmt.Fprintln(os.Stderr, i18n.GetTextF("cli.using_config_file", viper.ConfigFileUsed()))
 }

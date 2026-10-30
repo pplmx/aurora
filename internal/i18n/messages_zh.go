@@ -504,6 +504,7 @@ nft、token）和运维命令（migrate、backup、version）。`,
 	"cli.error.invalid_http_timeout": "--http-timeout %q 无效：请使用 30s 这样的时长或秒数",
 	"cli.error.migration_failed":     "迁移失败",
 	"cli.error.read_config":          "读取配置失败",
+	"cli.error.invalid_duration":     "配置文件中的时长无效",
 
 	// Cobra 生成的帮助框架。命令声明已经本地化，但 Cobra 默认的 usage
 	// 模板把标题、内置 help/completion 命令说明写死为英文。

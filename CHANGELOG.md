@@ -11,6 +11,12 @@ documented in their per-milestone ROADMAP files.
 
 ### Changed
 
+- **A duration typo in the config file fails startup**: `[http] timeout = "1am"`
+  used to fall back to 10s silently for the CLI and the API server; the three
+  duration keys are now validated at load, and the command (or the server, before
+  binding) stops naming the key. A string `"0s"`/`"-5s"` no longer bypasses the
+  non-positive guard either: it was returned verbatim, and net/http treats a
+  non-positive client timeout as no timeout at all.
 - **A mistyped `[log] level` warns instead of falling back silently**:
   `level = "warning"` (the level is spelled `warn`) produced info-level output
   with no signal; the logger now names the rejected value and the fallback on

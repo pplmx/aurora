@@ -559,6 +559,17 @@ func TestDurationSeconds_BareNumbersAsSeconds(t *testing.T) {
 	assert.Equal(t, time.Minute, DurationSeconds("http.rateLimit.window", time.Minute), "negative falls back to default")
 	viper.Set("http.timeout", "not-a-duration")
 	assert.Equal(t, 10*time.Second, DurationSeconds("http.timeout", 10*time.Second), "garbage falls back to default")
+
+	// String zero/negative used to bypass the guard: the int branch rejected
+	// them, but a "0s"/"-5s" string was returned verbatim, and net/http treats
+	// a non-positive Client.Timeout as "no timeout at all" — the exact failure
+	// the fallback exists to prevent.
+	viper.Set("http.timeout", "0s")
+	assert.Equal(t, 10*time.Second, DurationSeconds("http.timeout", 10*time.Second), "0s string falls back to default")
+	viper.Set("http.timeout", "-5s")
+	assert.Equal(t, 10*time.Second, DurationSeconds("http.timeout", 10*time.Second), "-5s string falls back to default")
+	viper.Set("http.timeout", "0")
+	assert.Equal(t, 10*time.Second, DurationSeconds("http.timeout", 10*time.Second), "0 string falls back to default")
 }
 
 // TestOracleSchedulerCheckInterval_BareNumbersAsSeconds pins the scheduler-key
@@ -575,4 +586,47 @@ func TestOracleSchedulerCheckInterval_BareNumbersAsSeconds(t *testing.T) {
 
 	viper.Set("oracle.scheduler.checkInterval", "1m")
 	assert.Equal(t, time.Minute, OracleSchedulerCheckInterval())
+}
+
+// TestValidateDurationValues keeps a typo in a duration key from being hidden
+// behind the fallback DurationSeconds applies for unparsable values.
+func TestValidateDurationValues(t *testing.T) {
+	accepted := []any{"30s", "1m", "10", 60, int64(5), 2.5, time.Minute}
+	for _, v := range accepted {
+		resetViper()
+		viper.Set("http.timeout", v)
+		require.NoErrorf(t, ValidateDurationValues(), "%v must be accepted", v)
+	}
+
+	for _, v := range []any{"1am", "10 minutes", "0.5"} {
+		resetViper()
+		viper.Set("http.timeout", v)
+		err := ValidateDurationValues()
+		require.Errorf(t, err, "%v must be rejected", v)
+		assert.Contains(t, err.Error(), "http.timeout")
+	}
+
+	// A non-positive spelling keeps the documented fallback instead of failing.
+	for _, v := range []any{"0s", "-5s"} {
+		resetViper()
+		viper.Set("http.timeout", v)
+		require.NoErrorf(t, ValidateDurationValues(), "%v falls back by design", v)
+	}
+	resetViper()
+}
+
+// TestLoad_RejectsInvalidDuration: Load must fail during startup rather than run
+// the server on a default the operator did not choose.
+func TestLoad_RejectsInvalidDuration(t *testing.T) {
+	resetViper()
+	setDevEnv(t)
+
+	home := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(home, "aurora.toml"),
+		[]byte("[http]\ntimeout = \"1am\"\n"), 0o644))
+	t.Setenv("HOME", home)
+
+	_, err := Load()
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "http.timeout")
 }
