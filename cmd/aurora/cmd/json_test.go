@@ -101,6 +101,18 @@ func TestReadCommandsPrintJSON(t *testing.T) {
 		assert.Equal(t, key, balance.Owner)
 		assert.Equal(t, "0", balance.Amount)
 
+		out, err = runCmd(t, "token", "info", "-t", "GLD", "--json")
+		require.NoError(t, err)
+		var info struct {
+			ID       string `json:"id"`
+			Mintable bool   `json:"mintable"`
+			Burnable bool   `json:"burnable"`
+		}
+		require.NoError(t, json.Unmarshal([]byte(out), &info), "got %q", out)
+		assert.Equal(t, "GLD", info.ID)
+		assert.True(t, info.Mintable)
+		assert.True(t, info.Burnable)
+
 		out, err = runCmd(t, "token", "allowance", "-t", "GLD", "-o", key, "-s", key, "--json")
 		require.NoError(t, err)
 		var allowance struct {

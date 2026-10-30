@@ -293,7 +293,8 @@ NFT 操作历史按最新优先从存储层分页，`limit` 上限 100，`offset
 `200 {"amount":"0"}` 或 `200 []` 把“代币不存在”伪装成“没有活动”。
 余额、授权和历史中的非空 `owner`/`spender` 必须解码为 32 字节 Ed25519 公钥；
 长度错误返回 `400 INVALID_PUBLIC_KEY_LENGTH`，不会被当作空账户读取。
-`token/history` 省略 `owner` 时读取整个代币的转账流水。
+`token/history` 省略 `owner` 时读取整个代币的转账流水。`/token/info` 与
+`/token/list` 还带 `mintable`/`burnable`（当前创建即两者皆可）。
 
 查询串里的 base64 公钥必须百分号编码：`+` 在查询串中会被解析成空格，原样拼接
 会得到 `400 INVALID_BASE64`。用 `curl -G --data-urlencode`，或任何会把 `+`

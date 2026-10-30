@@ -102,6 +102,7 @@ func init() {
 	tokenCmd.AddCommand(tokenHistoryCmd)
 	addJSONFlag(tokenHistoryCmd)
 	tokenCmd.AddCommand(tokenInfoCmd)
+	addJSONFlag(tokenInfoCmd)
 	tokenCmd.AddCommand(tokenListCmd)
 	addJSONFlag(tokenListCmd)
 
@@ -308,23 +309,27 @@ var tokenInfoCmd = &cobra.Command{
 
 		tokenID, _ := cmd.Flags().GetString("token")
 
-		tk, err := service.GetTokenInfo(token.TokenID(tokenID))
+		// The app-layer use case owns the mapping, so the table, --json and the
+		// REST info/list answer with one shape.
+		resp, err := tokenapp.NewGetTokenInfoUseCase(service).Execute(tokenID)
 		if err != nil {
+			// Keep the context prefix: "failed to get token info: not found"
+			// tells an operator which lookup failed, not just that one did.
 			return wrapCLIError("token.error.get_info", err)
 		}
-		if tk == nil {
-			return newCLIError("token.not_found")
+		if jsonRequested(cmd) {
+			return printJSON(resp)
 		}
 
 		fmt.Printf("\n🪙 %s:\n", i18n.GetText("token.info_heading"))
-		printLocalizedField("common.id", string(tk.ID()))
-		printLocalizedField("common.name", tk.Name())
-		printLocalizedField("common.symbol", tk.Symbol())
-		printLocalizedField("common.total_supply", tk.TotalSupply().String())
-		fmt.Printf("   %s: %d\n", i18n.GetText("common.decimals"), tk.Decimals())
-		printLocalizedField("common.owner", b64Encode(tk.Owner()))
-		fmt.Printf("   %s: %s\n", i18n.GetText("token.mintable"), localizedBool(tk.IsMintable()))
-		fmt.Printf("   %s: %s\n", i18n.GetText("token.burnable"), localizedBool(tk.IsBurnable()))
+		printLocalizedField("common.id", resp.ID)
+		printLocalizedField("common.name", resp.Name)
+		printLocalizedField("common.symbol", resp.Symbol)
+		printLocalizedField("common.total_supply", resp.TotalSupply)
+		fmt.Printf("   %s: %d\n", i18n.GetText("common.decimals"), resp.Decimals)
+		printLocalizedField("common.owner", resp.Owner)
+		fmt.Printf("   %s: %s\n", i18n.GetText("token.mintable"), localizedBool(resp.Mintable))
+		fmt.Printf("   %s: %s\n", i18n.GetText("token.burnable"), localizedBool(resp.Burnable))
 		return nil
 	},
 }

@@ -36,6 +36,8 @@ func (uc *GetTokenInfoUseCase) Execute(tokenID string) (*TokenInfoResponse, erro
 		TotalSupply: t.TotalSupply().String(),
 		Decimals:    t.Decimals(),
 		Owner:       base64.StdEncoding.EncodeToString(t.Owner()),
+		Mintable:    t.IsMintable(),
+		Burnable:    t.IsBurnable(),
 	}, nil
 }
 
@@ -132,6 +134,8 @@ func (uc *ListTokensUseCase) Execute(req *ListTokensRequest) ([]*TokenInfoRespon
 			TotalSupply: t.TotalSupply().String(),
 			Decimals:    t.Decimals(),
 			Owner:       base64.StdEncoding.EncodeToString(t.Owner()),
+			Mintable:    t.IsMintable(),
+			Burnable:    t.IsBurnable(),
 		})
 	}
 	return out, nil

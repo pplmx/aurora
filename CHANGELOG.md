@@ -596,7 +596,7 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 - **The CLI's read commands print JSON**: every list (`lottery history`,
   `token list`, `nft list`, the three voting lists, `oracle source list`), the
-  single-record reads (`lottery verify`, `token balance`/`allowance`/`history`,
+  single-record reads (`lottery verify`, `token info`/`balance`/`allowance`/`history`,
   `nft get`/`history`, `oracle data`/`latest`, `voting results`), the creation
   commands (`lottery create`, `nft mint`, `voting candidate add`,
   `voting session create`), `version`, `lottery stats`, `lottery db-info` and

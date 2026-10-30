@@ -47,6 +47,8 @@ func TestGetTokenInfoUseCase_Execute(t *testing.T) {
 	require.Equal(t, "SYM", resp.Symbol)
 	require.Equal(t, "1000", resp.TotalSupply)
 	require.Equal(t, base64.StdEncoding.EncodeToString(owner), resp.Owner)
+	require.True(t, resp.Mintable, "a new token is mintable")
+	require.True(t, resp.Burnable, "a new token is burnable")
 }
 
 func TestGetTokenInfoUseCase_NotFound(t *testing.T) {
