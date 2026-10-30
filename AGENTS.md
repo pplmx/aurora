@@ -19,12 +19,12 @@
 
 改到哪一层就跑哪一层的门槛，跑过才算完成：
 
-| 改动     | 命令                                                   |
-| -------- | ------------------------------------------------------ |
-| 根模块   | `just check` + `just test`                             |
-| 桌面模块 | `just desktop-check`；行为测试再跑 `just desktop-test` |
-| lint     | `just lint`（errcheck 关闭）                           |
-| 界面     | `just desktop-shot`                                    |
+| 改动     | 命令                                                                     |
+| -------- | ------------------------------------------------------------------------ |
+| 根模块   | `just check` + `just test`                                               |
+| 桌面模块 | `just desktop-check`；行为测试再跑 `just desktop-test`                   |
+| lint     | `just lint`（errcheck 关闭）；桌面模块的 lint 在 `just desktop-check` 里 |
+| 界面     | `just desktop-shot`                                                      |
 
 - 真实窗口截图按需加环境变量：有数据 `AURORA_E2E_SEED=1`、浅色
   `AURORA_E2E_THEME=light`、窄窗 `AURORA_E2E_SIZE=900x600`。

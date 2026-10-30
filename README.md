@@ -55,7 +55,7 @@ just api             # ./aurora-api，注入 git 版本与构建时间
 just desktop         # ./aurora-desktop（本地开发构建）
 just desktop-run     # 构建并打开窗口
 just desktop-test    # 桌面模块测试（根目录 just test 不进嵌套模块）
-just desktop-check   # gofmt + build + vet + 纯 Go 测试（无需 C 工具链）
+just desktop-check   # gofmt + build + vet + lint + 纯 Go 测试（无需 C 工具链）
 just desktop-race    # 可选 race 检测（显式启用 cgo）
 just desktop-package # mygo build：.deb / tar.gz / desktop entry
 just lint            # golangci-lint
