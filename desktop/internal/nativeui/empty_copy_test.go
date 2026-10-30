@@ -32,9 +32,14 @@ func TestEmptyReadoutCopyDistinguishesLoadedFromNotLoaded(t *testing.T) {
 		app.ShowPage("NFT")
 		app.nft.opTab = 2
 		tester.Frame()
-		require.True(t, tester.HasText("No history loaded yet."))
+		require.True(t, tester.HasText("Choose an asset in Collection or enter its ID first."),
+			"an empty id is a missing first step, not an empty read")
 
 		app.nft.historyID = "n1"
+		tester.Frame()
+		require.True(t, tester.HasText("No history loaded yet."),
+			"an id typed but not loaded is not an empty history")
+
 		app.nft.historyLoadedID = "n1"
 		tester.Frame()
 		require.True(t, tester.HasText("No operations recorded for this NFT."))
