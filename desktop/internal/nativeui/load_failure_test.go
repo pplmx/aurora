@@ -187,7 +187,7 @@ func TestFailedPresetReadKeepsTheAddForm(t *testing.T) {
 
 // TestFailedBlockReadKeepsTheLedgerRows covers the chain record list: only its
 // counters reported failures, so a failed entry read could leave an empty page
-// saying "Nothing recorded on the chain yet." or silent old rows.
+// saying no module records exist or silent old rows.
 func TestFailedBlockReadKeepsTheLedgerRows(t *testing.T) {
 	fake := &fakeServices{blocks: []BlockRow{{
 		Height: 7, Module: "lottery", Action: "Draw", Subject: "Alice",
@@ -206,7 +206,7 @@ func TestFailedBlockReadKeepsTheLedgerRows(t *testing.T) {
 	require.True(t, tester.HasText("Showing the last successful load."))
 	require.True(t, tester.HasText("Alice"), "the last records must stay visible")
 	require.True(t, tester.HasText("Payload"), "the surviving record keeps its payload control")
-	require.False(t, tester.HasText("Nothing recorded on the chain yet."))
+	require.False(t, tester.HasText("No module records yet; the first write adds one."))
 }
 
 // TestFailedLedgerQueryDoesNotRetryEveryFrame keeps an automatic search reload

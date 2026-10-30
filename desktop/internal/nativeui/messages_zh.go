@@ -133,10 +133,10 @@ var desktopMessages = map[string]string{
 	"Couldn't read chain blocks":         "无法读取链上区块",
 	"Couldn't read recent activity":      "无法读取最近活动",
 	"Press Refresh to verify the chain.": "按刷新按钮验证账本。",
-	"Nothing recorded on the chain yet.": "链上还没有记录。",
-	"Hash chain verified":                "哈希链已验证",
-	"Hash chain is broken":               "哈希链已损坏",
-	"No blocks match “%s”.":              "没有匹配“%s”的区块。",
+	"No module records yet; the first write adds one.": "还没有模块记录；第一次写入会新增一条。",
+	"Hash chain verified":                              "哈希链已验证",
+	"Hash chain is broken":                             "哈希链已损坏",
+	"No blocks match “%s”.":                            "没有匹配“%s”的区块。",
 
 	// Lottery.
 	"Create Draw": "创建抽奖",
