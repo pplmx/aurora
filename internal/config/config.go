@@ -58,6 +58,18 @@ type APIConfig struct {
 }
 
 func Load() (*Config, error) {
+	return load("")
+}
+
+// LoadFile reads exactly the given config file instead of the discovery order.
+// An explicit path must exist and parse: the CLI's --config behaves the same
+// way, so a typo cannot leave the server running on defaults it never asked
+// for.
+func LoadFile(path string) (*Config, error) {
+	return load(path)
+}
+
+func load(explicitPath string) (*Config, error) {
 	viper.SetDefault("server.host", "0.0.0.0")
 	viper.SetDefault("server.port", 8080)
 	viper.SetDefault("log.level", "info")
@@ -98,10 +110,14 @@ func Load() (*Config, error) {
 	// + defaults); a present-but-unparseable file must fail loudly instead of
 	// silently running on defaults. Env vars (AURORA_API_KEY and friends) still
 	// take precedence over the file via AutomaticEnv/BindEnv below.
-	viper.SetConfigName("aurora")
-	viper.SetConfigType("toml")
-	viper.AddConfigPath("$HOME")
-	viper.AddConfigPath("./config")
+	if explicitPath != "" {
+		viper.SetConfigFile(explicitPath)
+	} else {
+		viper.SetConfigName("aurora")
+		viper.SetConfigType("toml")
+		viper.AddConfigPath("$HOME")
+		viper.AddConfigPath("./config")
+	}
 	if err := loadConfigFileIfPresent(); err != nil {
 		return nil, err
 	}

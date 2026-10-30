@@ -11,6 +11,10 @@ documented in their per-milestone ROADMAP files.
 
 ### Changed
 
+- **`aurora-api` accepts `--config`**: the server only searched
+  `$HOME/aurora.toml` and `./config/aurora.toml`, so a service unit or container
+  could not point it at its own file, while the CLI had the flag all along. An
+  explicit path must exist and parse; it never falls back to defaults.
 - **A typo in `--http-timeout` now fails before the command runs**: the flag
   feeds the outbound oracle timeout, and an unparseable value silently fell
   back to 10s, so fetches failed as if the network were at fault. A bad value

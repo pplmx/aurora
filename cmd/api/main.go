@@ -53,10 +53,11 @@ const (
 // explicit value, so the precedence chain runs flag > env > config > default
 // (env and defaults are applied by config.Load).
 type serverOptions struct {
-	host    string
-	port    int
-	hostSet bool
-	portSet bool
+	host       string
+	port       int
+	configPath string
+	hostSet    bool
+	portSet    bool
 }
 
 // parseFlags classifies the command line. Before this guard the server binary
@@ -77,6 +78,8 @@ func parseFlags(args []string) (runMode, *serverOptions, error) {
 	fs.StringVar(&opts.host, "H", "", "alias for --host")
 	fs.IntVar(&opts.port, "port", 0, "listen port (overrides config [server].port; 1-65535)")
 	fs.IntVar(&opts.port, "p", 0, "alias for --port")
+	fs.StringVar(&opts.configPath, "config", "",
+		"config file (default: $HOME/aurora.toml, then ./config/aurora.toml)")
 	if err := fs.Parse(args); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
 			return runHelp, nil, nil
@@ -150,6 +153,7 @@ func printUsage(w io.Writer) {
 	fmt.Fprintln(w, "  -h, --help      Show this help and exit")
 	fmt.Fprintln(w, "  -H, --host IP   Listen host (default from config [server].host)")
 	fmt.Fprintln(w, "  -p, --port N    Listen port, 1-65535 (default from config [server].port)")
+	fmt.Fprintln(w, "      --config F  Config file (default: $HOME/aurora.toml, then ./config/aurora.toml)")
 	fmt.Fprintln(w, "  -v, --version   Show version information and exit")
 	fmt.Fprintln(w)
 	fmt.Fprintln(w, "Configuration is loaded with flag > environment > config file >")
@@ -196,6 +200,16 @@ func newServer(addr string, handler http.Handler) *http.Server {
 	}
 }
 
+// loadConfig honors --config. Without it the documented lookup order applies
+// and a missing file is fine; an explicit path must exist and parse, because a
+// typo would otherwise leave the server on defaults the operator never chose.
+func loadConfig(opts *serverOptions) (*config.Config, error) {
+	if opts != nil && opts.configPath != "" {
+		return config.LoadFile(opts.configPath)
+	}
+	return config.Load()
+}
+
 func main() {
 	mode, opts, err := parseFlags(os.Args[1:])
 	if err != nil {
@@ -212,7 +226,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	cfg, err := config.Load()
+	cfg, err := loadConfig(opts)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to load config: %v\n", err)
 		os.Exit(1)
