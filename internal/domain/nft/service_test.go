@@ -8,6 +8,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -116,6 +117,45 @@ func TestNFTService_VerifyTransfer_InvalidSignature(t *testing.T) {
 
 	if valid {
 		t.Error("Expected invalid signature")
+	}
+}
+
+// TestNFTService_MintPayloadIsPrintable pins the audit payload's text form: the
+// owner key was appended with %s over its raw bytes, so the ledger (and every
+// JSON response quoting it) carried control characters. The owner is now base64
+// like the transfer and burn records.
+func TestNFTService_MintPayloadIsPrintable(t *testing.T) {
+	repo := NewInmemRepo()
+	svc := NewServiceWithoutTx(repo)
+	chain := blockchain.Init()
+	blockchain.ResetForTest()
+	t.Cleanup(blockchain.ResetForTest)
+
+	creatorPub, _, _ := ed25519.GenerateKey(nil)
+	minted, err := svc.Mint(NewNFT("Star", "First asset", "", "", creatorPub, creatorPub), chain)
+	if err != nil {
+		t.Fatalf("Mint failed: %v", err)
+	}
+
+	entries := chain.BlockEntriesPage(1, 0)
+	if len(entries) != 1 {
+		t.Fatalf("expected one recorded payload, got %d", len(entries))
+	}
+	payload := entries[0].Data
+	parts := strings.Split(payload, "|")
+	if len(parts) != 3 {
+		t.Fatalf("payload %q must have three fields", payload)
+	}
+	if parts[0] != minted.ID || parts[1] != "Star" {
+		t.Fatalf("payload fields = %q, want id and name", parts)
+	}
+	if want := base64.StdEncoding.EncodeToString(creatorPub); parts[2] != want {
+		t.Fatalf("owner field = %q, want base64 %q", parts[2], want)
+	}
+	for _, r := range payload {
+		if r < 0x20 || r == 0x7f {
+			t.Fatalf("payload must be printable, got control rune %q in %q", r, payload)
+		}
 	}
 }
 

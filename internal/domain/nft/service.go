@@ -85,7 +85,11 @@ func (s *NFTService) Mint(nft *NFT, chain ledger.BlockWriter) (*NFT, error) {
 	nft.ID = uuid.New().String()
 	nft.Timestamp = time.Now().Unix()
 
-	data := fmt.Sprintf("%s|%s|%s", nft.ID, nft.Name, nft.Owner)
+	// The owner goes in base64 like every other key in an audit payload
+	// (transfer and burn encode theirs). Printing the raw bytes kept the exact
+	// key as evidence, but it also put control characters into the ledger and
+	// into every JSON response that quotes the payload.
+	data := fmt.Sprintf("%s|%s|%s", nft.ID, nft.Name, base64.StdEncoding.EncodeToString(nft.Owner))
 	// Persist the NFT row and its mint operation as ONE transaction. The
 	// pre-transaction implementation saved the NFT first and, if the
 	// operation save failed, ran a best-effort DeleteNFT compensation whose
