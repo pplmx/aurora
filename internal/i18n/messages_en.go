@@ -517,9 +517,9 @@ nft, token) and operational commands (migrate, backup, version).`,
 	"doctor.detail.defaults":                 "(built-in defaults)",
 	"doctor.detail.migrations":               "schema %d, %d pending",
 	"doctor.detail.migrations_dirty":         "schema %d is dirty",
-	"doctor.detail.ledger_ok":                "%d blocks, chain valid",
-	"doctor.detail.ledger_broken":            "%d blocks, break at %d: %s",
-	"doctor.detail.outbox":                   "%d pending events",
+	"doctor.detail.ledger_ok":                "chain valid; ledger blocks: %d; head %s",
+	"doctor.detail.ledger_broken":            "break at block %d: %s (ledger blocks: %d)",
+	"doctor.detail.outbox":                   "pending events: %d",
 	"doctor.detail.no_database":              "database unavailable",
 
 	// Destructive-op --confirm gate shared by token burn / nft burn /

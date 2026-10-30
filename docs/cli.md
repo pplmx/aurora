@@ -189,8 +189,8 @@ aurora blockchain blocks -s transfer   # 按记录文本过滤（不区分大小
 `aurora.db` 与 `metadata.json`），`backup verify` 输出
 `{"path","status":"verified"}`。
 
-`doctor` 按固定顺序检查五项：配置来源、数据库路径与占用、迁移版本、账本完整性、
-审计 outbox 积压。`ok` 为通过（待执行迁移也属正常，详情里给出条数），`warn`
+`doctor` 按固定顺序检查五项：配置来源、数据库路径与占用、迁移版本、账本完整性
+（含头区块高度与哈希前缀，便于在两台机器间对照）、审计 outbox 积压。`ok` 为通过（待执行迁移也属正常，详情里给出条数），`warn`
 （待投递事件、读不到 `migrations/` 目录）不改变退出码，`fail`（账本断链、dirty
 迁移）使退出码为非 0；`--json` 输出 `{"checks":[{"name","status","detail"}],"ok":bool}`，`name`
 是稳定的英文键（`config`/`database`/`migrations`/`ledger`/`outbox`）。

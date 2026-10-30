@@ -37,6 +37,8 @@ type Chain interface {
 	VerifyIntegrity() *ledger.IntegrityReport
 	Len() int
 	BlockEntries(limit int) []ledger.BlockEntry
+	// Head identifies the chain state: the newest block's height and hash.
+	Head() (int64, []byte)
 	BlockEntriesPage(limit, offset int) []ledger.BlockEntry
 	BlockEntriesPageMatching(limit, offset int, match func(ledger.BlockEntry) bool) ([]ledger.BlockEntry, int)
 }

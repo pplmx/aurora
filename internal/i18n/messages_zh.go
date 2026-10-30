@@ -510,9 +510,9 @@ nft、token）和运维命令（migrate、backup、version）。`,
 	"doctor.detail.defaults":                 "（内置默认值）",
 	"doctor.detail.migrations":               "版本 %d，待执行 %d 条",
 	"doctor.detail.migrations_dirty":         "版本 %d 处于 dirty 状态",
-	"doctor.detail.ledger_ok":                "%d 个区块，链完整",
-	"doctor.detail.ledger_broken":            "%d 个区块，第 %d 块起断链：%s",
-	"doctor.detail.outbox":                   "%d 条待投递事件",
+	"doctor.detail.ledger_ok":                "链完整（区块 %d，头 %s）",
+	"doctor.detail.ledger_broken":            "第 %d 块起断链：%s（区块 %d）",
+	"doctor.detail.outbox":                   "待投递事件 %d 条",
 	"doctor.detail.no_database":              "数据库不可用",
 
 	// 破坏性操作 --confirm 门（token burn / nft burn / oracle source

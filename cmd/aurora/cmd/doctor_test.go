@@ -61,6 +61,9 @@ func TestDoctorReportsAHealthyInstallation(t *testing.T) {
 		assert.NotEmpty(t, report.Checks[1].Detail)
 		assert.Equal(t, "ok", report.Checks[2].Status,
 			"pending migrations are informational; detail: %s", report.Checks[2].Detail)
+		assert.Contains(t, report.Checks[3].Detail, "head", "the ledger line names the head hash")
+		assert.NotContains(t, report.Checks[3].Detail, "%!", "every format argument must be consumed")
+		assert.NotContains(t, report.Checks[4].Detail, "%!")
 	})
 }
 

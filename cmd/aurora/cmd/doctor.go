@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"database/sql"
+	"encoding/hex"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -142,8 +143,9 @@ func doctorLedgerCheck() doctorCheck {
 			Detail: i18n.GetTextF("doctor.detail.ledger_broken",
 				report.FirstBrokenIndex, report.FirstBrokenReason, report.Length)}
 	}
+	_, hash := chain.Head()
 	return doctorCheck{Name: "ledger", Status: doctorOK,
-		Detail: i18n.GetTextF("doctor.detail.ledger_ok", report.Length)}
+		Detail: i18n.GetTextF("doctor.detail.ledger_ok", report.Length, shortHash(hash))}
 }
 
 // doctorOutboxCheck reports events still waiting for the API drainer. The CLI
@@ -160,6 +162,16 @@ func doctorOutboxCheck(db *sql.DB) doctorCheck {
 		return doctorCheck{Name: "outbox", Status: doctorWarn, Detail: detail}
 	}
 	return doctorCheck{Name: "outbox", Status: doctorOK, Detail: detail}
+}
+
+// shortHash renders the first 12 hex characters of a block hash, enough to
+// compare two installations' heads in a support thread without pasting 64.
+func shortHash(hash []byte) string {
+	encoded := hex.EncodeToString(hash)
+	if len(encoded) > 12 {
+		return encoded[:12]
+	}
+	return encoded
 }
 
 // appendUnavailable marks the checks that cannot run without a database, so the

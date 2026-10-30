@@ -607,7 +607,8 @@ The milestone notes under `.planning/` are history, not current instructions.
 - **`aurora doctor`**: the first support question — "is this installation
   healthy?" — needed `db-info` + `blockchain verify` + `migrate status` three
   times over. One command now checks config, database, migrations, ledger
-  integrity and the audit outbox in a fixed order, with `--json` for scripts and
+  integrity (with the head block's height and short hash) and the audit outbox in
+  a fixed order, with `--json` for scripts and
   an exit code that fails only on real problems. A backlogged outbox warns; a
   dirty migration fails; pending migrations are informational, because a
   CLI-created database always reports schema 0 (the repositories create their
@@ -834,6 +835,11 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **The doctor's ledger and outbox lines read "1 blocks"**: an earlier wording
+  fix never reached the catalogs (the edit targeted unpadded lines), so the
+  English text kept the plural and the new head-hash format would have printed
+  `%!(EXTRA …)`. The details now say `ledger blocks: N; head …` and
+  `pending events: N`, and a test rejects any unconsumed format argument.
 - **Creating a session returned a different shape from reading it**:
   `POST /voting/session` answered with title/description/status/candidates only,
   while GET, list and the start/end endpoints also carry `start_time`,

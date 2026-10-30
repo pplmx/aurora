@@ -376,6 +376,18 @@ func (c *Chain) ResetBlocks() {
 // BlockData returns the payload of every non-genesis block, in height order.
 // It is the read side of the audit trail: callers that want to inspect what was
 // recorded without knowing each module's row schema use this.
+// Head returns the newest block's height and hash. The hash is copied so a
+// caller cannot alias the chain's storage; an empty chain reports (-1, nil).
+func (c *Chain) Head() (int64, []byte) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	if len(c.Blocks) == 0 {
+		return -1, nil
+	}
+	b := c.Blocks[len(c.Blocks)-1]
+	return b.Height, append([]byte(nil), b.Hash...)
+}
+
 func (c *Chain) BlockData() []string {
 	if c == nil {
 		return nil
