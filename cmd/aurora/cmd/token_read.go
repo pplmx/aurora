@@ -122,22 +122,22 @@ var tokenHistoryCmd = &cobra.Command{
 			Offset:  offset,
 		}
 
-		resp, err := uc.Execute(req)
+		transfers, err := uc.Execute(req)
 		if err != nil {
 			return wrapCLIError("token.error.get_history", err)
 		}
 		if jsonRequested(cmd) {
-			if resp.Transfers == nil {
-				resp.Transfers = []tokenapp.TransferResponse{}
+			if transfers == nil {
+				transfers = []tokenapp.TransferResponse{}
 			}
-			return printJSON(resp)
+			return printJSON(transfers)
 		}
 
-		fmt.Printf("\n📜 %s: %d\n", i18n.GetText("token.history_heading"), len(resp.Transfers))
-		if len(resp.Transfers) == 0 {
+		fmt.Printf("\n📜 %s: %d\n", i18n.GetText("token.history_heading"), len(transfers))
+		if len(transfers) == 0 {
 			fmt.Println("   " + i18n.GetText("token.no_history"))
 		}
-		for _, t := range resp.Transfers {
+		for _, t := range transfers {
 			fmt.Printf("   - %s\n", i18n.GetTextF(
 				"token.history_entry",
 				truncateBase64(t.From),

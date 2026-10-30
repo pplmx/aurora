@@ -109,14 +109,14 @@ func (s *nativeServices) TokenAllowance(tokenID, owner, spender string) (string,
 
 func (s *nativeServices) TokenHistory(tokenID, owner string, limit, offset int) ([]nativeui.TransferRow, error) {
 	uc := tokenapp.NewGetHistoryUseCase(s.tokenService)
-	resp, err := uc.Execute(&tokenapp.HistoryRequest{
+	transfers, err := uc.Execute(&tokenapp.HistoryRequest{
 		TokenID: tokenID, Owner: owner, Limit: limit, Offset: offset,
 	})
 	if err != nil {
 		return nil, err
 	}
-	rows := make([]nativeui.TransferRow, 0, len(resp.Transfers))
-	for _, t := range resp.Transfers {
+	rows := make([]nativeui.TransferRow, 0, len(transfers))
+	for _, t := range transfers {
 		rows = append(rows, transferRow(t))
 	}
 	return rows, nil

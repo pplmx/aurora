@@ -145,7 +145,3 @@ type HistoryRequest struct {
 	Limit  int
 	Offset int
 }
-
-type HistoryResponse struct {
-	Transfers []TransferResponse `json:"transfers"`
-}

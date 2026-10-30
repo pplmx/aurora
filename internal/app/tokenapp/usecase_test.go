@@ -1120,23 +1120,22 @@ func TestGetHistoryUseCase_Execute(t *testing.T) {
 		Limit:   10,
 	}
 
-	resp, err := uc.Execute(req)
+	transfers, err := uc.Execute(req)
 	require.NoError(t, err)
-	require.NotNil(t, resp)
 
-	if len(resp.Transfers) != 2 {
-		t.Errorf("Expected 2 transfers, got %d", len(resp.Transfers))
+	if len(transfers) != 2 {
+		t.Errorf("Expected 2 transfers, got %d", len(transfers))
 	}
 	// The audit block height must surface through the history DTO.
-	if resp.Transfers[0].BlockHeight != 10 || resp.Transfers[1].BlockHeight != 21 {
+	if transfers[0].BlockHeight != 10 || transfers[1].BlockHeight != 21 {
 		t.Errorf("expected block heights [10 21] to surface, got [%d %d]",
-			resp.Transfers[0].BlockHeight, resp.Transfers[1].BlockHeight)
+			transfers[0].BlockHeight, transfers[1].BlockHeight)
 	}
 	// Replay nonces are part of the history the desktop table renders; a DTO
 	// without them made every row read as nonce 0.
-	if resp.Transfers[0].Nonce != 1 || resp.Transfers[1].Nonce != 2 {
+	if transfers[0].Nonce != 1 || transfers[1].Nonce != 2 {
 		t.Errorf("expected nonces [1 2] to surface, got [%d %d]",
-			resp.Transfers[0].Nonce, resp.Transfers[1].Nonce)
+			transfers[0].Nonce, transfers[1].Nonce)
 	}
 }
 
@@ -1172,12 +1171,12 @@ func TestGetHistoryUseCase_EmptyHistory(t *testing.T) {
 		Limit:   10,
 	}
 
-	resp, err := uc.Execute(req)
+	transfers, err := uc.Execute(req)
 	if err != nil {
 		t.Fatalf("Execute failed: %v", err)
 	}
 
-	if len(resp.Transfers) != 0 {
-		t.Errorf("Expected 0 transfers, got %d", len(resp.Transfers))
+	if len(transfers) != 0 {
+		t.Errorf("Expected 0 transfers, got %d", len(transfers))
 	}
 }
