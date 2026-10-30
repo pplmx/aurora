@@ -382,11 +382,12 @@ path 与 query 都可能包含凭据，因此 `/oracle/health` 的 `last_error` 
 | GET  | `/api/v1/blockchain/blocks` | 审计记录分页（默认 20，`limit` 上限 100，`q` 过滤） |
 
 ```json
-{"valid":true,"length":3,"first_broken_index":-1}
+{"valid":true,"length":3,"head":"0ab2857b160a…","first_broken_index":-1}
 ```
 
 `first_broken_index` 为 `-1` 表示整条链通过；否则指向第一处哈希断开的区块下标，
-`valid` 为 `false`。
+`valid` 为 `false`。`head` 是头区块哈希（hex），只要链上有区块就会返回——链断开
+时同样带着，两台机器对照记录时先比头哈希。
 
 `/blockchain/blocks` 按最新在前返回创世块之外的记录，`payload` 是模块写入的原始
 文本；`total` 不含创世块，`offset` 以条目计而不是区块高度。`q` 在原始文本上做

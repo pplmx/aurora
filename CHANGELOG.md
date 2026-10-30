@@ -12,6 +12,12 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The chain head lives in the integrity report**: `head` was computed in three
+  places (a `Chain.Head` method for the doctor, the desktop status and the
+  diagnostics), each hex-encoding and trimming it. The integrity report now
+  carries it as a hex field, present whenever a last block exists (a broken
+  chain still reports the head it read), so one verification supplies both the
+  verdict and the identity; `Chain.Head` and its port methods are gone.
 - **`BackupResult.File` is now `Dir`**: the value the backup returns is the
   output directory (the file names inside are fixed), and the field name plus
   its JSON tag (`file`) said otherwise; the struct, the CLI message, the
