@@ -69,9 +69,8 @@ var backupRestoreCmd = &cobra.Command{
 	Short: i18n.GetText("backup.restore"),
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		confirm, _ := cmd.Flags().GetBool("confirm")
-		if !confirm {
-			return newCLIError("backup.confirm_required")
+		if err := requireConfirm(cmd, "cli.confirm.backup_restore"); err != nil {
+			return err
 		}
 		svc, err := newCLIBackup()
 		if err != nil {
@@ -93,10 +92,9 @@ var backupRestoreCmd = &cobra.Command{
 }
 
 func init() {
-	// -y shorthand matches the canonical addConfirmFlag gate used by token burn,
-	// nft burn, migrate down and oracle source delete, so a script standardizing
-	// on -y/--confirm works here too (TASK-152, ISS-140).
-	backupRestoreCmd.Flags().BoolP("confirm", "y", false, i18n.GetText("backup.confirm_flag"))
+	// One gate for every destructive command: same -y/--confirm flag, same
+	// localized refusal, same exit code (TASK-152, ISS-140).
+	addConfirmFlag(backupRestoreCmd, "cli.confirm.backup_restore")
 	rootCmd.AddCommand(backupCmd)
 	backupCmd.AddCommand(backupCreateCmd)
 	backupCmd.AddCommand(backupVerifyCmd)

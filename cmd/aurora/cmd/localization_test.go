@@ -293,7 +293,7 @@ func TestCLIErrorPathsLocalizeChinese(t *testing.T) {
 
 		_, err = runCmd(t, "backup", "restore", "missing")
 		require.Error(t, err)
-		assert.Contains(t, formatCLIError(err), "恢复将覆盖实时数据库")
+		assert.Contains(t, formatCLIError(err), "此操作将用备份覆盖实时数据库")
 
 		technical := wrapCLIError("backup.error.create", errors.New("permission denied"))
 		assert.Contains(t, formatCLIError(technical), "创建备份失败：permission denied")
