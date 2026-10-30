@@ -177,7 +177,15 @@ var verifyCmd = &cobra.Command{
 			return err
 		}
 		if jsonRequested(cmd) {
-			return printJSON(report)
+			// The document carries the verdict, but the exit code is what a
+			// script checks first; a failed check must not read as success.
+			if err := printJSON(report); err != nil {
+				return err
+			}
+			if !report.IntegrityOK {
+				return lotteryapp.ErrVerificationFailed
+			}
+			return nil
 		}
 		record := report.Record
 

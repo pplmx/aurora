@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"database/sql"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/pplmx/aurora/internal/app/lotteryapp"
 	"github.com/pplmx/aurora/internal/domain/lottery"
+	"github.com/pplmx/aurora/internal/infra/blockchain"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -675,6 +677,49 @@ func TestLotteryInfoCommandsPrintJSON(t *testing.T) {
 		assert.Equal(t, 1, stats.Total)
 		require.NotNil(t, stats.LatestBlock)
 		assert.Equal(t, int64(1), *stats.LatestBlock)
+	})
+}
+
+// TestLotteryVerifyFailsOnTamperedRecord: the stored winners no longer match
+// the seed, so both the table and the JSON mode must exit non-zero while still
+// printing what failed.
+func TestLotteryVerifyFailsOnTamperedRecord(t *testing.T) {
+	withTempDir(t, func(t *testing.T) {
+		setTestLocale(t, "en")
+
+		_, err := runCmd(t, "lottery", "create",
+			"--participants", "A,B", "--seed", "tamper-seed", "--count", "1")
+		require.NoError(t, err)
+
+		var draws []struct {
+			ID string `json:"id"`
+		}
+		out, err := runCmd(t, "lottery", "history", "--json")
+		require.NoError(t, err)
+		require.NoError(t, json.Unmarshal([]byte(out), &draws))
+		require.Len(t, draws, 1)
+
+		out, err = runCmd(t, "lottery", "verify", draws[0].ID, "--json")
+		require.NoError(t, err)
+		assert.Contains(t, out, `"integrity_ok": true`)
+
+		db, err := sql.Open("sqlite", blockchain.DBPath())
+		require.NoError(t, err)
+		_, err = db.Exec(`UPDATE lottery_records SET winners = '["Mallory"]'`)
+		require.NoError(t, err)
+		require.NoError(t, db.Close())
+
+		out, err = runCmd(t, "lottery", "verify", draws[0].ID, "--json")
+		require.Error(t, err, "a failed check must be a non-zero exit in JSON mode")
+		var report struct {
+			IntegrityOK bool `json:"integrity_ok"`
+		}
+		require.NoError(t, json.Unmarshal([]byte(out), &report), "the report must still print: %q", out)
+		assert.False(t, report.IntegrityOK)
+
+		out, err = runCmd(t, "lottery", "verify", draws[0].ID)
+		require.Error(t, err)
+		assert.Contains(t, out, "❌")
 	})
 }
 
