@@ -239,6 +239,7 @@ var traditionalMessages = map[string]string{
 	"lottery.error.create":                      "創建抽獎失敗",
 	"lottery.error.create_repo":                 "創建抽獎倉儲失敗",
 	"lottery.error.import_records":              "導入抽獎記錄失敗",
+	"lottery.error.import_too_large":            "導入文件超過 %s",
 	"lottery.error.init_blockchain":             "初始化區塊鏈失敗",
 	"lottery.error.init_blockchain_after_reset": "重置後初始化區塊鏈失敗",
 	"lottery.error.init_db":                     "初始化數據庫失敗",

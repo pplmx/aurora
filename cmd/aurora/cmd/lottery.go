@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -254,6 +255,10 @@ var importCmd = &cobra.Command{
 
 		data, err := lotteryapp.ReadImportFile(filename)
 		if err != nil {
+			if errors.Is(err, lotteryapp.ErrImportFileTooLarge) {
+				return newCLIError("lottery.error.import_too_large",
+					utils.FormatBytes(lotteryapp.MaxImportFileSize))
+			}
 			return wrapCLIError("lottery.error.read_file", err)
 		}
 

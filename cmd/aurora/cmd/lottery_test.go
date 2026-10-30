@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/pplmx/aurora/internal/app/lotteryapp"
 	"github.com/pplmx/aurora/internal/domain/lottery"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -639,5 +640,25 @@ func TestLotteryDBInfo(t *testing.T) {
 		assert.Contains(t, out, "Database Info")
 		assert.Regexp(t, `Database size: \d+(\.\d+)? (B|KiB|MiB|GiB)`, out)
 		assert.Contains(t, out, "Total blocks: 0")
+	})
+}
+
+// TestLotteryImportRejectsOversizedFile: the reader's 64 MiB cap is a user
+// mistake, so the CLI names the limit in the active language instead of
+// printing the raw byte count. The file is sparse, so the test does not write
+// 64 MiB of content.
+func TestLotteryImportRejectsOversizedFile(t *testing.T) {
+	withTempDir(t, func(t *testing.T) {
+		setTestLocale(t, "en")
+
+		big := filepath.Join(t.TempDir(), "big.json")
+		f, err := os.Create(big)
+		require.NoError(t, err)
+		require.NoError(t, f.Truncate(lotteryapp.MaxImportFileSize+1))
+		require.NoError(t, f.Close())
+
+		_, err = runCmd(t, "lottery", "import", big)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "import file is larger than 64.0 MiB")
 	})
 }
