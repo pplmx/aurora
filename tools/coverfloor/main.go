@@ -38,8 +38,8 @@ func main() {
 		fail(err)
 	}
 
-	wanted := strings.Split(*prefixes, ",")
-	skipped := strings.Split(*excludes, ",")
+	wanted := splitPrefixes(*prefixes)
+	skipped := splitPrefixes(*excludes)
 	checked := 0
 	var failures []string
 	rows := make([]row, 0, len(packages))
@@ -145,6 +145,19 @@ func parseProfile(text string) (map[string]*stats, error) {
 		return nil, err
 	}
 	return packages, nil
+}
+
+// splitPrefixes drops empty entries: an empty prefix would match every package,
+// so `-exclude ""` must mean "exclude nothing" rather than "exclude all".
+func splitPrefixes(list string) []string {
+	parts := strings.Split(list, ",")
+	out := parts[:0]
+	for _, part := range parts {
+		if trimmed := strings.TrimSpace(part); trimmed != "" {
+			out = append(out, trimmed)
+		}
+	}
+	return out
 }
 
 func matchesAny(name string, prefixes []string) bool {

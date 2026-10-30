@@ -132,6 +132,15 @@ desktop-check:
     cd desktop && golangci-lint run --config ../.golangci.yml --disable=errcheck ./...
     cd desktop && CGO_ENABLED=0 go test -count=1 ./...
 
+# The views carry the behaviour and the adapters carry the platform glue; a
+# floor keeps a refactor from deleting the tests that cover them. The command
+# binaries are wiring and stay out of the check.
+
+# Check the desktop coverage floor
+desktop-coverage-floor:
+    cd desktop && CGO_ENABLED=0 go test -coverprofile=coverage-desktop.out ./internal/...
+    cd desktop && CGO_ENABLED=0 go run ../tools/coverfloor/main.go -profile coverage-desktop.out -prefixes github.com/pplmx/aurora/desktop/internal/ -exclude "" -floor 70
+
 # The race detector needs cgo even when every production dependency is pure
 # Go. Keep it as an explicit opt-in so `desktop-check` remains usable in a
 # sandbox with no C compiler while CI still runs the stronger gate.
