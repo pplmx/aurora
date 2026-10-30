@@ -299,3 +299,25 @@ func TestCreationCommandsPrintJSON(t *testing.T) {
 		assert.Equal(t, "draft", session.Status)
 	})
 }
+
+// TestVersionCommandPrintsJSON: an ops script reads the build's version, build
+// time and toolchain from one document instead of parsing three labeled lines.
+func TestVersionCommandPrintsJSON(t *testing.T) {
+	withTempDir(t, func(t *testing.T) {
+		setTestLocale(t, "en")
+
+		out, err := runCmd(t, "version", "--json")
+		require.NoError(t, err)
+		var info struct {
+			Name      string `json:"name"`
+			Version   string `json:"version"`
+			BuildTime string `json:"build_time"`
+			GoVersion string `json:"go_version"`
+		}
+		require.NoError(t, json.Unmarshal([]byte(out), &info), "got %q", out)
+		assert.NotEmpty(t, info.Name)
+		assert.NotEmpty(t, info.Version)
+		assert.NotEmpty(t, info.BuildTime)
+		assert.Regexp(t, `^go`, info.GoVersion)
+	})
+}

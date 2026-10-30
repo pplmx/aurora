@@ -89,6 +89,7 @@ var traditionalMessages = map[string]string{
 	"common.decimals":                           "小數位數",
 	"common.disabled":                           "已禁用",
 	"common.enabled":                            "已啟用",
+	"common.error.json":                         "生成 JSON 失敗",
 	"common.false":                              "否",
 	"common.from":                               "轉出方",
 	"common.headers":                            "請求頭",
