@@ -68,3 +68,39 @@ func TestPageHeaderStackDoesNotStretchAction(t *testing.T) {
 	require.True(t, ok)
 	require.Lessf(t, button.W, float32(400), "the stacked action must keep its own measure, got %.0fpx", button.W)
 }
+
+// TestDisabledButtonDropsHintWhenItCannotFit keeps the hint honest. Both runs
+// in the button are single-line, so a row with no room clips them: a 760px
+// window at 2x text showed "Complete the re" and lost the rest. The disabled
+// fill and muted label already say the action is not ready, so the sentence is
+// the first thing to drop.
+func TestDisabledButtonDropsHintWhenItCannotFit(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		w    int
+		sc   float32
+		want bool
+	}{
+		{"wide, default text", 1280, 1, true},
+		{"narrow, default text", 760, 1, true},
+		{"wide, large text", 1280, 2, true},
+		{"narrow, large text", 760, 2, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			app := New(&fakeServices{})
+			tester := ui.NewTester(app.View, tc.w, 1200)
+			tester.SetPreferences(ui.Preferences{TextScale: tc.sc})
+			app.ShowPage("Token")
+			tester.Frame()
+
+			hint, ok := tester.Find("Complete the required fields")
+			require.Equalf(t, tc.want, ok, "hint presence at %dpx, %.0fx text", tc.w, tc.sc)
+			if !ok {
+				return
+			}
+			// A drawn hint must be inside the window, not half of one.
+			require.LessOrEqual(t, hint.X+hint.W, float32(tc.w),
+				"the hint must not run past the window edge")
+		})
+	}
+}
