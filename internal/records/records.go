@@ -166,7 +166,9 @@ func parsePipePayload(payload string) (Record, bool) {
 		all := ReadableFields(parts)
 		subject := fieldAt(all, 1)
 		facts := appendFact(nil, "Name", subject)
-		facts = appendFact(facts, "Owner", fieldAt(all, 2))
+		// "Holder" matches the NFT page and the transfer record: an NFT has a
+		// holder, not an owner, and the two words are different entries.
+		facts = appendFact(facts, "Holder", fieldAt(all, 2))
 		return Record{Module: "nft", Action: "Mint", Subject: subject, Facts: facts}, true
 	}
 	return Record{}, false

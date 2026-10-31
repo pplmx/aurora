@@ -124,7 +124,7 @@ func TestDecodeRecordReadsAnNFTMint(t *testing.T) {
 	assert.Equal(t, "First Art", row.Subject)
 	facts := factMap(row)
 	assert.Equal(t, "First Art", facts["Name"])
-	assert.Equal(t, "owner-key", facts["Owner"])
+	assert.Equal(t, "owner-key", facts["Holder"])
 }
 
 // TestDecodeRecordReadsAVote checks a cast ballot: the candidate is the

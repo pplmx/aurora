@@ -28,6 +28,16 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The ledger calls an NFT's owner a holder, like the page does**: the NFT
+  page and the transfer record were renamed to "Holder" a while back, but the
+  decoder kept emitting "Owner" for a mint, so a ledger row read Owner in
+  English while the card above it said 持有者. An approve still names an owner —
+  the account that granted the allowance — which is a different role, so that
+  one keeps the word and gains the entry it was missing.
+- **A test ties the decoder's vocabulary to the catalogs**: the labels live in
+  `internal/records` and the card looks them up in the desktop table, so the two
+  can drift without either package noticing.
+
 - **The source type is a word, so the window translates it**: the Oracle
   source row showed the domain's own "custom" beside translated labels. The
   first language run over every page is what surfaced it — the earlier runs
