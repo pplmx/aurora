@@ -12,6 +12,11 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The compose image is not a service, so the service recipes are gone**:
+  `just dev`, `prod`, `start`, `stop` and `restart` brought up a container that
+  exits immediately — the image is a one-shot CLI toolbox, as `compose.yml`
+  documents. The README now shows `just image` plus
+  `docker compose run --rm aurora <command>`.
 - **The Oracle Query card asks for the same page as the other surfaces**: it
   started at 20 readings while REST's `/oracle/query` and the CLI's `oracle data`
   default to 10. The card now starts at 10 (the cap of 100 is unchanged), so an
