@@ -130,13 +130,19 @@ func Usage(w io.Writer, version, buildTime string) {
 	fmt.Fprintln(w, T("desktop.help.data_dir_flag"))
 	fmt.Fprintln(w, T("desktop.help.version_flag"))
 	fmt.Fprintln(w)
-	fmt.Fprintf(w, "%s: %s\n%s: %s\n%s: %s\n",
-		T("app.version"), version, T("app.build_time"), buildTime, T("app.go_version"), runtime.Version())
+	fmt.Fprint(w, versionFacts(version, buildTime))
 }
 
 // VersionText renders the version block for --version.
 func VersionText(version, buildTime string) string {
-	text := fmt.Sprintf("Aurora Desktop\n%s: %s\n%s: %s\n%s: %s\n",
+	return "Aurora Desktop\n" + versionFacts(version, buildTime)
+}
+
+// versionFacts is the version tail both --help and --version end with, so the two
+// paths cannot drift: --help used to stop at the Go line and omit the UI
+// toolkit the window actually runs.
+func versionFacts(version, buildTime string) string {
+	text := fmt.Sprintf("%s: %s\n%s: %s\n%s: %s\n",
 		T("app.version"), version, T("app.build_time"), buildTime, T("app.go_version"), runtime.Version())
 	// A `go run` build carries no module list, so the MyGo half is omitted rather
 	// than printed empty.
