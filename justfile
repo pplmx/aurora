@@ -28,7 +28,7 @@ race:
     CGO_ENABLED=1 go test -race -count=1 ./...
 
 # Run every local gate: format, vet, tests, lint and coverage floors
-verify: check test lint coverage-floor desktop-check desktop-coverage-floor
+verify: check-verify test lint coverage-floor desktop-check desktop-coverage-floor
 
 # Enforce the documented coverage floor on the module domain and app packages
 # (the composition root under internal/app/container is wiring, not a module).
@@ -50,6 +50,14 @@ test-coverage:
 check:
     gofmt -l -s -w $(fd -e go -E desktop .)
     goimports -l -w $(fd -e go -E desktop .)
+    CGO_ENABLED=0 go vet ./...
+
+# The same three checks without writing: `verify` must not change the tree it is
+# validating, and `check` above repairs formatting on purpose for a developer
+# about to commit.
+check-verify:
+    test -z "$(gofmt -l -s $(fd -e go -E desktop .))"
+    test -z "$(goimports -l $(fd -e go -E desktop .))"
     CGO_ENABLED=0 go vet ./...
 
 # Regenerate the Traditional Chinese catalogs from the Simplified ones with

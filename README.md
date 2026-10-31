@@ -49,7 +49,7 @@ just desktop                             # 桌面壳（Go 1.27+、WebKitGTK/WebV
 `just` 是唯一的任务入口（没有 Makefile），直接运行 `just` 会列出全部配方：
 
 ```bash
-just check           # gofmt + goimports + go vet
+just check           # gofmt + goimports + go vet（会改写未格式化的文件）
 just verify          # 本地全部门槛：check/test/lint/覆盖率底线 + 桌面门槛
 just test            # 核心模块全部测试
 just test-shuffle    # 随机顺序跑测试，暴露顺序依赖
@@ -221,7 +221,7 @@ Go 1.27+、Cobra、Viper、Zerolog、SQLite
 ## 开发
 
 ```bash
-just check      # gofmt + goimports + go vet
+just check      # gofmt + goimports + go vet（会改写未格式化的文件）
 just test       # go test ./...
 just race       # 可选：根模块 race detector（需要 cgo）
 just lint       # golangci-lint（不含 errcheck；含 bodyclose、errorlint、sqlclosecheck 等）

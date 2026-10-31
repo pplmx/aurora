@@ -28,6 +28,15 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **`just verify` no longer repairs the tree it is validating**: `check` runs
+  `gofmt -w` and `goimports -w`, so the gate that exists to report a formatting
+  problem fixed the file, exited 0, and left the change in the working tree for
+  the next commit to pick up unread. `verify` now calls `check-verify`, which
+  runs the same three checks with `-l` and fails; `check` keeps repairing on
+  purpose, because a developer running it is about to commit.
+- **The README says which is which**: the command list annotated `just check` as
+  "gofmt + goimports + go vet" without mentioning that it writes.
+
 - **The coverage floor reuses the profile the test step wrote**: `just verify`
   ran the desktop suite twice — once plain, once for coverage — and Go cannot
   share cached results between the two modes, so every run paid 44 seconds for

@@ -192,6 +192,17 @@ func TestDesktopCheckStaysCgoFree(t *testing.T) {
 	root := justRecipe(t, justfile, "race")
 	assert.Contains(t, root, "CGO_ENABLED=1 go test -race -count=1 ./...",
 		"the root race recipe must enable cgo explicitly")
+
+	// `verify` reports; it must not repair the tree it is validating, or a run
+	// that fails on formatting leaves the change behind and the next run passes.
+	// Compared on the search result: a failing Contains on the justfile prints
+	// every recipe.
+	assert.NotEqualf(t, -1, strings.Index(justfile, "verify: check-verify"),
+		"verify must call the read-only format check")
+	assert.NotContains(t, justRecipe(t, justfile, "check-verify"), "-w",
+		"the verify-side check must not write")
+	assert.Contains(t, justRecipe(t, justfile, "check"), "gofmt -l -s -w",
+		"the developer-side check repairs formatting on purpose")
 }
 
 // TestGolangciLintVersionIsPinned pins the workflow's golangci-lint binary.
