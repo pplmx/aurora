@@ -12,6 +12,11 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The ledger page size sits on the search row**: the `Show` field stacked its
+  label above a number input at the card's far right, so the word floated a line
+  away from the control it named while the search field occupied a small part of
+  an otherwise empty band. The size is an inline form field beside the query now,
+  and the query fills the row.
 - **Chinese labels use the full-width colon**: thirteen strings wrote the label
   as `当前版本: 8` while the other forty-seven use `当前版本：8`; the odd ones out
   read as an English label glued to a Chinese value, and the migrate table showed
