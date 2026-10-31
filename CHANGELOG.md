@@ -28,6 +28,14 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The architecture document says what it closed, not what it found**: the
+  section was headed 已识别的边界问题 and every one of its seven entries began
+  with 已做, so a reader reaching the heading could not tell whether it listed
+  open work or finished work; finding out meant reading all of it. It is headed
+  已解决的边界问题 now, opens by saying the entries record conclusions rather
+  than plans, and points at the one item that is still open. The checklist
+  section says the same about its progress.
+
 - **Registering a candidate is a primary action like its neighbours**: on the
   Voting setup page, Register Voter and Create Session were primary buttons and
   Register Candidate, the same kind of write sitting between them, was
