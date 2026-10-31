@@ -98,7 +98,7 @@ func TestSessionControlsRequireASession(t *testing.T) {
 	app.voting.tab = 1
 	tester.Frame()
 
-	require.True(t, tester.HasText("Choose a session in Setup or enter its ID first."))
+	require.True(t, tester.HasText("Choose a stored session below, or paste its ID."))
 	require.NoError(t, tester.Click("Start Session"))
 	require.NoError(t, tester.Click("End Session"))
 	tester.Frame()
@@ -891,7 +891,7 @@ func TestSessionControlsDropTheChooseHintOnceASessionIsChosen(t *testing.T) {
 	tester.Frame()
 	require.NoError(t, tester.Click("Ballot"))
 	tester.Frame()
-	require.True(t, tester.HasText("Choose a session in Setup or enter its ID first."),
+	require.True(t, tester.HasText("Choose a stored session below, or paste its ID."),
 		"with nothing chosen the hint names the first step")
 
 	require.NoError(t, tester.Click("Setup"))
@@ -900,7 +900,43 @@ func TestSessionControlsDropTheChooseHintOnceASessionIsChosen(t *testing.T) {
 	tester.Frame()
 	require.NoError(t, tester.Click("Ballot"))
 	tester.Frame()
-	require.False(t, tester.HasText("Choose a session in Setup or enter its ID first."),
+	require.False(t, tester.HasText("Choose a stored session below, or paste its ID."),
 		"a chosen session must not be told to choose one")
 	require.Equal(t, sessionID, app.voting.controlID, "the field still holds the chosen session")
+}
+
+// TestBallotOffersTheStoredSessions: the Cast Vote card takes a session id that
+// used to be copyable only out of Setup. Its stored sessions now sit under that
+// field, and choosing one loads the roster so the candidate chips below resolve
+// by name for the session the ballot names.
+func TestBallotOffersTheStoredSessions(t *testing.T) {
+	const (
+		sessionID = "55555555-4444-3333-2222-111111111111"
+		candID    = "aaaaaaaa-1111-2222-3333-444444444444"
+	)
+	fake := &fakeServices{
+		sessions: []SessionRow{{
+			ID: sessionID, Title: "Board 2027", Status: "active",
+			Candidates: []string{candID},
+		}},
+		candidateNames: map[string]string{candID: "Alice"},
+	}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 2600)
+	app.ShowPage("Voting")
+	tester.Frame()
+	require.NoError(t, tester.Click("Ballot"))
+	tester.Frame()
+	require.False(t, tester.HasText("Alice"), "the roster waits for a session")
+
+	// The chip belongs to the field it fills: the same column, above the form's
+	// primary action, rather than in another card.
+	require.True(t, tester.HasText("Stored sessions"), "the picker names what the chips are")
+	require.NoError(t, tester.Click("Board 2027"))
+	tester.Frame()
+	require.Equal(t, sessionID, app.voting.voteSession, "the chip names the ballot's session")
+	require.Equal(t, sessionID, app.voting.controlID, "and the session controls'")
+	require.True(t, tester.HasText("Alice"), "the roster follows the chosen session")
+	require.True(t, tester.HasText("Stored sessions"),
+		"the picker stays while the field holds a value it can change")
 }
