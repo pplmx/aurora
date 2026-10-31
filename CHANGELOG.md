@@ -28,6 +28,14 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The desktop's NFT reads are covered**: `GetNFT`, `ListNFTs` and the paging
+  path they share had no test, so a field dropped from the adapter — the
+  Inspect card simply showing nothing where the store has a value — could only
+  be found by comparing the window with `aurora nft get`. The new test mints
+  over an in-memory repository and a real chain, then checks every mapped field,
+  the owner filter and the missing-id path. `deskapp` coverage rose from 75.4%
+  to 76.8%.
+
 - **The CLI reference's operations section is grouped by command**: it ran as
   one block of prose under the example commands, and the `blockchain` and
   `migrate` notes appeared in two places each — the same facts about `verify`'s
