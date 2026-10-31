@@ -72,6 +72,8 @@ aurora lottery reset --confirm       # 清空抽奖记录
 负数。`--search`/`-s` 在 id、seed、参与者与中奖者上做不区分大小写的过滤，
 与 API 的 `q` 是同一次存储层读取，分页也在命中集内；过滤未命中与「库里没有
 记录」是两种不同的提示，带过滤时表头打印命中数（`Matches:`），不冒充整库总数。
+每条记录按 `ID`、`Seed`、`Winners`、`Participants`、`Block Height`、`Timestamp`
+分行打印；完整记录（含 VRF 证明与中奖地址）由 `--json` 提供。
 
 `verify` 的解析顺序：精确 ID → 整数区块高度 → ID/seed 子串；多个子串命中时取
 最新的一条。记录没有中奖者、

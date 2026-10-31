@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/pplmx/aurora/internal/app/lotteryapp"
 	"github.com/pplmx/aurora/internal/domain/lottery"
@@ -158,12 +159,17 @@ var historyCmd = &cobra.Command{
 			fmt.Printf("\n📜 %s: %d\n\n", i18n.GetText("lottery.total"), len(records))
 		}
 		for i, record := range records {
-			jsonData, err := record.ToJSON()
-			if err != nil {
-				continue
-			}
+			// The table is the reading view: one labelled line per auditable
+			// field instead of a JSON blob cut at 200 characters. `--json`
+			// carries the whole record for a script.
 			fmt.Printf("%s\n", i18n.GetTextF("lottery.history_item", i+1))
-			fmt.Println(jsonData[:min(200, len(jsonData))])
+			fmt.Printf("  %s: %s\n", i18n.GetText("common.id"), record.ID)
+			fmt.Printf("  %s: %s\n", i18n.GetText("lottery.seed_label"), record.Seed)
+			fmt.Printf("  %s: %s\n", i18n.GetText("lottery.winners"), strings.Join(record.Winners, ", "))
+			fmt.Printf("  %s: %d\n", i18n.GetText("lottery.participants_label"), len(record.Participants))
+			fmt.Printf("  %s: %d\n", i18n.GetText("common.block_height"), record.BlockHeight)
+			fmt.Printf("  %s: %s\n", i18n.GetText("common.timestamp"),
+				time.Unix(record.Timestamp, 0).Format(blockTimeLayout))
 			fmt.Println()
 		}
 		return nil
