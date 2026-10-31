@@ -195,6 +195,12 @@ func localizeKnownErrorDetail(detail string) string {
 		return "请求头过长"
 	case "url too long":
 		return "URL 过长"
+	case "empty url":
+		return "URL 不能为空"
+	case "missing host":
+		return "URL 缺少主机名"
+	case "missing port after colon":
+		return "冒号后缺少端口"
 	case "invalid interval":
 		return "刷新间隔无效"
 	case "invalid HTTP method":
@@ -234,6 +240,11 @@ var (
 	}{
 		{regexp.MustCompile(`^expected a JSON array of lottery records, got (.+)$`), "应为抽奖记录 JSON 数组，但收到 %s"},
 		{regexp.MustCompile(`^not a valid JSON document: (.+)$`), "不是有效的 JSON 文档：%s"},
+		{regexp.MustCompile(`^disallowed scheme "(.+)" \(only http/https allowed\)$`), "不支持协议「%s」（仅允许 http/https）"},
+		{regexp.MustCompile(`^invalid port "(.+)"$`), "端口 %s 无效"},
+		{regexp.MustCompile(`^host "(.+)" resolves to a blocked \(private/internal\) address$`), "主机 %s 解析到被阻止的（私有/内网）地址"},
+		{regexp.MustCompile(`^parse url: (.+)$`), "URL 解析失败：%s"},
+		{regexp.MustCompile(`^verify host: (.+)$`), "校验主机失败：%s"},
 		{regexp.MustCompile(`^invalid header name (.+)$`), "请求头名称 %s 无效"},
 		{regexp.MustCompile(`^header (.+) contains a newline$`), "请求头 %s 不能包含换行"},
 		{regexp.MustCompile(`^header (.+) contains an invalid control character$`), "请求头 %s 包含无效控制字符"},

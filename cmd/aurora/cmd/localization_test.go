@@ -608,3 +608,24 @@ func TestCLIChineseHonorsTraditionalScript(t *testing.T) {
 	assert.Contains(t, out, "區塊鏈系統")
 	assert.NotContains(t, out, "区块链系统", "no Simplified text may slip through")
 }
+
+// TestSourceURLDetailsLocalizeToChinese: the oracle source validator returns
+// stable English details ("disallowed scheme ...") that a Chinese operator saw
+// verbatim inside a Chinese sentence. Every detail it can produce has a
+// translation now, and an unknown one is still passed through unchanged so a
+// new validator message stays visible instead of being swallowed.
+func TestSourceURLDetailsLocalizeToChinese(t *testing.T) {
+	for _, tt := range []struct{ detail, want string }{
+		{`disallowed scheme "ftp" (only http/https allowed)`, `不支持协议「ftp」（仅允许 http/https）`},
+		{"empty url", "URL 不能为空"},
+		{"missing host", "URL 缺少主机名"},
+		{"missing port after colon", "冒号后缺少端口"},
+		{`invalid port "abc"`, "端口 abc 无效"},
+		{"parse url: missing protocol scheme", "URL 解析失败：missing protocol scheme"},
+		{"verify host: lookup failed", "校验主机失败：lookup failed"},
+		{`host "10.0.0.1" resolves to a blocked (private/internal) address`, "主机 10.0.0.1 解析到被阻止的（私有/内网）地址"},
+		{"something nobody translated", "something nobody translated"},
+	} {
+		require.Equal(t, tt.want, localizeKnownErrorDetail(tt.detail), tt.detail)
+	}
+}
