@@ -28,6 +28,9 @@ func TestTheCatalogsUseOneWordPerConcept(t *testing.T) {
 		// A token moves money and an NFT moves an asset; the two were separate
 		// house words before the CLI called both of them 转移.
 		{"转移", "轉移", "转让", "an NFT transfer is 转让 and a token transfer is 转账"},
+		// The token's precision is 精度 in the guide and the window; the CLI
+		// spelled it out as 小数位数.
+		{"小数位", "小數位", "精度", "the guide and the window call token decimals 精度"},
 	}
 
 	catalogs := [][]string{
