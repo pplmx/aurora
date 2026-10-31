@@ -28,6 +28,17 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **Four more words had a second spelling in one layer**: the CLI called a
+  mintable token 可增发 while both surfaces and the guide say 铸造; the window
+  called a disabled feed 已停用 once against 禁用 everywhere else; the encoding
+  was 大小写两项 and the guide writes it lowercase; and one error said 非法字符
+  where every other rejection says 无效. Each is one word now, and the vocabulary
+  test covers all four.
+- **Two of those rules judge the catalogs only**: 停用记忆 means "stop
+  remembering" and 非法 JSON means a syntax error, so running text keeps both
+  spellings. The rule records why it stops at the catalogs instead of pretending
+  the word is always wrong.
+
 - **`Owner` had three spellings across two surfaces**: the CLI said 持有者, the
   window said 授权人, and the window's own test asserted 所有者. Since the guide
   fixes 持有者 for an NFT's holder and 所有者 for the account that signs a token's

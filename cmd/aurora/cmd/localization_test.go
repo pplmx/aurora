@@ -57,7 +57,7 @@ func TestKnownErrorContextLocalizesWithoutHidingTechnicalDetail(t *testing.T) {
 		{
 			name: "field encoding",
 			err:  fmt.Errorf("invalid creator encoding: %w", nft.ErrInvalidBase64),
-			want: "字段“创建者”的编码无效：Base64 编码无效",
+			want: "字段“创建者”的编码无效：base64 编码无效",
 		},
 		{
 			name: "lottery seed",
@@ -432,7 +432,7 @@ func TestTokenResultsLocalizeChinese(t *testing.T) {
 		require.NoError(t, err)
 		assert.Contains(t, out, "代币信息")
 		assert.Contains(t, out, "总供应量：1000")
-		assert.Contains(t, out, "可增发：")
+		assert.Contains(t, out, "可铸造：")
 		assert.Contains(t, out, "可销毁：")
 
 		out, err = runCmd(t, "token", "list", "--limit", "1")
