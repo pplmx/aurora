@@ -19,10 +19,15 @@ import (
 func TestTheCatalogsUseOneWordPerConcept(t *testing.T) {
 	// The rejected spelling, the accepted one, and where the accepted spelling
 	// is the house word.
-	type concept struct{ rejected, accepted, why string }
+	// The rejected spelling is written once per script so a rule does not have
+	// to guess how a character converts.
+	type concept struct{ rejected, rejectedHant, accepted, why string }
 	concepts := []concept{
-		{"投票人", "选民", "the guide and the window call the voter 选民"},
-		{"会话", "会期", "the guide and the window call a voting session 会期"},
+		{"投票人", "投票人", "选民", "the guide and the window call the voter 选民"},
+		{"会话", "會話", "会期", "the guide and the window call a voting session 会期"},
+		// A token moves money and an NFT moves an asset; the two were separate
+		// house words before the CLI called both of them 转移.
+		{"转移", "轉移", "转让", "an NFT transfer is 转让 and a token transfer is 转账"},
 	}
 
 	catalogs := [][]string{
@@ -31,8 +36,6 @@ func TestTheCatalogsUseOneWordPerConcept(t *testing.T) {
 		{"desktop", "internal", "nativeui", "messages_zh.go"},
 		{"desktop", "internal", "nativeui", "messages_zh_hant.go"},
 	}
-	traditional := map[string]string{"投票人": "投票人", "选民": "選民", "会话": "會話", "会期": "會期"}
-
 	translations := regexp.MustCompile(`(?m)^\t"[^"]+":\s+"([^"]*)"`)
 	checked := 0
 	for _, rel := range catalogs {
@@ -45,7 +48,7 @@ func TestTheCatalogsUseOneWordPerConcept(t *testing.T) {
 			for _, c := range concepts {
 				rejected := c.rejected
 				if isTraditional {
-					rejected = traditional[rejected]
+					rejected = c.rejectedHant
 				}
 				// 会话 is also the right word for a process session: the window
 				// keeps private keys "for this session", which is not a voting
