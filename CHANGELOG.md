@@ -28,6 +28,15 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **A nil error is pinned as "nothing to announce"**: both `errStatus` and
+  `localizeServiceError` start with a nil branch — every successful write handler
+  reaches it — and neither branch was covered. The tests now fix what a caller
+  gets: an empty line with a zero revision, so the empty line is not announced as
+  a fresh outcome, and an empty string rather than a panic.
+- **The revision assertion had to change shape**: `nextStatusRevision` increments
+  on every call, so comparing before and after measured the test's own call. The
+  line's `revision` field is what carries the meaning.
+
 - **The same rule covers the core catalog, against its own reference**: the
   key there is an identifier (`backup.restore_done`) and the sentence lives in
   `messages_en.go`, so the argument list to match is the English one rather than
