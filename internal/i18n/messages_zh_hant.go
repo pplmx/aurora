@@ -73,6 +73,7 @@ var traditionalMessages = map[string]string{
 	"cli.help.completion":                       "生成指定 shell 的自動補全腳本",
 	"cli.help.completion_long":                  "生成 %s 在指定 shell 中的自動補全腳本。\n查看各子命令的幫助瞭解如何使用生成的腳本。",
 	"cli.help.completion_shell":                 "生成 %s 的自動補全腳本",
+	"cli.help.default_value":                    "（默認 %s）",
 	"cli.help.examples":                         "示例：",
 	"cli.help.flags":                            "參數：",
 	"cli.help.global_flags":                     "全局參數：",

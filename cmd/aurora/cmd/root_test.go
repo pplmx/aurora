@@ -452,3 +452,25 @@ func TestInvalidHTTPTimeoutFlagNamesTheFlag(t *testing.T) {
 	assert.Contains(t, err.Error(), "--http-timeout")
 	assert.NotContains(t, err.Error(), "config file")
 }
+
+// TestHelpLocalizesFlagDefaults: pflag renders the "(default X)" annotation
+// itself, so a Chinese help page used to end a line with English. The
+// annotation now follows the translator, with the full-width bracket keeping
+// Chinese spacing.
+func TestHelpLocalizesFlagDefaults(t *testing.T) {
+	tr := i18n.GetTranslator()
+	before := tr.GetLocale()
+	tr.SetLocale("zh")
+	t.Cleanup(func() { tr.SetLocale(before) })
+
+	resetFlags(createCmd)
+	out := renderCommandHelp(t, createCmd)
+	assert.Contains(t, out, "（默认 ")
+	assert.NotContains(t, out, "(default ")
+
+	tr.SetLocale("en")
+	resetFlags(createCmd)
+	out = renderCommandHelp(t, createCmd)
+	assert.Contains(t, out, "(default ")
+	assert.NotContains(t, out, "（默认 ")
+}
