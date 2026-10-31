@@ -50,7 +50,7 @@ func TestParseReadsEveryShape(t *testing.T) {
 		{
 			name:    "nft mint",
 			payload: "0ba3647f-d955-4e53-8feb-a3932b00c75d|Star|ownerkey",
-			want:    Record{Module: "nft", Action: "Mint", Subject: "Star", Facts: []Fact{{"Name", "Star"}, {"Owner", "ownerkey"}}},
+			want:    Record{Module: "nft", Action: "Mint", Subject: "Star", Facts: []Fact{{"Name", "Star"}, {"Holder", "ownerkey"}}},
 			ok:      true,
 		},
 		{

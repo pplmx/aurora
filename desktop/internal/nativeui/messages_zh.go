@@ -485,6 +485,7 @@ var desktopMessages = map[string]string{
 	"Look up one NFT by id, or narrow the collection to one owner.":              "按 ID 查看一个 NFT，或把收藏筛选到某个持有者。",
 	"NFT ID":    "NFT ID",
 	"Get NFT":   "读取 NFT",
+	"Owner":     "授权人",
 	"Holder":    "持有者",
 	"Creator":   "创建者",
 	"Image URL": "图片 URL",
