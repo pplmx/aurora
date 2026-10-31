@@ -1006,6 +1006,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **Test suites no longer share one database in the checkout**: the NFT and e2e
+  suites called `blockchain.Init()` with no `db.path`, so the process-wide store
+  opened `./data/aurora.db` inside the repository, and two suites running at once
+  reset each other's chain mid-test (seen as a panic in the burn-atomicity test
+  while a second suite ran). Each suite now points `db.path` at its own temporary
+  directory through `TestMain`, and `ResetForTest` removes the default `./data`
+  only when that is the configured location, so a configured fixture survives.
 - **`--help` ends with the same version facts as `--version`**: the usage block
   stopped at the Go line, so the toolkit the window actually runs (MyGo) was
   visible only in `--version`; both now print one shared tail.

@@ -107,3 +107,34 @@ func TestOpen_PreservesSpecialPathCharacters(t *testing.T) {
 	require.NoError(t, db.QueryRow("PRAGMA foreign_keys").Scan(&foreignKeys))
 	require.Equal(t, 1, foreignKeys)
 }
+
+// TestResetForTestLeavesAConfiguredDatabaseAlone: the helper closes the shared
+// handle and cleans the default ./data directory, but a test that pointed db.path
+// at its own fixture expects the file to survive — the CLI's tampering tests
+// reopen it after the reset. Deleting whatever db.path names broke exactly that.
+func TestResetForTestLeavesAConfiguredDatabaseAlone(t *testing.T) {
+	viper.Reset()
+	t.Cleanup(viper.Reset)
+
+	prevDir, err := os.Getwd()
+	require.NoError(t, err)
+	dir := t.TempDir()
+	require.NoError(t, os.Chdir(dir))
+	t.Cleanup(func() { _ = os.Chdir(prevDir) })
+
+	configured := filepath.Join(dir, "chain.db")
+	viper.Set("db.path", configured)
+	db, err := OpenShared()
+	require.NoError(t, err)
+	require.NoError(t, db.Close())
+
+	ResetForTest()
+	assert.FileExists(t, configured, "a configured database is not ResetForTest's to delete")
+
+	// The default location is still cleaned, as it always was.
+	viper.Set("db.path", filepath.Join("data", "aurora.db"))
+	require.NoError(t, os.MkdirAll("data", 0o700))
+	ResetForTest()
+	_, statErr := os.Stat("data")
+	assert.True(t, os.IsNotExist(statErr), "the default ./data directory is removed")
+}
