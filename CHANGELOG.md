@@ -12,6 +12,10 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **Chinese labels use the full-width colon**: thirteen strings wrote the label
+  as `当前版本: 8` while the other forty-seven use `当前版本：8`; the odd ones out
+  read as an English label glued to a Chinese value, and the migrate table showed
+  the mix side by side.
 - **The database's directory is owner-only like the file**: the shared helper
   created the parent directory 0755 while the database file itself, the logs, the
   backups and the desktop data directory are all 0700. A newly created parent is
