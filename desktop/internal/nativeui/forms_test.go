@@ -760,3 +760,30 @@ func TestReadingsStageLoadsTheChosenSource(t *testing.T) {
 	require.Positive(t, fake.oracleDataCalls, "Readings must query the selected source")
 	require.Positive(t, fake.oracleLatestCalls, "Readings must read the latest value")
 }
+
+// TestReadingsDropTheChooseHintOnceASourceIsChosen: the Readings query field
+// kept telling the operator to choose a source after one had filled it — the
+// same contradiction the session controls had.
+func TestReadingsDropTheChooseHintOnceASourceIsChosen(t *testing.T) {
+	const hint = "Choose a source in Sources or enter its ID first."
+	fake := &fakeServices{sources: []SourceRow{{ID: "s1", Name: "btc"}}}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 5000)
+	app.ShowPage("Oracle")
+	tester.Frame()
+
+	require.NoError(t, tester.Click("Readings"))
+	tester.Frame()
+	require.True(t, tester.HasText(hint), "with nothing chosen the hint names the first step")
+
+	require.NoError(t, tester.Click("Sources"))
+	tester.Frame()
+	require.NoError(t, tester.Click("s1"))
+	tester.Frame()
+	require.False(t, tester.HasText(hint),
+		"the actions card must not ask once a source is chosen")
+	require.NoError(t, tester.Click("Readings"))
+	tester.Frame()
+	require.False(t, tester.HasText(hint), "neither card may contradict the filled field")
+	require.Equal(t, "s1", app.oracle.queryID, "the field still holds the chosen source")
+}
