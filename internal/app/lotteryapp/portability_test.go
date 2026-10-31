@@ -301,3 +301,20 @@ func TestImportDocumentDetailKeepsGoTypesOutOfTheMessage(t *testing.T) {
 	require.ErrorIs(t, err, ErrInvalidImportDocument)
 	assert.Contains(t, err.Error(), "not a valid JSON document")
 }
+
+// TestWriteRecordsToFile_RejectsAnUnusableDestination: an empty path or a
+// missing directory used to surface as a temporary-file rename failure naming
+// neither the path nor the reason.
+func TestWriteRecordsToFile_RejectsAnUnusableDestination(t *testing.T) {
+	repo := &mockLotteryRepo{}
+
+	_, err := WriteRecordsToFile(repo, "")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "export path is empty")
+
+	missing := filepath.Join(t.TempDir(), "no-such-dir", "draws.json")
+	_, err = WriteRecordsToFile(repo, missing)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "export directory")
+	assert.Contains(t, err.Error(), "does not exist")
+}
