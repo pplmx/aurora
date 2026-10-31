@@ -22,6 +22,10 @@
 #                       Settings first and writes under <out>/light
 #   AURORA_E2E_SIZE     window size as WIDTHxHEIGHT (for example 900x600), so
 #                       the narrow stacked layout is captured for real
+#   AURORA_E2E_LANG     en, zh or zh-hant: switch the window's language first and
+#                       capture the Settings and Dashboard pages in it. The page
+#                       loop's expectations are English, so a language run is its
+#                       own smoke instead of adding a title table per locale.
 set -euo pipefail
 
 root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
@@ -41,10 +45,22 @@ mkdir -p "$out" "$home_dir"
 seed=${AURORA_E2E_SEED:-0}
 theme=${AURORA_E2E_THEME:-dark}
 size=${AURORA_E2E_SIZE:-}
+lang=${AURORA_E2E_LANG:-}
 variant=""
 if [ "$theme" = "light" ]; then
   variant=light
 fi
+case "$lang" in
+  "")
+    ;;
+  en | zh | zh-hant)
+    variant=${variant:+$variant-}$lang
+    ;;
+  *)
+    echo "AURORA_E2E_LANG must be en, zh or zh-hant, got: $lang" >&2
+    exit 1
+    ;;
+esac
 if [ -n "$size" ]; then
   case "$size" in
     [0-9]*x[0-9]*) ;;
@@ -240,6 +256,40 @@ if [ "$theme" = "light" ]; then
     echo "failed: could not switch to the light appearance (see $out/app.log)" >&2
     exit 1
   fi
+fi
+
+if [ -n "$lang" ]; then
+  case "$lang" in
+    zh)
+      lang_label="简体中文"
+      lang_settings="设置"
+      lang_dashboard="仪表盘"
+      ;;
+    zh-hant)
+      lang_label="繁體中文"
+      lang_settings="設置"
+      lang_dashboard="儀表盤"
+      ;;
+    en)
+      lang_label="English"
+      lang_settings="Settings"
+      lang_dashboard="Dashboard"
+      ;;
+  esac
+  echo "switching to $lang"
+  if ! "$shot" -socket "$socket" -press "settings,$lang_label" \
+    -out "$shots/language.png" -expect "$lang_settings"; then
+    echo "failed: could not switch the language (see $out/app.log)" >&2
+    exit 1
+  fi
+  if ! "$shot" -socket "$socket" -press "dashboard" \
+    -out "$shots/dashboard.png" -expect "$lang_dashboard"; then
+    echo "failed: the dashboard did not follow the language (see $out/app.log)" >&2
+    exit 1
+  fi
+  # The page loop asserts English titles and stage markers; a language run
+  # proves the switch on two pages instead of carrying a title table per locale.
+  exit 0
 fi
 
 status=0

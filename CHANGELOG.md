@@ -644,6 +644,11 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Added
 
+- **The capture script can prove a language**: `AURORA_E2E_LANG=zh` (or
+  `zh-hant`) switches the real window's language from Settings, then captures the
+  Settings and Dashboard pages with their localized titles under
+  `dist/e2e/<lang>/`, so a translation regression is visible without a manual
+  window run.
 - **The Results tab can start from a stored session**: its empty tally asked for
   a session id or a trip to Setup. It now lists the newest three sessions as
   buttons and loads the chosen tally in place; Setup keeps the full, searchable
