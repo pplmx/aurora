@@ -81,6 +81,13 @@ func (a *App) votingResults(c *ui.Context) {
 func (a *App) votingResultsQuery(c *ui.Context) {
 	formCard(c, "Results", "Live tally per candidate for a session.", func() {
 		field(c, "Session ID", &a.voting.resultsSession)
+		// The stored sessions sit under the field they fill. They used to hang
+		// under the empty tally in the next column, so the reader saw a chip
+		// named for a session while the input it writes sat across the gutter,
+		// in another card under another heading.
+		if strings.TrimSpace(a.voting.resultsSession) == "" {
+			a.resultsSessionShortcuts(c)
+		}
 		ui.Row(c).Wrap().Gap(8).Children(func() {
 			if secondaryButton(c, "Show Results", allSet(a.voting.resultsSession)).Clicked() {
 				a.readSessionResults()
@@ -105,15 +112,13 @@ func (a *App) votingResultsBody(c *ui.Context) {
 	if !matches {
 		// An empty field is a missing first step, not a finished empty read:
 		// the session is chosen in Setup or pasted in, and only a session that
-		// has not been read yet gets the "not loaded" line.
+		// has not been read yet gets the "not loaded" line. The stored sessions
+		// are offered by the query card, under the field they fill.
 		note := "No tally loaded yet."
 		if id == "" {
-			note = "Choose a session in Setup or enter its ID first."
+			note = "Choose a stored session in Results, or paste its ID first."
 		}
 		emptyPanel(c, pageIcons[pageVoting], pageAccent(c, pageVoting), note)
-		if id == "" {
-			a.resultsSessionShortcuts(c)
-		}
 		return
 	}
 	if len(a.voting.results) == 0 {
@@ -152,9 +157,10 @@ func (a *App) votingResultsBody(c *ui.Context) {
 // them; the list role and each row's label keep the ordering and both facts
 // available to a screen reader. At enlarged text, records take over because a
 // bar cannot wrap a long name.
-// resultsSessionShortcuts offers the newest stored sessions under the empty
-// tally, so reading a session's results no longer requires leaving the tab for
-// Setup just to copy an id. Setup keeps the full, searchable list.
+
+// resultsSessionShortcuts offers the newest stored sessions under the query
+// field they fill, so reading a session's results no longer requires leaving the
+// tab for Setup just to copy an id. Setup keeps the full, searchable list.
 func (a *App) resultsSessionShortcuts(c *ui.Context) {
 	if len(a.voting.sessions) == 0 {
 		return
@@ -171,9 +177,7 @@ func (a *App) resultsSessionShortcuts(c *ui.Context) {
 		}
 		items = append(items, chipItem{label: label, pick: func() { a.showResultsFor(session.ID) }})
 	}
-	ui.Column(c).FillWidth().AlignItems(ui.Center).Children(func() {
-		chipPicker(c, "Sessions", items)
-	})
+	chipPicker(c, "Stored sessions", items)
 }
 
 // showResultsFor points the query, ballot and tally at one session and loads

@@ -52,14 +52,15 @@ func TestEmptyReadoutCopyDistinguishesLoadedFromNotLoaded(t *testing.T) {
 		app.ShowPage("Voting")
 		app.voting.tab = 2
 		tester.Frame()
-		require.True(t, tester.HasText("Choose a session in Setup or enter its ID first."),
+		const prompt = "Choose a stored session in Results, or paste its ID first."
+		require.True(t, tester.HasText(prompt),
 			"an empty id is a missing first step, not an empty read")
 
 		// Naming a session loads it, and an empty tally then says so.
 		app.voting.resultsSession = "s1"
 		tester.Frame()
 		require.True(t, tester.HasText("No votes recorded for this session."))
-		require.False(t, tester.HasText("Choose a session in Setup or enter its ID first."))
+		require.False(t, tester.HasText(prompt))
 	})
 }
 
