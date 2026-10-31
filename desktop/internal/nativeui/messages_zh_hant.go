@@ -269,7 +269,7 @@ var desktopMessagesHant = map[string]string{
 	"Ledger Blocks":                   "賬本區塊",
 	"Ledger Integrity":                "賬本完整性",
 	"Ledger composition":              "賬本構成",
-	"Ledger: %d blocks, head %s — %s": "賬本: %d 個區塊，頭 %s —— %s",
+	"Ledger: %d blocks, head %s — %s": "賬本：%d 個區塊，頭 %s —— %s",
 	"Let a spender move up to an amount on the owner's behalf.": "允許被授權方代表所有者最多支出指定數量。",
 	"Light": "淺色",
 	"Limit": "條數",
