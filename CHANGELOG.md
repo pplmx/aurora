@@ -28,6 +28,11 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The capture guide says why text scale has no flag**: the window's text size
+  comes from the framework's preferences, which the app cannot pre-write, so a
+  large-text check runs through the offscreen tester rather than a screenshot. A
+  reader who looked for the fourth flag found three and no reason.
+
 - **Four Traditional entries said 資料源 where the other 42 say 數據源**: the
   Oracle page's error messages disagreed with the page's own labels, and each
   spelling is a legitimate word, so nothing failed. They are 數據源 now, and a
