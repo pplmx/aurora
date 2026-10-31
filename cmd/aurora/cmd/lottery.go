@@ -1,7 +1,11 @@
+// The lottery commands that make and check a draw: create, history, verify.
+// The record-level operations that move or delete the store live beside it —
+// export/import in lottery_portability.go and stats/reset/db-info in
+// lottery_admin.go — because a reader looking for "how do I re-check this
+// draw" should not have to scroll past the backup and accounting commands.
 package cmd
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -12,8 +16,6 @@ import (
 	"github.com/pplmx/aurora/internal/infra/blockchain"
 	"github.com/pplmx/aurora/internal/infra/sqlite"
 	"github.com/pplmx/aurora/internal/infra/store"
-	"github.com/pplmx/aurora/internal/logger"
-	"github.com/pplmx/aurora/internal/utils"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -277,261 +279,11 @@ var verifyCmd = &cobra.Command{
 	},
 }
 
-var exportCmd = &cobra.Command{
-	Use:   "export [file.json]",
-	Short: i18n.GetText("lottery.export"),
-	Args:  cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		filename := args[0]
-
-		// Read from the persistent lottery_records table, not the in-memory
-		// chain — see historyCmd for the full rationale.
-		repo, err := sqlite.NewLotteryRepository(store.Path())
-		if err != nil {
-			return wrapCLIError("lottery.error.open_repo", err)
-		}
-		defer func() { _ = repo.Close() }()
-
-		count, err := lotteryapp.WriteRecordsToFile(repo, filename)
-		if err != nil {
-			return wrapCLIError("lottery.error.write_file", err)
-		}
-
-		if jsonRequested(cmd) {
-			// The file is the result; the document says where it landed and how
-			// many draws it holds, so a script does not parse the message.
-			return printJSON(struct {
-				Path     string `json:"path"`
-				Exported int    `json:"exported"`
-			}{Path: filename, Exported: count})
-		}
-		fmt.Printf("✅ %s\n", i18n.GetTextF("lottery.exported", count, filename))
-		return nil
-	},
-}
-
-var importCmd = &cobra.Command{
-	Use:   "import [file.json]",
-	Short: i18n.GetText("lottery.import"),
-	Args:  cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		filename := args[0]
-
-		data, err := lotteryapp.ReadImportFile(filename)
-		if err != nil {
-			if errors.Is(err, lotteryapp.ErrImportFileTooLarge) {
-				return newCLIError("lottery.error.import_too_large",
-					utils.FormatBytes(lotteryapp.MaxImportFileSize))
-			}
-			return wrapCLIError("lottery.error.read_file", err)
-		}
-
-		// Persist via the SQLite repository so the structured draw record
-		// (ID, winners, VRF proof, block height) survives restarts; the
-		// blockchain is a separate append-only audit log.
-		repo, err := sqlite.NewLotteryRepository(store.Path())
-		if err != nil {
-			return wrapCLIError("lottery.error.open_repo", err)
-		}
-		defer func() { _ = repo.Close() }()
-
-		// Validate + collision-check + save live in the app layer, so the
-		// desktop shell's native Import performs exactly this import instead of
-		// a re-implementation that could drift (validation, the TASK-069
-		// overwrite guard, partial-failure accounting).
-		result, err := lotteryapp.ImportRecords(repo, data)
-		if err != nil {
-			return wrapCLIError("lottery.error.import_records", err)
-		}
-		if jsonRequested(cmd) {
-			// The document always prints; a partial import still exits non-zero
-			// so a script notices the rejected indices.
-			if err := printJSON(result); err != nil {
-				return err
-			}
-			if len(result.Rejected) > 0 {
-				return newCLIError("lottery.import_partial_error", len(result.Rejected), result.Total)
-			}
-			return nil
-		}
-
-		if len(result.Rejected) == 0 {
-			fmt.Printf("✅ %s\n", i18n.GetTextF("lottery.imported", result.Imported))
-			return nil
-		}
-		// Partial failure: surface the problem honestly. Returning a
-		// non-nil error also lets CI / shell scripts detect the partial
-		// failure via $?, instead of silently treating it as success.
-		fmt.Printf("⚠️  %s\n",
-			i18n.GetTextF("lottery.import_partial", result.Imported, result.Total, len(result.Rejected)))
-		fmt.Printf("   %s\n", i18n.GetTextF("lottery.failed_indices", result.Rejected))
-		return newCLIError("lottery.import_partial_error", len(result.Rejected), result.Total)
-	},
-}
-
-var statsCmd = &cobra.Command{
-	Use:   "stats",
-	Short: i18n.GetText("lottery.stats"),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		// Read from the persistent lottery_records table (the same source as
-		// history/verify/export/import), NOT the in-memory chain. The chain
-		// only reflects draws added as blocks; imported draws write
-		// lottery_records and never reach the chain, so counting the chain
-		// made stats disagree with history (TASK-070, ISS-062).
-		repo, err := sqlite.NewLotteryRepository(store.Path())
-		if err != nil {
-			return wrapCLIError("lottery.error.open_repo", err)
-		}
-		defer func() { _ = repo.Close() }()
-
-		records, err := repo.GetAll()
-		if err != nil {
-			return wrapCLIError("lottery.error.read_history", err)
-		}
-
-		var latest int64 = -1
-		for _, r := range records {
-			if r.BlockHeight > latest {
-				latest = r.BlockHeight
-			}
-		}
-		if jsonRequested(cmd) {
-			out := struct {
-				Total       int    `json:"total"`
-				DBPath      string `json:"db_path"`
-				LatestBlock *int64 `json:"latest_block,omitempty"`
-			}{Total: len(records), DBPath: store.Path()}
-			if latest >= 0 {
-				out.LatestBlock = &latest
-			}
-			return printJSON(out)
-		}
-
-		fmt.Println("\n📊 " + i18n.GetText("lottery.statistics"))
-		fmt.Println("────────────────────────────")
-		fmt.Printf("  %s: %d\n", i18n.GetText("lottery.total"), len(records))
-		fmt.Printf("  %s: %s\n", i18n.GetText("lottery.db_path"), store.Path())
-
-		if latest >= 0 {
-			fmt.Printf("  %s: #%d\n", i18n.GetText("lottery.latest_block"), latest)
-		}
-
-		return nil
-	},
-}
-
-var resetCmd = &cobra.Command{
-	Use:   "reset",
-	Short: i18n.GetText("lottery.reset"),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		// The destructive reset did NOT run when the gate is missing — surface
-		// that as an error (non-zero exit) instead of printing a warning and
-		// exiting 0, like the other destructive commands. A script that forgot
-		// the gate must be able to detect the refusal.
-		if err := requireConfirm(cmd, "cli.confirm.lottery_reset"); err != nil {
-			return err
-		}
-
-		db, err := store.OpenShared()
-		if err != nil {
-			return wrapCLIError("lottery.error.init_db", err)
-		}
-		// Deliberately no db.Close(): InitDB returns the process-wide
-		// singleton under a sync.Once, and closing it without resetting the
-		// once poisons that singleton — any later InitDB() call in the same
-		// process (a composable command flow or a test) gets an already-
-		// closed handle. Every other CLI command (history/verify/create/...)
-		// and cmd/api (Close once at shutdown) let the handle live until the
-		// process exits, which is exactly right for this single-command
-		// process (TASK-262, ISS-258).
-
-		// A lottery lives in two stores: the chain (`blocks` table) and the
-		// persistent history (`lottery_records` table, which historyCmd,
-		// verifyCmd, exportCmd and importCmd read). Deleting only `blocks`
-		// left `lottery_records` intact, so after a reset, `lottery history`
-		// still listed every draw — contradicting the "delete ALL lottery
-		// records!" confirmation. Clear both.
-		//
-		// On a brand-new DB neither table exists yet (created lazily by
-		// Init / the repository / migrations), so a DELETE against
-		// a missing table is "no such table" — tolerated, not an error.
-		for _, stmt := range []string{
-			"DELETE FROM blocks WHERE height > 0",
-			"DELETE FROM lottery_vrf_keys",
-			"DELETE FROM lottery_records",
-		} {
-			if _, err := db.Exec(stmt); err != nil && !isNoSuchTable(err) {
-				return wrapCLIError("lottery.error.reset", err)
-			}
-		}
-
-		// Reset the in-memory chain singleton back to genesis. The chain is
-		// created once (Init's sync.Once) and is not rebuilt by the
-		// DELETEs above, so without this a subsequent `lottery create` would
-		// keep building on the stale pre-reset blocks: the new draw would get
-		// a block height continuing from the old count and a PrevHash pointing
-		// at a block the reset deleted (TASK-071, ISS-063).
-		chain, err := blockchain.InitWithError()
-		if err != nil {
-			return wrapCLIError("lottery.error.init_blockchain_after_reset", err)
-		}
-		chain.ResetBlocks()
-
-		logger.Info().Msg("Database reset successfully")
-		fmt.Println("✅ " + i18n.GetText("lottery.reset_done"))
-		return nil
-	},
-}
-
-// isNoSuchTable reports whether err is SQLite's "no such table" error.
-// lottery reset tolerates it because blocks and lottery_records are created
-// lazily and may not exist on a brand-new DB.
+// isNoSuchTable reports whether err is SQLite's "no such table" error. The
+// destructive reset and db-info tolerate it because blocks and
+// lottery_records are created lazily and may not exist on a brand-new DB.
 func isNoSuchTable(err error) bool {
 	return err != nil && strings.Contains(err.Error(), "no such table")
-}
-
-var dbInfoCmd = &cobra.Command{
-	Use:   "db-info",
-	Short: i18n.GetText("lottery.db_info"),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		db, err := store.OpenShared()
-		if err != nil {
-			return wrapCLIError("lottery.error.init_db", err)
-		}
-		// No db.Close() here either — same singleton-ownership reasoning as
-		// the reset command above (TASK-262, ISS-258).
-
-		var count int
-		err = db.QueryRow("SELECT COUNT(*) FROM blocks WHERE height > 0").Scan(&count)
-		switch {
-		case err == nil:
-			// ok
-		case isNoSuchTable(err):
-			// A brand-new DB has no blocks table yet; report 0 truthfully
-			// instead of surfacing a "no such table" failure (TASK-154,
-			// mirroring lottery reset's tolerance).
-			count = 0
-		default:
-			return wrapCLIError("lottery.error.count_blocks", err)
-		}
-
-		path := store.Path()
-		size := utils.SQLiteDiskUsage(path)
-		if jsonRequested(cmd) {
-			return printJSON(struct {
-				Path      string `json:"path"`
-				SizeBytes int64  `json:"size_bytes"`
-				Blocks    int    `json:"blocks"`
-			}{Path: path, SizeBytes: size, Blocks: count})
-		}
-
-		fmt.Println("\n📁 " + i18n.GetText("lottery.db_info_title"))
-		fmt.Println("────────────────────────────")
-		fmt.Printf("  %s: %s\n", i18n.GetText("lottery.db_path"), path)
-		fmt.Printf("  %s: %s\n", i18n.GetText("lottery.db_size"), utils.FormatBytes(size))
-		fmt.Printf("  %s: %d\n", i18n.GetText("lottery.total_blocks"), count)
-		return nil
-	},
 }
 
 func init() {
