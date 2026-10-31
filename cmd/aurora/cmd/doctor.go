@@ -3,6 +3,7 @@ package cmd
 import (
 	"database/sql"
 	"fmt"
+	"time"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -158,11 +159,35 @@ func doctorOutboxCheck(db *sql.DB) doctorCheck {
 	if err != nil && !isNoSuchTable(err) {
 		return doctorCheck{Name: "outbox", Status: doctorFail, Detail: err.Error()}
 	}
-	detail := i18n.GetTextF("doctor.detail.outbox", pending)
 	if pending > 0 {
-		return doctorCheck{Name: "outbox", Status: doctorWarn, Detail: detail}
+		// The count says something is parked; the age says whether the retry
+		// loop is moving. A warning that can tell "just parked" from "stuck for
+		// an hour" is worth the second read; a failure keeps the count-only
+		// detail because the count is what the check is about.
+		if age, ok := oldestPendingAge(db); ok {
+			return doctorCheck{Name: "outbox", Status: doctorWarn,
+				Detail: i18n.GetTextF("doctor.detail.outbox_oldest", pending, age.Round(time.Second))}
+		}
+		return doctorCheck{Name: "outbox", Status: doctorWarn,
+			Detail: i18n.GetTextF("doctor.detail.outbox", pending)}
 	}
-	return doctorCheck{Name: "outbox", Status: doctorOK, Detail: detail}
+	return doctorCheck{Name: "outbox", Status: doctorOK,
+		Detail: i18n.GetTextF("doctor.detail.outbox", pending)}
+}
+
+// oldestPendingAge reads how long the oldest parked audit event has waited,
+// using the event's own timestamp. ok is false when the outbox is empty or the
+// read fails.
+func oldestPendingAge(db *sql.DB) (time.Duration, bool) {
+	var stamp sql.NullInt64
+	if err := db.QueryRow("SELECT MIN(timestamp) FROM pending_events").Scan(&stamp); err != nil || !stamp.Valid {
+		return 0, false
+	}
+	age := time.Since(time.Unix(stamp.Int64, 0))
+	if age < 0 {
+		return 0, true
+	}
+	return age, true
 }
 
 // shortHash trims a block hash to the 12 characters a support thread compares,

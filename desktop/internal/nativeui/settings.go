@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/egoist/mygo/ui"
 )
@@ -270,7 +271,16 @@ func (a *App) diagnosticsText() string {
 	}
 	if a.actions.OutboxPending != nil {
 		if pending, ok := a.actions.OutboxPending(); ok {
-			lines = append(lines, fmt.Sprintf(tr("Audit outbox: %d pending events"), pending))
+			line := fmt.Sprintf(tr("Audit outbox: %d pending events"), pending)
+			// The count alone cannot say whether the retry loop is moving; the
+			// age of the oldest parked event is the fact a support thread needs.
+			if pending > 0 && a.actions.OutboxOldest != nil {
+				if age, ageOK := a.actions.OutboxOldest(); ageOK {
+					line = fmt.Sprintf(tr("Audit outbox: %d pending events, oldest waiting %s"),
+						pending, age.Round(time.Second))
+				}
+			}
+			lines = append(lines, line)
 		}
 	}
 	return strings.Join(lines, "\n")

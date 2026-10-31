@@ -253,7 +253,7 @@ just check && just test
   已销毁 NFT 的审计记录仍能继续向前翻。
 - **About 可复制诊断信息**：Settings → About 卡片把版本、构建时间、数据库路径与
   占用原样写入剪贴板，并追加账本事实（区块数、头哈希前缀与链是否完整）与审计
-  outbox 的待发条数（与 `aurora doctor` 同源）；支持人员拿到的就是窗口里的事实。同一动作也在 Ctrl/Cmd+K 的命令面板里，条目为
+  outbox 的待发条数，积压时再带上最老一条已等待的时长（与 `aurora doctor` 同源）；支持人员拿到的就是窗口里的事实。同一动作也在 Ctrl/Cmd+K 的命令面板里，条目为
   「Copy Diagnostics」，后台写库期间仍可用。
 - **复验结论可复制**：Lottery 的 Verify 卡片在结论下方提供「复制结论」，把
   `Draw ID …：Verified/Failed` 与逐条检查原样写进剪贴板，工单里引用的就是窗口

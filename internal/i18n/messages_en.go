@@ -523,6 +523,7 @@ nft, token) and operational commands (migrate, backup, version).`,
 	"doctor.detail.migrations_dirty":         "schema %d is dirty",
 	"doctor.detail.ledger_ok":                "chain valid; ledger blocks: %d; head %s",
 	"doctor.detail.ledger_broken":            "break at block %d: %s (ledger blocks: %d)",
+	"doctor.detail.outbox_oldest":            "pending events: %d; oldest waits %s",
 	"doctor.detail.outbox":                   "pending events: %d",
 	"doctor.detail.no_database":              "database unavailable",
 

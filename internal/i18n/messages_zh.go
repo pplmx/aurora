@@ -516,6 +516,7 @@ nft、token）和运维命令（migrate、backup、version）。`,
 	"doctor.detail.migrations_dirty":         "版本 %d 处于 dirty 状态",
 	"doctor.detail.ledger_ok":                "链完整（区块 %d，头 %s）",
 	"doctor.detail.ledger_broken":            "第 %d 块起断链：%s（区块 %d）",
+	"doctor.detail.outbox_oldest":            "待投递事件: %d；最久已等待 %s",
 	"doctor.detail.outbox":                   "待投递事件 %d 条",
 	"doctor.detail.no_database":              "数据库不可用",
 

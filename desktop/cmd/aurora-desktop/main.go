@@ -295,6 +295,17 @@ func main() {
 			}
 			return pending, true
 		},
+		OutboxOldest: func() (time.Duration, bool) {
+			at, ok, err := rt.Services().OldestPendingAuditEvent(context.Background())
+			if err != nil || !ok {
+				return 0, false
+			}
+			age := time.Since(at)
+			if age < 0 {
+				age = 0
+			}
+			return age, true
+		},
 	})
 	// Keep the listener for the whole process, not only for WhenReady: a
 	// deferred unregister inside that callback would make the next OS
