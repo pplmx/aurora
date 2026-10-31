@@ -258,12 +258,14 @@ func sourceInterval(seconds int) string {
 	return strconv.Itoa(seconds) + "s"
 }
 
-// oracleQueryLimit is the Query card's limit: 20 unless the field names a
-// positive number.
+// oracleQueryLimit is the Query card's limit: the shared default of 10 unless
+// the field names a positive number. REST's /oracle/query and the CLI's
+// `oracle data` default to the same page size, so an untouched card asks the
+// store for what the other surfaces ask for.
 func (a *App) oracleQueryLimit() int {
 	limit := int(a.oracle.queryLim)
 	if limit < 1 {
-		return 20
+		return 10
 	}
 	if limit > maxListLimit {
 		return maxListLimit

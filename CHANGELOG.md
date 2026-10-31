@@ -12,6 +12,10 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The Oracle Query card asks for the same page as the other surfaces**: it
+  started at 20 readings while REST's `/oracle/query` and the CLI's `oracle data`
+  default to 10. The card now starts at 10 (the cap of 100 is unchanged), so an
+  untouched window and an untouched script read the same page size.
 - **The token page names the step that is actually missing**: the amber band said
   "No token selected — Create or inspect one first", while inspecting also needs
   an id. It now says "Choose one in the list, or create a token", which is what

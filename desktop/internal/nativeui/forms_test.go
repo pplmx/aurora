@@ -787,3 +787,15 @@ func TestReadingsDropTheChooseHintOnceASourceIsChosen(t *testing.T) {
 	require.False(t, tester.HasText(hint), "neither card may contradict the filled field")
 	require.Equal(t, "s1", app.oracle.queryID, "the field still holds the chosen source")
 }
+
+// TestOracleQueryLimitDefaultsToTheSharedPageSize: the Query card's untouched
+// limit is the same 10 that REST's /oracle/query and the CLI's `oracle data`
+// default to, so the three surfaces ask the store for the same page.
+func TestOracleQueryLimitDefaultsToTheSharedPageSize(t *testing.T) {
+	app := New(&fakeServices{})
+	require.Equal(t, 10, app.oracleQueryLimit())
+	app.oracle.queryLim = 0
+	require.Equal(t, 10, app.oracleQueryLimit(), "a cleared field falls back to the same page size")
+	app.oracle.queryLim = 5000
+	require.Equal(t, maxListLimit, app.oracleQueryLimit(), "the cap still holds")
+}
