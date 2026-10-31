@@ -279,18 +279,21 @@ func TestLotteryVerify_NumericPrefixID(t *testing.T) {
 // extractLotteryID pulls the id from `lottery history` output. History
 // prints each record via record.ToJSON() (json.Marshal) so the output line
 // is `{"id":"<uuid>",...}`. The record id appears directly after `"id":"`.
+// extractLotteryID reads the `ID: <value>` line the history table prints for
+// each draw; it used to parse the JSON blob the table dumped.
 func extractLotteryID(t *testing.T, out string) string {
 	t.Helper()
-	start := strings.Index(out, `"id":"`)
+	const label = "  ID: "
+	start := strings.Index(out, label)
 	if start < 0 {
-		t.Logf("no id field found in history output; output=%q", out)
+		t.Logf("no ID line found in history output; output=%q", out)
 		return ""
 	}
-	after := out[start+len(`"id":"`):]
-	if end := strings.IndexByte(after, '"'); end >= 0 {
-		return after[:end]
+	line := out[start+len(label):]
+	if end := strings.IndexByte(line, '\n'); end >= 0 {
+		line = line[:end]
 	}
-	return ""
+	return strings.TrimSpace(line)
 }
 
 func genuineLotteryRecord(t *testing.T, seed string, blockHeight int64) lottery.LotteryRecord {

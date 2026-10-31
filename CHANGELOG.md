@@ -12,6 +12,10 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The lottery history table reads field by field**: each draw used to be a
+  JSON blob cut at 200 characters, which hid fields mid-value; the table now
+  prints ID, seed, winners, participant count, block height and time on their own
+  lines, and `--json` still returns the whole record.
 - **The CLI's audit list reads like the ledger page**: `blockchain blocks`
   printed each stored payload raw — JSON blobs and pipe-delimited key bytes. The
   table now renders the same module · action · facts sentence the window shows,
