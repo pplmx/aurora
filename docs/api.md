@@ -331,9 +331,19 @@ curl -s -H "X-API-Key: $KEY" -H 'Content-Type: application/json' \
 | GET  | `/api/v1/voting/session/{id}`       | 单个会期                                                 |
 | GET  | `/api/v1/voting/results/{id}`       | 计票结果                                                 |
 
-创建会期返回 `draft`；只有先调用 `/session/{id}/start` 把状态切到 `active`
-且当前时间位于会期窗口内时，`/vote` 才会接收选票。`ended`、未知状态或窗口外
-的请求都会以 `SESSION_NOT_STARTED` / `SESSION_ENDED` 拒绝。
+创建会期返回 `draft`。`/vote` 同时检查状态与时间窗口——只满足其中一项不够，
+因为新会期是草稿，而操作员也可以在名义结束时间之前手动结束：
+
+| 判定顺序 | 情形                                              | 返回                  |
+| -------- | ------------------------------------------------- | --------------------- |
+| 1        | 会期不存在                                        | `SESSION_NOT_FOUND`   |
+| 2        | 状态已是 `ended`                                  | `SESSION_ENDED`       |
+| 3        | 早于 `start_time`                                 | `SESSION_NOT_STARTED` |
+| 4        | 晚于 `end_time`                                   | `SESSION_ENDED`       |
+| 5        | 状态不是 `active`（含 `draft`，即使时间在窗口内） | `SESSION_NOT_STARTED` |
+
+第 5 行是容易误解的一处：草稿态会期**在窗口内也不接受选票**，必须先调用
+`/session/{id}/start`。
 
 投票写接口的请求体字段：
 
