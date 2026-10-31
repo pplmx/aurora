@@ -58,9 +58,15 @@ func TestCIWiresTheDesktopModule(t *testing.T) {
 			"the desktop job must run %q, like `just desktop-check`", step)
 	}
 	require.Contains(t, workflow, "      - name: Test (pure Go)\n"+
-		"        run: CGO_ENABLED=0 go test -count=1 ./...\n"+
+		"        run: CGO_ENABLED=0 go test -coverprofile=coverage-desktop.out -count=1 ./...\n"+
 		"        working-directory: desktop",
-		"the desktop job must exercise the cgo-free test path")
+		"the desktop job must exercise the cgo-free test path and leave its profile behind")
+
+	// The floor step reads that profile instead of re-running the suite: on a
+	// warm cache the second run cost 44 of the gate's 100 seconds and measured
+	// the same behaviour.
+	assert.Contains(t, workflow, "test -f coverage-desktop.out ||",
+		"the coverage step must reuse the profile the test step wrote")
 	require.Contains(t, workflow, "      - name: Test (race)\n"+
 		"        env:\n"+
 		"          CGO_ENABLED: '1'\n"+

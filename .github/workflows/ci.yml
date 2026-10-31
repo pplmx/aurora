@@ -131,7 +131,7 @@ jobs:
 
       # `just desktop-check` runs the same cgo-free gates locally.
       - name: Test (pure Go)
-        run: CGO_ENABLED=0 go test -count=1 ./...
+        run: CGO_ENABLED=0 go test -coverprofile=coverage-desktop.out -count=1 ./...
         working-directory: desktop
 
       # Keep the stronger race gate explicit: the detector itself needs cgo,
@@ -147,7 +147,7 @@ jobs:
       # here instead of only showing up as a thinner suite.
       - name: Coverage floor (desktop views)
         run: |
-          CGO_ENABLED=0 go test -coverprofile=coverage-desktop.out ./internal/...
+          test -f coverage-desktop.out || CGO_ENABLED=0 go test -coverprofile=coverage-desktop.out ./internal/...
           CGO_ENABLED=0 go run ../tools/coverfloor/main.go -profile coverage-desktop.out -prefixes github.com/pplmx/aurora/desktop/internal/ -exclude "" -floor 70
         working-directory: desktop
 

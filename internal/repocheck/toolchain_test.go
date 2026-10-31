@@ -167,9 +167,20 @@ func TestDesktopCheckStaysCgoFree(t *testing.T) {
 	justfile := readRepoFile(t, "justfile")
 
 	check := justRecipe(t, justfile, "desktop-check")
-	assert.Contains(t, check, "CGO_ENABLED=0 go test -count=1 ./...")
+	assert.Contains(t, check, "CGO_ENABLED=0 go test -coverprofile=coverage-desktop.out -count=1 ./...",
+		"desktop-check must run the tests with a coverage profile")
+	assert.NotContains(t, check, "-coverpkg",
+		"coverpkg makes every package count every other package's statements and halves the reported rate")
 	assert.NotContains(t, check, "-race",
 		"desktop-check must remain runnable where the race detector's cgo runtime is unavailable")
+
+	// The profile desktop-check writes is what the floor step reads. Running the
+	// suite twice cost 44 of the gate's 100 seconds on a warm cache, and the two
+	// runs measure the same behaviour.
+	floor := justRecipe(t, justfile, "desktop-coverage-floor")
+	assert.Contains(t, floor, "test -f coverage-desktop.out",
+		"the floor must reuse the profile instead of re-running the suite")
+	assert.Contains(t, floor, "coverfloor/main.go")
 
 	test := justRecipe(t, justfile, "desktop-test")
 	assert.Contains(t, test, "CGO_ENABLED=0 go test -count=1 ./...")

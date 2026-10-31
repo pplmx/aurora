@@ -28,6 +28,19 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The coverage floor reuses the profile the test step wrote**: `just verify`
+  ran the desktop suite twice — once plain, once for coverage — and Go cannot
+  share cached results between the two modes, so every run paid 44 seconds for
+  the same assertions. `desktop-check` now writes the profile as it tests, and
+  the floor step reads it; the gate went from 100s to 81s on a warm cache.
+- **The floor still stands alone**: run by itself, `desktop-coverage-floor` tests
+  first when no profile exists, so the recipe means what it says either way.
+- **Two guards keep the duplication from returning**: the justfile test asserts
+  the floor step reads the file instead of re-running, and the CI test asserts
+  the workflow's test step leaves the profile behind.
+- **`-coverpkg` was tried and rejected**: it makes every package count every
+  other package's statements, which reported deskapp at 41% instead of 83%.
+
 - **One test spent twelve of the suite's twelve-and-a-half seconds in the build
   cache**: `TestEveryTranslationKeyExists` walks the repository, and its skip
   list named `dist`, `data` and `testdata` but not `.gocache`, `.gomodcache`,
