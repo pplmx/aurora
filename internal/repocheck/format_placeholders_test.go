@@ -42,6 +42,45 @@ func TestDesktopFormatStringsKeepTheirArguments(t *testing.T) {
 	}
 }
 
+// TestCoreFormatStringsKeepTheirArguments covers the other catalog shape: here
+// the key is an identifier (blockchain.blocks_no_match) and the English table
+// holds the sentence, so the reference for the argument list is messages_en.go
+// rather than the key itself. The failure mode is the same: a dropped verb
+// prints %!s(MISSING) and an invented one prints %!q(string=...).
+func TestCoreFormatStringsKeepTheirArguments(t *testing.T) {
+	entry := regexp.MustCompile(`(?m)^\t"((?:[^"\\]|\\.)*)":\s+"((?:[^"\\]|\\.)*)",$`)
+	verb := regexp.MustCompile(`%(\[(\d+)\])?[-+ #0-9.]*[a-zA-Z]`)
+
+	english := map[string]string{}
+	for _, pair := range entry.FindAllStringSubmatch(readRepoFile(t, "internal", "i18n", "messages_en.go"), -1) {
+		english[pair[1]] = pair[2]
+	}
+	require.Greater(t, len(english), 400, "the English table must be read")
+
+	for _, name := range []string{"messages_zh.go", "messages_zh_hant.go"} {
+		body := readRepoFile(t, "internal", "i18n", name)
+		checked := 0
+		for _, pair := range entry.FindAllStringSubmatch(body, -1) {
+			key, value := pair[1], pair[2]
+			source, ok := english[key]
+			if !ok {
+				continue
+			}
+			sourceHigh, sourceUsed := formatArgs(source, verb)
+			valueHigh, valueUsed := formatArgs(value, verb)
+			if sourceHigh == 0 && sourceUsed == 0 && valueHigh == 0 && valueUsed == 0 {
+				continue
+			}
+			checked++
+			assert.Equalf(t, sourceUsed, valueUsed,
+				"internal/i18n/%s: %s takes %d arguments but uses %d: %q", name, key, sourceUsed, valueUsed, value)
+			assert.LessOrEqualf(t, valueHigh, sourceUsed,
+				"internal/i18n/%s: %s refers to argument %d of %d", name, key, valueHigh, sourceUsed)
+		}
+		require.Greater(t, checked, 70, "%s must contain format strings", name)
+	}
+}
+
 // formatArgs reports how many distinct arguments the string refers to and the
 // highest index among them. Distinct, not highest: 从 %[2]s 销毁？references two
 // arguments' worth of index but supplies only one, and a highest-only count
