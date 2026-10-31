@@ -48,7 +48,11 @@ desktop          ─┘                                              ^
 | `desktop/internal/deskapp`                                 | `api`, `app/*`, `config`, `domain/*`, `i18n`, `ledger`, `logger`, `records`, `utils`, `desktop/internal/nativeui` | 桌面适配器；通过 `container.Services` 取依赖，不接触 SQLite/backup 实现        |
 | `desktop/internal/nativeui`                                | `domain/lottery`, `i18n`                                                                                          | 纯视图状态与 MyGo 控件，不直接打开数据库；写入前的预校验复用领域常量与校验函数 |
 
-## 已识别的边界问题
+## 已解决的边界问题
+
+下面七条是这次拆分里改掉的历史问题，列出来是为了记录结论和原因；每条的
+「已做」都是当前代码的事实，不是计划。只剩一项待办，列在
+[执行顺序](#执行顺序) 末尾。
 
 ### 1. `internal/domain/blockchain` 把存储引导藏在领域层
 
@@ -185,6 +189,8 @@ desktop/               # 嵌套 Go 模块：MyGo 原生窗口（deskapp 适配�
 ```
 
 ## 执行顺序
+
+拆分按下面的顺序落地；除最后一条外都已勾选，最后一条是仍然待做的评估项。
 
 - [x] 建立依赖事实表，确定“domain 不碰 infra”的硬规则。
 - [x] `internal/domain/blockchain` → `internal/blockchain` → `internal/infra/blockchain`，同步 import/文档。
