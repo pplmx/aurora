@@ -154,7 +154,10 @@ AURORA_SERVER_HOST=127.0.0.1 AURORA_SERVER_PORT=9090 ./aurora-api
 - `aurora_http_requests_total`；
 - `aurora_http_requests_by_status_total{code}`；
 - `aurora_http_requests_by_module_total{module}` 与
-  `aurora_http_requests_by_module_status_total{module,code}`；
+  `aurora_http_requests_by_module_status_total{module,code}`；`module` 只取固定路由
+  集合（`token`/`nft`/`voting`/`lottery`/`oracle`/`blockchain`），未知前缀一律计入
+  `other`，所以随便请求 `/api/v1/<任意词>/…` 也不会让标签基数增长——实测一次
+  `/api/v1/zzz-attacker-1/x` 得到 `module="other"`；
 - `aurora_http_request_duration_seconds`（直方图）；
 - `aurora_outbox_pending_events`（gauge）：审计 outbox 中等待重投的事件数，
   与 `aurora doctor` 的 outbox 行同源；统计失败时本次抓取省略该行，不写 0；
