@@ -28,6 +28,15 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The voting guide points at the tab it means**: it said 打开“投票”, but the
+  tab it sends the reader to is 选票 — the page is called 投票, the section
+  inside it is not. A reader following that sentence looks for a control that
+  is not on screen. Fixed in both Chinese catalogs.
+- **The voting first-run path says how it ends**: the other three modules close
+  their first-record guidance with what becomes possible once the first write
+  exists — inspect the asset, read the balances, review the health. Voting
+  stopped at creating a session, leaving the ballot and the tally unmentioned.
+
 - **The guide describes the language card as it now is**: it still said the
   card leaves all three radios unchecked while following and that Follow System
   is a separate control outside the group — both true before the options became
