@@ -974,6 +974,10 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **A database path that names a directory says so**: SQLite answered the first
+  write with "unable to open database file (14)", which names neither the path nor
+  the reason; the shared directory check now reports "database path … is a
+  directory" before any connection is opened.
 - **`lottery create --help` no longer promises a "3"**: the flag carried a
   literal default while the effective value is `lottery.defaultCount`, so a
   configured install contradicted its own help page. The flag keeps the zero

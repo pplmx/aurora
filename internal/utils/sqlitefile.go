@@ -93,6 +93,13 @@ func EnsureSQLiteDirectory(dsn string) error {
 	if ephemeral {
 		return nil
 	}
+	// A directory where the database file belongs is a configuration mistake, not
+	// a database failure: without this check SQLite answers the first write with
+	// "unable to open database file (14)", which names neither the path nor the
+	// reason.
+	if info, err := os.Stat(path); err == nil && info.IsDir() {
+		return fmt.Errorf("database path %s is a directory", path)
+	}
 	dir := filepath.Dir(path)
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return fmt.Errorf("create %s: %w", dir, err)
