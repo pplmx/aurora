@@ -251,6 +251,10 @@ func TestRouter_SetsSecurityHeaders(t *testing.T) {
 		wantStatus int
 	}{
 		{method: http.MethodGet, path: "/healthz", wantStatus: http.StatusOK},
+		// The metrics routes are registered outside the authenticated group, so
+		// they are the ones a future refactor could leave without the headers.
+		{method: http.MethodGet, path: "/metrics", wantStatus: http.StatusOK},
+		{method: http.MethodGet, path: "/metrics/oracle", wantStatus: http.StatusOK},
 		{method: http.MethodGet, path: "/api/v1/oracle/sources", wantStatus: http.StatusUnauthorized},
 		{method: http.MethodOptions, path: "/api/v1/oracle/sources", wantStatus: http.StatusNoContent},
 	} {

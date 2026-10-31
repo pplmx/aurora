@@ -44,6 +44,9 @@ AURORA_SERVER_HOST=127.0.0.1 AURORA_SERVER_PORT=9090 ./aurora-api
 - **禁止缓存**：所有响应带 `Cache-Control: no-store`。API 使用 `X-API-Key`
   而不是 `Authorization`，因此不能依赖 HTTP 缓存对鉴权请求的默认保护；创建
   响应与预言机配置还可能包含一次性私钥或上游请求头。
+- **浏览器加固**：所有响应（含 `/healthz`、`/metrics` 与 404）同样带
+  `X-Content-Type-Options: nosniff`、`X-Frame-Options: DENY` 和
+  `Referrer-Policy: no-referrer`。
 
 ## 错误响应
 
