@@ -28,6 +28,11 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The punctuation rule the spacing rule starts from is checked too**: the
+  catalogs use full-width marks after Chinese text, and nothing held that. The
+  new test reads all four catalogs and fails on a half-width mark that follows a
+  Chinese character.
+
 - **The CLI spells its labels the way the window does**: the core catalog said
   抽奖ID, 候选人ID and 会话ID in three places while the desktop table said 抽奖 ID
   for the same string. The project writes Chinese prose with a space between a
