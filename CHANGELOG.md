@@ -28,6 +28,15 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **Every page is rendered in the stacked layout a narrow window gets**: below
+  `twoColumnMinWidth` the two columns become one, and only the token page had
+  ever been drawn at that width. The other seven share the branch by
+  construction, but nothing checked the result; the new test walks all eight at
+  900×700 and fails when the widest string runs past the window.
+- **The test says why it is not vacuous**: it asserts its own width is below the
+  threshold, and a 320-pixel run fails with a named string, so a future change to
+  either number cannot leave it passing on the wrong branch.
+
 - **Four failed reads that nobody had exercised now warn in a test**: the fake
   can fail `chain`, `tokenInfo`, `tokenBalance` and `nftDetails`, and no test had
   ever set one of them. A card that swallowed an error shows an empty readout,
