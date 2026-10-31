@@ -1,3 +1,10 @@
+// Package sqlite implements the repository ports on a local SQLite file.
+//
+// Every repository here is pure Go (modernc.org/sqlite), so the binary builds
+// with CGO_ENABLED=0 on every platform the project ships. Connections are
+// opened through one DSN that sets the pragmas the rest of the code relies on
+// — foreign keys, WAL, a busy timeout — and the process-level handle lives in
+// internal/infra/store rather than being reopened per repository.
 package sqlite
 
 import "github.com/pplmx/aurora/internal/utils"

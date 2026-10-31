@@ -1,3 +1,11 @@
+// Package i18n supplies the text the CLI and the REST server print: an English
+// table that doubles as the key set, a Simplified table, and a Traditional one
+// generated from it by tools/genzhhant.
+//
+// A missing entry falls back to the English key rather than printing the key
+// name, so a half-translated build still reads as prose. The locale comes from
+// LC_ALL, LANGUAGE, LC_MESSAGES or LANG — in that order — and only then from
+// [i18n] locale, which is what the shell's own variables should win against.
 package i18n
 
 import (

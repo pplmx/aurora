@@ -28,6 +28,17 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **Three packages that carry the hardest constraints now say so**: `ledger`,
+  `i18n` and `infra/sqlite` had no package comment, while `records`,
+  `background`, `netguard` and `app/container` did. Their comments state what a
+  reader would otherwise have to reconstruct: why the ledger ports name
+  `database/sql.Tx`, the order the locale variables are read in, and that every
+  repository is pure Go so the binary builds with `CGO_ENABLED=0`.
+- **The architecture tree lists the domain subpackages the way it lists infra's**:
+  it named `errdetail` alone and left `lottery`, `voting`, `nft`, `token`,
+  `oracle`, `events` and `repoerr` unmentioned, so the one subpackage that
+  appeared looked like the only one.
+
 - **The desktop guide explains why deskapp stops at 83%**: the coverage floor is
   70% and the package sits at 83%, which reads as room to grow. The twenty
   uncovered functions are one-line wrappers over `mygo.App`/`mygo.Shell`, window
