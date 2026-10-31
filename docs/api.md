@@ -314,10 +314,17 @@ curl -s -H "X-API-Key: $KEY" -H 'Content-Type: application/json' \
 
 `GET /lottery/{id}/verify` 返回完整校验报告：
 `{"record":{"id":"c2421dfb187c8ee9",…},"checks":[{"status":"ok","message":"…"}],"integrity_ok":true,"proof_verified":true}`。
-`{id}` 可以写抽奖 ID、区块高度或 ID/seed 子串（与 CLI 的解析顺序一致；多个子串
-命中时取最新的一条）；证明或
-中奖集合对不上时 HTTP 仍是 200，`integrity_ok` 为 `false`，`checks` 里
-`status:"fail"` 的条目说明原因。
+`{id}` 按下面的顺序解析，与 CLI `lottery verify` 一致：
+
+| 顺序 | 形式              | 说明                             |
+| ---- | ----------------- | -------------------------------- |
+| 1    | 精确抽奖 ID       | 命中即返回                       |
+| 2    | 整数区块高度      | 同一高度有多条时取其中最新的一条 |
+| 3    | ID 或 seed 的子串 | 多个命中时取最新的一条           |
+
+判定失败的依据与 HTTP 状态无关：证明或中奖集合对不上时**仍返回 200**，
+`integrity_ok` 为 `false`，`checks` 里 `status:"fail"` 的条目说明原因。脚本应读
+`integrity_ok`，而不是只看状态码。
 
 ## 投票
 

@@ -28,6 +28,17 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The lottery reference states the id resolution order instead of pointing at
+  the CLI**: it said `{id}` accepts an id, a block height or a substring "in the
+  same order as the CLI", which meant opening a second document to learn an
+  order that decides behaviour — a seed that is all digits is read as a height
+  before it is tried as a substring. The three steps are a table now. The
+  paragraph also says plainly that a failed proof is still a 200 with
+  `integrity_ok: false`, so a script that only checks the status code reads a
+  broken draw as valid.
+- **A test reads the resolver's order out of the source**: `GetByID` before
+  `GetByBlockHeight` before `GetAll`, which is what makes the table true.
+
 - **The ledger card's page size and three states are covered**: the page-size
   clamp is pure arithmetic feeding a query, so its bounds are worth pinning
   rather than reading — zero, a negative value and one under the floor all
