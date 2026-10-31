@@ -111,6 +111,9 @@ func (a *App) votingResultsBody(c *ui.Context) {
 			note = "Choose a session in Setup or enter its ID first."
 		}
 		emptyPanel(c, pageIcons[pageVoting], pageAccent(c, pageVoting), note)
+		if id == "" {
+			a.resultsSessionShortcuts(c)
+		}
 		return
 	}
 	if len(a.voting.results) == 0 {
@@ -149,6 +152,42 @@ func (a *App) votingResultsBody(c *ui.Context) {
 // them; the list role and each row's label keep the ordering and both facts
 // available to a screen reader. At enlarged text, records take over because a
 // bar cannot wrap a long name.
+// resultsSessionShortcuts offers the newest stored sessions under the empty
+// tally, so reading a session's results no longer requires leaving the tab for
+// Setup just to copy an id. Setup keeps the full, searchable list.
+func (a *App) resultsSessionShortcuts(c *ui.Context) {
+	if len(a.voting.sessions) == 0 {
+		return
+	}
+	recent := a.voting.sessions
+	if len(recent) > 3 {
+		recent = recent[:3]
+	}
+	ui.Column(c).FillWidth().Gap(space2).AlignItems(ui.Center).Children(func() {
+		eyebrow(c, "Sessions")
+		ui.Row(c).Wrap().Gap(space2).AlignItems(ui.Center).Children(func() {
+			for _, session := range recent {
+				label := session.Title
+				if label == "" {
+					label = session.ID
+				}
+				if quietButton(c, label).Clicked() {
+					a.showResultsFor(session.ID)
+				}
+			}
+		})
+	})
+}
+
+// showResultsFor points the query, ballot and tally at one session and loads
+// its tally — the same state a Setup selection leaves behind.
+func (a *App) showResultsFor(id string) {
+	a.voting.controlID, a.voting.voteSession, a.voting.resultsSession = id, id, id
+	a.clearTallyForAnotherSession(id)
+	_ = a.loadSessionResults(id)
+	a.loadSelectedSessionRoster()
+}
+
 func (a *App) votingResultBars(c *ui.Context, results []ResultRow) {
 	leader := 1
 	for _, result := range results {
