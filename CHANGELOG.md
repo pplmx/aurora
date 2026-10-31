@@ -12,6 +12,11 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The lint gate lives in one place**: `.golangci.yml` still enabled errcheck
+  while both `just lint` invocations passed `--disable=errcheck`, so a bare
+  `golangci-lint run` checked a different set than the documented gate. errcheck
+  is now simply absent from the config (its 9 non-test findings are stdout
+  `fmt.Fprint*` writes nobody can act on), and the recipes no longer override it.
 - **The compose image is not a service, so the service recipes are gone**:
   `just dev`, `prod`, `start`, `stop` and `restart` brought up a container that
   exits immediately — the image is a one-shot CLI toolbox, as `compose.yml`

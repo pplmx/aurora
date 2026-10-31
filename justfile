@@ -13,7 +13,7 @@ dep:
 
 # Run the linter (errcheck disabled)
 lint:
-    golangci-lint run --disable=errcheck
+    golangci-lint run
 
 # Run tests
 test:
@@ -136,7 +136,7 @@ desktop-check:
     cd desktop && out=$(gofmt -l .) && test -z "$out" && echo "gofmt: clean" || { echo "gofmt would change: $out"; exit 1; }
     cd desktop && CGO_ENABLED=0 go build ./...
     cd desktop && CGO_ENABLED=0 go vet ./...
-    cd desktop && golangci-lint run --config ../.golangci.yml --disable=errcheck ./...
+    cd desktop && golangci-lint run --config ../.golangci.yml ./...
     cd desktop && CGO_ENABLED=0 go test -count=1 ./...
 
 # The views carry the behaviour and the adapters carry the platform glue; a
