@@ -82,6 +82,15 @@ func localizeServiceErrorMessage(message string) string {
 			return document + "：" + tr("parse document") + "：" + detail
 		}
 	}
+	// The export destination checks carry a path, so a full-message lookup cannot
+	// reach them; the sentence around the path is the translatable part.
+	if dir, ok := strings.CutPrefix(message, "export directory "); ok {
+		if dir, ok := strings.CutSuffix(dir, " does not exist"); ok {
+			if translated := tr("export directory %s does not exist"); translated != "export directory %s does not exist" {
+				return fmt.Sprintf(translated, dir)
+			}
+		}
+	}
 	if i := strings.LastIndex(message, ": "); i >= 0 {
 		tail := message[i+2:]
 		if translated := tr(tail); translated != tail {

@@ -665,6 +665,8 @@ var desktopMessages = map[string]string{
 	"Pages":                               "页面",
 	"Back up database":                    "备份数据库",
 	"Export lotteries":                    "导出抽奖记录",
+	"export path is empty":                "导出路径为空",
+	"export directory %s does not exist":  "导出目录 %s 不存在",
 	"Import lotteries":                    "导入抽奖记录",
 	"Reload":                              "重新加载",
 	"Reload (data pages)":                 "重新加载（数据页）",

@@ -648,6 +648,8 @@ var desktopMessagesHant = map[string]string{
 	"empty url":                                         "URL 不能為空",
 	"enabled":                                           "已啟用",
 	"ended":                                             "已結束",
+	"export directory %s does not exist":                "導出目錄 %s 不存在",
+	"export path is empty":                              "導出路徑為空",
 	"insufficient allowance":                            "授權額度不足",
 	"insufficient balance":                              "餘額不足",
 	"invalid HTTP method":                               "HTTP 方法無效",

@@ -1006,6 +1006,11 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **The window's export failure speaks Chinese too**: the CLI localizes the two
+  destination checks, and the window showed their English text because the path
+  inside the sentence defeats a full-message lookup. The sentence around the path
+  is translated now, and an unrecognised variant still keeps its words so a
+  diagnostic matches the log.
 - **`nft get` keeps empty metadata out of the table**: an NFT minted without a
   description, image URL or token URI printed those three labels with nothing
   after them; `printLocalizedOptionalField` skips a field that has no value, so
