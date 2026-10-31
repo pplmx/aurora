@@ -28,6 +28,15 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The latest reading and the transfer write are covered**: both sat at 43%
+  with only their guard exercised. The transfer tests pin the rule the code is
+  built around — a key that worked is cleared from the screen, a key that was
+  rejected stays so the retry does not need it re-entered — and the failure case
+  is what proves the rule, since clearing unconditionally passes the success
+  test. The latest-reading tests cover success, a failed upstream and the guard
+  in front of both. `nativeui` coverage rose from 94.2% to 94.4%; the two
+  functions went from 43% to 100%.
+
 - **The voting guide points at the tab it means**: it said 打开“投票”, but the
   tab it sends the reader to is 选票 — the page is called 投票, the section
   inside it is not. A reader following that sentence looks for a control that
