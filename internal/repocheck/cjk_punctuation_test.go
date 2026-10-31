@@ -15,7 +15,7 @@ import (
 // is included: the catalogs write 会话开始时间（Unix）with full-width parentheses
 // around the Latin note, and a half-width pair beside them reads as a different
 // hand wrote the line.
-var halfWidthAfterChinese = regexp.MustCompile(`[\p{Han}][,.;:!?]|[\p{Han}] +[(]`)
+var halfWidthAfterChinese = regexp.MustCompile(`[\p{Han}][,.;:!?(]|[\p{Han}] +[(]`)
 
 // TestChineseCopyUsesFullWidthPunctuation holds the rule the spacing test next
 // to it starts from: Chinese prose uses the full-width mark. It matters most

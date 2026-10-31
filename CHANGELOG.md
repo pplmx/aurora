@@ -28,6 +28,11 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The bracket rule covers the spelling the catalog does not use**: it matched
+  a Chinese character, spaces, then a half-width bracket, which is how the fix in
+  the previous change reads. A bracket with no space at all went uncaught, so a
+  later edit in that style would have passed. Both spellings are covered now.
+
 - **Parentheses follow the same rule the other marks do**: six entries wrote
   公钥 (Base64) and 代币 (FT) 系统 with half-width brackets while seventy wrote
   会话开始时间（Unix）with full-width ones. The punctuation test covered the marks
