@@ -42,6 +42,9 @@ type fakeServices struct {
 	// createErr makes CreateDraw fail, so a test can see what a failed action
 	// reports.
 	createErr error
+	// transferErr makes TransferToken fail, so a test can see what the write
+	// path does with a rejected transfer.
+	transferErr error
 
 	// templates is what OracleTemplates returns.
 	templates []TemplateRow
@@ -144,6 +147,8 @@ type fakeServices struct {
 	nftHistoryCalls        int
 	sessionResultsCalls    int
 	oracleDataCalls        int
+	transferTokenCalls     int
+	lastTransfer           [5]string
 	oracleLatestCalls      int
 	// resultsByID is what SessionResults returns for a session; an entry may
 	// be absent (empty tally). sessionResultsErr fails every tally read, so a
@@ -180,6 +185,9 @@ type fakeLoadErrors struct {
 	nftHistory   error
 	oracleData   error
 	oracleLatest error
+	// oracleLatestRow is what a successful latest read returns, so a test can
+	// see the value the card would render.
+	oracleLatestRow *DataRow
 }
 
 func (f *fakeServices) LotteryHistory(term string, limit, offset int) ([]DrawRow, error) {
@@ -422,8 +430,12 @@ func (f *fakeServices) TokenBalance(tokenID, owner string) (string, error) {
 	}
 	return "42", nil
 }
-func (f *fakeServices) MintToken(tokenID, to, amount, priv string) error                { return nil }
-func (f *fakeServices) TransferToken(tokenID, from, to, amount, priv string) error      { return nil }
+func (f *fakeServices) MintToken(tokenID, to, amount, priv string) error { return nil }
+func (f *fakeServices) TransferToken(tokenID, from, to, amount, priv string) error {
+	f.transferTokenCalls++
+	f.lastTransfer = [5]string{tokenID, from, to, amount, priv}
+	return f.transferErr
+}
 func (f *fakeServices) ApproveToken(tokenID, owner, spender, amount, priv string) error { return nil }
 func (f *fakeServices) TransferFromToken(tokenID, owner, to, amount, spenderPriv string) error {
 	return nil
@@ -523,6 +535,9 @@ func (f *fakeServices) OracleLatest(sourceID string) (DataRow, error) {
 	f.lastOracleLatestSource = sourceID
 	if f.loadErrs.oracleLatest != nil {
 		return DataRow{}, f.loadErrs.oracleLatest
+	}
+	if f.loadErrs.oracleLatestRow != nil {
+		return *f.loadErrs.oracleLatestRow, nil
 	}
 	return DataRow{}, nil
 }
