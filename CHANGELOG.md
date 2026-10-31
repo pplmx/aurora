@@ -28,6 +28,14 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **A cause that is wrapped twice is translated all the way down**: the Oracle
+  health card shows a failed fetch verbatim, and the fetcher wraps it as
+  "failed to fetch data: request failed: Service Unavailable". The localizer
+  translated the head once and stopped, so the line stayed English even though
+  the middle segment had an entry added for exactly this card. It now localizes
+  the head and then the remainder, and the four fetch wrappers gained entries of
+  their own so the outer layer is translated too.
+
 - **The punctuation rule the spacing rule starts from is checked too**: the
   catalogs use full-width marks after Chinese text, and nothing held that. The
   new test reads all four catalogs and fails on a half-width mark that follows a
