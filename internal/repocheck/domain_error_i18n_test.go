@@ -1,11 +1,9 @@
 package repocheck
 
 import (
-	"os"
 	"path/filepath"
 	"regexp"
 	"sort"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -35,24 +33,13 @@ func TestDomainErrorsAreTranslatedForTheDesktop(t *testing.T) {
 
 	messages := map[string]string{}
 	root := filepath.Join(repoRoot(t), "internal", "domain")
-	err := filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if d.IsDir() || !strings.HasSuffix(path, ".go") || strings.HasSuffix(path, "_test.go") {
-			return nil
-		}
-		body, readErr := os.ReadFile(path) //nolint:gosec // path comes from the repo walk
-		if readErr != nil {
-			return readErr
-		}
-		for _, m := range domainErrorLiteral.FindAllStringSubmatch(string(body), -1) {
+	err := walkGoSource(root, func(path, body string) {
+		for _, m := range domainErrorLiteral.FindAllStringSubmatch(body, -1) {
 			messages[m[1]] = path
 		}
-		for _, m := range oracleErrorLiteral.FindAllStringSubmatch(string(body), -1) {
+		for _, m := range oracleErrorLiteral.FindAllStringSubmatch(body, -1) {
 			messages[m[1]] = path
 		}
-		return nil
 	})
 	require.NoError(t, err)
 	require.Greater(t, len(messages), 50, "the domain declares its error messages")
