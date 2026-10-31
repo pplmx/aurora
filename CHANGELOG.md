@@ -28,6 +28,14 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The voting use cases are split by stage**: `usecase.go` held all nine use
+  cases — the ballot transaction, voter and candidate registration, session
+  lifecycle and the tally — in 585 lines. They now follow the flow an operator
+  moves through: `castvote.go` (the one transaction that writes the vote, the
+  claim, the tally and the ledger block), `register.go` (voters and
+  candidates), `sessions.go` (window lifecycle) and `results.go` (the counting
+  rule). Constructors and types keep their names, so callers are untouched.
+
 - **The voting repository is split by entity**: 578 lines held the schema, the
   shared transaction plumbing and all four registries — votes, voters,
   candidates, sessions — in one file, so a reader following a ballot through
