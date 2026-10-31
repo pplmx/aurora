@@ -65,21 +65,17 @@ func (a *App) settingsLanguageCard(c *ui.Context) {
 		}
 		readout(c, []readoutRow{{"Current", current}})
 		if a.actions.SetLanguage != nil {
-			ui.Row(c).Wrap().Gap(12).AlignItems(ui.Center).Children(func() {
-				selected := languageChoice(language)
-				if known && follows {
-					// No radio is active: the window takes the system's
-					// language, which is not a choice from this list.
-					selected = ""
-				}
-				languageChooser(c, selected, a.actions.SetLanguage, reportLanguageSaveError(a))
-				follow := followSystemButton(c, follows)
-				if follow.Clicked() {
-					if err := a.actions.SetLanguage(""); err != nil {
-						reportLanguageSaveError(a)(err)
-					}
-				}
-			})
+			// Following the system is one radio in the group, not a button
+			// beside it: the choice is a single value with four settings, and
+			// the Appearance card below already presents its "follow the
+			// system" that way. A separate button made the two cards answer the
+			// same question with two different controls, and left no radio that
+			// meant "back to the system".
+			selected := languageChoice(language)
+			if known && follows {
+				selected = languageFollowsSystem
+			}
+			languageChooser(c, selected, a.actions.SetLanguage, reportLanguageSaveError(a))
 		}
 	})
 }
@@ -361,19 +357,7 @@ func reportLanguageSaveError(a *App) func(error) {
 	}
 }
 
-// followSystemButton is the "follow the system" control. It is a primary
-// button while that is the active policy and a secondary one otherwise, so the
-// card has one place that answers "what happens when the system language
-// changes" instead of leaving it to be inferred from a radio that is not part
-// of the same group.
-func followSystemButton(c *ui.Context, active bool) ui.Element {
-	if active {
-		return primaryButton(c, "Follow System").
-			Description(tr("Use the language selected by the operating system."))
-	}
-	return secondaryButton(c, "Follow System").
-		Description(tr("Use the language selected by the operating system."))
-}
+const languageFollowsSystem = "system"
 
 func languageChooser(c *ui.Context, current string, set func(string) error, onErr func(error)) {
 	if set == nil {
@@ -385,17 +369,30 @@ func languageChooser(c *ui.Context, current string, set func(string) error, onEr
 			label string
 			tag   string
 		}{
+			{"Follow System", languageFollowsSystem},
 			{"English", "en"},
 			{"简体中文", "zh-Hans"},
 			{"繁體中文", "zh-Hant"},
 		} {
-			ui.Radio(c, &choice, option.tag, option.label)
+			radio := ui.Radio(c, &choice, option.tag, tr(option.label))
+			if option.tag == languageFollowsSystem {
+				// The sentence used to sit on a button beside the group. As a
+				// radio it needs the same explanation, or a reader arriving by
+				// keyboard has only the label to go on.
+				radio.Description(tr("Use the language selected by the operating system."))
+			}
 		}
 	}).Row().Wrap().Gap(16).Label(tr("Display language"))
-	if choice != current {
-		if err := set(choice); err != nil && onErr != nil {
-			onErr(err)
-		}
+	if choice == current {
+		return
+	}
+	// The follow-system radio means "store no choice", which the shell spells
+	// as an empty tag.
+	if choice == languageFollowsSystem {
+		choice = ""
+	}
+	if err := set(choice); err != nil && onErr != nil {
+		onErr(err)
 	}
 }
 
