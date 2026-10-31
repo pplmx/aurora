@@ -28,6 +28,15 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The ablation report stopped calling two solved problems open**: its
+  "known architecture debt" section listed three pieces of evidence that
+  `blockchain` owned the store; two of them — the `dbInstance` singleton and
+  the `utils.RestrictSQLiteFiles` call — were moved into `infra/store` since,
+  and `blockchain.{DBPath,InitDB,OpenDB}` no longer exists. The section now
+  strikes those through, marks step 2 of its own plan done, and leaves the one
+  claim that still holds: `Chain` reads and writes the `blocks` table itself,
+  with no repository interface.
+
 - **The REST reference opens with an endpoint index**: the document went
   straight from the connection rules into per-module sections, so learning what
   routes exist meant reading all 500 lines. A bullet index now lists all 48
