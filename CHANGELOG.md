@@ -28,6 +28,11 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The verify section states its failure conditions as a list**: the
+  sentence broke mid-enumeration ("记录没有中奖者、" ended a line), so the four
+  conditions that reject a record read as prose fragments. They are a
+  condition list now, with the exit-code rule stated after it.
+
 - **The Chinese catalog's sections match the pages they serve**: the table
   already had section comments, but the Oracle block opened inside the Token
   block and two of its guide sentences closed the NFT one, so a reader editing
