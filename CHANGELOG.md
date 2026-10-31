@@ -28,6 +28,13 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The backup package separates the happy path from crash recovery**:
+  `create.go` held `Create`'s two-phase write beside ten helpers whose job is
+  repairing a run that SIGKILL or power loss interrupted before it began — two
+  lifetimes in one file, and the reader could not tell which a function served.
+  Those helpers are now `create_recovery.go` with a header naming when they
+  run; `create.go` keeps the snapshot/promote/metadata sequence in 260 lines.
+
 - **Cross-document links are checked**: a link into another file's heading
   rots silently when that heading is renamed, which is how the README's new
   gate link could have broken on the next edit to the CLI reference. A
