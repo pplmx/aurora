@@ -766,6 +766,18 @@ Developer ID、公证或 Authenticode，也不会让未签名包变成可发布�
   `.deb`/`.exe`/`.app` 仍建议在对应系统上打包，以便运行各平台的安装器、
   签名与 smoke test；但存储层本身不限制交叉编译。MyGo 本身无 cgo，窗口层仍
   可跨平台。
+- **覆盖率底线的算法**：`just desktop-coverage-floor` 要求 `deskapp` 与
+  `nativeui` 都在 70% 以上。`deskapp` 实测约 83%，剩下的二十个零覆盖函数分三类，
+  都不是漏测。第一类是转发包装：`BackUpDatabase`、`ExportLotteries`、
+  `ImportLotteries`、`RecentDocuments`、`ShowDataFolder`、`ShowAbout`、
+  `SetPageTitle`、`OpenRecent`、`TransferFromToken` 等各只有一行，转给
+  `mygo.App`、`mygo.Shell` 或已经单独测过的用例对象；`importLotteriesWith`
+  与 `backUpDatabase` 的分支由原生文件对话框驱动。第二类是窗口生命周期：
+  `Services`、`SetApp`、`App`、`SetBackup`、`SetLanguage`、`Language` 由启动、
+  切换与关闭时调用。第三类读操作系统状态：`platformUserDataDir`、
+  `SystemDark`、`FollowAppLocale`、`InitLocale`。补测它们只会重复
+  `nativeui` 已覆盖的行为；要抬高百分比就得写只验证「确实调用了全局函数」的
+  测试，那种测试锁住的是实现而不是行为。
 - **CI 覆盖**：嵌套模块不会被根目录的 `go test ./...` 看到，因此
   `.github/workflows/ci.yml` 有一个独立的 `desktop` job（用
   `go-version-file: desktop/go.mod` 装 Go 1.27，跑 gofmt / build / vet /
