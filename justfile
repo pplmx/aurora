@@ -46,7 +46,7 @@ test-coverage:
 # gate (`just desktop-check`); root gofmt/goimports must not walk into it, or
 # the two recipes disagree about formatting map literals.
 
-# Format the core module and run vet
+# Format the core module with gofmt and goimports, then vet
 check:
     gofmt -l -s -w $(fd -e go -E desktop .)
     goimports -l -w $(fd -e go -E desktop .)

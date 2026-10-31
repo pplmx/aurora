@@ -28,6 +28,15 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The README lists `check-verify`**: the recipe exists so `verify` does not
+  rewrite the tree, and only the justfile knew about it. A reader who wanted a
+  format check without side effects found `check` and got the writing one.
+- **The recipe description names both formatters**: it said "Format the core
+  module and run vet" while also running goimports.
+- **A test holds the first**: it parses the justfile's recipes and requires each
+  one to appear as `just <name>` in the README, so a new recipe cannot be added
+  for a reason the reader needs and stay invisible.
+
 - **A desktop translation could name an error no code produces**: the window
   catalog holds English service errors as keys, matched by exact text, and
   "blockchain not initialised" sat in it while `infra/blockchain` and `deskapp`

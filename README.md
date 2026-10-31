@@ -50,6 +50,7 @@ just desktop                             # 桌面壳（Go 1.27+、WebKitGTK/WebV
 
 ```bash
 just check           # gofmt + goimports + go vet（会改写未格式化的文件）
+just check-verify    # 同上但不写回；`just verify` 用它，验证不改工作区
 just verify          # 本地全部门槛：check/test/lint/覆盖率底线 + 桌面门槛
 just test            # 核心模块全部测试
 just test-shuffle    # 随机顺序跑测试，暴露顺序依赖
@@ -222,6 +223,7 @@ Go 1.27+、Cobra、Viper、Zerolog、SQLite
 
 ```bash
 just check      # gofmt + goimports + go vet（会改写未格式化的文件）
+just check-verify  # 只检查不写回，供 just verify 使用
 just test       # go test ./...
 just race       # 可选：根模块 race detector（需要 cgo）
 just lint       # golangci-lint（不含 errcheck；含 bodyclose、errorlint、sqlclosecheck 等）
