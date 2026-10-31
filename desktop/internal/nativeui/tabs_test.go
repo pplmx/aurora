@@ -75,7 +75,7 @@ func TestActionSubjectLeadsWithTheRecord(t *testing.T) {
 		tester := ui.NewTester(func(c *ui.Context) {
 			c.SetTheme(auroraThemeFor(c.Preferences()))
 			ui.Column(c).Width(420).Padding(20).Children(func() {
-				actionSubject(c, id, "No token selected", "Create or inspect one first.",
+				actionSubject(c, id, "No token selected", "Choose one in the list, or create a token.",
 					"Copy token ID", "Token ID is on the clipboard")
 			})
 		}, 480, 160)

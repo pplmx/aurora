@@ -12,6 +12,10 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The token page names the step that is actually missing**: the amber band said
+  "No token selected — Create or inspect one first", while inspecting also needs
+  an id. It now says "Choose one in the list, or create a token", which is what
+  selects the subject the write cards act on.
 - **The Data card states what actually leaves the machine**: it said "No data
   leaves this machine", while an oracle fetch contacts the source the operator
   configured. The line now reads "Nothing is uploaded; the window opens no
