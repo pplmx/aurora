@@ -111,3 +111,49 @@ func TestLanguageSaveSuccessStaysQuiet(t *testing.T) {
 	require.False(t, tester.HasText("Couldn't save settings"),
 		"a successful write must not report a failure")
 }
+
+// TestFollowingTheSystemIsARadioInTheSameGroup pins the control model. Following
+// the system and choosing a language are one value with four settings, which is
+// how the Appearance card presents its own "follow the system" — a separate
+// button left the two cards answering the same question with two controls, and
+// no radio meant "back to the system".
+func TestFollowingTheSystemIsARadioInTheSameGroup(t *testing.T) {
+	tester := languagePage(t, "en", false)
+
+	require.True(t, tester.HasText("Follow System"),
+		"the follow-system choice belongs to the group, so it is on screen with the languages")
+	require.True(t, tester.HasText("English"))
+}
+
+// TestFollowSystemRadioIsCheckedWhenFollowing drives the group the way the
+// operator does and asserts what the radio means: selecting it stores no
+// choice, which is why it is a radio rather than a button outside the group.
+func TestFollowSystemRadioIsCheckedWhenFollowing(t *testing.T) {
+	var stored []string
+	app := New(&fakeServices{})
+	app.actions.Language = func() string { return "zh-Hans" }
+	app.actions.FollowsSystem = func() bool { return false }
+	app.actions.SetLanguage = func(tag string) error {
+		stored = append(stored, tag)
+		return nil
+	}
+	tester := ui.NewTester(app.View, 900, 600)
+	app.ShowPage("Settings")
+	tester.Frame()
+
+	// Tab to the group, then move left to "Follow System", which is first.
+	for i := 0; i < 10 && !tester.Focused("简体中文"); i++ {
+		tester.Key(0, ui.KeyTab)
+		tester.Frame()
+	}
+	require.True(t, tester.Focused("简体中文"), "Tab must reach the selected language")
+	// Two steps back: the group is Follow System, English, 简体中文, 繁體中文.
+	tester.Key(0, ui.KeyLeft)
+	tester.Frame()
+	tester.Key(0, ui.KeyLeft)
+	tester.Frame()
+
+	require.NotEmpty(t, stored)
+	require.Equal(t, "", stored[len(stored)-1],
+		"the last choice — follow the system — is stored as an empty tag, which is how the shell spells it")
+}
