@@ -34,6 +34,8 @@ func TestCLIErrorLocalizesChinese(t *testing.T) {
 
 	auditErr := fmt.Errorf(
 		"failed to transfer: %w",
+		// The detail must stay unwrappable: the test asserts it is printed but
+		// never mapped back to a sentinel.
 		fmt.Errorf("%w: %v", token.ErrAuditPublishFailed, errors.New("disk full")),
 	)
 	out := formatCLIError(auditErr)

@@ -9,6 +9,8 @@ import (
 func base64DecodeField(payload []byte, field string) ([]byte, error) {
 	var m map[string]interface{}
 	if err := json.Unmarshal(payload, &m); err != nil {
+		// Only ErrInvalidPayload is the contract; the JSON detail is printed but
+		// stays unwrappable so a caller cannot branch on the parser's internals.
 		return nil, fmt.Errorf("%w: %v", ErrInvalidPayload, err)
 	}
 	val, ok := m[field].(string)

@@ -3,6 +3,7 @@ package sqlite
 import (
 	"database/sql"
 	"encoding/base64"
+	"errors"
 	"fmt"
 
 	"github.com/pplmx/aurora/internal/domain/nft"
@@ -224,7 +225,7 @@ func (r *NFTRepository) GetNFT(id string) (*nft.NFT, error) {
 		FROM nfts WHERE id = ?
 	`, id).Scan(&id, &name, &description, &imageURL, &tokenURI, &ownerB64, &creatorB64, &blockHeight, &timestamp)
 
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {

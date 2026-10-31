@@ -988,6 +988,12 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **Sentinels are matched through a wrap where it matters**: a wrapped
+  `*cliError` lost its localisation to a plain type assertion, and the approve /
+  lookup paths compared `ErrTokenNotFound` and `sql.ErrNoRows` with `==`, so a
+  repository that wraps them fell into the unknown-error branch. Those use
+  `errors.As`/`errors.Is` now, as do the test assertions that would have failed
+  spuriously on the same wrap.
 - **A config path Viper cannot describe says why**: `--config <directory>` and
   `--config <file without an extension>` both answered
   `failed to read config: Unsupported Config Type ""`. Both the CLI and

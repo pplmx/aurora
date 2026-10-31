@@ -83,6 +83,8 @@ func Recovery(next http.Handler) http.Handler {
 			// ErrAbortHandler is net/http's explicit contract for aborting a
 			// response without logging a stack trace. Preserve it instead of
 			// turning it into a 500 or swallowing it.
+			// net/http documents this exact comparison for ErrAbortHandler
+			// (httputil does the same); the value is never wrapped.
 			if err == http.ErrAbortHandler {
 				panic(http.ErrAbortHandler)
 			}

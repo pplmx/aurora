@@ -59,7 +59,10 @@ func localizedErrorText(err error) string {
 	if err == nil {
 		return ""
 	}
-	if localized, ok := err.(*cliError); ok {
+	var localized *cliError
+	if errors.As(err, &localized) {
+		// errors.As also finds a *cliError a caller wrapped, which a plain type
+		// assertion would drop into the unknown-technical-error path.
 		return localized.Error()
 	}
 	if i18n.GetTranslator().GetLocale() == "zh" {

@@ -84,6 +84,8 @@ func TestTokenHandler_Info_NotFound(t *testing.T) {
 // "internal server error" that a client would blindly retry.
 func TestTokenHandler_Approve_AuditPublishFailed(t *testing.T) {
 	h := NewTokenHandler(fakeTokenServiceFull{
+		// The detail must stay unwrappable: the handler prints it and must not
+		// map it back to a sentinel.
 		err: fmt.Errorf("%w: %v", token.ErrAuditPublishFailed, errors.New("event store unavailable")),
 	})
 
