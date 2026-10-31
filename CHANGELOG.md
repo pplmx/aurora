@@ -28,6 +28,15 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The ledger status, session controls and manual fetch are covered**:
+  `LedgerStatus`, `StartSession`, `EndSession` and `FetchOracleSource` had no
+  test. The first derives its height as `Len()-1`, which is only right because
+  a chain always carries its genesis block; the test records that invariant
+  next to the assertion. The session pair is read-then-write on purpose — a
+  missing id must fail instead of reporting a session started that was never
+  stored — and the fetch test keeps a failed upstream from leaving the card
+  looking freshly updated. `deskapp` coverage rose from 82.3% to 83.5%.
+
 - **The guide's control names are checked against the page**: every "How this
   works" step tells the reader where to go by naming a card, a tab or a button
   — "Open Ballot", "press Verify". A renamed control leaves the sentence
