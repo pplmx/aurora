@@ -28,6 +28,17 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **A wrapped tab row loses its underline, not its meaning**: the active tab's
+  underline exists to join it to the hairline the list draws beneath, so the tab
+  reads as part of the panel. When a narrow window at a large text size wrapped
+  the labels onto two rows, that underline landed on the first row and read as a
+  divider cutting the trailing tabs off — the NFT page showed Transfer NFT
+  underlined with Burn beside it and History stranded below the line. The
+  underline is skipped when the row wraps; the weight and accent colour already
+  mark the selection. A test compares the wrap prediction against the rows the
+  list actually drew, because a disagreement would put the underline back on a
+  wrapped row.
+
 - **A disabled button drops its hint instead of clipping it**: both runs in
   the button are single-line, so a row with no room cut them: at 760px with 2x
   text the Create Token button read "Complete the re" and lost the rest. The

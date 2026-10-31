@@ -451,9 +451,14 @@ func tabs(c *ui.Context, selected *int, name string, labels ...string) {
 			}
 			tab.Background(tab.AnimateColor("fill", fill, ui.Animation{Duration: 100 * time.Millisecond}))
 			tab.DrawOver(func(p *ui.Painter, r ui.Rect) {
-				if on {
-					// The underline sits on the row's own hairline, so the
-					// active segment reads as joined to the content below it.
+				// The underline joins the active segment to the hairline the
+				// list draws beneath it, so the tab reads as part of the panel.
+				// It only means that while the labels share one row: when a
+				// narrow window at a large text size wraps them, the underline
+				// sits on the first row and reads as a divider that cuts the
+				// remaining tabs off. Wrapped rows keep the weight and accent
+				// colour, which already mark the selection.
+				if on && !tabRowWraps(c, labels) {
 					height := textSize(c, 2)
 					p.Fill(ui.Rect{
 						X: r.X + textSize(c, 4),
@@ -474,6 +479,23 @@ func tabs(c *ui.Context, selected *int, name string, labels ...string) {
 			})
 		}
 	})
+}
+
+// tabRowWraps reports whether the tab labels need more than one row at the
+// current width and text size. tabs measures instead of guessing because the
+// labels are translated — a Chinese tab row fits where the English one wrapped
+// — and both the label and its padding scale with the user's text size.
+func tabRowWraps(c *ui.Context, labels []string) bool {
+	width, _ := c.Size()
+	available := width - sidebarWidth(c, width) - 2*space6
+	needed := float32(0)
+	for _, label := range labels {
+		w, _ := c.MeasureText(0, ui.Span{Text: tr(label), Size: textSize(c, 13), Weight: 600})
+		// Each tab carries horizontal padding twice over, and the list adds a
+		// gap between neighbours.
+		needed += w + 2*textSize(c, 12) + 2
+	}
+	return needed > available
 }
 
 // glassButton is the shared supporting-button shape: the card's own surface,
