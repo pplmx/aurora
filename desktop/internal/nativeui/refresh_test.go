@@ -163,7 +163,8 @@ func TestNumericFormLimitsAreBounded(t *testing.T) {
 	tester.Frame()
 	require.NoError(t, tester.Click("Query"))
 	tester.Frame()
-	require.Equal(t, 20, fake.oracleDataLimit, "the default query limit is 20")
+	require.Equal(t, 10, fake.oracleDataLimit,
+		"the default query limit matches REST and the CLI")
 
 	app.oracle.queryLim = 5000
 	require.NoError(t, tester.Click("Query"))
@@ -271,7 +272,7 @@ func TestWritesRefreshSuccessfulEmptyReadouts(t *testing.T) {
 		"an accepted ballot must refresh the open empty tally")
 
 	app.oracle.fetchID, app.oracle.queryID = "s1", "s1"
-	app.oracle.dataLoadedSource, app.oracle.dataLoadedLimit = "s1", 20
+	app.oracle.dataLoadedSource, app.oracle.dataLoadedLimit = "s1", app.oracleQueryLimit()
 	queryBefore := fake.oracleDataCalls
 	app.fetchOracleSource()
 	require.Equal(t, queryBefore+1, fake.oracleDataCalls,
@@ -490,7 +491,7 @@ func TestOracleReadoutFailureKeepsSameSourceRows(t *testing.T) {
 
 	app.oracle.queryID = "s1"
 	app.oracle.data = []DataRow{{Value: "old-reading"}}
-	app.oracle.dataLoadedSource, app.oracle.dataLoadedLimit = "s1", 20
+	app.oracle.dataLoadedSource, app.oracle.dataLoadedLimit = "s1", app.oracleQueryLimit()
 	app.oracle.latestID = "s1"
 	app.oracle.latest = &DataRow{Value: "old-latest"}
 	app.oracle.latestLoadedSource = "s1"
@@ -525,7 +526,7 @@ func TestOracleSelectionDropsReadingsWhenTheNewReadFails(t *testing.T) {
 	tester.Frame()
 
 	app.oracle.data = []DataRow{{Value: "old-reading"}}
-	app.oracle.dataLoadedSource, app.oracle.dataLoadedLimit = "s1", 20
+	app.oracle.dataLoadedSource, app.oracle.dataLoadedLimit = "s1", app.oracleQueryLimit()
 	app.oracle.latest = &DataRow{Value: "old-latest"}
 	app.oracle.latestLoadedSource = "s1"
 	tester.Frame()
@@ -565,7 +566,7 @@ func TestOracleQueryChangeInvalidatesRows(t *testing.T) {
 
 	app.oracle.queryID = "s1"
 	app.oracle.data = []DataRow{{Value: "old-page"}}
-	app.oracle.dataLoadedSource, app.oracle.dataLoadedLimit = "s1", 20
+	app.oracle.dataLoadedSource, app.oracle.dataLoadedLimit = "s1", app.oracleQueryLimit()
 	tester.Frame()
 	require.True(t, tester.HasText("old-page"))
 
