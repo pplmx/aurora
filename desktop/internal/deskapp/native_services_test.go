@@ -393,7 +393,7 @@ func TestLedgerSearchReadsBeyondTheDisplayedSummary(t *testing.T) {
 }
 
 func TestLedgerSummaryDoesNotSplitUTF8(t *testing.T) {
-	summary := blockSummary(strings.Repeat("a", 95) + "界尾")
+	summary := decodeBlockRecord(1, 0, strings.Repeat("a", 95)+"界尾").Summary
 	require.True(t, utf8.ValidString(summary))
 	require.Equal(t, 97, utf8.RuneCountInString(summary), "96 characters plus the ellipsis")
 }

@@ -493,52 +493,62 @@ func testPublicKey(t *testing.T) string {
 	return base64.StdEncoding.EncodeToString(pub)
 }
 
-// TestLedgerPayloadsReadAsText pins what the ledger table shows for each
+// TestLedgerPayloadsReadAsText pins what the ledger record shows for each
 // payload shape the chain holds. Token and NFT blocks are `verb|field|field`
-// with raw public-key bytes; rendering them verbatim printed mojibake in the
-// table, which is worse than saying nothing.
+// with raw public-key bytes; rendering them verbatim printed mojibake, so the
+// summary line decodes them and the module comes from the shared vocabulary.
 func TestLedgerPayloadsReadAsText(t *testing.T) {
-	// A lottery record names itself by its fields.
-	assert.Equal(t, "lottery", blockModule(`{"block_height":1,"participants":["A"],"seed":"s"}`))
-	assert.Contains(t, blockSummary(`{"block_height":1,"participants":["A"]}`), `"participants"`)
+	row := decodeBlockRecord(1, 0, `{"block_height":1,"participants":["A"],"seed":"s"}`)
+	assert.Equal(t, "lottery", row.Module)
+	assert.Contains(t, row.Summary, `"participants"`)
 
 	// A token block carries binary key bytes after its verb.
-	summary := blockSummary("mint|AUR|\x00\x01\x02binary")
-	assert.Contains(t, summary, "token")
-	assert.Contains(t, summary, "AUR")
-	assert.NotContains(t, summary, "\x00", "raw bytes must not reach the table")
-	assert.Contains(t, summary, "AAECYmluYXJ5", "binary fields are shown as base64")
-	assert.Contains(t, blockSummary("transferfrom|AUR|alice|bob"), "token",
+	row = decodeBlockRecord(1, 0, "mint|AUR|\x00\x01\x02binary")
+	assert.Equal(t, "token", row.Module)
+	assert.Contains(t, row.Summary, "token")
+	assert.Contains(t, row.Summary, "AUR")
+	assert.NotContains(t, row.Summary, "\x00", "raw bytes must not reach the ledger")
+	assert.Contains(t, row.Summary, "AAECYmluYXJ5", "binary fields are shown as base64")
+	assert.Equal(t, "token", decodeBlockRecord(1, 0, "transferfrom|AUR|alice|bob").Module,
 		"the transfer-from verb is written without an underscore")
 
 	// A vote payload has the same pipe shape but belongs to the voting page.
-	vote := blockSummary("vote|dGVzdC1rZXk=|candidate-1|session-1")
-	assert.Contains(t, vote, "voting")
-	assert.Contains(t, vote, "candidate-1")
+	vote := decodeBlockRecord(1, 0, "vote|dGVzdC1rZXk=|candidate-1|session-1")
+	assert.Equal(t, "voting", vote.Module)
+	assert.Contains(t, vote.Summary, "candidate-1")
 
-	// An unknown shape is left alone rather than mangled.
-	assert.Equal(t, "AUR|transfer", blockSummary("AUR|transfer"))
+	// An unknown shape keeps its stored text and claims no module.
+	unknown := decodeBlockRecord(1, 0, "AUR|transfer")
+	assert.Empty(t, unknown.Module)
+	assert.Equal(t, "AUR|transfer", unknown.Summary)
 }
 
 // TestLedgerReadsAnNFTMintPayload covers the shape with no verb: an NFT's own
 // mint record is `<id>|<name>|<owner key>`, and without recognising it the
-// ledger table printed its binary key bytes as mojibake.
+// ledger printed its binary key bytes as mojibake.
 func TestLedgerReadsAnNFTMintPayload(t *testing.T) {
-	summary := blockSummary("5c43a418-ca80-46ba-af63-cc7893d1a5e3|First Art|\xae\xbb\x10:")
-	assert.Contains(t, summary, "nft")
-	assert.Contains(t, summary, "First Art")
-	assert.NotContains(t, summary, "\xae")
+	row := decodeBlockRecord(1, 0, "5c43a418-ca80-46ba-af63-cc7893d1a5e3|First Art|\xae\xbb\x10:")
+	assert.Equal(t, "nft", row.Module)
+	assert.Equal(t, "First Art", row.Subject)
+	assert.Contains(t, row.Summary, "First Art")
+	assert.NotContains(t, row.Summary, "\xae")
 }
 
 // TestLedgerModuleNamesEveryPayloadShape pins the Module column: a token or NFT
-// block has no JSON to name it, so its module comes from its decoded payload
-// rather than reading "—".
+// block has no JSON to name it, so its module comes from the decoded payload
+// rather than reading as unknown.
 func TestLedgerModuleNamesEveryPayloadShape(t *testing.T) {
-	assert.Equal(t, "lottery", blockModuleFor(`{"participants":["A"]}`))
-	assert.Equal(t, "token", blockModuleFor("mint|AUR|\x00\x01"))
-	assert.Equal(t, "token", blockModuleFor("transferfrom|AUR|alice|bob"))
-	assert.Equal(t, "nft", blockModuleFor("5c43a418-ca80-46ba-af63-cc7893d1a5e3|Art|\xae"))
-	assert.Equal(t, "voting", blockModuleFor("vote|dGVzdC1rZXk=|candidate-1|session-1"))
-	assert.Equal(t, "oracle", blockModuleFor(`{"id":"o1","source_id":"s1","value":"42"}`))
-	assert.Equal(t, "—", blockModuleFor("something else entirely"))
+	cases := map[string]string{
+		`{"participants":["A"]}`:                        "lottery",
+		"mint|AUR|\x00\x01":                             "token",
+		"transferfrom|AUR|alice|bob":                    "token",
+		"5c43a418-ca80-46ba-af63-cc7893d1a5e3|Art|\xae": "nft",
+		"vote|dGVzdC1rZXk=|candidate-1|session-1":       "voting",
+		`{"id":"o1","source_id":"s1","value":"42"}`:     "oracle",
+	}
+	for payload, want := range cases {
+		assert.Equal(t, want, decodeBlockRecord(1, 0, payload).Module, payload)
+	}
+	assert.Empty(t, decodeBlockRecord(1, 0, "something else entirely").Module,
+		"an unknown payload claims no module rather than a placeholder")
 }

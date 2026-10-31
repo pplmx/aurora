@@ -1,7 +1,6 @@
 package deskapp
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -112,71 +111,6 @@ func ledgerBlockRows(entries []ledger.BlockEntry) []nativeui.BlockRow {
 
 func ledgerBlockRow(entry ledger.BlockEntry) nativeui.BlockRow {
 	return decodeBlockRecord(entry.Height, entry.Timestamp, entry.Data)
-}
-
-// blockModule names the module a recorded payload belongs to.
-//
-// Two payload shapes are on the chain. Lottery and voting blocks are JSON and
-// name themselves; token and NFT blocks are `verb|field|field` with raw
-// public-key bytes, so they are recognised by their verb. Rendering the raw
-// bytes printed mojibake in the ledger table (measured).
-func blockModule(payload string) string {
-	var fields map[string]json.RawMessage
-	if err := json.Unmarshal([]byte(payload), &fields); err != nil {
-		return "—"
-	}
-	for _, key := range []string{"module", "type", "kind"} {
-		if raw, ok := fields[key]; ok {
-			var name string
-			if json.Unmarshal(raw, &name) == nil && name != "" {
-				return name
-			}
-		}
-	}
-	// A lottery record names itself by its fields.
-	if _, ok := fields["participants"]; ok {
-		return "lottery"
-	}
-	// Oracle observations are JSON too, but identify their source rather than
-	// naming a module.
-	if _, ok := fields["source_id"]; ok {
-		return "oracle"
-	}
-	return "—"
-}
-
-// blockModuleFor names the module of any payload shape, including the ones
-// that are not JSON. It is what the ledger's Module column shows.
-func blockModuleFor(payload string) string {
-	module, _ := blockFields(payload)
-	return module
-}
-
-// blockFields derives the rendered module and the full flattened search text
-// in one pass. The table clips the text, but search must still reach a payload
-// whose distinctive value lies beyond the visible prefix.
-func blockFields(payload string) (module, text string) {
-	text = blockText(payload)
-	if name := blockModule(payload); name != "—" {
-		return name, text
-	}
-	switch {
-	case strings.HasPrefix(text, "token "):
-		return "token", text
-	case strings.HasPrefix(text, "nft "):
-		return "nft", text
-	case strings.HasPrefix(text, "voting "):
-		return "voting", text
-	}
-	return "—", text
-}
-
-// blockSummary renders a payload for a table cell: JSON is compacted, and the
-// pipe-delimited token/NFT payload is decoded field by field so its binary key
-// bytes read as base64 rather than as unprintable bytes.
-func blockSummary(payload string) string {
-	_, text := blockFields(payload)
-	return clipBlockText(text)
 }
 
 func blockText(payload string) string {
