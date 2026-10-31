@@ -79,6 +79,32 @@ func (f fakeIntegrity) page(limit, offset int, match func(ledger.BlockEntry) boo
 // TestBlockchainBlocksRoute pins the audit page: newest-first entries with the
 // exact payload, an envelope carrying the total, and paging that does not
 // mistake heights for entry positions.
+// TestBlockchainBlocksSearchReachesTheDecodedRecord: q finds a word the decoded
+// sentence shows even though the stored payload spells something else. The CLI's
+// -s and the window's ledger search compare the same sentence.
+func TestBlockchainBlocksSearchReachesTheDecodedRecord(t *testing.T) {
+	chain := fakeIntegrity{
+		report: &ledger.IntegrityReport{Valid: true},
+		entries: []ledger.BlockEntry{
+			{Height: 1, Data: "transfer|GLD|alice|bob"},
+			{Height: 2, Data: "plain payload"},
+		},
+	}
+	router := chi.NewRouter()
+	NewBlockchainHandler(chain).Routes(router)
+
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/blocks?q=token", nil))
+	require.Equal(t, http.StatusOK, rec.Code)
+	var page BlockPage
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &page))
+	require.Equal(t, 1, page.Total, "the decoded module name is searchable")
+	require.Len(t, page.Blocks, 1)
+	require.Equal(t, int64(1), page.Blocks[0].Height)
+	require.Equal(t, "transfer|GLD|alice|bob", page.Blocks[0].Payload,
+		"the document still carries the exact payload")
+}
+
 func TestBlockchainBlocksRoute(t *testing.T) {
 	chain := fakeIntegrity{
 		report: &ledger.IntegrityReport{Valid: true},

@@ -6,6 +6,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/pplmx/aurora/internal/ledger"
+	"github.com/pplmx/aurora/internal/records"
 )
 
 // blockchainChain is the part of the shared ledger view the audit endpoints
@@ -61,8 +62,9 @@ const (
 // Blocks returns a page of non-genesis entries, newest first. The chain's page
 // counts entries (not heights), so a ledger with gaps still pages correctly;
 // the total excludes the genesis block, matching the desktop's pager. A q
-// filters on the exact recorded text (case-insensitive substring), and the
-// total then counts matches, so a client still knows how many pages remain.
+// filters on the recorded text and the decoded sentence (case-insensitive
+// substring), and the total then counts matches, so a client still knows how
+// many pages remain.
 func (h *BlockchainHandler) Blocks(w http.ResponseWriter, r *http.Request) {
 	limit, offset := pageParams(r, defaultBlockPageLimit, maxBlockPageLimit, maxBlockPageOffset)
 	query := strings.TrimSpace(r.URL.Query().Get("q"))
@@ -77,7 +79,7 @@ func (h *BlockchainHandler) Blocks(w http.ResponseWriter, r *http.Request) {
 	} else {
 		needle := strings.ToLower(query)
 		entries, total = h.chain.BlockEntriesPageMatching(limit, offset, func(entry ledger.BlockEntry) bool {
-			return strings.Contains(strings.ToLower(entry.Data), needle)
+			return strings.Contains(strings.ToLower(blockSearchText(entry.Data)), needle)
 		})
 	}
 	page := BlockPage{Blocks: make([]BlockEntry, 0, len(entries)), Total: total, Limit: limit, Offset: offset}
@@ -89,6 +91,17 @@ func (h *BlockchainHandler) Blocks(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 	writeJSON(w, http.StatusOK, page)
+}
+
+// blockSearchText is what the audit filter compares: the stored payload plus
+// the decoded sentence the CLI and the window show, so searching a word a reader
+// sees ("Draw", a winner's name) finds the record.
+func blockSearchText(payload string) string {
+	record, ok := records.Parse(payload)
+	if !ok {
+		return payload
+	}
+	return payload + " " + record.Text()
 }
 
 // Verify runs a full integrity verification of the in-memory chain and returns

@@ -165,22 +165,7 @@ func blockLine(payload string) string {
 	if !ok {
 		return payload
 	}
-	var line strings.Builder
-	line.WriteString(record.Module)
-	if record.Action != "" {
-		line.WriteString(" · " + record.Action)
-	}
-	if record.Subject != "" {
-		line.WriteString(" · " + record.Subject)
-	}
-	if len(record.Facts) > 0 {
-		parts := make([]string, 0, len(record.Facts))
-		for _, fact := range record.Facts {
-			parts = append(parts, fact.Label+": "+fact.Value)
-		}
-		line.WriteString("   (" + strings.Join(parts, "; ") + ")")
-	}
-	return line.String()
+	return record.Text()
 }
 
 // printBlocksJSON writes the audit page in the same shape the REST endpoint
