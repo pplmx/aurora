@@ -28,6 +28,18 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **Every write form behind the Token and NFT tabs is rendered by a test**: only
+  Burn on the token page and Burn plus History on the NFT page had ever been
+  drawn, so a form that stopped rendering — or drew another tab's body — would
+  have shipped. Eight tabs are covered now, asserted on each form's own purpose
+  line rather than its tab label, because the label is on screen whichever tab is
+  selected.
+- **Two attempts before that were worthless and looked green**: the first
+  asserted the tab label, which passes even when the body draws nothing; the
+  second ran against an empty fake, where the page shows its first-record guide
+  and every tab draws the same thing. Both were found by breaking the code and
+  watching the test still pass.
+
 - **A page missing from one of the window's tables is caught now**: a page keys
   four tables (`pageIDs`, `pageTitles`, `pageIcons`) and two order slices, and
   every one of them fails quietly when a page is missed. A missing id makes the
