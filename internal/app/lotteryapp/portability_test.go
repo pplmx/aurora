@@ -285,3 +285,19 @@ func TestReadImportFileBoundsTheDocument(t *testing.T) {
 	require.Error(t, err)
 	require.NotErrorIs(t, err, ErrImportFileTooLarge)
 }
+
+// TestImportDocumentDetailKeepsGoTypesOutOfTheMessage: a wrong-shaped document
+// used to surface json's wording, which names the Go type
+// ([]lottery.LotteryRecord) in the CLI and in the desktop warning. The detail
+// now says what the document should have been.
+func TestImportDocumentDetailKeepsGoTypesOutOfTheMessage(t *testing.T) {
+	repo := &mockLotteryRepo{}
+	_, err := ImportRecords(repo, []byte(`{"not":"an array"}`))
+	require.ErrorIs(t, err, ErrInvalidImportDocument)
+	assert.Contains(t, err.Error(), "expected a JSON array of lottery records, got object")
+	assert.NotContains(t, err.Error(), "lottery.LotteryRecord")
+
+	_, err = ImportRecords(repo, []byte(`[{"seed":`))
+	require.ErrorIs(t, err, ErrInvalidImportDocument)
+	assert.Contains(t, err.Error(), "not a valid JSON document")
+}
