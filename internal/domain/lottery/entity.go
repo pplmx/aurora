@@ -184,7 +184,7 @@ func ValidateParticipants(participants []string) error {
 			return fmt.Errorf("invalid participant: %w", err)
 		}
 		if seen[p] {
-			return fmt.Errorf("duplicate participant: %w", ErrDuplicateParticipant)
+			return ErrDuplicateParticipant
 		}
 		seen[p] = true
 	}

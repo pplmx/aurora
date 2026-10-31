@@ -2,7 +2,6 @@ package tokenapp
 
 import (
 	"encoding/base64"
-	"fmt"
 
 	"github.com/pplmx/aurora/internal/domain/token"
 )
@@ -38,7 +37,7 @@ func (uc *TransferFromUseCase) Execute(req *TransferFromRequest) (*TransferFromR
 
 	amount, err := token.NewAmountFromString(req.Amount)
 	if err != nil {
-		return nil, fmt.Errorf("invalid amount: %w", err)
+		return nil, err
 	}
 
 	event, err := uc.service.TransferFrom(&token.TransferFromRequest{

@@ -940,10 +940,12 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
-- **A rejected amount says it once**: the four token write use cases wrapped the
-  sentinel in its own text, so the API answered
-  `{"error":"invalid amount: invalid amount"}` and the CLI printed the duplicate
-  too. The sentinel already reads "invalid amount", so the prefix is gone.
+- **A rejected write says it once**: five token write use cases, the lottery
+  participant check and the voting key-length check wrapped a sentinel in its own
+  text, so the API answered `{"error":"invalid amount: invalid amount"}` (and
+  `duplicate participant: duplicate participant`, `invalid private key length:
+  invalid private key length`), with the CLI printing the duplicate too. Each now
+  returns the sentinel directly; `errors.Is` classification is unchanged.
 - **A rejected oracle source explains itself in Chinese**: the source validator's
   stable English details ("disallowed scheme ...", "missing host", a blocked
   private address) reached the Chinese CLI verbatim. Every detail it can produce
