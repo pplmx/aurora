@@ -283,11 +283,9 @@ var tokenListCmd = &cobra.Command{
 		}
 
 		if limit > 0 {
-			fmt.Printf("\n🪙 %s: %s\n\n",
-				i18n.GetText("token.list_page"),
-				i18n.GetTextF("common.page_with_offset", len(tokens), offset))
+			fmt.Printf("\n🪙 %s\n", i18n.Label(i18n.GetText("token.list_page"), fmt.Sprintf("%s\n", i18n.GetTextF("common.page_with_offset", len(tokens), offset))))
 		} else {
-			fmt.Printf("\n🪙 %s: %d\n\n", i18n.GetText("token.total"), len(tokens))
+			fmt.Printf("\n🪙 %s\n", i18n.Label(i18n.GetText("token.total"), fmt.Sprintf("%d\n", len(tokens))))
 		}
 		for _, tk := range tokens {
 			fmt.Println("---")
@@ -295,7 +293,7 @@ var tokenListCmd = &cobra.Command{
 			printLocalizedField("common.name", tk.Name)
 			printLocalizedField("common.symbol", tk.Symbol)
 			printLocalizedField("common.total_supply", tk.TotalSupply)
-			fmt.Printf("   %s: %d\n", i18n.GetText("common.decimals"), tk.Decimals)
+			fmt.Printf("   %s\n", i18n.Label(i18n.GetText("common.decimals"), tk.Decimals))
 			printLocalizedField("common.owner", tk.Owner)
 		}
 		return nil
@@ -327,15 +325,15 @@ var tokenInfoCmd = &cobra.Command{
 			return printJSON(resp)
 		}
 
-		fmt.Printf("\n🪙 %s:\n", i18n.GetText("token.info_heading"))
+		fmt.Printf("\n🪙 %s\n", i18n.GetText("token.info_heading")+i18n.Colon())
 		printLocalizedField("common.id", resp.ID)
 		printLocalizedField("common.name", resp.Name)
 		printLocalizedField("common.symbol", resp.Symbol)
 		printLocalizedField("common.total_supply", resp.TotalSupply)
-		fmt.Printf("   %s: %d\n", i18n.GetText("common.decimals"), resp.Decimals)
+		fmt.Printf("   %s\n", i18n.Label(i18n.GetText("common.decimals"), resp.Decimals))
 		printLocalizedField("common.owner", resp.Owner)
-		fmt.Printf("   %s: %s\n", i18n.GetText("token.mintable"), localizedBool(resp.Mintable))
-		fmt.Printf("   %s: %s\n", i18n.GetText("token.burnable"), localizedBool(resp.Burnable))
+		fmt.Printf("   %s\n", i18n.Label(i18n.GetText("token.mintable"), localizedBool(resp.Mintable)))
+		fmt.Printf("   %s\n", i18n.Label(i18n.GetText("token.burnable"), localizedBool(resp.Burnable)))
 		return nil
 	},
 }

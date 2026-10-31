@@ -47,9 +47,9 @@ var versionCmd = &cobra.Command{
 		}
 		out := cmd.OutOrStdout()
 		fmt.Fprintln(out, i18n.GetText("app.name"))
-		fmt.Fprintf(out, "%s: %s\n", i18n.GetText("app.version"), Version)
-		fmt.Fprintf(out, "%s: %s\n", i18n.GetText("app.build_time"), BuildTime)
-		fmt.Fprintf(out, "%s: %s\n", i18n.GetText("app.go_version"), runtime.Version())
+		fmt.Fprintln(out, i18n.Label(i18n.GetText("app.version"), Version))
+		fmt.Fprintln(out, i18n.Label(i18n.GetText("app.build_time"), BuildTime))
+		fmt.Fprintln(out, i18n.Label(i18n.GetText("app.go_version"), runtime.Version()))
 		return nil
 	},
 }

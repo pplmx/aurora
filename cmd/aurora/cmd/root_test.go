@@ -127,7 +127,7 @@ func TestCliConfigLocaleAppliesWithoutLocaleEnvironment(t *testing.T) {
 		errOut := captureErr()
 
 		require.NoError(t, err)
-		assert.Contains(t, out, "版本:")
+		assert.Contains(t, out, "版本：")
 		assert.NotContains(t, out, "Version:")
 		assert.Contains(t, errOut, "使用配置文件：")
 		assert.NotContains(t, errOut, "Using config file:")

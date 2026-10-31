@@ -87,11 +87,9 @@ var sessionListCmd = &cobra.Command{
 		}
 
 		if limit > 0 {
-			fmt.Printf("\n🗳️ %s: %s\n",
-				i18n.GetText("voting.sessions"),
-				i18n.GetTextF("common.page_with_offset", len(list), offset))
+			fmt.Printf("\n🗳️ %s\n", i18n.Label(i18n.GetText("voting.sessions"), i18n.GetTextF("common.page_with_offset", len(list), offset)))
 		} else {
-			fmt.Println("\n🗳️ " + i18n.GetText("voting.sessions") + ":")
+			fmt.Println("\n🗳️ " + i18n.GetText("voting.sessions") + i18n.Colon())
 		}
 		if len(list) == 0 {
 			fmt.Println("   " + i18n.GetText("voting.none"))
@@ -196,13 +194,13 @@ var resultsCmd = &cobra.Command{
 			return printJSON(resp)
 		}
 
-		fmt.Println("\n📊 " + i18n.GetText("voting.results_heading") + ":")
+		fmt.Println("\n📊 " + i18n.GetText("voting.results_heading") + i18n.Colon())
 		for _, cand := range resp.Candidates {
 			name := cand.ID
 			if cand.Name != "" {
 				name = fmt.Sprintf("%s (%s)", cand.Name, cand.Party)
 			}
-			fmt.Printf("   %s: %s\n", name, i18n.GetTextF("voting.votes", cand.VoteCount))
+			fmt.Printf("   %s\n", i18n.Label(name, i18n.GetTextF("voting.votes", cand.VoteCount)))
 		}
 		return nil
 	},

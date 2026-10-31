@@ -28,6 +28,16 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **A printed label uses the colon its language uses**: Chinese prose puts a
+  full-width colon after a label, and all 55 Chinese entries in the message table
+  already did — but the labels printed by the CLI passed a hard-coded half-width
+  one, so a line read 版本: 0.0.1 next to translated text. `i18n.Label` and
+  `i18n.Colon` now pick the separator from the active locale, and the 84 call
+  sites that built the string by hand go through them: version output, ledger
+  and token summaries, lottery and voting receipts, oracle source listings,
+  doctor checks. English output is unchanged, because its colon is the one that
+  was hard-coded.
+
 - **The desktop adapter's own three errors are translated**: these are not
   domain rules with a sentence around them, they are the whole explanation —
   "blockchain not initialised" on a ledger card, "no data recorded for this

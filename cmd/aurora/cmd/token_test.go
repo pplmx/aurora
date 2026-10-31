@@ -36,7 +36,16 @@ func tokenFixture(t *testing.T, name, symbol, supply string) (tokenID, pub, priv
 func extractField(t *testing.T, out, label string) string {
 	t.Helper()
 	for _, line := range strings.Split(out, "\n") {
-		if after, ok := strings.CutPrefix(strings.TrimSpace(line), label+" "); ok {
+		// The label may end at the separator, in which case the value follows
+		// immediately: "持有者公钥：abc". A label without one still has a space
+		// before its value, so both spellings are tried.
+		trimmed := strings.TrimSpace(line)
+		after, ok := strings.CutPrefix(trimmed, label+" ")
+		if !ok {
+			after, ok = strings.CutPrefix(trimmed, label)
+			ok = ok && strings.HasSuffix(label, "：")
+		}
+		if ok {
 			after = strings.TrimSpace(after)
 			// strip any trailing annotation like "(SAVE THIS!)"
 			if sp := strings.Index(after, " "); sp >= 0 {

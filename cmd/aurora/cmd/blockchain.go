@@ -51,20 +51,20 @@ var blockchainVerifyCmd = &cobra.Command{
 
 		fmt.Printf("\n⛓  %s\n", i18n.GetText("blockchain.verify_title"))
 		fmt.Println("────────────────────────────")
-		fmt.Printf("  %s: %d\n", i18n.GetText("blockchain.length"), report.Length)
+		fmt.Printf("  %s\n", i18n.Label(i18n.GetText("blockchain.length"), report.Length))
 		if report.Head != "" {
-			fmt.Printf("  %s: %s\n", i18n.GetText("blockchain.head"), shortHash(report.Head))
+			fmt.Printf("  %s\n", i18n.Label(i18n.GetText("blockchain.head"), shortHash(report.Head)))
 		}
 		if report.Valid {
-			fmt.Printf("  %s: %s\n", i18n.GetText("blockchain.state"), i18n.GetText("blockchain.valid"))
+			fmt.Printf("  %s\n", i18n.Label(i18n.GetText("blockchain.state"), i18n.GetText("blockchain.valid")))
 			return nil
 		}
 		reason := report.FirstBrokenReason
 		if reason == "" {
 			reason = i18n.GetText("blockchain.no_reason")
 		}
-		fmt.Printf("  %s: %s\n", i18n.GetText("blockchain.state"),
-			i18n.GetTextF("blockchain.broken_at", report.FirstBrokenIndex, reason))
+		fmt.Printf("  %s\n", i18n.Label(i18n.GetText("blockchain.state"),
+			i18n.GetTextF("blockchain.broken_at", report.FirstBrokenIndex, reason)))
 		// A verification command must fail the process: a script that checks the
 		// exit code cannot read the printed verdict.
 		return newCLIError("blockchain.invalid")
@@ -110,7 +110,7 @@ var blockchainBlocksCmd = &cobra.Command{
 			return printBlocksJSON(entries, total, limit, offset)
 		}
 
-		fmt.Printf("\n🧱 %s: %d\n", i18n.GetText("blockchain.blocks_title"), total)
+		fmt.Printf("\n🧱 %s\n", i18n.Label(i18n.GetText("blockchain.blocks_title"), total))
 		if len(entries) == 0 {
 			// A filtered miss and an offset past the end are different problems
 			// from an empty ledger; naming the first write would mislead.

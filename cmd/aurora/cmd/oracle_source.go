@@ -86,11 +86,9 @@ var sourceListCmd = &cobra.Command{
 		}
 
 		if limit > 0 {
-			fmt.Printf("\n📡 %s: %s\n",
-				i18n.GetText("oracle.sources_heading"),
-				i18n.GetTextF("common.page_with_offset", len(resp.Sources), offset))
+			fmt.Printf("\n📡 %s\n", i18n.Label(i18n.GetText("oracle.sources_heading"), i18n.GetTextF("common.page_with_offset", len(resp.Sources), offset)))
 		} else {
-			fmt.Printf("\n📡 %s:\n", i18n.GetText("oracle.sources_heading"))
+			fmt.Printf("\n📡 %s\n", i18n.GetText("oracle.sources_heading")+i18n.Colon())
 		}
 		if len(resp.Sources) == 0 {
 			fmt.Println("   " + i18n.GetText("common.none"))
@@ -106,16 +104,14 @@ var sourceListCmd = &cobra.Command{
 			// The path is optional: printing "Path: " with nothing after it read
 			// as a missing value, so the field is left out when the source has
 			// none.
-			line := fmt.Sprintf("     %s: %s", i18n.GetText("common.method"), ds.Method)
+			line := "     " + i18n.Label(i18n.GetText("common.method"), ds.Method)
 			if ds.Path != "" {
-				line += fmt.Sprintf("  %s: %s", i18n.GetText("common.path"), ds.Path)
+				line += "  " + i18n.Label(i18n.GetText("common.path"), ds.Path)
 			}
-			line += fmt.Sprintf("  %s: %ds", i18n.GetText("common.interval"), ds.Interval)
+			line += "  " + i18n.Label(i18n.GetText("common.interval"), fmt.Sprintf("%ds", ds.Interval))
 			fmt.Println(line)
 			if ds.Headers != "" {
-				fmt.Printf("     %s: %s\n",
-					i18n.GetText("common.headers"),
-					i18n.GetText("common.configured"))
+				fmt.Printf("     %s\n", i18n.Label(i18n.GetText("common.headers"), i18n.GetText("common.configured")))
 			}
 		}
 		return nil

@@ -53,8 +53,8 @@ var voteCmd = &cobra.Command{
 		}
 
 		fmt.Println("✅ " + i18n.GetText("voting.vote_cast"))
-		fmt.Printf("   %s:     %s\n", i18n.GetText("voting.vote_id"), record.ID)
-		fmt.Printf("   %s: %d\n", i18n.GetText("common.block_height"), record.BlockHeight)
+		fmt.Printf("   %s\n", i18n.Label(i18n.GetText("voting.vote_id"), record.ID))
+		fmt.Printf("   %s\n", i18n.Label(i18n.GetText("common.block_height"), record.BlockHeight))
 		return nil
 	},
 }
