@@ -28,6 +28,14 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The page-status clear and the services accessor are covered**:
+  `clearPageStatus` switches over the five pages that carry an outcome line, and
+  one missing case would keep a stale "Done" on that page while the rest kept
+  working. Every branch is now exercised, with the sibling page checked to
+  prove only the open one is emptied. `App.Services` — the accessor the deskapp
+  tests reach the window's dependencies through — is checked to hand back what
+  was injected. `nativeui` coverage rose from 93.7% to 93.9%.
+
 - **A failed language write is reported instead of swallowed**: `SetLanguage`
   applied the locale and then ignored the result of saving the choice, so a
   read-only preferences file left the operator with a changed window and no

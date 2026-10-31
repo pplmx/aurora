@@ -1053,3 +1053,50 @@ func workbenchFakes() *fakeServices {
 		sessions:  []SessionRow{{ID: "session-1", Title: "Budget 2026", Status: "active"}},
 	}
 }
+
+// TestServicesReturnsWhatWasInjected keeps the accessor the deskapp tests use
+// honest: it is the only way those tests reach the services the window was
+// built with, so returning a stale or wrapped value would make every assertion
+// they write measure something other than the window's own dependencies.
+func TestServicesReturnsWhatWasInjected(t *testing.T) {
+	fake := &fakeServices{}
+	app := New(fake)
+
+	require.Same(t, fake, app.Services(), "the accessor must hand back the injected services")
+}
+
+// TestClearPageStatusEmptiesOnlyTheOpenPage covers the dismiss action. A status
+// line is a claim about the state right after a write; leaving it on screen
+// while the operator prepares the next action makes it read as a claim about
+// the new state. Every page with a status field is exercised, because a missing
+// case in the switch would keep the stale line on that one page while the rest
+// kept working.
+func TestClearPageStatusEmptiesOnlyTheOpenPage(t *testing.T) {
+	done := okStatus("Done.")
+
+	for _, tc := range []struct {
+		page  page
+		name  string
+		own   func(*App) *statusLine
+		other func(*App) *statusLine
+	}{
+		{pageLottery, "lottery", func(a *App) *statusLine { return &a.lottery.status }, func(a *App) *statusLine { return &a.voting.status }},
+		{pageVoting, "voting", func(a *App) *statusLine { return &a.voting.status }, func(a *App) *statusLine { return &a.token.status }},
+		{pageToken, "token", func(a *App) *statusLine { return &a.token.status }, func(a *App) *statusLine { return &a.oracle.status }},
+		{pageOracle, "oracle", func(a *App) *statusLine { return &a.oracle.status }, func(a *App) *statusLine { return &a.nft.status }},
+		{pageNFT, "nft", func(a *App) *statusLine { return &a.nft.status }, func(a *App) *statusLine { return &a.lottery.status }},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			app := New(&fakeServices{})
+			*tc.own(app) = done
+			*tc.other(app) = done
+
+			app.page = tc.page
+			app.clearPageStatus()
+
+			require.Equal(t, statusLine{}, *tc.own(app), "the open page's line is dismissed")
+			require.NotEqual(t, statusLine{}, *tc.other(app),
+				"another page keeps its line while this one is open")
+		})
+	}
+}
