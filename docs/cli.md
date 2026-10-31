@@ -223,7 +223,9 @@ aurora blockchain blocks -s transfer   # 按记录文本或解码后的记录过
 
 迁移命令（`migrate status|up|down|repair`）都支持 `--json`，输出同一个状态文档
 `{"current","dirty","applied","pending"}`——包括「已经是最新」「已到底部」
-「本就干净」这些空操作路径；`backup create` 输出
+「本就干净」这些空操作路径。表格模式下 `migrate up`/`down` 在版本行之后列出本次
+实际应用/回滚的版本（升序，如 `Applied: 5, 6, 7` 与 `Rolled back: 5, 6, 7`）；
+无事可做时 `up` 省略该行、`down` 给出「没有可回滚的迁移」；`backup create` 输出
 `{"dir","size","checksum","schema_version"}`（`dir` 是输出目录，里面固定是
 `aurora.db` 与 `metadata.json`），`backup verify` 输出
 `{"path","status":"verified"}`。
