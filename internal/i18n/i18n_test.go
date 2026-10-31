@@ -3,6 +3,7 @@ package i18n
 import (
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"testing"
 
@@ -532,4 +533,55 @@ func TestDesktopCopyStaysOutOfTheCoreCatalog(t *testing.T) {
 		_, zh := chineseMessages[key]
 		assert.Falsef(t, en || zh, "desktop key %q leaked into the core catalog", key)
 	}
+}
+
+// TestEveryCoreKeyIsUsed keeps the catalogue from growing dead weight: a key no
+// caller reads is translated text nobody can ever see. Three families (doctor
+// checks, voting statuses, NFT operations) build their key from a runtime value,
+// so they are exempt by prefix rather than by listing every suffix.
+func TestEveryCoreKeyIsUsed(t *testing.T) {
+	root := filepath.Join("..", "..")
+	dynamicPrefixes := []string{"doctor.check.", "voting.status.", "nft.operation."}
+
+	var source strings.Builder
+	for _, dir := range []string{"cmd", "internal", "tools", "desktop"} {
+		err := filepath.WalkDir(filepath.Join(root, dir), func(path string, d os.DirEntry, err error) error {
+			if err != nil {
+				return err
+			}
+			if d.IsDir() || !strings.HasSuffix(path, ".go") ||
+				strings.HasPrefix(filepath.Base(path), "messages_") {
+				return nil
+			}
+			data, err := os.ReadFile(path)
+			if err != nil {
+				return err
+			}
+			source.Write(data)
+			source.WriteString("\n")
+			return nil
+		})
+		require.NoError(t, err)
+	}
+	text := source.String()
+	require.NotEmpty(t, text)
+
+	unused := make([]string, 0)
+	for key := range englishMessages {
+		if strings.Contains(text, key) {
+			continue
+		}
+		exempt := false
+		for _, prefix := range dynamicPrefixes {
+			if strings.HasPrefix(key, prefix) {
+				exempt = true
+				break
+			}
+		}
+		if !exempt {
+			unused = append(unused, key)
+		}
+	}
+	sort.Strings(unused)
+	assert.Emptyf(t, unused, "these keys are never read: %v", unused)
 }

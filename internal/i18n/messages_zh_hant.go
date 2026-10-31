@@ -483,7 +483,6 @@ var traditionalMessages = map[string]string{
 	"token.name":                                "代幣名稱",
 	"token.no_history":                          "未找到轉賬歷史",
 	"token.no_tokens":                           "暫無代幣",
-	"token.not_found":                           "代幣未找到",
 	"token.offset":                              "分頁偏移量",
 	"token.owner":                               "持有者公鑰",
 	"token.owner_private_key_saved":             "持有者私鑰：%s（請妥善保存！）",
