@@ -115,7 +115,6 @@ var desktopMessages = map[string]string{
 	"Oracle Feeds":               "预言机数据源",
 	"Registered data feeds":      "已注册的数据源",
 	"Recent activity":            "最近活动",
-	"Ledger composition":         "账本构成",
 	"What the ledger is made of": "账本由什么组成",
 	"Module records first; the audit chain carries all of them.": "先看各模块记录；审计链承载全部记录。",
 	"Open ledger":                    "打开账本",

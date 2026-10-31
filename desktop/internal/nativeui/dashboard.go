@@ -197,8 +197,11 @@ func (a *App) dashboardHero(c *ui.Context) {
 // lottery/oracle counts are smaller independent streams. The rail makes that
 // shape visible before a single number is read.
 func (a *App) dashboardComposition(c *ui.Context) {
-	sectionRule(c, "Ledger composition")
 	card(c, func() {
+		// One heading, not a ruled label followed by a heading that says the
+		// same thing. The section used to open with a "Ledger composition" rule
+		// and then repeat itself as "What the ledger is made of"; the card's own
+		// heading carries the sentence that explains the rails.
 		sectionHeading(c, "What the ledger is made of",
 			"Module records first; the audit chain carries all of them.")
 		// The four rails are one ordered set: listed once here, they cannot

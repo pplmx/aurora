@@ -108,8 +108,10 @@ func TestDashboardCompositionIsMoreThanACounterGrid(t *testing.T) {
 	tester := ui.NewTester(app.View, 1280, 2400)
 	tester.Frame()
 
+	// One heading for the section, not two. It used to open with a ruled
+	// "Ledger composition" label and then repeat itself as "What the ledger is
+	// made of"; this test required both, which is how the duplication survived.
 	for _, want := range []string{
-		"Ledger composition",
 		"What the ledger is made of",
 		"Module records first; the audit chain carries all of them.",
 		"Voting detail",

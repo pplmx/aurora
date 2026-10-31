@@ -1,7 +1,6 @@
 package nativeui
 
 import (
-	"image/color"
 	"testing"
 
 	"github.com/egoist/mygo/ui"
@@ -101,35 +100,6 @@ func TestDataTablesSitInTheirOwnFrame(t *testing.T) {
 		"the first cell must start inside the framed table")
 	require.LessOrEqual(t, id.X+id.W, table.X+table.W,
 		"the row must end inside the framed table")
-}
-
-// TestSectionRuleFadesOut pins the separators above a band of cards. A
-// full-width border under "Ledger composition" ran across the page like a table edge;
-// the rule's right end must reach the background, so the heading groups what
-// follows instead of closing a region.
-func TestSectionRuleFadesOut(t *testing.T) {
-	tester := ui.NewTester(func(c *ui.Context) {
-		ui.Column(c).Width(600).Padding(20).Children(func() {
-			sectionRule(c, "Ledger composition")
-		})
-	}, 640, 120)
-	tester.Frame()
-	img := tester.Image()
-
-	label, ok := tester.Find("Ledger composition")
-	require.True(t, ok)
-	row := int(label.Y + label.H/2)
-	background := img.At(300, int(label.Y-10))
-	mid := img.At(300, row)
-	end := img.At(600, row)
-	luma := func(c color.Color) int {
-		r, g, b, _ := c.RGBA()
-		return int(r>>8) + int(g>>8) + int(b>>8)
-	}
-	// The rule lightens the background beside the label and fades to it at
-	// the far edge: the near sample must differ more than the far one.
-	require.Greater(t, absInt(luma(mid)-luma(background)), absInt(luma(end)-luma(background)),
-		"the rule must be visible beside its label and gone at the far edge")
 }
 
 // TestRecordFactsSitBesideTheirTitle pins the record's internal rhythm: the

@@ -28,6 +28,14 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The dashboard names its composition section once**: the page opened the
+  section with a ruled "Ledger composition" label and then repeated itself as
+  "What the ledger is made of" in the card immediately below. The rule is gone,
+  the card's heading and its explanation stay, and with them the last caller of
+  `sectionRule` — the helper and its pixel test are removed rather than left as
+  dead code. `TestDashboardCompositionIsMoreThanACounterGrid` required both
+  labels, which is how the duplication survived; it now requires one.
+
 - **The desktop's token paths are covered**: `TokenInfo`, `TransferToken`,
   `ApproveToken`, `TransferFromToken`, `BurnToken`, `TokenAllowance` and
   `TokenHistory` had no test. They are assembled here the way the container

@@ -218,25 +218,3 @@ func shortcutCap(c *ui.Context, chord string) ui.Element {
 	})
 	return cap
 }
-
-// sectionRule opens a band of content with its name and a rule that fades out
-// to the right. The rule replaces a full-width border: it groups what follows
-// without drawing a line across the whole page, which read as a table edge
-// above the counters.
-func sectionRule(c *ui.Context, label string) {
-	ui.Row(c).FillWidth().AlignItems(ui.Center).Gap(space3).Padding(space3, 0, space1, 0).Children(func() {
-		ui.Row(c).Gap(space2).AlignItems(ui.Center).Shrink(0).Children(func() {
-			ui.Row(c).Width(3).Height(10).Radius(1.5).
-				Background(c.Theme().Accent).Shrink(0)
-			eyebrow(c, label)
-		})
-		line := ui.Row(c).Height(1).Grow(1)
-		line.Draw(func(p *ui.Painter, r ui.Rect) {
-			tone := c.Theme().Accent
-			p.FillGradient(r, ui.LinearGradient{Angle: 90, Stops: []ui.GradientStop{
-				{Color: tone.Alpha(0.55), At: 0},
-				{Color: tone.Alpha(0), At: 1},
-			}}, 0)
-		})
-	})
-}
