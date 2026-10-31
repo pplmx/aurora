@@ -28,6 +28,15 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The page header stacks instead of shredding its parts**: in a narrow window
+  at a large text size the header's single row squeezed the purpose sentence
+  into a four-line column and clipped the Refresh button's Ctrl+R chord to two
+  characters — the shortcut the button exists to teach. Below the breakpoint
+  the action now drops under the title row, and the button keeps its own
+  measure instead of stretching to the column's width. The breakpoint is
+  expressed per text scale like the two-column one, so a wide window at 2x
+  keeps the one-line header.
+
 - **The privacy statement lists each file and its mode**: it described the
   owner-only policy in one long paragraph, so answering "what does Aurora write
   to disk, and who can read it" meant parsing prose. A table now names every
