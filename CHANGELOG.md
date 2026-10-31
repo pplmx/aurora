@@ -28,6 +28,12 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The pager's announcement has one definition**: `pagerInline` and
+  `pagerControls` carried the same five-line comment and the same
+  announce-once bookkeeping, so a fix to one could leave the other silently
+  repeating or dropping the range a screen reader hears. `announcePagerMove`
+  now holds it, with the reason written once.
+
 - **The REST reference explains errors once**: "错误响应" opened the document
   with the envelope and the full code table, then a separate "错误格式" near the
   end repeated the envelope and stated the status-code rule again, 440 lines

@@ -96,8 +96,9 @@ func (a *App) tokenWrites(c *ui.Context) {
 			a.useSavedKeyButton(c, a.token.burnFrom, &a.token.burnPriv)
 			burnReady := allSet(a.token.tokenID, a.token.burnFrom, a.token.burnAmount, a.token.burnPriv)
 			ui.Row(c).Children(func() {
-				// A destructive action carries the danger style, and the
-				// confirmation still stands between it and the write.
+				// dangerButton keeps the danger style so the action reads as
+				// destructive, and the confirmation still stands between it and
+				// the write (see destructiveConfirm).
 				burn := dangerButton(c, "Burn…", burnReady).Bind(&a.token.burnTrigger)
 				if burn.Clicked() {
 					a.token.askBurn = true

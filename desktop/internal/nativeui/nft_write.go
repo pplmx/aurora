@@ -34,8 +34,9 @@ func (a *App) nftWrite(c *ui.Context) {
 			a.useSavedKeyButton(c, a.nft.burnOwner, &a.nft.burnPriv)
 			burnReady := allSet(a.nft.burnID, a.nft.burnOwner, a.nft.burnPriv)
 			ui.Row(c).Children(func() {
-				// A destructive action carries the danger style, and the
-				// confirmation still stands between it and the write.
+				// dangerButton keeps the danger style so the action reads as
+				// destructive, and the confirmation still stands between it and
+				// the write (see destructiveConfirm).
 				burn := dangerButton(c, "Burn NFT…", burnReady).Bind(&a.nft.burnTrigger)
 				if burn.Clicked() {
 					a.nft.askBurn = true
