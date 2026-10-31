@@ -115,3 +115,49 @@ func TestRecordTextRendersOneLine(t *testing.T) {
 	require.True(t, ok)
 	assert.Equal(t, "token · Transfer · GLD   (Token: GLD; From: alice; To: bob)", record.Text())
 }
+
+// TestParseReadsThePipeVerbs covers every verb the services write, so a new
+// forbidden verb or a renamed action shows up here rather than in a surface.
+func TestParseReadsThePipeVerbs(t *testing.T) {
+	cases := []struct {
+		payload string
+		module  string
+		action  string
+		subject string
+	}{
+		{"mint_nft|Star|owner", "nft", "Mint", "Star"},
+		{"transfer_nft|Star|alice|bob", "nft", "Transfer", "Star"},
+		{"burn_nft|Star|alice", "nft", "Burn", "Star"},
+		{"mint|GLD|alice", "token", "Mint", "GLD"},
+		{"burn|GLD|alice", "token", "Burn", "GLD"},
+		{"approve|GLD|alice|bob", "token", "Approve", "GLD"},
+		{"transfer_from|GLD|alice|bob", "token", "Transfer from", "GLD"},
+		{"transferfrom|GLD|alice|bob", "token", "Transfer from", "GLD"},
+	}
+	for _, tc := range cases {
+		record, ok := Parse(tc.payload)
+		require.True(t, ok, tc.payload)
+		assert.Equal(t, tc.module, record.Module, tc.payload)
+		assert.Equal(t, tc.action, record.Action, tc.payload)
+		assert.Equal(t, tc.subject, record.Subject, tc.payload)
+	}
+}
+
+// TestParseRejectsMalformedPayloads keeps an unknown shape from claiming a
+// module: the caller then shows the stored text instead of a guess.
+func TestParseRejectsMalformedPayloads(t *testing.T) {
+	for _, payload := range []string{"", "{not json", "mint_nft", "|", "plain text"} {
+		if _, ok := Parse(payload); ok {
+			t.Errorf("%q must not parse as a known record", payload)
+		}
+	}
+}
+
+// TestIsUUID pins the canonical check the pipe parser uses to recognise the
+// NFT's verb-less mint payload.
+func TestIsUUID(t *testing.T) {
+	assert.True(t, IsUUID("5c43a418-ca80-46ba-af63-cc7893d1a5e3"))
+	assert.False(t, IsUUID("5c43a418-ca80-46ba-af63-cc7893d1a5e"), "too short")
+	assert.False(t, IsUUID("5c43a418xca80-46ba-af63-cc7893d1a5e3"), "bad separator")
+	assert.False(t, IsUUID("5c43a418-ca80-46ba-af63-cc7893d1a5eg"), "non-hex digit")
+}
