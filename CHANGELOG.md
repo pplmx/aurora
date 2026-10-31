@@ -28,6 +28,15 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The request limits are a table instead of four separate bullets**: the body
+  cap, the header cap, the rate limiter and CORS each held one sentence about a
+  limit or a switch, so comparing them meant reading four places to learn which
+  apply before auth and what a client sees when one is hit. They are one table
+  with the default, the consequence and the status code. A test reads the two
+  caps out of `MaxRequestBody` and `maxHeaderBytes`, and the request-id and log
+  widths out of their declarations, so a number that changes has to reach the
+  reference.
+
 - **The vote gate is a table of outcomes in the order they are checked**: the
   section said which conditions reject a ballot but not which error each one
   produces, and it left out the case that surprises clients — a draft session
