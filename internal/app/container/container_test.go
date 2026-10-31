@@ -245,4 +245,10 @@ func TestPendingAuditEventsCountsTheOutbox(t *testing.T) {
 	require.True(t, ok, "a parked event has a timestamp")
 	require.Equal(t, event.Timestamp().Unix(), at.Unix(),
 		"the age a scraper derives must come from the event's own time")
+
+	// A closed database is a read failure, not an empty outbox: a scraper must
+	// drop the line instead of reporting zero seconds of waiting.
+	require.NoError(t, c.Close())
+	_, _, err = c.OldestPendingAuditEvent(context.Background())
+	require.Error(t, err)
 }
