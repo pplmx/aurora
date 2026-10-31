@@ -803,5 +803,37 @@ func TestResultsTabOffersTheStoredSessions(t *testing.T) {
 	tester.Frame()
 	require.Equal(t, newest, app.voting.resultsSession, "the shortcut picks the session")
 	require.Equal(t, newest, fake.lastSessionResultsID, "and loads its tally")
+	require.Equal(t, newest, app.selectedSessionID(), "the roster choice follows the shortcut")
 	require.True(t, tester.HasText("Alice"), "the loaded tally renders")
+}
+
+// TestBallotOffersTheSessionRoster: a session stores candidate ids and the
+// ballot needs one, so the roster is drawn as name chips that write the id.
+// Before them the only way to fill the candidate field was copying an id out of
+// Setup.
+func TestBallotOffersTheSessionRoster(t *testing.T) {
+	const (
+		sessionID = "77777777-6666-5555-4444-333333333333"
+		candID    = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+	)
+	fake := &fakeServices{
+		sessions: []SessionRow{{
+			ID: sessionID, Title: "Budget 2026", Status: "active",
+			Candidates: []string{candID},
+		}},
+		candidateNames: map[string]string{candID: "Alice"},
+	}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 2400)
+	app.ShowPage("Voting")
+	tester.Frame()
+	require.NoError(t, tester.Click("Budget 2026"), "choose the session in Setup")
+	tester.Frame()
+	require.NoError(t, tester.Click("Ballot"), "open the ballot tab")
+	tester.Frame()
+
+	require.True(t, tester.HasText("Alice"), "the roster is offered by name")
+	require.NoError(t, tester.Click("Alice"))
+	tester.Frame()
+	require.Equal(t, candID, app.voting.voteCandidate, "the chip writes the candidate id")
 }

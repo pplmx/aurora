@@ -185,6 +185,9 @@ func (a *App) showResultsFor(id string) {
 	a.voting.controlID, a.voting.voteSession, a.voting.resultsSession = id, id, id
 	a.clearTallyForAnotherSession(id)
 	_ = a.loadSessionResults(id)
+	// The roster follows the same choice a Setup click records, so the ballot's
+	// candidate names belong to the session the tally just read.
+	a.restoreSessionChoice(id)
 	a.loadSelectedSessionRoster()
 }
 
