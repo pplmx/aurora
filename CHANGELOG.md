@@ -28,6 +28,16 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **A handler without a route is caught now**: the route table passes method
+  values (`r.Post("/create", h.Create)`), so a method missing from it compiles,
+  passes its own test against a fake router, and 404s in production. The new
+  check parses each module's Routes table and requires every `*Handler` method to
+  appear in it; all 43 do today.
+- **The same round confirmed the rest of the surface**: 43 module routes all
+  appear in the reference and the reference names no route that is not
+  registered; 37 use cases are all named by a presentation layer once the
+  constructors are counted rather than the type names.
+
 - **The README lists `check-verify`**: the recipe exists so `verify` does not
   rewrite the tree, and only the justfile knew about it. A reader who wanted a
   format check without side effects found `check` and got the writing one.
