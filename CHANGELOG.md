@@ -28,6 +28,15 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **A callback the view asks for and the command forgets to fill is caught now**:
+  `Actions` is a struct of callbacks, and adding a field is how the view asks for
+  something new. A field the command never sets is a nil callback reached on the
+  frame that needs it, and the view tests build their own value so they would not
+  notice. All 24 are set today.
+- **The rest of the seam holds**: every field is also read somewhere in the view,
+  so the struct has no unused member, and all seven domain interfaces are named
+  under `infra`.
+
 - **A handler without a route is caught now**: the route table passes method
   values (`r.Post("/create", h.Create)`), so a method missing from it compiles,
   passes its own test against a fake router, and 404s in production. The new
