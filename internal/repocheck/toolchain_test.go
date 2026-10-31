@@ -230,6 +230,31 @@ func TestDomainLayerHasNoOutboundDependencies(t *testing.T) {
 	require.NoError(t, err)
 }
 
+// TestRecordsPackageStaysPure keeps the shared payload decoder a leaf: the CLI,
+// the REST handler and the window all import it, so a dependency on app, api or
+// infra would drag one representation layer into the others.
+func TestRecordsPackageStaysPure(t *testing.T) {
+	err := filepath.WalkDir(filepath.Join(repoRoot(t), "internal", "records"),
+		func(path string, d fs.DirEntry, err error) error {
+			if err != nil {
+				return err
+			}
+			if d.IsDir() || !strings.HasSuffix(path, ".go") || strings.HasSuffix(path, "_test.go") {
+				return nil
+			}
+			f, perr := parser.ParseFile(token.NewFileSet(), path, nil, parser.ImportsOnly)
+			require.NoError(t, perr)
+			for _, imp := range f.Imports {
+				p := strings.Trim(imp.Path.Value, `"`)
+				assert.Falsef(t, strings.HasPrefix(p, "github.com/pplmx/aurora/"),
+					"%s imports %s: internal/records must stay a leaf package",
+					filepath.Base(path), p)
+			}
+			return nil
+		})
+	require.NoError(t, err)
+}
+
 // TestCIRunsTheDesktopLint: the root lint job runs `golangci-lint run ./...`,
 // which never descends into the nested desktop module. Without its own step in
 // the desktop job, staticcheck/unused coverage for the window layer silently

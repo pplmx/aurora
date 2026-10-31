@@ -39,6 +39,7 @@ desktop          ─┘                                              ^
 | `internal/infra/blockchain`                                | `ledger`, `logger`, `utils`                      | 共享账本实现：区块、PoW、SQLite 持久化；`OpenDB`/`NewWithDB` 支持显式实例 |
 | `internal/ledger`                                          | 标准库                                           | 纯账本端口：`BlockWriter`、事务追加助手；domain 与应用层只依赖它          |
 | `internal/app/*`                                           | `domain`, `ledger`（`container` 例外）           | 用例编排；错误哨兵、HTTP fetcher、账本实现均已端口化                      |
+| `internal/records`                                         | 仅标准库                                         | 账本载荷解码：模块/动作/对象/事实；CLI、REST 搜索与桌面共用同一句         |
 | `internal/infra/sqlite`                                    | 全部领域包                                       | 仓储实现                                                                  |
 | `internal/api`                                             | `app`, `app/container`, `domain`, `ledger`       | HTTP 表示层；数据库、账本、HTTP 与 outbox 实现由 `app/container` 注入     |
 | `desktop/internal/deskapp`                                 | `internal/api`, `app/container`, `app`, `domain` | 桌面适配器；通过 `container.Services` 取依赖，不接触 SQLite/backup 实现   |
