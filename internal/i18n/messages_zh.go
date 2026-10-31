@@ -64,7 +64,7 @@ nft、token）和运维命令（migrate、backup、version）。`,
 	// Flags
 	"lottery.participants": "参与者名单（逗号分隔）",
 	"lottery.seed":         "随机种子",
-	"lottery.count":        "获奖人数，最多等于参与人数",
+	"lottery.count":        "获奖人数，最多等于参与人数；省略时取 lottery.defaultCount（未配置为 3）",
 
 	// Messages
 	"lottery.success":                "抽奖创建成功！",

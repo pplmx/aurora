@@ -974,6 +974,11 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **`lottery create --help` no longer promises a "3"**: the flag carried a
+  literal default while the effective value is `lottery.defaultCount`, so a
+  configured install contradicted its own help page. The flag keeps the zero
+  value, the usage text names the config key, and pflag's misleading annotation
+  is gone; behaviour is unchanged (no `-c` still resolves through the config).
 - **A Chinese `--help` no longer ends in English**: pflag renders the
   "(default 3)" annotation itself, so every localised flag table still carried it.
   The annotation now follows the translator and reads `（默认 3）`, with the

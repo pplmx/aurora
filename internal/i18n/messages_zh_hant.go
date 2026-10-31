@@ -268,7 +268,7 @@ var traditionalMessages = map[string]string{
 	"error.zero_owner":                          "代幣持有者不能是零地址",
 	"lottery.block_height":                      "區塊高度",
 	"lottery.cmd":                               "VRF 抽獎系統",
-	"lottery.count":                             "獲獎人數，最多等於參與人數",
+	"lottery.count":                             "獲獎人數，最多等於參與人數；省略時取 lottery.defaultCount（未配置為 3）",
 	"lottery.create":                            "創建新抽獎",
 	"lottery.db_info":                           "顯示數據庫信息",
 	"lottery.db_info_title":                     "數據庫信息",
