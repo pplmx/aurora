@@ -678,6 +678,11 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Added
 
+- **`migrate up` names the migrations it ran**: "current version 8" alone left
+  an operator guessing whether a repair or backfill migration was part of the
+  run. One status read now serves both the pending cap and the applied list, so
+  the command prints `Applied: 1, 2, …` (and `已应用: …` in Chinese) after the
+  version line; a second run, which applies nothing, prints no such line.
 - **`aurora-desktop --version` names the MyGo release too**: the binary that draws
   the window is two toolchains deep, and only the Go half was printed. The output
   now ends with `MyGo Version: v0.7.3` when the build info carries a module list,
