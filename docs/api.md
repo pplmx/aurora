@@ -155,6 +155,9 @@ AURORA_SERVER_HOST=127.0.0.1 AURORA_SERVER_PORT=9090 ./aurora-api
 - `aurora_http_request_duration_seconds`（直方图）；
 - `aurora_outbox_pending_events`（gauge）：审计 outbox 中等待重投的事件数，
   与 `aurora doctor` 的 outbox 行同源；统计失败时本次抓取省略该行，不写 0；
+- `aurora_outbox_oldest_pending_seconds`（gauge）：outbox 中最老的待投递事件已等待
+  的秒数——数量在繁忙节点上可能正常，只有这个年龄持续增长才说明补偿循环卡住；
+  空 outbox 或读取失败时省略该行；
 - `aurora_ledger_blocks`（gauge）：本地账本区块数（含创世块），随每次抓取更新；
 - `aurora_build_info{go,version[,build_time]}`：构建身份（恒为 1），用来看某个实例
   跑的是哪个版本；链接器未注入构建时间时省略该标签。

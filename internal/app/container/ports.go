@@ -2,7 +2,9 @@ package container
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
+	"time"
 
 	"github.com/pplmx/aurora/internal/app/oracleapp"
 	"github.com/pplmx/aurora/internal/domain/lottery"
@@ -32,6 +34,10 @@ type Services interface {
 	// PendingAuditEvents counts audit events parked in the outbox, the number
 	// `aurora doctor` reports. The desktop quotes it in its diagnostics copy.
 	PendingAuditEvents(ctx context.Context) (int, error)
+	// OldestPendingAuditEvent reports when the oldest parked audit event entered
+	// the outbox; ok is false on an empty outbox. A count alone may be normal on
+	// a busy node, while an age that keeps growing means the drainer is stuck.
+	OldestPendingAuditEvent(ctx context.Context) (time.Time, bool, error)
 }
 
 // Chain is the ledger view shared by the HTTP and desktop adapters.
@@ -61,6 +67,20 @@ func (c *Container) PendingAuditEvents(ctx context.Context) (int, error) {
 	}
 	return pending, nil
 }
+
+// OldestPendingAuditEvent reads the oldest parked event's own timestamp, so the
+// age a scraper derives is how long the event has waited in the outbox.
+func (c *Container) OldestPendingAuditEvent(ctx context.Context) (time.Time, bool, error) {
+	var stamp sql.NullInt64
+	if err := c.DB.QueryRowContext(ctx, `SELECT MIN(timestamp) FROM pending_events`).Scan(&stamp); err != nil {
+		return time.Time{}, false, fmt.Errorf("read oldest pending audit event: %w", err)
+	}
+	if !stamp.Valid {
+		return time.Time{}, false, nil
+	}
+	return time.Unix(stamp.Int64, 0), true, nil
+}
+
 func (c *Container) TokenTransactions() voting.TransactionManager  { return c.TxManager }
 func (c *Container) VotingTransactions() voting.TransactionManager { return c.VotingTx }
 func (c *Container) NFTTransactions() nft.TransactionManager       { return c.NFTTx }

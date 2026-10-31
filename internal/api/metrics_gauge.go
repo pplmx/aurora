@@ -2,15 +2,22 @@ package api
 
 import (
 	"context"
+	"time"
 
 	"github.com/pplmx/aurora/internal/metrics"
 )
 
-// registerRuntimeGauges exposes the two numbers a dashboard needs from a
-// running node: how far the ledger has grown and whether anything is parked in
-// the outbox. Both are read at scrape time; a failed read drops the line for
-// that scrape instead of reporting a stale value.
-func registerRuntimeGauges(reg *metrics.Registry, pending func(context.Context) (int, error), blocks func() int) {
+// registerRuntimeGauges exposes what a dashboard needs from a running node: how
+// far the ledger has grown, whether anything is parked in the outbox, and how
+// long the oldest parked event has waited. A count may be normal on a busy node;
+// the age is what says the drainer is stuck. All are read at scrape time, and a
+// failed read drops the line for that scrape instead of reporting a stale value.
+func registerRuntimeGauges(
+	reg *metrics.Registry,
+	pending func(context.Context) (int, error),
+	blocks func() int,
+	oldest func(context.Context) (time.Time, bool, error),
+) {
 	reg.RegisterGauge("aurora_outbox_pending_events",
 		"Audit events parked in the outbox, waiting for a delivery retry.",
 		func() (float64, bool) {
@@ -28,6 +35,24 @@ func registerRuntimeGauges(reg *metrics.Registry, pending func(context.Context) 
 				return 0, false
 			}
 			return float64(blocks()), true
+		})
+
+	if oldest == nil {
+		return
+	}
+	reg.RegisterGauge("aurora_outbox_oldest_pending_seconds",
+		"Age of the oldest audit event parked in the outbox, in seconds.",
+		func() (float64, bool) {
+			at, ok, err := oldest(context.Background())
+			if err != nil || !ok {
+				return 0, false
+			}
+			age := time.Since(at).Seconds()
+			if age < 0 {
+				// A clock that stepped backwards is not a negative age.
+				age = 0
+			}
+			return age, true
 		})
 }
 

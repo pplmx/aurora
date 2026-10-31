@@ -3,9 +3,13 @@ package api
 import (
 	"context"
 	"errors"
+	"regexp"
+	"strconv"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/pplmx/aurora/internal/metrics"
 )
@@ -15,7 +19,7 @@ import (
 // zero over a real backlog.
 func TestOutboxGaugeReportsThePendingCount(t *testing.T) {
 	reg := metrics.NewRegistry()
-	registerRuntimeGauges(reg, func(context.Context) (int, error) { return 4, nil }, func() int { return 7 })
+	registerRuntimeGauges(reg, func(context.Context) (int, error) { return 4, nil }, func() int { return 7 }, nil)
 	out := reg.Expose()
 	assert.Contains(t, out, "# TYPE aurora_outbox_pending_events gauge\n")
 	assert.Contains(t, out, "\naurora_outbox_pending_events 4\n")
@@ -24,7 +28,7 @@ func TestOutboxGaugeReportsThePendingCount(t *testing.T) {
 	failing := metrics.NewRegistry()
 	registerRuntimeGauges(failing, func(context.Context) (int, error) {
 		return 0, errors.New("database is busy")
-	}, nil)
+	}, nil, nil)
 	out = failing.Expose()
 	assert.NotContains(t, out, "aurora_outbox_pending_events")
 	assert.NotContains(t, out, "aurora_ledger_blocks", "no reader means no line")
@@ -44,4 +48,32 @@ func TestRegisterBuildInfo(t *testing.T) {
 	withTime.RegisterBuildInfo("v1.2.3", "2026-09-03T00:00:00Z", "go1.27.3")
 	out = withTime.metrics.Expose()
 	assert.Contains(t, out, `build_time="2026-09-03T00:00:00Z"`)
+}
+
+// TestOutboxAgeGaugeReportsHowLongTheOldestEventWaited: the count alone is
+// normal on a busy node; the age is what says the drainer is stuck. An empty
+// outbox and a failed read both drop the line rather than report zero seconds.
+func TestOutboxAgeGaugeReportsHowLongTheOldestEventWaited(t *testing.T) {
+	parked := time.Now().Add(-90 * time.Second)
+	reg := metrics.NewRegistry()
+	registerRuntimeGauges(reg,
+		func(context.Context) (int, error) { return 1, nil },
+		func() int { return 3 },
+		func(context.Context) (time.Time, bool, error) { return parked, true, nil })
+	out := reg.Expose()
+	assert.Contains(t, out, "# TYPE aurora_outbox_oldest_pending_seconds gauge\n")
+	line := regexp.MustCompile(`(?m)^aurora_outbox_oldest_pending_seconds ([0-9.]+)$`).FindStringSubmatch(out)
+	require.Len(t, line, 2, "the age line must be present: %s", out)
+	age, err := strconv.ParseFloat(line[1], 64)
+	require.NoError(t, err)
+	assert.InDelta(t, 90, age, 5, "the gauge reports seconds, not a timestamp")
+
+	for name, oldest := range map[string]func(context.Context) (time.Time, bool, error){
+		"empty outbox": func(context.Context) (time.Time, bool, error) { return time.Time{}, false, nil },
+		"read failure": func(context.Context) (time.Time, bool, error) { return time.Time{}, true, errors.New("busy") },
+	} {
+		reg := metrics.NewRegistry()
+		registerRuntimeGauges(reg, func(context.Context) (int, error) { return 0, nil }, nil, oldest)
+		assert.NotContainsf(t, reg.Expose(), "aurora_outbox_oldest_pending_seconds", name)
+	}
 }
