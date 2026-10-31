@@ -28,6 +28,16 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The REST reference opens with an endpoint index**: the document went
+  straight from the connection rules into per-module sections, so learning what
+  routes exist meant reading all 500 lines. A bullet index now lists all 48
+  routes grouped by module, without parameters or response shapes — those stay
+  in the module sections a reader lands on from it. Two tests keep it honest:
+  one fails if a registered route is missing from the index or the index names
+  a route that does not exist, and one fails if the index is ever rewritten as
+  a table, because the existing "every route is documented" check reads tables
+  and would then pass without any module section documenting a field.
+
 - **The blockchain package separates appending from reading, verifying and
   constructing**: `block.go` held all four in 576 lines, so the append path —
   the one with the concurrency argument written into its comments — sat among

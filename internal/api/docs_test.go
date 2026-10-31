@@ -59,6 +59,61 @@ func readAPIDocs(t *testing.T) string {
 	return string(data)
 }
 
+// TestAPIRouteIndexListsEveryRoute keeps the index exhaustive. It is the
+// document's first screen, so a route missing from it is a route a reader never
+// learns exists — the module sections would still document it, but only someone
+// who already knew the path would find it.
+func TestAPIRouteIndexListsEveryRoute(t *testing.T) {
+	mux, ok := newRouter(&Server{}).(chi.Routes)
+	require.True(t, ok, "the gateway router must be a chi router")
+
+	registered := make(map[string]bool)
+	require.NoError(t, chi.Walk(mux,
+		func(method, route string, _ http.Handler, _ ...func(http.Handler) http.Handler) error {
+			// Handle registers one endpoint for every method; the index names
+			// the metrics endpoints once, as GET.
+			if strings.Contains(route, "/metrics") && method != http.MethodGet {
+				return nil
+			}
+			registered[method+" "+route] = true
+			return nil
+		}))
+
+	indexed := make(map[string]bool)
+	for _, match := range apiIndexRow.FindAllStringSubmatch(readAPIDocs(t), -1) {
+		indexed[match[1]+" "+match[2]] = true
+	}
+	require.NotEmpty(t, indexed, "the endpoint index must list routes")
+	for route := range registered {
+		require.Truef(t, indexed[route], "the endpoint index omits %s", route)
+	}
+	for route := range indexed {
+		require.Truef(t, registered[route], "the endpoint index lists %s, which the router does not register", route)
+	}
+}
+
+// apiIndexRow matches one bullet of the endpoint index: a method, a space and
+// a path, each inside backticks. The multiline flag makes ^ and $ anchor per
+// line, which is what a per-line bullet list needs.
+var apiIndexRow = regexp.MustCompile("(?m)^- `(GET|POST|PUT|DELETE|PATCH) (/[^`]*)`$")
+
+// TestAPIRouteIndexIsNotTheContract keeps the endpoint index from standing in
+// for the module sections. The index lists every route once in bullet form; if
+// it were ever rewritten as a table, documentedAPIRoutes would find every route
+// there and TestAPIDocsListEveryRoute would pass without any module section
+// documenting a single field.
+func TestAPIRouteIndexIsNotTheContract(t *testing.T) {
+	text := readAPIDocs(t)
+	start := strings.Index(text, "## 端点索引")
+	require.GreaterOrEqual(t, start, 0, "docs/api.md must keep its endpoint index")
+	end := strings.Index(text[start:], "## 鉴权与中间件")
+	require.Greater(t, end, 0, "the index must end before the auth section")
+	index := text[start : start+end]
+	require.NotContains(t, index, "| `GET`", "the index must stay a bullet list, not a route table")
+	require.NotContains(t, index, "| `POST`", "the index must stay a bullet list, not a route table")
+	require.NotEmpty(t, strings.TrimSpace(index), "the index must list the routes")
+}
+
 // documentedAPIRoutes reads the method and path cells of the reference tables.
 func documentedAPIRoutes(t *testing.T) map[string]bool {
 	t.Helper()

@@ -20,6 +20,80 @@ AURORA_SERVER_HOST=127.0.0.1 AURORA_SERVER_PORT=9090 ./aurora-api
 `--config` 指定后只读该文件，文件缺失或无法解析会在绑定端口前失败，不会退回默认
 配置。
 
+## 端点索引
+
+全部路由按模块分组；列表只给方法和路径，参数、请求体、响应与错误码见后面对应小节。
+带 key 的端点都需要 `X-API-Key`；三个健康检查与两个指标端点不需要。
+
+**健康与指标**
+
+- `GET /health`
+- `GET /healthz`
+- `GET /metrics`
+- `GET /metrics/oracle`
+- `GET /readyz`
+
+**抽奖**
+
+- `POST /api/v1/lottery/create`
+- `GET /api/v1/lottery/history`
+- `GET /api/v1/lottery/{id}`
+- `GET /api/v1/lottery/{id}/verify`
+
+**投票**
+
+- `GET /api/v1/voting/candidates`
+- `POST /api/v1/voting/register/candidate`
+- `POST /api/v1/voting/register/voter`
+- `GET /api/v1/voting/results/{id}`
+- `POST /api/v1/voting/session`
+- `GET /api/v1/voting/session/{id}`
+- `POST /api/v1/voting/session/{id}/end`
+- `POST /api/v1/voting/session/{id}/start`
+- `GET /api/v1/voting/sessions`
+- `POST /api/v1/voting/vote`
+- `GET /api/v1/voting/voters`
+
+**NFT**
+
+- `POST /api/v1/nft/burn`
+- `GET /api/v1/nft/list`
+- `POST /api/v1/nft/mint`
+- `POST /api/v1/nft/transfer`
+- `GET /api/v1/nft/{id}`
+- `GET /api/v1/nft/{id}/history`
+
+**代币**
+
+- `GET /api/v1/token/allowance`
+- `POST /api/v1/token/approve`
+- `GET /api/v1/token/balance`
+- `POST /api/v1/token/burn`
+- `POST /api/v1/token/create`
+- `GET /api/v1/token/history`
+- `GET /api/v1/token/info`
+- `GET /api/v1/token/list`
+- `POST /api/v1/token/mint`
+- `POST /api/v1/token/transfer`
+- `POST /api/v1/token/transfer_from`
+
+**预言机**
+
+- `POST /api/v1/oracle/fetch`
+- `GET /api/v1/oracle/health`
+- `GET /api/v1/oracle/latest`
+- `GET /api/v1/oracle/query`
+- `GET /api/v1/oracle/sources`
+- `POST /api/v1/oracle/sources`
+- `DELETE /api/v1/oracle/sources/{id}`
+- `PATCH /api/v1/oracle/sources/{id}`
+- `GET /api/v1/oracle/templates`
+
+**区块链**
+
+- `GET /api/v1/blockchain/blocks`
+- `GET /api/v1/blockchain/verify`
+
 ## 鉴权与中间件
 
 - **`X-API-Key`**：密钥来自 `AURORA_API_KEY` 或 `api.key`。开发模式下未设置会
