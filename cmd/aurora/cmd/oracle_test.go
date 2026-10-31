@@ -56,11 +56,13 @@ func TestOracleSourceAdd_List_Delete(t *testing.T) {
 	require.NoError(t, err)
 	assert.Contains(t, out, "eth")
 
-	// list shows both
+	// list shows both; a source without a path omits the field instead of
+	// printing "Path: " with nothing after it.
 	out, err = runCmd(t, "oracle", "source", "list")
 	require.NoError(t, err)
 	assert.Contains(t, out, "btc")
 	assert.Contains(t, out, "eth")
+	assert.NotContains(t, out, "Path:", "a source without a path must not print the label")
 
 	// delete one, list again
 	list, _ := runCmd(t, "oracle", "source", "list")

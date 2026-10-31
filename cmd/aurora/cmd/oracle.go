@@ -126,10 +126,15 @@ var sourceListCmd = &cobra.Command{
 			fmt.Printf("   - %s [%s] %s\n", ds.Name, ds.Type, status)
 			printField("  "+i18n.GetText("common.id"), ds.ID)
 			printField("  "+i18n.GetText("common.url"), ds.URL)
-			fmt.Printf("     %s: %s  %s: %s  %s: %ds\n",
-				i18n.GetText("common.method"), ds.Method,
-				i18n.GetText("common.path"), ds.Path,
-				i18n.GetText("common.interval"), ds.Interval)
+			// The path is optional: printing "Path: " with nothing after it read
+			// as a missing value, so the field is left out when the source has
+			// none.
+			line := fmt.Sprintf("     %s: %s", i18n.GetText("common.method"), ds.Method)
+			if ds.Path != "" {
+				line += fmt.Sprintf("  %s: %s", i18n.GetText("common.path"), ds.Path)
+			}
+			line += fmt.Sprintf("  %s: %ds", i18n.GetText("common.interval"), ds.Interval)
+			fmt.Println(line)
 			if ds.Headers != "" {
 				fmt.Printf("     %s: %s\n",
 					i18n.GetText("common.headers"),
