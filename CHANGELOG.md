@@ -28,6 +28,14 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The desktop's oracle lifecycle is covered**: `SetOracleSourceEnabled`,
+  `DeleteOracleSource`, `OracleData` and `OracleLatest` had no test. The first
+  one carries the only branch among them — the Sources card's Enable and
+  Disable buttons both land there — so a reversed condition would flip both
+  silently. The tests also pin the empty-source message: a feed that was never
+  fetched must say so rather than render a zero row that reads like a real
+  measurement of zero. `deskapp` coverage rose from 78.1% to 79.5%.
+
 - **The desktop's NFT writes and operation trail are covered**: `TransferNFT`,
   `BurnNFT` and `NFTHistory` had no test, so the three paths that sign with a
   private key, check ownership and record an operation were only exercised by
