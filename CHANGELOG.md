@@ -15,8 +15,9 @@ The milestone notes under `.planning/` are history, not current instructions.
 - **The database handle has a home of its own**: `internal/infra/store` now owns
   the process-wide SQLite handle — `db.path` resolution, the pragmas every writer
   needs, directory creation and the 0600 tightening — so the ledger package no
-  longer has to carry a database bootstrap to read one row. `blockchain`'s
-  `DBPath`/`InitDB`/`OpenDB` are thin delegations until their callers move.
+  longer has to carry a database bootstrap to read one row. Every caller moved to
+  `store.Path`/`store.OpenShared`/`store.Open`, and `blockchain` no longer exports
+  `DBPath`/`InitDB`/`OpenDB` or holds a database singleton.
 - **A fresh export is owner-only**: the export lists participant names and their
   draws, yet a new file was written 0644 while the database, the logs and the
   backups are 0600. A new document now gets 0600; a destination that already

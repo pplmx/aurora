@@ -9,6 +9,8 @@ import (
 
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
+
+	"github.com/pplmx/aurora/internal/infra/store"
 )
 
 func seedUnscannableBlocks(t *testing.T, db *sql.DB) {
@@ -234,7 +236,7 @@ func TestInitWithError_RejectsCorruptLedger(t *testing.T) {
 	t.Cleanup(viper.Reset)
 
 	dbPath := filepath.Join(t.TempDir(), "corrupt.db")
-	db, err := OpenDB(dbPath)
+	db, err := store.Open(dbPath)
 	require.NoError(t, err)
 	seedUnscannableBlocks(t, db)
 	require.NoError(t, db.Close())

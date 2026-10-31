@@ -1,4 +1,4 @@
-package blockchain
+package store
 
 import (
 	"database/sql"
@@ -8,17 +8,16 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// TestInitDB_ConcurrentNoLeak proves InitDB is safe to call from
+// TestOpenShared_ConcurrentNoLeak proves OpenShared is safe to call from
 // multiple goroutines. Without a mutex guarding the dbInstance
 // package variable, two callers can both observe nil, both call
 // sql.Open, and leak the first connection (it never gets closed).
 //
-// With a race, two concurrent goroutines can both observe dbInstance
-// as nil, both call sql.Open, and the assignment "dbInstance = db"
-// produces two different *sql.DB pointers. The test catches this
-// by asserting all returned pointers are equal — the singleton
-// contract.
-func TestInitDB_ConcurrentNoLeak(t *testing.T) {
+// With a race, two concurrent goroutines can both observe the shared
+// handle as nil, both call sql.Open, and the assignment produces two
+// different *sql.DB pointers. The test catches this by asserting all
+// returned pointers are equal — the singleton contract.
+func TestOpenShared_ConcurrentNoLeak(t *testing.T) {
 	ResetForTest()
 
 	const goroutines = 16
@@ -29,7 +28,7 @@ func TestInitDB_ConcurrentNoLeak(t *testing.T) {
 	for i := 0; i < goroutines; i++ {
 		go func(idx int) {
 			defer wg.Done()
-			db, err := InitDB()
+			db, err := OpenShared()
 			dbs[idx] = db
 			errs[idx] = err
 		}(i)
@@ -45,10 +44,10 @@ func TestInitDB_ConcurrentNoLeak(t *testing.T) {
 		}
 	}
 	if len(nonNil) == 0 {
-		t.Fatal("InitDB returned no valid DBs")
+		t.Fatal("OpenShared returned no valid DBs")
 	}
 	first := nonNil[0]
 	for _, db := range nonNil[1:] {
-		assert.Same(t, first, db, "InitDB must return the same singleton (race detected)")
+		assert.Same(t, first, db, "OpenShared must return the same handle (race detected)")
 	}
 }

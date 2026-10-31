@@ -25,7 +25,7 @@ import (
 // Run with `go test -race`. Pre-fix: race detector fires on the
 // concurrent assignment. Post-fix (Round 24): clean.
 func TestVotingGetRepo_ConcurrentNoRace(t *testing.T) {
-	// chdir into a temp dir so blockchain.DBPath() (./data/aurora.db) resolves
+	// chdir into a temp dir so store.Path() (./data/aurora.db) resolves
 	// to a scratch database, not the repo's committed data DB. (The previous
 	// version chdir'd to the repo root while intending a temp dir, so the DB
 	// path was never actually isolated.)
@@ -40,7 +40,7 @@ func TestVotingGetRepo_ConcurrentNoRace(t *testing.T) {
 
 	// Full reset AFTER chdir: resetCliForTest() re-arms the process-wide
 	// blockchain DB singleton (blockchain.ResetForTest), which a prior test's
-	// t.Cleanup(blockchain.Close()) leaves closed-but-never-re-armed — a
+	// t.Cleanup(store.Close()) leaves closed-but-never-re-armed — a
 	// closed handle whose sync.Once already fired. Without the re-arm, the
 	// concurrent InitDB below returns that stale closed DB and the voting
 	// repo's schema bootstrap fails with "database is closed" (TASK-197).

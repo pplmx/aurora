@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/pplmx/aurora/internal/infra/blockchain"
 	"github.com/pplmx/aurora/internal/infra/migrate"
+	"github.com/pplmx/aurora/internal/infra/store"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
 )
@@ -25,7 +25,7 @@ func TestBodyLimit_RejectsOversizedPayloadOverHTTP(t *testing.T) {
 	const apiKey = "smoke-lottery"
 	viper.Set("api.key", apiKey)
 
-	dbPath := blockchain.DBPath()
+	dbPath := store.Path()
 	require.NotEmpty(t, dbPath)
 	migPath, err := realMigrationsDirSmoke()
 	require.NoError(t, err)

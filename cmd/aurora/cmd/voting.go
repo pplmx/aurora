@@ -11,6 +11,7 @@ import (
 	"github.com/pplmx/aurora/internal/i18n"
 	"github.com/pplmx/aurora/internal/infra/blockchain"
 	"github.com/pplmx/aurora/internal/infra/sqlite"
+	"github.com/pplmx/aurora/internal/infra/store"
 	"github.com/spf13/cobra"
 )
 
@@ -30,7 +31,7 @@ func getVotingRepo() (voting.TransactableRepository, error) {
 	if votingRepo != nil {
 		return votingRepo, nil
 	}
-	db, err := blockchain.InitDB()
+	db, err := store.OpenShared()
 	if err != nil {
 		return nil, err
 	}

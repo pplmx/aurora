@@ -7,8 +7,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/pplmx/aurora/internal/infra/blockchain"
 	"github.com/pplmx/aurora/internal/infra/migrate"
+	"github.com/pplmx/aurora/internal/infra/store"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
 )
@@ -34,7 +34,7 @@ func TestVotingAPI_MissingResourcesAre4xx(t *testing.T) {
 	viper.Set("api.key", "notfound-test-key")
 	const apiKey = "notfound-test-key"
 
-	dbPath := blockchain.DBPath()
+	dbPath := store.Path()
 	require.NotEmpty(t, dbPath)
 	migPath, err := realMigrationsDirSmoke()
 	require.NoError(t, err)

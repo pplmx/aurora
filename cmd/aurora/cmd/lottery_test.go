@@ -12,7 +12,7 @@ import (
 
 	"github.com/pplmx/aurora/internal/app/lotteryapp"
 	"github.com/pplmx/aurora/internal/domain/lottery"
-	"github.com/pplmx/aurora/internal/infra/blockchain"
+	"github.com/pplmx/aurora/internal/infra/store"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -777,7 +777,7 @@ func TestLotteryVerifyFailsOnTamperedRecord(t *testing.T) {
 		require.NoError(t, err)
 		assert.Contains(t, out, `"integrity_ok": true`)
 
-		db, err := sql.Open("sqlite", blockchain.DBPath())
+		db, err := sql.Open("sqlite", store.Path())
 		require.NoError(t, err)
 		_, err = db.Exec(`UPDATE lottery_records SET winners = '["Mallory"]'`)
 		require.NoError(t, err)

@@ -16,8 +16,8 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/pplmx/aurora/internal/infra/blockchain"
 	"github.com/pplmx/aurora/internal/infra/migrate"
+	"github.com/pplmx/aurora/internal/infra/store"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
 )
@@ -27,7 +27,7 @@ func TestTokenAudit_TransferAppearsInHistoryOverHTTP(t *testing.T) {
 	const apiKey = "smoke-token-audit"
 	viper.Set("api.key", apiKey)
 
-	dbPath := blockchain.DBPath()
+	dbPath := store.Path()
 	require.NotEmpty(t, dbPath)
 	migPath, err := realMigrationsDirSmoke()
 	require.NoError(t, err)
@@ -121,7 +121,7 @@ func TestTokenCreate_DecimalsOverHTTP(t *testing.T) {
 	const apiKey = "smoke-token-decimals"
 	viper.Set("api.key", apiKey)
 
-	dbPath := blockchain.DBPath()
+	dbPath := store.Path()
 	require.NotEmpty(t, dbPath)
 	migPath, err := realMigrationsDirSmoke()
 	require.NoError(t, err)

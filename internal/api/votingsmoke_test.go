@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pplmx/aurora/internal/infra/blockchain"
 	"github.com/pplmx/aurora/internal/infra/migrate"
+	"github.com/pplmx/aurora/internal/infra/store"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -47,7 +47,7 @@ func TestVotingSmoke_FullFlowOverHTTP(t *testing.T) {
 	// resetForAPITest redirected to a temp dir. It does NOT run migrations,
 	// so apply the real checkout migrations first (mirrors `aurora migrate
 	// up` that the CLI runs before serving).
-	dbPath := blockchain.DBPath()
+	dbPath := store.Path()
 	require.NotEmpty(t, dbPath, "DBPath should resolve to a writable temp data dir")
 	migPath, err := realMigrationsDirSmoke()
 	require.NoError(t, err)

@@ -33,18 +33,18 @@ desktop          ─┘                                              ^
 
 `go list` 显示的内部边（只列项目包）：
 
-| 包                                                         | 依赖                                             | 说明                                                                      |
-| ---------------------------------------------------------- | ------------------------------------------------ | ------------------------------------------------------------------------- |
-| `internal/domain/{lottery,nft,token,voting,oracle,events}` | 仅标准库与同层                                   | 纯领域模型、服务与仓储接口                                                |
-| `internal/infra/blockchain`                                | `ledger`, `logger`, `store`, `utils`             | 共享账本实现：区块、PoW、SQLite 持久化；`OpenDB`/`NewWithDB` 支持显式实例 |
-| `internal/infra/store`                                     | `utils`、`viper`                                 | 进程级 SQLite 句柄：`db.path` 解析、打开参数、文件权限；不在特性包里      |
-| `internal/ledger`                                          | 标准库                                           | 纯账本端口：`BlockWriter`、事务追加助手；domain 与应用层只依赖它          |
-| `internal/app/*`                                           | `domain`, `ledger`（`container` 例外）           | 用例编排；错误哨兵、HTTP fetcher、账本实现均已端口化                      |
-| `internal/records`                                         | 仅标准库                                         | 账本载荷解码：模块/动作/对象/事实；CLI、REST 搜索与桌面共用同一句         |
-| `internal/infra/sqlite`                                    | 全部领域包                                       | 仓储实现                                                                  |
-| `internal/api`                                             | `app`, `app/container`, `domain`, `ledger`       | HTTP 表示层；数据库、账本、HTTP 与 outbox 实现由 `app/container` 注入     |
-| `desktop/internal/deskapp`                                 | `internal/api`, `app/container`, `app`, `domain` | 桌面适配器；通过 `container.Services` 取依赖，不接触 SQLite/backup 实现   |
-| `desktop/internal/nativeui`                                | `internal/i18n`                                  | 纯视图状态与 MyGo 控件，不直接打开数据库                                  |
+| 包                                                         | 依赖                                             | 说明                                                                    |
+| ---------------------------------------------------------- | ------------------------------------------------ | ----------------------------------------------------------------------- |
+| `internal/domain/{lottery,nft,token,voting,oracle,events}` | 仅标准库与同层                                   | 纯领域模型、服务与仓储接口                                              |
+| `internal/infra/blockchain`                                | `ledger`, `logger`, `store`, `utils`             | 共享账本实现：区块、PoW、SQLite 持久化；账本只消费句柄                  |
+| `internal/infra/store`                                     | `utils`、`viper`                                 | 进程级 SQLite 句柄：`db.path` 解析、打开参数、文件权限；不在特性包里    |
+| `internal/ledger`                                          | 标准库                                           | 纯账本端口：`BlockWriter`、事务追加助手；domain 与应用层只依赖它        |
+| `internal/app/*`                                           | `domain`, `ledger`（`container` 例外）           | 用例编排；错误哨兵、HTTP fetcher、账本实现均已端口化                    |
+| `internal/records`                                         | 仅标准库                                         | 账本载荷解码：模块/动作/对象/事实；CLI、REST 搜索与桌面共用同一句       |
+| `internal/infra/sqlite`                                    | 全部领域包                                       | 仓储实现                                                                |
+| `internal/api`                                             | `app`, `app/container`, `domain`, `ledger`       | HTTP 表示层；数据库、账本、HTTP 与 outbox 实现由 `app/container` 注入   |
+| `desktop/internal/deskapp`                                 | `internal/api`, `app/container`, `app`, `domain` | 桌面适配器；通过 `container.Services` 取依赖，不接触 SQLite/backup 实现 |
+| `desktop/internal/nativeui`                                | `internal/i18n`                                  | 纯视图状态与 MyGo 控件，不直接打开数据库                                |
 
 ## 已识别的边界问题
 
@@ -57,15 +57,15 @@ desktop          ─┘                                              ^
 **已做**：目录先移出 `domain/`，再落到 `internal/infra/blockchain`；它被明确
 标记为共享账本实现，而不是领域实体包。
 
-**已做**：`OpenDB` + `NewWithDB` 让 API/桌面组合根拥有独立的 DB/Chain 生命周期；
-container 不再调用 `InitDB`/`Get`/`Close` 的全局单例。CLI 仍使用 `InitDB`/`Init`
-作为进程级便捷入口（进程退出即释放），但表示层不再依赖它。账本 SQL 仍在
+**已做**：`NewWithDB` 让 API/桌面组合根拥有独立的 DB/Chain 生命周期；container
+不再调用全局单例。CLI 仍使用 `store.OpenShared`/`blockchain.Init` 作为进程级
+便捷入口（进程退出即释放），但表示层不再依赖它。账本 SQL 仍在
 `infra/blockchain`，这是实现细节，不再是上层耦合。
 
 **已做**：存储引导本身搬到 `internal/infra/store`——`db.path` 解析、打开参数
 （`_txlock=immediate`、`_busy_timeout`、外键）、目录创建与 `0600` 收紧都在那里，
-账本与仓储只消费句柄。`blockchain.{DBPath,InitDB,OpenDB}` 现在是转发（下一步把
-调用点改到 `store` 后删掉），账本包不再持有进程级数据库单例。
+账本与仓储只消费句柄；`blockchain` 不再导出 `DBPath`/`InitDB`/`OpenDB`，也不再
+持有进程级数据库单例。
 
 ### 2. 应用层为了错误哨兵依赖基础设施
 
@@ -197,7 +197,7 @@ desktop/               # 嵌套 Go 模块：MyGo 原生窗口（deskapp 适配�
 - [x] 抽出 `app/container` 组合根；`api.Server` 已委托存储生命周期。
 - [x] 把 `desktopUIMessages` 移出核心 i18n。
 - [x] 把进程级 SQLite 句柄的引导移到 `internal/infra/store`；账本与仓储消费句柄。
-- [ ] 把 `blockchain.{DBPath,InitDB,OpenDB}` 的调用点改到 `store` 并删除转发。
+- [x] 把 `blockchain.{DBPath,InitDB,OpenDB}` 的调用点改到 `store` 并删除转发。
 - [ ] 评估把账本 SQL 移到 `infra/sqlite`；这一步需要单独的迁移/回归计划。
 
 ## 验证

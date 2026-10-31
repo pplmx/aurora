@@ -7,8 +7,8 @@ import (
 	"strings"
 
 	"github.com/pplmx/aurora/internal/i18n"
-	"github.com/pplmx/aurora/internal/infra/blockchain"
 	"github.com/pplmx/aurora/internal/infra/migrate"
+	"github.com/pplmx/aurora/internal/infra/store"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -40,11 +40,11 @@ func printMigrateStatus(m *migrate.Migrator) error {
 }
 
 // newCLIMigrator builds a migrator against the same SQLite file the rest of
-// the CLI uses (blockchain.DBPath(), i.e. ./data/aurora.db relative to the
+// the CLI uses (store.Path(), i.e. ./data/aurora.db relative to the
 // cwd) plus the configured migration source (migrate.path, default
 // ./migrations).
 func newCLIMigrator() (*migrate.Migrator, error) {
-	dbPath := blockchain.DBPath()
+	dbPath := store.Path()
 
 	migPath := viper.GetString("migrate.path")
 	if migPath == "" {
