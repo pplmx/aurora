@@ -157,56 +157,190 @@ export LIBGL_ALWAYS_SOFTWARE=1
 # stageMarkerEmpty is the first-run copy a session-keyed stage shows when the
 # store has no session, so an empty-store capture still proves the tab switch.
 stageMarkerEmpty() {
-  case "$1" in
-    voting:Ballot) echo "A ballot names a session" ;;
-    voting:Results) echo "A tally belongs to a session" ;;
-    *) return 1 ;;
+  local spec=$1 lang=${2:-en}
+  case "$lang:$spec" in
+    zh:*) case "$spec" in
+        voting:Ballot) echo "选票需要会期" ;;
+        voting:Results) echo "计票属于会期" ;;
+        *) return 1 ;;
+      esac ;;
+    zh-hant:*) case "$spec" in
+        voting:Ballot) echo "選票需要會期" ;;
+        voting:Results) echo "計票屬於會期" ;;
+        *) return 1 ;;
+      esac ;;
+    *) case "$spec" in
+        voting:Ballot) echo "A ballot names a session" ;;
+        voting:Results) echo "A tally belongs to a session" ;;
+        *) return 1 ;;
+      esac ;;
   esac
 }
 
 # pageMarker is a control that belongs to one page, so a capture proves the
 # page rendered its workbench instead of only its title.
 pageMarker() {
-  case "$1" in
-    dashboard) echo "Ledger Integrity" ;;
-    lottery) echo "Create Draw" ;;
-    voting) echo "Register Voter" ;;
-    token) echo "Create Token" ;;
-    oracle) echo "Add Source" ;;
-    nft) echo "Mint NFT" ;;
-    blockchain) echo "Ledger" ;;
-    settings) echo "Language" ;;
-    *) return 1 ;;
+  local page=$1 lang=${2:-en}
+  case "$lang" in
+    zh)
+      case "$page" in
+        dashboard) echo 账本完整性 ;;
+        lottery) echo 创建抽奖 ;;
+        voting) echo 注册选民 ;;
+        token) echo 创建代币 ;;
+        oracle) echo 添加数据源 ;;
+        nft) echo "铸造 NFT" ;;
+        blockchain) echo 账本 ;;
+        settings) echo 语言 ;;
+        *) return 1 ;;
+      esac
+      ;;
+    zh-hant)
+      case "$page" in
+        dashboard) echo 賬本完整性 ;;
+        lottery) echo 創建抽獎 ;;
+        voting) echo 註冊選民 ;;
+        token) echo 創建代幣 ;;
+        oracle) echo 添加數據源 ;;
+        nft) echo "鑄造 NFT" ;;
+        blockchain) echo 賬本 ;;
+        settings) echo 語言 ;;
+        *) return 1 ;;
+      esac
+      ;;
+    *)
+      case "$page" in
+        dashboard) echo "Ledger Integrity" ;;
+        lottery) echo "Create Draw" ;;
+        voting) echo "Register Voter" ;;
+        token) echo "Create Token" ;;
+        oracle) echo "Add Source" ;;
+        nft) echo "Mint NFT" ;;
+        blockchain) echo "Ledger" ;;
+        settings) echo "Language" ;;
+        *) return 1 ;;
+      esac
+      ;;
   esac
 }
 
 # stageMarker is a control that exists only after the stage switch, so a
 # capture proves the tab changed instead of merely finding its label in the bar.
-stageMarker() {
-  case "$1" in
-    voting:Ballot) echo "Cast Vote" ;;
-    voting:Results) echo "Show Results" ;;
-    token:Burn) echo "Burn…" ;;
-    oracle:Health) echo "Feed Health" ;;
-    oracle:Readings) echo "Query Data" ;;
-    nft:Burn) echo "Burn NFT…" ;;
-    nft:History) echo "Show History" ;;
-    *) return 1 ;;
+# stageTab is the tab's own label, which is what the capture presses. It is a
+# different string from stageMarker: the tab says 销毁, the button under it says
+# 销毁…. Pressing matches the label exactly, so the tab name has to be the one
+# the window shows.
+stageTab() {
+  local stage=$1 lang=${2:-en}
+  case "$lang:$stage" in
+    zh:Burn) echo 销毁 ;;
+    zh:Health) echo 健康 ;;
+    zh:Readings) echo 读数 ;;
+    zh:History) echo 历史 ;;
+    zh:Ballot) echo 选票 ;;
+    zh:Results) echo 结果 ;;
+    zh-hant:Burn) echo 銷毀 ;;
+    zh-hant:Health) echo 健康 ;;
+    zh-hant:Readings) echo 讀數 ;;
+    zh-hant:History) echo 歷史 ;;
+    zh-hant:Ballot) echo 選票 ;;
+    zh-hant:Results) echo 結果 ;;
+    *) echo "$stage" ;;
   esac
 }
 
-# pageTitle is the header text the accessibility tree must contain.
+# stageMarker is a control that only the named stage renders; seeing it proves
+# the stage actually switched. The language is the second argument, for the same
+# reason as pageTitle.
+stageMarker() {
+  local spec=$1 lang=${2:-en}
+  case "$lang" in
+    zh)
+      case "$spec" in
+        voting:Ballot) echo 投出选票 ;;
+        voting:Results) echo 显示结果 ;;
+        token:Burn) echo 销毁… ;;
+        oracle:Health) echo 抓取健康 ;;
+        oracle:Readings) echo 查询数据 ;;
+        nft:Burn) echo "销毁 NFT…" ;;
+        nft:History) echo 显示历史 ;;
+        *) return 1 ;;
+      esac
+      ;;
+    zh-hant)
+      case "$spec" in
+        voting:Ballot) echo 投出選票 ;;
+        voting:Results) echo 顯示結果 ;;
+        token:Burn) echo 銷毀… ;;
+        oracle:Health) echo 抓取健康 ;;
+        oracle:Readings) echo 查詢數據 ;;
+        nft:Burn) echo "銷毀 NFT…" ;;
+        nft:History) echo 顯示歷史 ;;
+        *) return 1 ;;
+      esac
+      ;;
+    *)
+      case "$spec" in
+        voting:Ballot) echo "Cast Vote" ;;
+        voting:Results) echo "Show Results" ;;
+        token:Burn) echo "Burn…" ;;
+        oracle:Health) echo "Feed Health" ;;
+        oracle:Readings) echo "Query Data" ;;
+        nft:Burn) echo "Burn NFT…" ;;
+        nft:History) echo "Show History" ;;
+        *) return 1 ;;
+      esac
+      ;;
+  esac
+}
+
+# pageTitle is the header text the accessibility tree must contain. The second
+# argument is the run's language: a language run checks every page instead of
+# proving the switch on two of them. The strings mirror the desktop catalog
+# (messages_zh.go and messages_zh_hant.go); a mismatch fails the capture, which
+# is the point — it would mean the window does not say what the guide says.
 pageTitle() {
-  case "$1" in
-    dashboard) echo Dashboard ;;
-    lottery) echo Lottery ;;
-    voting) echo Voting ;;
-    token) echo Token ;;
-    nft) echo NFT ;;
-    oracle) echo Oracle ;;
-    blockchain) echo Blockchain ;;
-    settings) echo Settings ;;
-    *) return 1 ;;
+  local page=$1 lang=${2:-en}
+  case "$lang" in
+    zh)
+      case "$page" in
+        dashboard) echo 仪表盘 ;;
+        lottery) echo 抽奖 ;;
+        voting) echo 投票 ;;
+        token) echo 代币 ;;
+        nft) echo NFT ;;
+        oracle) echo 预言机 ;;
+        blockchain) echo 账本 ;;
+        settings) echo 设置 ;;
+        *) return 1 ;;
+      esac
+      ;;
+    zh-hant)
+      case "$page" in
+        dashboard) echo 儀表盤 ;;
+        lottery) echo 抽獎 ;;
+        voting) echo 投票 ;;
+        token) echo 代幣 ;;
+        nft) echo NFT ;;
+        oracle) echo 預言機 ;;
+        blockchain) echo 賬本 ;;
+        settings) echo 設置 ;;
+        *) return 1 ;;
+      esac
+      ;;
+    *)
+      case "$page" in
+        dashboard) echo Dashboard ;;
+        lottery) echo Lottery ;;
+        voting) echo Voting ;;
+        token) echo Token ;;
+        nft) echo NFT ;;
+        oracle) echo Oracle ;;
+        blockchain) echo Blockchain ;;
+        settings) echo Settings ;;
+        *) return 1 ;;
+      esac
+      ;;
   esac
 }
 
@@ -287,9 +421,9 @@ if [ -n "$lang" ]; then
     echo "failed: the dashboard did not follow the language (see $out/app.log)" >&2
     exit 1
   fi
-  # The page loop asserts English titles and stage markers; a language run
-  # proves the switch on two pages instead of carrying a title table per locale.
-  exit 0
+  # The page loop now carries a title and stage-marker table per language, so
+  # a language run checks every page instead of only the two that prove the
+  # switch took effect.
 fi
 
 status=0
@@ -300,17 +434,17 @@ for spec in "${pages[@]}"; do
   stage_marker=""
   if [ "$page" != "$spec" ]; then
     stage=${spec#*:}
-    press="$page,$stage"
+    press="$page,$(stageTab "$stage" "$lang")"
     # An empty store replaces the stage body with its own first-run copy, so
     # the populated marker applies only to a seeded database; the first-run
     # copy still names a control that only that stage shows.
-    if [ "$seed" = "1" ] && stage_marker=$(stageMarker "$spec"); then
+    if [ "$seed" = "1" ] && stage_marker=$(stageMarker "$spec" "$lang"); then
       expect="$stage_marker,"
-    elif stage_marker=$(stageMarkerEmpty "$spec"); then
+    elif stage_marker=$(stageMarkerEmpty "$spec" "$lang"); then
       expect="$stage_marker,"
     fi
   fi
-  if ! title=$(pageTitle "$page"); then
+  if ! title=$(pageTitle "$page" "$lang"); then
     echo "unknown page: $spec" >&2
     status=1
     continue
@@ -318,7 +452,7 @@ for spec in "${pages[@]}"; do
   name=${spec//:/-}
   # A page capture proves its workbench drew; a stage capture already proves
   # more with the control that only that stage renders.
-  if [ "$page" = "$spec" ] && marker=$(pageMarker "$page"); then
+  if [ "$page" = "$spec" ] && marker=$(pageMarker "$page" "$lang"); then
     expect="$marker,"
   fi
   # In a stacked window the stage body sits below the left column, so an
