@@ -37,7 +37,7 @@ var chineseMessages = map[string]string{
 
 功能：
   - VRF 随机数生成
-  - Ed25519 签名投票与 NFT 转移
+  - Ed25519 签名投票与 NFT 转让
   - 可校验完整性的区块链存储
   - CLI、原生桌面窗口和 REST API
   - 数据库迁移与备份
@@ -191,7 +191,7 @@ nft、token）和运维命令（migrate、backup、version）。`,
 	// Commands
 	"nft.cmd":      "NFT 系统",
 	"nft.mint":     "铸造新 NFT",
-	"nft.transfer": "转移 NFT 所有权",
+	"nft.transfer": "转让 NFT 所有权",
 	"nft.burn":     "销毁 NFT",
 	"nft.list":     "列出 NFT（全部，或按持有者）",
 	"nft.get":      "根据 ID 获取 NFT",
@@ -211,7 +211,7 @@ nft、token）和运维命令（migrate、backup、version）。`,
 
 	// Messages
 	"nft.minted":             "NFT 铸造成功！",
-	"nft.transferred":        "NFT 转移成功！",
+	"nft.transferred":        "NFT 转让成功！",
 	"nft.burned":             "NFT 销毁成功！",
 	"nft.details_heading":    "NFT 详情",
 	"nft.operation_id":       "操作 ID",
@@ -222,14 +222,14 @@ nft、token）和运维命令（migrate、backup、version）。`,
 	"nft.operations_heading": "操作记录",
 	"nft.operation_line":     "%s @ 区块 #%d",
 	"nft.operation.mint":     "铸造",
-	"nft.operation.transfer": "转移",
+	"nft.operation.transfer": "转让",
 	"nft.operation.burn":     "销毁",
 
 	// Errors
 	"nft.error.init_service":    "初始化 NFT 服务失败",
 	"nft.error.init_blockchain": "初始化区块链失败",
 	"nft.error.mint":            "铸造 NFT 失败",
-	"nft.error.transfer":        "转移 NFT 失败",
+	"nft.error.transfer":        "转让 NFT 失败",
 	"nft.error.burn":            "销毁 NFT 失败",
 	"nft.error.get":             "获取 NFT 失败",
 	"nft.error.list":            "列出 NFT 失败",
@@ -242,7 +242,7 @@ nft、token）和运维命令（migrate、backup、version）。`,
 	"token.cmd":               "代币（FT）系统",
 	"token.create.cmd":        "创建新代币",
 	"token.mint.cmd":          "铸造代币",
-	"token.transfer.cmd":      "转移代币",
+	"token.transfer.cmd":      "转账代币",
 	"token.approve.cmd":       "批准额度",
 	"token.transfer_from.cmd": "代付转账（使用额度）",
 	"token.burn.cmd":          "销毁代币",
@@ -273,7 +273,7 @@ nft、token）和运维命令（migrate、backup、version）。`,
 	// Messages
 	"token.created":                 "代币创建成功！ID：%s，名称：%s，符号：%s\n",
 	"token.minted":                  "代币铸造成功！",
-	"token.transferred":             "代币转移成功！",
+	"token.transferred":             "代币转账成功！",
 	"token.approved":                "额度批准成功！",
 	"token.burned":                  "代币销毁成功！",
 	"token.total":                   "总计",
@@ -297,7 +297,7 @@ nft、token）和运维命令（migrate、backup、version）。`,
 	"token.error.generate_key":             "生成密钥失败",
 	"token.error.create":                   "创建代币失败",
 	"token.error.mint":                     "铸造代币失败",
-	"token.error.transfer":                 "转移代币失败",
+	"token.error.transfer":                 "转账代币失败",
 	"token.error.approve":                  "批准额度失败",
 	"token.error.transfer_from":            "代付转账失败",
 	"token.error.burn":                     "销毁代币失败",

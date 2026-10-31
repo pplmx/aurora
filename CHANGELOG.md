@@ -28,6 +28,14 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **An NFT transfer and a token transfer keep their own words**: the guide and
+  the window move an asset with 转让 and money with 转账, and the CLI used 转移
+  for both. The distinction is not decoration — the two records are different
+  operations, and one verb made them read alike in the history and in the help.
+- **The vocabulary test covers the pair**: its rule for a Traditional spelling
+  used to be a lookup table of four words, which silently mapped a new entry to
+  the empty string. Each concept now carries both spellings.
+
 - **The command line and the window name the voter the same word**: the CLI
   said 投票人 twelve times and the window and every document said 选民 — nobody
   sees both at once, so nothing failed until an operator moved from one to the
