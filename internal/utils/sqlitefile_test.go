@@ -261,3 +261,17 @@ func TestSQLiteDiskUsageCountsSidecars(t *testing.T) {
 	require.NoError(t, os.Remove(dbPath+"-wal"))
 	assert.Equal(t, int64(120), SQLiteDiskUsage(dbPath))
 }
+
+// TestEnsureSQLiteDirectoryRejectsADirectoryPath: a configured db.path that
+// names a directory used to surface as SQLite's "unable to open database file
+// (14)" on the first write, which names neither the path nor the reason.
+func TestEnsureSQLiteDirectoryRejectsADirectoryPath(t *testing.T) {
+	dir := t.TempDir()
+	err := EnsureSQLiteDirectory(dir)
+	if err == nil {
+		t.Fatal("EnsureSQLiteDirectory accepted a directory as the database path")
+	}
+	if !strings.Contains(err.Error(), "is a directory") {
+		t.Fatalf("error = %v, want it to say the path is a directory", err)
+	}
+}
