@@ -28,6 +28,15 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The guide describes the language card as it now is**: it still said the
+  card leaves all three radios unchecked while following and that Follow System
+  is a separate control outside the group — both true before the options became
+  one group of four. It now names the four options in order and says following
+  the system is the group's first entry, matching the Appearance card below it.
+- **A test ties that sentence to the options the card draws**: the card changed
+  shape twice and the guide described the old shape both times, so the names it
+  promises are checked against the list in `languageChooser`.
+
 - **Follow-the-system is a radio in the language group, not a button beside
   it**: the card answered the same question as the Appearance card below —
   "follow the system, or pick one" — with a different control, and no radio in
