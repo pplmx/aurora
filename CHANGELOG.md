@@ -1009,7 +1009,7 @@ The milestone notes under `.planning/` are history, not current instructions.
 - **The last untranslated sentinel**: an audit payload that cannot be decoded
   (`ErrInvalidPayload`, "invalid event payload") had no CLI translation entry, so
   a Chinese line would carry the English sentence. With it mapped, all
-   eighty-five domain sentinels the CLI can report have a Chinese form.
+  eighty-five domain sentinels the CLI can report have a Chinese form.
 - **Five more service messages read Chinese in the window**: a fetch with no
   body, an oversized import, a draw that failed its integrity or could not be
   found, and an empty public key were the last reachable sentinel texts without
