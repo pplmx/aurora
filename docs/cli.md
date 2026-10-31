@@ -274,40 +274,71 @@ stdout 只有这一个文档，可直接交给 jq。
 `aurora backup restore <备份目录>.pre_restore --confirm` 回滚，命令结束时会打印
 这条路径。
 
-## 确认门与错误输出
+## 确认门
 
-- `token burn`、`nft burn`、`oracle source delete`、`migrate down`、
-  `migrate repair`、`backup restore`、`lottery reset` 需要 `-y/--confirm`。
-  缺少确认会以非零退出码拒绝，便于脚本判断。
-- 失败只打印一行错误前缀（英文界面为 `❌ Error: ...`，中文界面为
-  `❌ 错误：...`，同时写结构化日志）后 `exit 1`；token 操作已提交但审计事件
-  发布失败时打印“已提交、请勿重试”的专用警告，退出码同样非零。
-- `[log] level/path` 在命令执行前加载，默认写入 `./logs/aurora.log`；Unix-like
-  系统上目录为 `0700`、文件为 `0600`。数据库所在的目录同样以 `0700` 创建（文件
-  本身 `0600`）；已存在的父目录保持原有权限，`MkdirAll` 只作用于新建层级。日志文件不可用时，结构化回退日志写入
-  `stderr`，`stdout` 只保留命令结果。`[log] level` 无法解析时（例如写成
-  `warning`，合法值是 `warn`）会在启动时向 `stderr` 警告并退回 `info`。
-- 日志按追加写入，不做自动轮转；长期运行的服务请用 logrotate、systemd-journald
-  等外部机制按大小或时间切分，`aurora.log` 位于 `[log] path`。
-- 显式 `--config` 缺失或配置文件语法错误会直接中止，不会静默回退到默认数据库；
-  只有默认 `$HOME` / `./config` 搜索不到配置时才使用默认值。
-- 全局 `--http-timeout` 覆盖 `[http] timeout`，即 CLI 读取预言机数据源时的
-  出站请求超时；接受 `30s`、`1m` 这样的时长或直接写秒数 `10`。无法解析的值
-  会在命令执行前报错退出，不会静默退回默认的 10s（`[http] timeout` 同样作用于
-  服务端的出站抓取，见 `config/aurora.toml`）。
-- 配置文件里的时长同样校验：`[http] timeout`、`http.rateLimit.window`、
-  `oracle.scheduler.checkInterval` 写成 `1am` 这类无法解析的值时，CLI 会在命令
-  执行前、`aurora-api` 会在绑定端口前中止并指出具体键；`0s` 与负值不属于错误，
-  仍按文档回退到默认值，但字符串形式不会再绕过这条规则（`net/http` 会把
-  非正的客户端超时当作完全不超时）。
-- 所有输出遵循语言环境变量 `LC_ALL` → `LANGUAGE` → `LC_MESSAGES` → `LANG`
-  的优先级；全未设置时才使用 `[i18n] locale`。`aurora <cmd> --help` 同样
-  本地化，命令结果中的字段名、分页偏移、状态、操作类型和完整错误路径也会
-  跟随当前语言，包括必填/未知参数、位置参数数量、未知命令建议和未知帮助
-  主题；`[i18n] locale` 可使用 `en`/`zh` 或对应的 BCP 47 标签（如
-  `zh-CN`、`zh-Hans`；`zh-Hant`、`zh-TW`、`zh-HK` 选择繁体表）。无法识别的
-  文件系统、网络或数据库技术细节会原样保留，
-  避免翻译掩盖排障信息。
+破坏性命令先确认再执行，与桌面端弹窗同一语义：
+
+| 命令                              | 作用                   |
+| --------------------------------- | ---------------------- |
+| `token burn`                      | 永久销毁代币           |
+| `nft burn`                        | 永久销毁 NFT           |
+| `oracle source delete`            | 删除数据源及其调度条目 |
+| `migrate down` / `migrate repair` | 回滚迁移 / 清除脏标记  |
+| `backup restore`                  | 用备份覆盖当前数据库   |
+| `lottery reset`                   | 清空抽奖记录           |
+
+都接受 `-y` / `--confirm`。缺少确认时以非零退出码拒绝，脚本先看 `$?` 再看输出。
+
+## 错误与退出码
+
+失败只打印一行错误前缀后退出：英文界面为 `❌ Error: ...`，中文界面为
+`❌ 错误：...`，同时写结构化日志。退出码恒为非零。
+
+token 操作已提交、但审计事件发布失败时，打印“已提交、请勿重试”的专用警告，
+退出码同样非零——重试会造成第二次扣款或增发，这条警告优先于通用错误格式。
+
+`lottery import`、`lottery verify` 与 `blockchain verify` 即使打印了完整文档，
+只要有被拒或失败的项，退出码仍非零（见上文各节）。
+
+## 配置诊断
+
+- **显式 `--config` 缺失或语法错误直接中止**，不会静默回退到默认数据库。只有
+  `$HOME` / `./config` 两处默认搜索都找不到配置时，才使用内置默认值。
+- **全局 `--http-timeout` 覆盖 `[http] timeout`**，即 CLI 读取预言机数据源时的
+  出站请求超时；接受 `30s`、`1m` 这样的时长，或直接写秒数 `10`。无法解析的值
+  在命令执行前报错退出，不会静默退回默认的 10s。同一个键也作用于服务端的出站
+  抓取，见 `config/aurora.toml`。
+- **配置里的时长同样校验**：`[http] timeout`、`http.rateLimit.window`、
+  `oracle.scheduler.checkInterval` 写成 `1am` 这类无法解析的值时，CLI 在命令
+  执行前、`aurora-api` 在绑定端口前中止并指出具体键。`0s` 与负值不算错误，仍
+  回退到默认值；但字符串形式不会绕过这条规则——`net/http` 会把非正的客户端
+  超时当作完全不超时。
+
+## 日志与文件权限
+
+- `[log] level/path` 在命令执行前加载，默认写入 `./logs/aurora.log`。
+- Unix-like 系统上，日志目录为 `0700`、文件为 `0600`；数据库目录同样以 `0700`
+  创建，文件本身 `0600`。已存在的父目录保持原有权限，`MkdirAll` 只作用于新建
+  层级。
+- 日志文件不可用时，结构化回退日志写入 `stderr`，`stdout` 只保留命令结果。
+- `[log] level` 无法解析时（例如写成 `warning`，合法值是 `warn`），启动时向
+  `stderr` 警告并退回 `info`。
+- 日志按追加写入，不做自动轮转；长期运行请用 logrotate、systemd-journald 等
+  外部机制按大小或时间切分。
+
+## 语言
+
+所有输出遵循 `LC_ALL` → `LANGUAGE` → `LC_MESSAGES` → `LANG` 的优先级；全未设置
+时才使用 `[i18n] locale`。
+
+本地化范围包括 `aurora <cmd> --help`，以及命令结果中的字段名、分页偏移、状态、
+操作类型和完整错误路径；必填/未知参数、位置参数数量、未知命令建议和未知帮助
+主题同样跟随语言。
+
+`[i18n] locale` 接受 `en`/`zh` 或对应的 BCP 47 标签（`zh-CN`、`zh-Hans` 为简体；
+`zh-Hant`、`zh-TW`、`zh-HK` 为繁体）。
+
+无法识别的文件系统、网络或数据库技术细节原样保留，避免翻译掩盖排障信息。
 
 ## 交互式界面
 
