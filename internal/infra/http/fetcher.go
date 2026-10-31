@@ -43,7 +43,9 @@ var (
 	// would reach an internal/private address (SSRF) or a non-HTTP(S) scheme.
 	// Blocks a hostile source from probing 127.0.0.1, 169.254.169.254,
 	// RFC1918 space, etc., even when DNS changes between validation and dial.
-	ErrBlockedDestination = errors.New("blocked destination")
+	// The policy itself lives in internal/netguard, which the redirect policy,
+	// the dial guard and the Oracle source validator all consult.
+	ErrBlockedDestination = netguard.ErrBlockedDestination
 	ErrTooManyRedirects   = errors.New("too many redirects")
 )
 
@@ -51,62 +53,6 @@ var (
 // 10 MiB is generous for price feeds / on-chain data and small enough
 // to keep the process memory-safe even under sustained attack.
 const maxResponseBytes = 10 * 1024 * 1024
-
-func isBlockedIP(ip net.IP) bool {
-	return netguard.IsBlockedIP(ip)
-}
-
-func hostWithoutPort(host string) string {
-	host = strings.TrimSpace(host)
-	if h, _, err := net.SplitHostPort(host); err == nil {
-		return h
-	}
-	return host
-}
-
-func parseIPLiteralHost(host string) net.IP {
-	host = hostWithoutPort(host)
-	if ip := net.ParseIP(host); ip != nil {
-		return ip
-	}
-	if strings.HasPrefix(host, "[") && strings.HasSuffix(host, "]") {
-		return net.ParseIP(host[1 : len(host)-1])
-	}
-	return nil
-}
-
-// isBlockedHost reports whether host (optionally host:port) is an IP literal
-// inside a blocked range.
-func isBlockedHost(host string) bool {
-	ip := parseIPLiteralHost(host)
-	if ip == nil {
-		return false
-	}
-	return isBlockedIP(ip)
-}
-
-// validateDialDestination is the last line of SSRF defense. The URL-level
-// checks resolve a hostname before the request, but net/http resolves it again
-// when dialing, which leaves a DNS-rebinding window between the two lookups.
-// Dialer.ControlContext sees the concrete address immediately before connect,
-// so a public answer that later resolves to a private address is still refused.
-func validateDialDestination(address string) error {
-	host, _, err := net.SplitHostPort(address)
-	if err != nil {
-		return fmt.Errorf("%w: invalid dial address %q", ErrBlockedDestination, address)
-	}
-	if i := strings.LastIndexByte(host, '%'); i >= 0 {
-		host = host[:i]
-	}
-	ip := net.ParseIP(host)
-	if ip == nil {
-		return fmt.Errorf("%w: unresolved dial address %q", ErrBlockedDestination, address)
-	}
-	if isBlockedIP(ip) {
-		return fmt.Errorf("%w: dial target %q", ErrBlockedDestination, address)
-	}
-	return nil
-}
 
 type proxyDialState struct {
 	proxied atomic.Bool
@@ -118,37 +64,7 @@ func checkDialDestination(ctx context.Context, _, address string, _ syscall.RawC
 	if state, _ := ctx.Value(proxyDialContextKey{}).(*proxyDialState); state != nil && state.proxied.Load() {
 		return nil
 	}
-	return validateDialDestination(address)
-}
-
-// redirectHostBlocked decides whether a redirect target host is out of bounds.
-// It handles IP literals directly and resolves hostnames so redirects aimed at
-// localhost, cloud-metadata names, or other internal DNS entries are refused
-// just like literal private IPs. An unresolved/invalid host is treated as
-// blocked (we must not follow a redirect whose destination we cannot verify).
-// Resolution is bounded by a short timeout so a poisoned/stuck resolver cannot
-// hang the fetch indefinitely.
-func redirectHostBlocked(host string) (bool, error) {
-	host = hostWithoutPort(host)
-	if ip := parseIPLiteralHost(host); ip != nil {
-		return isBlockedIP(ip), nil
-	}
-	if strings.ContainsAny(host, "[]") {
-		return false, fmt.Errorf("invalid bracketed host %q", host)
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-	defer cancel()
-	addrs, err := net.DefaultResolver.LookupIPAddr(ctx, host)
-	if err != nil {
-		return false, fmt.Errorf("resolve %q: %w", host, err)
-	}
-	for _, a := range addrs {
-		if isBlockedIP(a.IP) {
-			return true, nil
-		}
-	}
-	return false, nil
+	return netguard.ValidateDialAddress(address)
 }
 
 // checkRedirectAllowed is the http.Client redirect policy: it refuses
@@ -164,7 +80,7 @@ func checkRedirectAllowed(req *http.Request, via []*http.Request) error {
 	if scheme != "http" && scheme != "https" {
 		return fmt.Errorf("%w: scheme %q", ErrBlockedDestination, req.URL.Scheme)
 	}
-	blocked, err := redirectHostBlocked(req.URL.Host)
+	blocked, err := netguard.HostBlocked(req.URL.Host)
 	if err != nil {
 		return errdetail.Wrap(ErrBlockedDestination, err)
 	}

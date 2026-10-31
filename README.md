@@ -199,7 +199,7 @@ internal/
 ├── i18n/       # 国际化（英文、简体、繁体；繁体由 tools/genzhhant 生成）
 ├── logger/     # zerolog 装配（级别、文件、权限）
 ├── metrics/    # 请求指标注册表与 Prometheus 文本
-├── netguard/   # 出站地址校验（SSRF 守卫，纯函数）
+├── netguard/   # 出站地址策略（SSRF 守卫，纯函数）：阻断段、主机解析、拨号地址
 ├── records/    # 账本载荷解码：模块 / 动作 / 对象 / 事实（三端共用）
 ├── background/ # 后台工作：停止函数等在途工作真正退出后才返回
 ├── repocheck/  # 仓库级契约测试（格式、工具链、纯 Go 边界、文档一致性）

@@ -174,7 +174,7 @@ internal/
 ├── config/            # 配置加载、默认值与校验
 ├── logger/            # zerolog 装配（级别、文件、权限）
 ├── metrics/           # 请求指标注册表与 Prometheus 文本
-├── netguard/          # 出站地址校验（SSRF 守卫）
+├── netguard/          # 出站地址策略（SSRF 守卫）：阻断段、主机解析与拨号地址校验
 ├── background/        # 后台循环辅助
 ├── records/           # 账本载荷解码：模块/动作/对象/事实（CLI、REST、桌面共用）
 ├── domain/errdetail/  # 哨兵 + 可打印细节（细节不进入错误链）
