@@ -5,10 +5,13 @@ import (
 	"go/parser"
 	"go/token"
 	"os"
+	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/pplmx/aurora/internal/i18n"
@@ -262,4 +265,54 @@ func TestDesktopTranslationCoversLabelLiterals(t *testing.T) {
 	}
 	require.GreaterOrEqual(t, checked, 30,
 		"the label audit must inspect the rendered label surface")
+}
+
+// desktopSourceText returns every non-catalogue Go source under the given
+// directories, joined for a substring search.
+func desktopSourceText(t *testing.T, dirs ...string) string {
+	t.Helper()
+	var b strings.Builder
+	for _, dir := range dirs {
+		err := filepath.WalkDir(dir, func(path string, d os.DirEntry, err error) error {
+			if err != nil {
+				return err
+			}
+			if d.IsDir() || !strings.HasSuffix(path, ".go") ||
+				strings.HasPrefix(filepath.Base(path), "messages_") {
+				return nil
+			}
+			data, err := os.ReadFile(path)
+			if err != nil {
+				return err
+			}
+			b.Write(data)
+			b.WriteString("\n")
+			return nil
+		})
+		require.NoError(t, err)
+	}
+	return b.String()
+}
+
+// TestDesktopTranslationHasNoUnreadKeys keeps the desktop table from growing
+// dead weight. A key is read either by a literal in the window's own sources or
+// at run time: service errors and decoded record facts are translated by their
+// English text, so a key that appears anywhere in the service layer counts as
+// read. A key in neither place can never be shown.
+func TestDesktopTranslationHasNoUnreadKeys(t *testing.T) {
+	window := desktopSourceText(t, filepath.Join("..", ".."))
+	service := desktopSourceText(t, filepath.Join("..", "..", "..", "internal"),
+		filepath.Join("..", "..", "..", "cmd"))
+	require.NotEmpty(t, window)
+	require.NotEmpty(t, service)
+
+	var unread []string
+	for key := range desktopMessages {
+		if strings.Contains(window, key) || strings.Contains(service, key) {
+			continue
+		}
+		unread = append(unread, key)
+	}
+	sort.Strings(unread)
+	assert.Emptyf(t, unread, "these desktop keys are never read: %v", unread)
 }

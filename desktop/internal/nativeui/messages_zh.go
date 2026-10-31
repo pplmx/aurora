@@ -230,7 +230,6 @@ var desktopMessages = map[string]string{
 	"Every registered candidate. Choose one to load its id into the ballot, or add it to the new session's roster.": "所有已注册候选人。选择一位可把 ID 填入选票，或加入新会期名单。",
 	"Search candidates": "搜索候选人",
 	"Search narrows the current page; use Previous/Next for older candidates.": "搜索只缩小当前页；用上一页/下一页查看更早的候选人。",
-	"Search narrows the current page; use Previous/Next for older draws.":      "搜索只缩小当前页；用上一页/下一页查看更早的抽奖。",
 	"Name":                          "名称",
 	"Party":                         "党派",
 	"Add to session roster":         "加入会期名单",

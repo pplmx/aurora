@@ -458,7 +458,6 @@ var desktopMessagesHant = map[string]string{
 	"Search matches module, payload or height across the whole chain.":         "搜索會匹配整條鏈的模塊、載荷或高度。",
 	"Search narrows the current page; use Previous/Next for older assets.":     "搜索只縮小當前頁；用上一頁/下一頁查看更早的資產。",
 	"Search narrows the current page; use Previous/Next for older candidates.": "搜索只縮小當前頁；用上一頁/下一頁查看更早的候選人。",
-	"Search narrows the current page; use Previous/Next for older draws.":      "搜索只縮小當前頁；用上一頁/下一頁查看更早的抽獎。",
 	"Search narrows the current page; use Previous/Next for older sessions.":   "搜索只縮小當前頁；用上一頁/下一頁查看更早的會期。",
 	"Search narrows the current page; use Previous/Next for older sources.":    "搜索只縮小當前頁；用上一頁/下一頁查看更早的數據源。",
 	"Search narrows the current page; use Previous/Next for older tokens.":     "搜索只縮小當前頁；用上一頁/下一頁查看更早的代幣。",
