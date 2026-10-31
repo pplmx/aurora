@@ -326,7 +326,7 @@ just check && just test
 - **页面是卡片**：每页把工作拆成卡片，成对的工作并排（代币：列表/创建/
   Allowance/历史对写操作与 Inspect；NFT：Collection/Mint 对
   Transfer/Burn/History 与 Inspect；投票：选民、候选人与会期列表对选票与
-  计票；投票的 Ballot 是 Cast Vote 对 Session Controls，Results 是会话查询对
+  计票；投票的 Ballot 是 Cast Vote 对 Session Controls，Results 是会期查询对
   计票卡），表格保持整行宽度。窗口
   窄于 1240px 时两列改为上下堆叠；系统字号放大时阈值按同一比例提高，不再让控件
   挤出卡片。代币的 Allowance 只读查询留在左栏，Inspect 与五种写操作（Mint、
@@ -377,7 +377,7 @@ just check && just test
   窗口（原生文本不可选中，表格又只显示截断值）。
 - **最近一次抽奖一键验证**：Verify 卡在 History 非空时提供“Use latest draw”，
   直接把最新一条的 ID 填入并立即验票，不必先切到历史表复制。
-- **选中行的详情不丢字段**：选中会话时，表下列出会期的 Description 与候选人名单；
+- **选中行的详情不丢字段**：选中会期时，表下列出会期的 Description 与候选人名单；
   选中候选人时显示其 Program 与票数；NFT Inspect 显示铸造区块，并把 Image URL
   与 Token URI 作为可复制的行；选中预言机数据源时显示可复制的 URL 与轮询间隔
   （`not polled` 表示不会自动抓取）。这些字段都存在记录里，此前只是没有入口。

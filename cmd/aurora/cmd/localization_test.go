@@ -242,7 +242,7 @@ func TestCLIErrorWrapperPreservesCauseAndFollowsLocale(t *testing.T) {
 		setTestLocale(t, "zh")
 		assert.Equal(
 			t,
-			"统计候选人 candidate-1 的票数失败：投票人已在本次会话中投票",
+			"统计候选人 candidate-1 的票数失败：选民已在本次会期中投票",
 			err.Error(),
 		)
 		assert.NotContains(t, err.Error(), "failed to count votes")
@@ -458,14 +458,14 @@ func TestVotingResultsLocalizeChinese(t *testing.T) {
 			"--title", "年度选举", "--candidates", candidateID,
 			"--start-time", "1700000000", "--end-time", "9999999999")
 		require.NoError(t, err)
-		assert.Contains(t, out, "投票会话已创建：年度选举")
+		assert.Contains(t, out, "投票会期已创建：年度选举")
 		assert.Contains(t, out, "状态：草稿")
 		sessionID := extractField(t, out, "ID：")
 		require.NotEmpty(t, sessionID)
 
 		out, err = runCmd(t, "voting", "session", "start", "--session", sessionID)
 		require.NoError(t, err)
-		assert.Contains(t, out, "会话已开始！")
+		assert.Contains(t, out, "会期已开始！")
 
 		out, err = runCmd(t, "voting", "voter", "register", "--name", "鲍勃")
 		require.NoError(t, err)
