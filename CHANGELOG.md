@@ -1006,6 +1006,11 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **The store tests no longer inherit a closed handle**: one test closed the
+  shared database without resetting the singleton, so a later test in the package
+  (when run as part of the full suite) opened a fixture the store never created.
+  Both now reset through `ResetForTest`, which closes the handle and clears the
+  once, and the package passes under `-shuffle=on`.
 - **Test suites no longer share one database in the checkout**: the NFT and e2e
   suites called `blockchain.Init()` with no `db.path`, so the process-wide store
   opened `./data/aurora.db` inside the repository, and two suites running at once

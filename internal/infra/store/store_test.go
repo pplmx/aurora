@@ -38,7 +38,9 @@ func TestPath_HonorsConfiguredDbPath(t *testing.T) {
 	ResetForTest()
 	db, err := OpenShared()
 	require.NoError(t, err)
-	t.Cleanup(func() { _ = db.Close() })
+	// ResetForTest closes the singleton and clears the once, so the next test in
+	// this package does not inherit a closed handle.
+	t.Cleanup(ResetForTest)
 
 	var seq int
 	var name, filename string
@@ -121,6 +123,11 @@ func TestResetForTestLeavesAConfiguredDatabaseAlone(t *testing.T) {
 	dir := t.TempDir()
 	require.NoError(t, os.Chdir(dir))
 	t.Cleanup(func() { _ = os.Chdir(prevDir) })
+
+	// A sibling test may have left the singleton holding a handle of its own;
+	// drop it before opening this fixture.
+	ResetForTest()
+	t.Cleanup(ResetForTest)
 
 	configured := filepath.Join(dir, "chain.db")
 	viper.Set("db.path", configured)
