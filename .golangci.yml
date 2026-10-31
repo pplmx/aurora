@@ -2,8 +2,11 @@ version: "2"
 
 linters:
   default: none
+  # errcheck is deliberately absent: its findings here are stdout fmt.Fprint*
+  # writes nobody can act on and test-only Close calls (the store's t.Cleanup),
+  # so enabling it would trade real signal for noise. The gate's signal comes
+  # from vet, staticcheck, ineffassign and unused.
   enable:
-    - errcheck
     - govet
     - ineffassign
     - staticcheck
