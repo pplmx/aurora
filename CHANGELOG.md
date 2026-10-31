@@ -1006,6 +1006,9 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **`--help` ends with the same version facts as `--version`**: the usage block
+  stopped at the Go line, so the toolkit the window actually runs (MyGo) was
+  visible only in `--version`; both now print one shared tail.
 - **The last untranslated sentinel**: an audit payload that cannot be decoded
   (`ErrInvalidPayload`, "invalid event payload") had no CLI translation entry, so
   a Chinese line would carry the English sentence. With it mapped, all

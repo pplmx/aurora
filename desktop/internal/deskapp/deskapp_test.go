@@ -106,6 +106,9 @@ func TestUsageAndVersionText(t *testing.T) {
 	// a packaged app; a `go run` build reports only the Go line.
 	if mygo := mygoVersion(); mygo != "" {
 		require.Contains(t, version, T("app.mygo_version")+": "+mygo)
+		// --help ends with the same facts as --version: it used to stop at the Go
+		// line and omit the toolkit the window actually runs.
+		require.Contains(t, out, T("app.mygo_version")+": "+mygo)
 	}
 }
 
