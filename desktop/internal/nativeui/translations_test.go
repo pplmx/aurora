@@ -6,6 +6,7 @@ import (
 	"go/token"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -267,6 +268,10 @@ func TestDesktopTranslationCoversLabelLiterals(t *testing.T) {
 		"the label audit must inspect the rendered label surface")
 }
 
+// formatVerb matches one fmt verb: flags, width, precision, an optional argument
+// index and the verb letter.
+var formatVerb = regexp.MustCompile(`%[-+# 0-9.]*(?:\[[0-9]+\])?[a-zA-Z%]`)
+
 // desktopSourceText returns every non-catalogue Go source under the given
 // directories, joined for a substring search.
 func desktopSourceText(t *testing.T, dirs ...string) string {
@@ -315,4 +320,23 @@ func TestDesktopTranslationHasNoUnreadKeys(t *testing.T) {
 	}
 	sort.Strings(unread)
 	assert.Emptyf(t, unread, "these desktop keys are never read: %v", unread)
+}
+
+// TestDesktopTranslationKeepsThePlaceholders: the catalogue key is the English
+// sentence, so a translation that loses a verb prints "%!s(MISSING)" or drops a
+// value the sentence promised.
+func TestDesktopTranslationKeepsThePlaceholders(t *testing.T) {
+	verbs := func(s string) int {
+		count := 0
+		for _, verb := range formatVerb.FindAllString(s, -1) {
+			if verb != "%%" {
+				count++
+			}
+		}
+		return count
+	}
+	for english, chinese := range desktopMessages {
+		require.Equalf(t, verbs(english), verbs(chinese),
+			"%q keeps a different number of placeholders\n  zh: %q", english, chinese)
+	}
 }
