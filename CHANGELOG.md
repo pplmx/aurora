@@ -28,6 +28,15 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The desktop guide explains why deskapp stops at 83%**: the coverage floor is
+  70% and the package sits at 83%, which reads as room to grow. The twenty
+  uncovered functions are one-line wrappers over `mygo.App`/`mygo.Shell`, window
+  lifecycle setters, and three that read operating-system state — none has a
+  branch to assert. Raising the number would mean tests that check a global was
+  called, which pin the implementation rather than the behaviour. The guide now
+  says so, sorted into those three groups, so the next reader does not repeat the
+  attempt.
+
 - **The lint configuration states what it excludes and why, with counts**: the
   errcheck note claimed its findings were "stdout writes and test-only Close
   calls". Run against this tree it reports 28 sites — nine `fmt.Fprint*` writes
