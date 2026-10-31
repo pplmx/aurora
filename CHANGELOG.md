@@ -28,6 +28,12 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **Registering a candidate is a primary action like its neighbours**: on the
+  Voting setup page, Register Voter and Create Session were primary buttons and
+  Register Candidate, the same kind of write sitting between them, was
+  secondary. Each card has one submit action, so the three now look alike
+  instead of making one of them read as optional.
+
 - **Every metric the API reference names has to exist**: the metrics section is
   correct today, but a documented series that stops being emitted is the quiet
   kind of wrong — the dashboard or alert built on it draws an empty graph rather
