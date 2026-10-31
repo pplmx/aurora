@@ -12,6 +12,9 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **`compose.yml` drops the obsolete `version:` key**: Compose v2 ignores it and
+  warns on every command; the service, volume and network definitions are the
+  whole file, and the reason is now written beside the header.
 - **The lottery history table reads field by field**: each draw used to be a
   JSON blob cut at 200 characters, which hid fields mid-value; the table now
   prints ID, seed, winners, participant count, block height and time on their own

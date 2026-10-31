@@ -1,6 +1,7 @@
-version: '3.8'
-
 # Aurora CLI toolbox on Docker.
+#
+# No `version:` key: Compose v2 ignores it and warns that the attribute is
+# obsolete (the file is read as the current Compose Specification either way).
 #
 # The image ships only the CLI binary (cmd/aurora) — it has no HTTP listener,
 # so there are no port mappings here (the old 6666/8888 maps pointed at
