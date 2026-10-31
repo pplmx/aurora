@@ -28,6 +28,16 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **A page missing from one of the window's tables is caught now**: a page keys
+  four tables (`pageIDs`, `pageTitles`, `pageIcons`) and two order slices, and
+  every one of them fails quietly when a page is missed. A missing id makes the
+  sidebar's click resolve to nothing — `pageByID` returns false and the page
+  never opens — while a missing title renders an empty header.
+- **The ids are checked for what a choice is remembered as**: distinct,
+  non-empty, and each one resolving back to the page it came from.
+- **The two sections are checked against each other**: the module section is the
+  page order without Settings, and Settings is last.
+
 - **A configuration key the sample file never mentions is caught now**: 19 keys
   are read through viper across `internal/config` and the CLI's own defaults, and
   all 19 appear in `config/aurora.toml` with a value, a commented-out default or
