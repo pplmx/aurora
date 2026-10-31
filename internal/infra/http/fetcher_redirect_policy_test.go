@@ -101,7 +101,11 @@ func TestCheckRedirectAllowed_StopsClientLoop(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if _, err := client.Do(req); !errors.Is(err, ErrTooManyRedirects) {
+	resp, err := client.Do(req)
+	if resp != nil {
+		_ = resp.Body.Close()
+	}
+	if !errors.Is(err, ErrTooManyRedirects) {
 		t.Fatalf("redirect loop error = %v, want ErrTooManyRedirects", err)
 	}
 	if transport.calls != maxRedirects {
