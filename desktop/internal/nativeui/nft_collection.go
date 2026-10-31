@@ -63,9 +63,9 @@ func (a *App) nftReadBody(c *ui.Context) {
 
 	// The Collection card holds the whole collection; this narrows it to one
 	// owner, and Show All restores everything.
-	fieldHint(c, "Owner (base64 public key)", "Narrow the Collection card to one owner.", &a.nft.owner)
+	fieldHint(c, "Holder (base64 public key)", "Narrow the Collection card to one holder.", &a.nft.owner)
 	ui.Row(c).Gap(8).Children(func() {
-		if secondaryButton(c, "Filter by Owner", allSet(a.nft.owner)).Clicked() {
+		if secondaryButton(c, "Filter by Holder", allSet(a.nft.owner)).Clicked() {
 			a.filterNFTs()
 		}
 		if secondaryButton(c, "Show All").Clicked() {
