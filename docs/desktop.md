@@ -463,7 +463,10 @@ just check && just test
   `just gen-zh-hant <OpenCC 词典目录>` 重新生成（词典取 BYVoid/OpenCC 的
   `STPhrases.txt` 与 `STCharacters.txt`，不随仓库分发）；生成器支持
   `-check`，测试另外要求两份表的键集合一致。MyGo 绘制的数字步进按钮（`Increase`/`Decrease`
-  无障碍标签）不在 Aurora 的表里，中文界面下屏幕阅读器仍会读到英文。
+  无障碍标签）与 `ui.TimeInput` 的分段词（`hours`/`minutes`/`AM/PM`）都在
+  MyGo 内部写死、没有本地化入口，中文界面下屏幕阅读器仍会读到这几个英文词；
+  Aurora 侧的补救是给每个控件配自己的可访问名称（时/分控件分别叫“开始时间”
+  “结束时间”），让读屏先报用途再报分段词。
 - MyGo 的两套中文目录（`zh-Hans`、`zh-Hant`）都必须链接：只声明简体时
   zh-TW/zh-HK 匹配不到任何语言，MyGo 会退回英文，整个窗口变英文。
   `SetLanguages` 放在 `Start` 之前，因为启动失败会提前返回——否则失败弹窗

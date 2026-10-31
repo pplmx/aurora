@@ -12,6 +12,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The dashboard's module rails are declared once**: the four rails were
+  written out in both layouts, so a rail's title, note or summed total could
+  drift between them. They are one ordered list now, with each column naming
+  which rails it takes. The arrangement is pinned by a test: wide, the record
+  feeds lead the two scales and the second rail of each column shares a row;
+  narrow, the same four stack in module order. The hero's own stacking width
+  moved into a named constant beside the two-column one instead of a bare 860.
+
 - **The Chinese window says "Failed to load allowance" and "Use this draw for
   Verify" in Chinese**: two labels had no catalog entry, so the allowance
   read's failure and the History card's reuse action stayed English. Both are
