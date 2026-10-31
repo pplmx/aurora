@@ -28,6 +28,15 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **A language run captures every page, not two of them**: the window script
+  stopped after Settings and Dashboard because its title, page-marker and stage
+  tables were English-only, so a Chinese or Traditional run proved the switch
+  took effect and nothing else. The four tables now carry all three languages
+  and the run walks the same loop: 15 captures per language, seven of them
+  stage switches. Pressing matches a control's label exactly, so the stage tab
+  needs its own translation — the tab reads 销毁 while the button under it
+  reads 销毁…, and using one for the other fails the capture.
+
 - **The window joins its own labels the same way**: the desktop built
   "label: value" by hand in six places, and its Chinese labels carry no colon —
   the code added one — so a Chinese window showed 版本: 0.0.1 in the copied
