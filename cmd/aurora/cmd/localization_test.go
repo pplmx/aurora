@@ -418,9 +418,9 @@ func TestTokenResultsLocalizeChinese(t *testing.T) {
 			"--name", "本地币", "--symbol", "LOCAL", "--supply", "1000")
 		require.NoError(t, err)
 		assert.Contains(t, out, "代币创建成功！")
-		assert.Contains(t, out, "持有者公钥：")
-		assert.Contains(t, out, "持有者私钥：")
-		owner := extractField(t, out, "持有者公钥：")
+		assert.Contains(t, out, "所有者公钥：")
+		assert.Contains(t, out, "所有者私钥：")
+		owner := extractField(t, out, "所有者公钥：")
 		require.NotEmpty(t, owner)
 
 		out, err = runCmd(t, "token", "balance", "--token", "LOCAL", "--owner", owner)
@@ -450,7 +450,7 @@ func TestVotingResultsLocalizeChinese(t *testing.T) {
 		out, err := runCmd(t, "voting", "candidate", "add", "--name", "爱丽丝", "--party", "独立")
 		require.NoError(t, err)
 		assert.Contains(t, out, "候选人已注册：爱丽丝")
-		assert.Contains(t, out, "党派/组织：独立")
+		assert.Contains(t, out, "党派：独立")
 		candidateID := extractField(t, out, "ID：")
 		require.NotEmpty(t, candidateID)
 

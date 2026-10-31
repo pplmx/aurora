@@ -28,6 +28,20 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **`Owner` had three spellings across two surfaces**: the CLI said 持有者, the
+  window said 授权人, and the window's own test asserted 所有者. Since the guide
+  fixes 持有者 for an NFT's holder and 所有者 for the account that signs a token's
+  writes, the two surfaces now agree with the rule: `common.owner` and the
+  window's `Owner` are 所有者, the NFT key-mismatch error keeps 持有者, and the
+  three `token.owner*` entries in the CLI catalog follow the token sense.
+- **Four field labels were prepositions in the window**: `From` read 从 and `To`
+  read 到 above a transfer record, which is how a sentence fragment appears where
+  a column name belongs. They are 转出方 and 转入方, matching the CLI's
+  `common.from`/`common.to`.
+- **`Spender` and `Party` follow one word each**: 被授权方 for the account an
+  approval names, and 党派 for the candidate field; the CLI said 消费方 and
+  党派/组织 for the same two.
+
 - **`just verify` no longer repairs the tree it is validating**: `check` runs
   `gofmt -w` and `goimports -w`, so the gate that exists to report a formatting
   problem fixed the file, exited 0, and left the change in the working tree for
