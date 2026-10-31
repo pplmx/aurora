@@ -345,6 +345,7 @@ var traditionalMessages = map[string]string{
 	"migrate.repair_clean":                      "💤 數據庫沒有髒標記，無需修復（版本 %d）",
 	"migrate.repair_done":                       "✅ 已在版本 %d 清除髒標記。確認表結構後執行 `migrate up` 或 `migrate down`。",
 	"migrate.repair_long":                       "在確認表結構後清除失敗遷移留下的髒標記。不會撤銷或重跑失敗的遷移。",
+	"migrate.rolled_back":                       "已回滾: %s",
 	"migrate.short":                             "管理數據庫遷移",
 	"migrate.status":                            "顯示當前、已應用和待執行的遷移版本",
 	"migrate.status_header":                     "遷移狀態",

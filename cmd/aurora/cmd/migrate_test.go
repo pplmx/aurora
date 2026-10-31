@@ -277,6 +277,7 @@ func TestMigrateDown_StepsAndBottom(t *testing.T) {
 			out, err := runCmd(t, "migrate", "down", "1", "--confirm")
 			require.NoError(t, err)
 			assert.Contains(t, out, fmt.Sprintf("Current version: %d", previous))
+			assert.Contains(t, out, fmt.Sprintf("Rolled back: %d", version), "the rollback names the migration it removed")
 			assert.Equal(t, previous, appliedSchemaVersion(t))
 
 			switch version {
@@ -499,5 +500,37 @@ func TestMigrateUp_NamesTheAppliedMigrations(t *testing.T) {
 		out, err = runCmd(t, "migrate", "up")
 		require.NoError(t, err)
 		assert.NotContains(t, out, "Applied: ", "a second run applies nothing")
+	})
+}
+
+// TestMigrateDown_NamesTheRolledBackMigrations: the mirror of the up case —
+// "current version 4" alone does not say which three migrations a `down 3`
+// removed, and newest-first order matters when reading the schema back.
+func TestMigrateDown_NamesTheRolledBackMigrations(t *testing.T) {
+	withTempDir(t, func(t *testing.T) {
+		setMigrationsPathForTest(t)
+
+		_, err := runCmd(t, "migrate", "up")
+		require.NoError(t, err)
+
+		versions := migrationVersions(t)
+		const steps = 3
+		// The list is ascending, like every other version list the CLI prints;
+		// what a rollback removed is the tail of the applied list.
+		want := make([]string, 0, steps)
+		for _, v := range versions[len(versions)-steps:] {
+			want = append(want, strconv.FormatUint(uint64(v), 10))
+		}
+		out, err := runCmd(t, "migrate", "down", strconv.Itoa(steps), "--confirm")
+		require.NoError(t, err)
+		assert.Contains(t, out, "Rolled back: "+strings.Join(want, ", "))
+
+		// Roll the rest back, then the no-op answer names nothing.
+		_, err = runCmd(t, "migrate", "down", strconv.Itoa(len(versions)-steps), "--confirm")
+		require.NoError(t, err)
+		out, err = runCmd(t, "migrate", "down", "--confirm")
+		require.NoError(t, err)
+		assert.Contains(t, out, "No migrations to roll back")
+		assert.NotContains(t, out, "Rolled back: ")
 	})
 }
