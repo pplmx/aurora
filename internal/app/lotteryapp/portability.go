@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 
 	"github.com/pplmx/aurora/internal/domain/lottery"
 	"github.com/pplmx/aurora/internal/utils"
@@ -115,6 +116,14 @@ func WriteRecordsToFile(repo lottery.Repository, path string) (count int, err er
 	// is an explicit copy, not the default state of the file.
 	if err := utils.WriteFileAtomic(path, document, 0o600); err != nil {
 		return 0, err
+	}
+	// WriteFileAtomic keeps an existing file's bits, so a document exported
+	// before this rule would stay readable by other accounts; tighten it the way
+	// the backup writer does. Windows inherits the user's ACL instead.
+	if runtime.GOOS != "windows" {
+		if err := os.Chmod(path, 0o600); err != nil {
+			return 0, fmt.Errorf("restrict export file %s: %w", path, err)
+		}
 	}
 	return count, nil
 }
