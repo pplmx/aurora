@@ -28,6 +28,15 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The vocabulary rule reaches the documents**: the catalogs were checked for
+  the retired spellings and the prose was not, which is where an old word comes
+  back — copied from a release note, or written from memory. A document that
+  says 会话 for a voting session carries a word neither surface uses.
+- **Five more term pairs were examined and left alone**: 删除/移除/销毁,
+  获取/读取, 保存/存储, 清除, 小数位. Each pair separates an operator's action from
+  the state it leaves or the English verb behind it, and collapsing them would
+  lose the distinction rather than tidy it.
+
 - **The drain window in the reference is checked against the constant**: the
   API section states that a stopped server finishes within 15s, and nothing tied
   that number to `shutdownTimeout`. A server that stops sooner than documented
