@@ -365,7 +365,10 @@ func TestValidatedFieldsAttachErrorsToTheirControls(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, strings.Contains(string(controls), "attachFieldError(c, f, label, message)"),
 		"validated fields must pass their error through the shared field-error path")
-	require.True(t, strings.Contains(string(controls), "c.Announce(fmt.Sprintf(\"%s: %s: %s\", tr(\"Failed\"), tr(label), localized))"),
+	// The announcement joins the outcome word, the field and the reason. It is
+	// matched on the label helper rather than the literal string, so a change to
+	// the separator the language uses does not read as a broken announcement.
+	require.True(t, strings.Contains(string(controls), `c.Announce(labelText(labelText(tr("Failed"), tr(label)), localized))`),
 		"a new validation error must be announced even while focus remains on Submit")
 }
 

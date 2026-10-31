@@ -9,6 +9,21 @@ import "github.com/pplmx/aurora/internal/i18n"
 // shared catalog.
 func tr(text string) string { return Translate(text) }
 
+// labelText joins a label and its value with the separator the language uses,
+// the same rule the CLI applies: Chinese puts a full-width colon after a label,
+// and the desktop tables already translate every label into Chinese without
+// one. Joining by hand hard-coded the half-width form, so a Chinese window
+// showed 版本: 0.0.1 in its diagnostics text and announced "失败: 读取: …".
+func labelText(label, value string) string {
+	return label + i18n.GetTranslator().Separator() + value
+}
+
+// colonText is the separator alone, for a heading that names a group of lines
+// rather than a single value.
+func colonText() string {
+	return i18n.Colon()
+}
+
 // Translate is tr for callers outside the view package, such as the desktop
 // shell's dialogs. It only consults a desktop table when the shared translator
 // is in Chinese; English keeps the literal key. The desktop vocabulary is not
