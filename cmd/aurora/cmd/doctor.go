@@ -95,7 +95,7 @@ func runDoctor() []doctorCheck {
 	}
 	checks = append(checks, doctorCheck{
 		Name: "database", Status: doctorOK,
-		Detail: fmt.Sprintf("%s (%s)", path, utils.FormatBytes(utils.SQLiteDiskUsage(path))),
+		Detail: path + i18n.Paren(utils.FormatBytes(utils.SQLiteDiskUsage(path))),
 	})
 
 	checks = append(checks, doctorMigrationsCheck())

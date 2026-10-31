@@ -42,3 +42,21 @@ func TestLabelJoinsWithoutDoublingTheSeparator(t *testing.T) {
 	require.Equal(t, "区块：12", Label("区块", 12))
 	require.Equal(t, "头区块：0bf0ca", Label("头区块", "0bf0ca"))
 }
+
+// TestParenMatchesTheLanguage covers the bracket around a note. Chinese sets it
+// against the preceding word and the Latin spelling keeps a space, so the
+// helper owns the space rather than each call site guessing.
+func TestParenMatchesTheLanguage(t *testing.T) {
+	translator := GetTranslator()
+	before := translator.GetLocale()
+	t.Cleanup(func() { translator.SetLocale(before) })
+
+	translator.SetLocale("en")
+	require.Equal(t, " (80.1 KiB)", Paren("80.1 KiB"))
+
+	translator.SetLocale("zh")
+	require.Equal(t, "（80.1 KiB）", Paren("80.1 KiB"))
+
+	translator.SetLocale("zh-Hant")
+	require.Equal(t, "（80.1 KiB）", Paren("80.1 KiB"))
+}
