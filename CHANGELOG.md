@@ -28,6 +28,17 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The ledger card's page size and three states are covered**: the page-size
+  clamp is pure arithmetic feeding a query, so its bounds are worth pinning
+  rather than reading — zero, a negative value and one under the floor all
+  become the floor; one over the ceiling becomes the ceiling; a fraction
+  truncates. The card's three states are told apart too: an unverified ledger
+  asks for a refresh, a verified one shows the head as its identity, and a
+  broken one says so instead of leaving the counters to imply health. An
+  unverified page turned out to be reachable only before the services are
+  wired, because showing the page loads it. `nativeui` coverage rose from 94.4%
+  to 94.7%.
+
 - **The request limits are a table instead of four separate bullets**: the body
   cap, the header cap, the rate limiter and CORS each held one sentence about a
   limit or a switch, so comparing them meant reading four places to learn which
