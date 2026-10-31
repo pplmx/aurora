@@ -28,6 +28,19 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The desktop guide matches how the language card now behaves**: it said the
+  current language carries the checked radio and that Follow System is a
+  separate action. Since the choice is recorded, that is no longer what the card
+  shows — following the system leaves every radio unchecked and writes "Follow
+  System · English" in the current row. The guide now explains what the check
+  marks answer, and the Settings summary says the same.
+- **The three choice restorers are covered**: `restoreSourceChoice`,
+  `restoreVoterChoice` and `restoreCandidateChoice` store a row's id rather than
+  its index, so a filter that reorders the list still lands on the same record
+  and a vanished record leaves nothing highlighted. Tests cover all three
+  properties — position after filtering, missing record, and an empty id.
+  `nativeui` coverage rose from 93.9% to 94.2%.
+
 - **The page-status clear and the services accessor are covered**:
   `clearPageStatus` switches over the five pages that carry an outcome line, and
   one missing case would keep a stale "Done" on that page while the rest kept
