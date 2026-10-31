@@ -28,6 +28,14 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **Completed removals in the architecture checklist are verified**: the
+  document contradicted itself once, marking the `DBPath`/`InitDB`/`OpenDB`
+  removal done while another file still listed those symbols as open work. A
+  `repocheck` test now reads every completed item that records a removal, finds
+  the package it names, and fails if the package still declares one of those
+  symbols — so re-adding a deleted API cannot leave a stale "done" behind. Only
+  removals are checked automatically; renames and moves depend on judgement.
+
 - **The ablation report stopped calling two solved problems open**: its
   "known architecture debt" section listed three pieces of evidence that
   `blockchain` owned the store; two of them — the `dbInstance` singleton and
