@@ -28,6 +28,13 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The window joins its own labels the same way**: the desktop built
+  "label: value" by hand in six places, and its Chinese labels carry no colon —
+  the code added one — so a Chinese window showed 版本: 0.0.1 in the copied
+  diagnostics text and announced "失败: 读取: …" to a screen reader, beside
+  translated words. `labelText` and `colonText` take the separator from the
+  language, as the CLI does now.
+
 - **A printed label uses the colon its language uses**: Chinese prose puts a
   full-width colon after a label, and all 55 Chinese entries in the message table
   already did — but the labels printed by the CLI passed a hard-coded half-width

@@ -107,7 +107,7 @@ func attachFieldError(c *ui.Context, field ui.Element, label, message string) {
 		return
 	}
 	*last = localized
-	c.Announce(fmt.Sprintf("%s: %s: %s", tr("Failed"), tr(label), localized))
+	c.Announce(labelText(labelText(tr("Failed"), tr(label)), localized))
 }
 
 // The page's three action styles. Every button comes from one of them, so the

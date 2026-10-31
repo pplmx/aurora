@@ -177,7 +177,7 @@ func (a *App) settingsLiveUpdatesCard(c *ui.Context) {
 			if a.actions.SetLiveUpdates != nil {
 				if err := a.actions.SetLiveUpdates(a.liveUpdates); err != nil {
 					a.settingsStatus = errorStatusText(
-						tr("Couldn't save settings") + ": " + localizeServiceError(err))
+						labelText(tr("Couldn't save settings"), localizeServiceError(err)))
 				}
 			}
 		}
@@ -207,7 +207,7 @@ func (a *App) settingsAppearanceCard(c *ui.Context) {
 			if a.actions.SetThemeMode != nil {
 				if err := a.actions.SetThemeMode(mode); err != nil {
 					a.settingsStatus = errorStatusText(
-						tr("Couldn't save settings") + ": " + localizeServiceError(err))
+						labelText(tr("Couldn't save settings"), localizeServiceError(err)))
 				}
 			}
 		}
@@ -278,7 +278,7 @@ func (a *App) diagnosticsText() string {
 	rows := a.aboutRows()
 	lines := make([]string, 0, len(rows)+1)
 	for _, row := range rows {
-		lines = append(lines, tr(row.label)+": "+row.value)
+		lines = append(lines, labelText(tr(row.label), row.value))
 	}
 	if a.actions.LedgerFacts != nil {
 		if blocks, head, valid, ok := a.actions.LedgerFacts(); ok {
@@ -353,7 +353,7 @@ func (a *App) renderForgetKeysDialog(c *ui.Context) {
 func reportLanguageSaveError(a *App) func(error) {
 	return func(err error) {
 		a.settingsStatus = errorStatusText(
-			tr("Couldn't save settings") + ": " + localizeServiceError(err))
+			labelText(tr("Couldn't save settings"), localizeServiceError(err)))
 	}
 }
 

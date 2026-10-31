@@ -179,9 +179,9 @@ func inlineStatus(c *ui.Context, s statusLine) {
 // cannot infer success or failure from the red and green tints.
 func statusAnnouncementText(s statusLine) string {
 	if s.isErr {
-		return tr("Failed") + ": " + s.text
+		return labelText(tr("Failed"), s.text)
 	}
-	return tr("Done") + ": " + s.text
+	return labelText(tr("Done"), s.text)
 }
 
 type announcedStatus struct {

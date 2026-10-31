@@ -155,7 +155,7 @@ func conciseText(value string, limit int) string {
 // through to its "nothing here yet" note, which would claim the store is empty
 // when the truth is that it could not be read.
 func loadWarning(c *ui.Context, what string, err error, hasContent bool) bool {
-	message := tr(what) + ": " + localizeServiceError(err)
+	message := labelText(tr(what), localizeServiceError(err))
 	// A caller that joins several reads may hand over the same cause more than
 	// once, and the strip would then state it once per line. The heading already
 	// names what failed, so a reason repeated inside the body adds length
