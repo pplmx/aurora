@@ -18,8 +18,9 @@ desktop          ─┘                                              ^
 
 规则：
 
-1. `domain` 只依赖标准库、同一层和 `internal/ledger` 的纯端口；
-   不读配置文件、不打开数据库、不写文件。
+1. `domain` 只依赖标准库、同一层、`internal/ledger` 的纯端口，以及
+   `internal/netguard` 这类无状态纯函数包；不读配置文件、不打开数据库、
+   不写文件、不做网络请求。
 2. `app` 只依赖 `domain` 的接口和纯工具；不得为了一个错误哨兵 import
    `infra`。
 3. `infra` 实现 `domain` 声明的仓储/事务/网络端口，可以依赖 `domain`。
@@ -33,19 +34,19 @@ desktop          ─┘                                              ^
 
 `go list` 显示的内部边（只列项目包）：
 
-| 包                                                         | 依赖                                             | 说明                                                                    |
-| ---------------------------------------------------------- | ------------------------------------------------ | ----------------------------------------------------------------------- |
-| `internal/domain/{lottery,nft,token,voting,oracle,events}` | 仅标准库与同层                                   | 纯领域模型、服务与仓储接口                                              |
-| `internal/infra/blockchain`                                | `ledger`, `logger`, `store`, `utils`             | 共享账本实现：区块、PoW、SQLite 持久化；账本只消费句柄                  |
-| `internal/infra/store`                                     | `utils`、`viper`                                 | 进程级 SQLite 句柄：`db.path` 解析、打开参数、文件权限；不在特性包里    |
-| `internal/ledger`                                          | 标准库                                           | 纯账本端口：`BlockWriter`、事务追加助手；domain 与应用层只依赖它        |
-| `internal/app/*`                                           | `domain`, `ledger`（`container` 例外）           | 用例编排；错误哨兵、HTTP fetcher、账本实现均已端口化                    |
-| `internal/records`                                         | 仅标准库                                         | 账本载荷解码：模块/动作/对象/事实；CLI、REST 搜索与桌面共用同一句       |
-| `internal/domain/errdetail`                                | 仅标准库                                         | 哨兵 + 可打印细节：细节只作文本，不进入错误链（`errors.Is` 只命中哨兵） |
-| `internal/infra/sqlite`                                    | 全部领域包                                       | 仓储实现                                                                |
-| `internal/api`                                             | `app`, `app/container`, `domain`, `ledger`       | HTTP 表示层；数据库、账本、HTTP 与 outbox 实现由 `app/container` 注入   |
-| `desktop/internal/deskapp`                                 | `internal/api`, `app/container`, `app`, `domain` | 桌面适配器；通过 `container.Services` 取依赖，不接触 SQLite/backup 实现 |
-| `desktop/internal/nativeui`                                | `internal/i18n`                                  | 纯视图状态与 MyGo 控件，不直接打开数据库                                |
+| 包                                                         | 依赖                                                                                                              | 说明                                                                           |
+| ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `internal/domain/{lottery,nft,token,voting,oracle,events}` | `domain/errdetail`, `domain/events`, `ledger`, `netguard`                                                         | 纯领域模型、服务与仓储接口；`oracle` 的地址校验复用 `netguard` 的阻断段        |
+| `internal/infra/blockchain`                                | `infra/store`, `ledger`, `logger`                                                                                 | 共享账本实现：区块、PoW、SQLite 持久化；账本只消费句柄                         |
+| `internal/infra/store`                                     | `utils`（另有第三方 `viper`）                                                                                     | 进程级 SQLite 句柄：`db.path` 解析、打开参数、文件权限；不在特性包里           |
+| `internal/ledger`                                          | （无内部依赖）                                                                                                    | 纯账本端口：`BlockWriter`、事务追加助手；domain 与应用层只依赖它               |
+| `internal/app/*`                                           | `domain/*`, `ledger`, `logger`, `utils`, `background`（`container` 另计）                                         | 用例编排；账本、HTTP fetcher 与存储均为注入端口                                |
+| `internal/records`                                         | （无内部依赖）                                                                                                    | 账本载荷解码：模块/动作/对象/事实；CLI、REST 搜索与桌面共用同一句              |
+| `internal/domain/errdetail`                                | （无内部依赖）                                                                                                    | 哨兵 + 可打印细节：细节只作文本，不进入错误链（`errors.Is` 只命中哨兵）        |
+| `internal/infra/sqlite`                                    | `domain/*`, `infra/events`, `utils`                                                                               | 仓储实现                                                                       |
+| `internal/api`                                             | `api/handler`, `api/middleware`, `app/container`, `app/oracleapp`, `config`, `metrics`                            | HTTP 表示层；数据库、账本、HTTP 与 outbox 实现由 `app/container` 注入          |
+| `desktop/internal/deskapp`                                 | `api`, `app/*`, `config`, `domain/*`, `i18n`, `ledger`, `logger`, `records`, `utils`, `desktop/internal/nativeui` | 桌面适配器；通过 `container.Services` 取依赖，不接触 SQLite/backup 实现        |
+| `desktop/internal/nativeui`                                | `domain/lottery`, `i18n`                                                                                          | 纯视图状态与 MyGo 控件，不直接打开数据库；写入前的预校验复用领域常量与校验函数 |
 
 ## 已识别的边界问题
 
