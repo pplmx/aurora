@@ -306,16 +306,18 @@ SQLite 事务内提交。上一会期的选票不会阻止该选民参加下一�
 
 ## NFT
 
-| 方法 | 路径                       | 说明                                                  |
-| ---- | -------------------------- | ----------------------------------------------------- |
-| POST | `/api/v1/nft/mint`         | 铸造（可选 `image_url`、`token_uri`）                 |
-| POST | `/api/v1/nft/transfer`     | 转让（签名）                                          |
-| POST | `/api/v1/nft/burn`         | 销毁（签名）                                          |
-| GET  | `/api/v1/nft/{id}`         | 单个 NFT，未知 id 404                                 |
-| GET  | `/api/v1/nft/{id}/history` | 操作历史，默认 50，支持 `limit`/`offset`；未知 id 404 |
-| GET  | `/api/v1/nft/list`         | 按 owner 分页列表                                     |
+| 方法 | 路径                       | 说明                                                        |
+| ---- | -------------------------- | ----------------------------------------------------------- |
+| POST | `/api/v1/nft/mint`         | 铸造（可选 `image_url`、`token_uri`）                       |
+| POST | `/api/v1/nft/transfer`     | 转让（签名）                                                |
+| POST | `/api/v1/nft/burn`         | 销毁（签名）                                                |
+| GET  | `/api/v1/nft/{id}`         | 单个 NFT，未知 id 404                                       |
+| GET  | `/api/v1/nft/{id}/history` | 操作历史，默认 50，支持 `limit`/`offset`；未知 id 404       |
+| GET  | `/api/v1/nft/list`         | NFT 列表，可选 `owner` 过滤；默认 20，支持 `limit`/`offset` |
 
 NFT 操作历史按最新优先从存储层分页，`limit` 上限 100，`offset` 上限 10000。
+`/nft/list` 省略 `owner` 时列出全部 NFT（新资产在前）；强制 owner 会让没有参与
+铸造的调用方只能靠 id 才能读到资产。列表的 `offset` 上限是 1000。
 
 ```json
 [{"id":"adcbadaf-a4d8-45dd-98b6-bd421ec6ae18","name":"Star","description":"First asset",
