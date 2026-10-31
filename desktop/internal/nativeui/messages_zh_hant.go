@@ -670,6 +670,8 @@ var desktopMessagesHant = map[string]string{
 	"blockchain not initialised":                        "帳本尚未初始化",
 	"no data recorded for this source yet":              "該資料源還沒有讀數",
 	"desktop settings path is empty":                    "設定檔路徑為空",
+	"custom":                                            "自訂",
+	"price":                                             "價格",
 	"rate limit exceeded":                               "請求頻率超出限制",
 	"invalid source":                                    "資料源無效",
 	"source not found":                                  "未找到資料源",

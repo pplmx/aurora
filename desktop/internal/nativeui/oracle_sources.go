@@ -82,7 +82,13 @@ func sourceCollectionRecord(c *ui.Context, source SourceRow) collectionRecord {
 	return collectionRecord{
 		title: name,
 		facts: []collectionFact{
-			{label: "Type", value: valueOr(source.Type)},
+			// The type is a word ("custom", "price") except for the template that
+			// names a format ("json"), which tr() leaves alone because it has no
+			// entry.
+			// The type is a word ("custom", "price") except for the template that
+			// names a format ("json"), which tr() leaves alone because it has no
+			// entry.
+			{label: "Type", value: tr(valueOr(source.Type))},
 			{label: "Status", value: status, tone: tone},
 			{label: "Headers", value: headers},
 		},
