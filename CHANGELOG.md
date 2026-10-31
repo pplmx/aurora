@@ -28,6 +28,16 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The desktop's NFT writes and operation trail are covered**: `TransferNFT`,
+  `BurnNFT` and `NFTHistory` had no test, so the three paths that sign with a
+  private key, check ownership and record an operation were only exercised by
+  hand. The new tests mint, transfer, read the trail and burn over an in-memory
+  store and a real chain, and assert the parts a wrong implementation would
+  still let through: the asset changes owner, the previous owner's key is
+  refused afterwards, a key that parses but belongs to someone else is refused,
+  and a burned asset is gone while its history still explains what happened.
+  `deskapp` coverage rose from 76.8% to 78.1%.
+
 - **The desktop's NFT reads are covered**: `GetNFT`, `ListNFTs` and the paging
   path they share had no test, so a field dropped from the adapter — the
   Inspect card simply showing nothing where the store has a value — could only
