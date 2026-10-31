@@ -42,7 +42,7 @@ func TestLedgerStatusWithoutAChainIsAnError(t *testing.T) {
 
 	_, err := services.LedgerStatus()
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "not initialised")
+	require.Contains(t, err.Error(), "not initialized")
 }
 
 // TestLedgerStatusReportsABrokenChain covers the state the page exists to

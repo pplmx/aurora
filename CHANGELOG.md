@@ -28,6 +28,19 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **A desktop translation could name an error no code produces**: the window
+  catalog holds English service errors as keys, matched by exact text, and
+  "blockchain not initialised" sat in it while `infra/blockchain` and `deskapp`
+  said "initialized". Two spellings of one word meant the window printed the
+  English while the catalog looked complete — no test compared the two.
+- **The catalog and the code now share one spelling**, and the removed duplicate
+  it exposed is gone: the same key appeared twice, once in the oracle error group
+  and once among the general ones.
+- **A test keeps the link**: it reads both catalogs, skips the keys the view names
+  verbatim, and requires every remaining key to be recoverable from a Go file —
+  as a whole literal, a `%w:` fragment or a concatenated prefix. 196 keys are
+  checked.
+
 - **Two listed error codes are never produced**: `NOT_TOKEN_OWNER` and
   `DUPLICATE_TRANSFER` sit in the classifier and their sentinels have existed
   since the domain layer was written, but no use case returns either. The

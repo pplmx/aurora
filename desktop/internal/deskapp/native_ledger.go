@@ -52,7 +52,7 @@ func (s *nativeServices) Dashboard() (nativeui.DashboardStats, error) {
 
 func (s *nativeServices) LedgerStatus() (nativeui.LedgerStatus, error) {
 	if s.chain == nil {
-		return nativeui.LedgerStatus{}, fmt.Errorf("blockchain not initialised")
+		return nativeui.LedgerStatus{}, fmt.Errorf("blockchain not initialized")
 	}
 	// Len takes the chain's read lock; reading the Blocks slice directly raced
 	// with a concurrent AddBlock on a busy API. The integrity report carries
@@ -80,7 +80,7 @@ func (s *nativeServices) LedgerBlocks(limit int) ([]nativeui.BlockRow, error) {
 // whole chain while only the requested page is retained.
 func (s *nativeServices) LedgerBlocksPage(search string, limit, offset int) (nativeui.LedgerBlockPage, error) {
 	if s.chain == nil {
-		return nativeui.LedgerBlockPage{}, fmt.Errorf("blockchain not initialised")
+		return nativeui.LedgerBlockPage{}, fmt.Errorf("blockchain not initialized")
 	}
 	search = strings.TrimSpace(search)
 	if search == "" {
