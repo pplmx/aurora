@@ -12,6 +12,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The lint gate also watches SQL handles and error handling**: `nilerr`,
+  `durationcheck`, `rowserrcheck` and `sqlclosecheck` join the shared config, so a
+  `rows.Err()` nobody checks, a `*sql.Rows` nobody closes, a `nil` returned next
+  to a non-nil error, and a duration multiplied by a duration fail `just lint` in
+  both modules. Four test helpers scoped their rows so `defer` covers every exit;
+  the NFT rebuild keeps its explicit close (the transaction follows immediately)
+  with the reason written beside it.
 - **The lint gate also watches error wrapping**: `errorlint` joins the shared
   config, so a sentinel compared with `==` (a wrap would slip past it) and an
   accidental `%v` fail `just lint` in both modules. The deliberate

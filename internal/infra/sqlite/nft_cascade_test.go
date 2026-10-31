@@ -53,13 +53,17 @@ func TestEnsureNoCascadeFKRebuildsAnOldDatabase(t *testing.T) {
 	t.Cleanup(func() { _ = repo.Close() })
 
 	// The FK is gone...
-	var fkCount int
-	rows, err := repo.GetDB().Query(`PRAGMA foreign_key_list(nft_operations)`)
-	require.NoError(t, err)
-	for rows.Next() {
-		fkCount++
-	}
-	require.NoError(t, rows.Close())
+	fkCount := func() int {
+		rows, err := repo.GetDB().Query(`PRAGMA foreign_key_list(nft_operations)`)
+		require.NoError(t, err)
+		defer func() { _ = rows.Close() }()
+		count := 0
+		for rows.Next() {
+			count++
+		}
+		require.NoError(t, rows.Err())
+		return count
+	}()
 	assert.Zero(t, fkCount, "nft_operations must carry no foreign key after the rebuild")
 
 	// ...and every audit row survived the copy.
@@ -71,13 +75,17 @@ func TestEnsureNoCascadeFKRebuildsAnOldDatabase(t *testing.T) {
 
 	// The indexes the rebuild drops and recreates are back, so a migrated
 	// database keeps the same query plan as a fresh one.
-	var indexCount int
-	rows, err = repo.GetDB().Query(
-		`SELECT COUNT(*) FROM sqlite_master WHERE type='index' AND tbl_name='nft_operations' AND name LIKE 'idx_nft_ops_%'`)
-	require.NoError(t, err)
-	require.True(t, rows.Next())
-	require.NoError(t, rows.Scan(&indexCount))
-	require.NoError(t, rows.Close())
+	indexCount := func() int {
+		rows, err := repo.GetDB().Query(
+			`SELECT COUNT(*) FROM sqlite_master WHERE type='index' AND tbl_name='nft_operations' AND name LIKE 'idx_nft_ops_%'`)
+		require.NoError(t, err)
+		defer func() { _ = rows.Close() }()
+		require.True(t, rows.Next())
+		var count int
+		require.NoError(t, rows.Scan(&count))
+		require.NoError(t, rows.Err())
+		return count
+	}()
 	assert.Equal(t, 2, indexCount, "both operation indexes must be recreated")
 
 	// The point of the whole rebuild: burning the NFT keeps its trail.
