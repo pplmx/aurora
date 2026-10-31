@@ -194,3 +194,27 @@ func TestDoctorFailsOnBrokenChain(t *testing.T) {
 		assert.Equal(t, "fail", ledgerStatus)
 	})
 }
+
+// TestDoctorWarnsOnAWorldReadableConfig: the configuration can hold the API key,
+// so a mode that lets another user read it is worth a warning — the command
+// still ran, so it is not a failure.
+func TestDoctorWarnsOnAWorldReadableConfig(t *testing.T) {
+	setTestLocale(t, "en")
+
+	dir := t.TempDir()
+
+	open := filepath.Join(dir, "open.toml")
+	require.NoError(t, os.WriteFile(open, []byte("[log]\nlevel = \"error\"\n"), 0o600))
+	require.NoError(t, os.Chmod(open, 0o644))
+	mode, readable := configReadableByOthers(open)
+	require.True(t, readable, "0644 lets another user read the file")
+	assert.Equal(t, "0644", mode)
+
+	private := filepath.Join(dir, "private.toml")
+	require.NoError(t, os.WriteFile(private, []byte("[log]\nlevel = \"error\"\n"), 0o600))
+	_, readable = configReadableByOthers(private)
+	assert.False(t, readable, "0600 is the mode the log file uses too")
+
+	_, readable = configReadableByOthers(filepath.Join(dir, "missing.toml"))
+	assert.False(t, readable, "a missing file is not a permission warning")
+}

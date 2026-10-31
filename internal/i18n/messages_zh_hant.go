@@ -173,6 +173,7 @@ var traditionalMessages = map[string]string{
 	"doctor.check.ledger":                       "賬本",
 	"doctor.check.migrations":                   "遷移",
 	"doctor.check.outbox":                       "審計 outbox",
+	"doctor.detail.config_open":                 "%s（權限 %s；其他用戶可讀，建議 chmod 600）",
 	"doctor.detail.defaults":                    "（內置默認值）",
 	"doctor.detail.ledger_broken":               "第 %d 塊起斷鏈：%s（區塊 %d）",
 	"doctor.detail.ledger_ok":                   "鏈完整（區塊 %d，頭 %s）",
