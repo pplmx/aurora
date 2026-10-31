@@ -28,6 +28,19 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The desktop reference is navigable**: its "架构" section was a flat list of
+  58 bullets, three of them longer than 25 lines, so finding the one that
+  answered a question meant scrolling the whole thing. It is now eight
+  subsections — window and modules, visuals, write feedback, collections,
+  copies, page skeleton, forms and selection, keyboard and screen reader, data
+  and language — each with a one-line lead, plus a contents list at the top.
+  Every bullet kept its text; the count is 73 before and after.
+- **The link audit's slug rule matches GitHub for CJK punctuation**: the check
+  treated every non-ASCII rune as a letter, so a heading "模块、工具链与 CI"
+  produced an anchor no browser would generate and a correct link failed.
+  It now keeps only letters, and a new test pins the rule with the CJK and
+  trailing-punctuation cases that were wrong.
+
 - **The token guide separates the signing rule from the storage rule**: its
   third step packed three signing keys and a storage disclaimer into one
   sentence, so the page's most important safety fact — which key signs which

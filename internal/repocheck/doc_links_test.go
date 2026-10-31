@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+	"unicode"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -18,6 +19,27 @@ var markdownLink = regexp.MustCompile(`\[[^\]]*\]\(([^)\s]+)\)`)
 
 // markdownHeading matches an ATX heading and captures its text.
 var markdownHeading = regexp.MustCompile(`(?m)^#{1,6}\s+(.+?)\s*$`)
+
+// TestHeadingAnchorFollowsGitHubSlugs pins the slug rule itself, because the
+// link check is only as good as it. Two of these were wrong before: CJK
+// punctuation was kept as if it were a letter (so "模块、工具链" and
+// "模块工具链" produced different anchors), and trailing punctuation left a
+// dangling hyphen that GitHub does not emit.
+func TestHeadingAnchorFollowsGitHubSlugs(t *testing.T) {
+	for _, tc := range []struct{ heading, want string }{
+		{"快速开始", "快速开始"},
+		{"模块、工具链与 CI", "模块工具链与-ci"},
+		{"视觉、主题与字号", "视觉主题与字号"},
+		{"文件操作与 Settings", "文件操作与-settings"},
+		{"macOS 发布签名", "macos-发布签名"},
+		{"`token burn` 与 --confirm", "token-burn-与---confirm"},
+		{"为什么是嵌套模块？", "为什么是嵌套模块"},
+		{"  spaced  out  ", "spaced-out"},
+	} {
+		require.Equalf(t, tc.want, headingAnchor(tc.heading),
+			"headingAnchor(%q)", tc.heading)
+	}
+}
 
 // TestDocumentationAnchorsResolve keeps a cross-document link usable. A link
 // into another file's heading silently rots whenever that heading is renamed —
@@ -138,14 +160,17 @@ func headingAnchor(heading string) string {
 		case r == ' ' || r == '\t':
 			pendingSpace = true
 		case r == '-' || r == '_' || (r >= '0' && r <= '9') ||
-			(r >= 'a' && r <= 'z') || r > 127:
+			(r >= 'a' && r <= 'z') || (r > 127 && unicode.IsLetter(r)):
 			if pendingSpace && b.Len() > 0 {
 				b.WriteRune('-')
 			}
 			pendingSpace = false
 			b.WriteRune(r)
 		default:
-			// Punctuation is dropped without ending the word.
+			// Punctuation is dropped without ending the word. That includes
+			// CJK punctuation: a heading "模块、工具链与 CI" slugs to
+			// "模块工具链与-ci" on GitHub, because the ideographic comma is
+			// punctuation there rather than a letter.
 		}
 	}
 	return b.String()
