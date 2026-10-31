@@ -1,6 +1,7 @@
 package nativeui
 
 import (
+	"sort"
 	"strings"
 
 	"github.com/egoist/mygo/ui"
@@ -97,6 +98,7 @@ func (a *App) votingNoSessionCard(c *ui.Context, body string) {
 func (a *App) votingCastVoteCard(c *ui.Context) {
 	formCard(c, "Cast Vote", "Sign a ballot for one candidate in one session.", func() {
 		fieldPair(c, "Session ID", &a.voting.voteSession, "Candidate ID", &a.voting.voteCandidate)
+		a.rosterCandidateChips(c)
 		field(c, "Voter Public Key", &a.voting.voteVoterPub)
 		field(c, "Voter Private Key", &a.voting.votePriv)
 		a.useSavedKeyButton(c, a.voting.voteVoterPub, &a.voting.votePriv)
@@ -106,6 +108,37 @@ func (a *App) votingCastVoteCard(c *ui.Context) {
 			}
 		})
 		inlineStatus(c, a.voting.voteResult)
+	})
+}
+
+// rosterCandidateChips turns the selected session's roster into one-click
+// candidate ids. A session stores only ids, so filling the ballot's candidate
+// field used to mean copying one out of Setup; the chips carry the names the
+// roster read resolved and write the id the ballot needs.
+func (a *App) rosterCandidateChips(c *ui.Context) {
+	sessionID := strings.TrimSpace(a.voting.voteSession)
+	if sessionID == "" || a.voting.rosterSessionID != sessionID || len(a.voting.rosterNames) == 0 {
+		return
+	}
+	type candidate struct{ id, name string }
+	candidates := make([]candidate, 0, len(a.voting.rosterNames))
+	for id, name := range a.voting.rosterNames {
+		candidates = append(candidates, candidate{id: id, name: name})
+	}
+	sort.Slice(candidates, func(i, j int) bool { return candidates[i].name < candidates[j].name })
+	ui.Column(c).FillWidth().Gap(space1).Children(func() {
+		eyebrow(c, "Candidates")
+		ui.Row(c).Wrap().Gap(space2).Children(func() {
+			for _, cand := range candidates {
+				label := cand.name
+				if label == "" {
+					label = shortID(cand.id)
+				}
+				if quietButton(c, label).Clicked() {
+					a.voting.voteCandidate = cand.id
+				}
+			}
+		})
 	})
 }
 
