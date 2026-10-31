@@ -45,6 +45,7 @@ func (a *App) votingView(c *ui.Context) {
 						"Fill in Register Voter and keep the private key it returns.",
 						"Register at least one candidate for the ballot.",
 						"Create a session with the roster and the window ballots are accepted in.",
+						"Cast signed ballots in Ballot, then read the tally in Results.",
 					)
 				})
 				return
