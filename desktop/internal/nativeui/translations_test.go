@@ -47,6 +47,10 @@ var translatedCallArgs = map[string][]int{
 	"collectionToolbar":    {2, 3},
 	"collectionList":       {1},
 	"collectionPager":      {1},
+	// chipPicker takes its label as a parameter and translates it inside
+	// eyebrow; without this entry a picker label could fall back to English
+	// in the Chinese window, invisible to a test that only reads tables.
+	"chipPicker": {1},
 }
 
 // These literals intentionally stay identical in every language: a brand,
