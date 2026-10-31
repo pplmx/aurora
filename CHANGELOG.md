@@ -12,6 +12,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **A failed list read looks like the other strips**: the in-card failure was
+  plain danger-red text, so the one state that must not be missed read as a hint
+  line among the card's other copy, and its retained-data note looked like part
+  of the error. The warning now uses the busy and status strips' shape — a
+  fading wash over a lit left edge, a mark and the word "Failed" — with the
+  reason in body ink and the stale note muted beneath it. All three strips draw
+  that wash through one `statusTintFill`.
 - **The dashboard's ledger route looks like a button**: "Open ledger" was quiet
   text at the hero's edge, so the one navigation action on the landing panel
   read like a caption. It uses the secondary button shape now, with the hover

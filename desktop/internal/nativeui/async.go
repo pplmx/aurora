@@ -75,13 +75,11 @@ func (a *App) busyBar(c *ui.Context) {
 	})
 	// The strip shares the status line's shape: a wash that fades to the right
 	// and a lit left edge, so "working" and "finished" read as the same kind of
-	// message in the same place instead of two different banners.
+	// message in the same place instead of two different banners. Its wash is
+	// the accent at a fraction of the verdict strength, because a running task
+	// is progress, not an outcome.
 	bar.Draw(func(p *ui.Painter, r ui.Rect) {
-		tint := c.Theme().Accent.Alpha(0.10)
-		p.FillGradient(r, ui.LinearGradient{Angle: 90, Stops: []ui.GradientStop{
-			{Color: tint, At: 0},
-			{Color: tint.Alpha(0.25), At: 0.9},
-		}}, radiusSmall)
+		p.FillGradient(r, statusTintFill(c.Theme().Accent.Alpha(0.10)), radiusSmall)
 	})
 	bar.Role(ui.RoleStatus).Label(text)
 	if a.busyAnnouncement != "" {

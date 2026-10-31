@@ -164,13 +164,33 @@ func loadWarning(c *ui.Context, what string, err error, hasContent bool) bool {
 	if stale != "" {
 		spoken += " " + stale
 	}
-	warning := ui.Column(c).Key(what).FillWidth().Gap(2).Role(ui.RoleStatus).Label(spoken)
+	warning := ui.Column(c).Key(what).FillWidth().Gap(2).Role(ui.RoleStatus).Label(spoken).
+		Padding(space2+2, space3+2).Radius(radiusSmall).
+		BorderWidth(0, 0, 0, 2).BorderColor(c.Theme().Danger)
+	// The failure shares the status strip's shape: a tint that fades to the
+	// right and a lit left edge. As plain red text it read as another hint
+	// line inside the card, and the one state that must not be missed was the
+	// quietest thing on the page.
+	warning.Draw(func(p *ui.Painter, r ui.Rect) {
+		p.FillGradient(r, statusTintFill(errorTint(c)), radiusSmall)
+	})
 	announceStatusChange(c, warning,
 		statusLine{text: message + "\x00" + stale, isErr: true}, spoken)
+	// The mark and the leading word are the strip's own signal, so the
+	// sentence below them does not need the danger ink as well: red body copy
+	// states the failure twice and made the retained-data line, the one that
+	// explains why the page still has rows, look like part of the error.
 	warning.Children(func() {
-		ui.Text(c, message).FontSize(textSize(c, 12)).TextColor(c.Theme().Danger)
+		ui.Row(c).FillWidth().Gap(space2 + 1).AlignItems(ui.Center).Children(func() {
+			statusDot(c, c.Theme().Danger, 7)
+			ui.Text(c, tr("Failed")).FontSize(textSize(c, 11.5)).FontWeight(700).
+				TextColor(c.Theme().Danger).SingleLine().Shrink(0)
+			ui.Text(c, message).FontSize(textSize(c, 12)).TextColor(c.Theme().Text).
+				Grow(1).Shrink(1).MinWidth(0)
+		})
 		if stale != "" {
-			ui.Text(c, stale).FontSize(textSize(c, 12)).TextColor(c.Theme().TextMuted)
+			ui.Text(c, stale).FontSize(textSize(c, 12)).TextColor(c.Theme().TextMuted).
+				Grow(1).Shrink(1).MinWidth(0)
 		}
 	})
 	return hasContent

@@ -127,10 +127,7 @@ func renderStatus(c *ui.Context, scope page, s statusLine, dismiss func()) bool 
 		BorderWidth(0, 0, 0, 2).BorderColor(tone).
 		Role(ui.RoleStatus).Label(spoken)
 	row.Draw(func(p *ui.Painter, r ui.Rect) {
-		p.FillGradient(r, ui.LinearGradient{Angle: 90, Stops: []ui.GradientStop{
-			{Color: tint, At: 0},
-			{Color: tint.Alpha(0.35), At: 0.9},
-		}}, radiusSmall)
+		p.FillGradient(r, statusTintFill(tint), radiusSmall)
 	})
 	announceStatusChange(c, row, s, spoken)
 	row.Children(func() {
