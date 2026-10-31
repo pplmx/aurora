@@ -1006,6 +1006,10 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **`nft get` keeps empty metadata out of the table**: an NFT minted without a
+  description, image URL or token URI printed those three labels with nothing
+  after them; `printLocalizedOptionalField` skips a field that has no value, so
+  the table shows only what the asset carries.
 - **A source without a path no longer prints a dangling label**: the list line
   read `Method: GET  Path:   Interval: 60s`, with the optional path empty; the
   field is omitted when the source has none, so the line says what it means.

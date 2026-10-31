@@ -219,9 +219,11 @@ var getCmd = &cobra.Command{
 		fmt.Printf("\n🎨 %s:\n", i18n.GetText("nft.details_heading"))
 		printLocalizedField("common.id", result.ID)
 		printLocalizedField("common.name", result.Name)
-		printLocalizedField("nft.description_label", result.Description)
-		printLocalizedField("nft.image_url", result.ImageURL)
-		printLocalizedField("nft.token_uri", result.TokenURI)
+		// Metadata is optional: an NFT minted without it keeps the fields out of
+		// the table instead of printing empty labels.
+		printLocalizedOptionalField("nft.description_label", result.Description)
+		printLocalizedOptionalField("nft.image_url", result.ImageURL)
+		printLocalizedOptionalField("nft.token_uri", result.TokenURI)
 		printLocalizedField("nft.creator_label", result.Creator)
 		printLocalizedField("common.owner", result.Owner)
 		fmt.Printf("   %s: #%d\n", i18n.GetText("common.block_height"), result.BlockHeight)

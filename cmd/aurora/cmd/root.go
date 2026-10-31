@@ -241,6 +241,16 @@ func printField(label, value string) {
 	fmt.Printf("   %s: %s\n", label, value)
 }
 
+// printLocalizedOptionalField skips an optional field that has no value, so the
+// table does not print a label with nothing after it (an NFT without a
+// description, an oracle source without a path).
+func printLocalizedOptionalField(key, value string) {
+	if strings.TrimSpace(value) == "" {
+		return
+	}
+	printLocalizedField(key, value)
+}
+
 // printLocalizedField resolves result labels at print time so command output
 // follows the active locale even if it changed after command registration.
 func printLocalizedField(key, value string) {
