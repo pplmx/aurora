@@ -370,8 +370,12 @@ var desktopMessages = map[string]string{
 	"Destroy tokens from an account. This cannot be undone.":    "从账户销毁代币。此操作不可撤销。",
 	"Allowance": "额度",
 	"Read how much a spender may still move.": "读取被授权方还能使用的额度。",
-	"Get Allowance":                          "读取额度",
-	"Use generated owner key":                "使用已生成的所有者密钥",
+	"Get Allowance":           "读取额度",
+	"Use generated owner key": "使用已生成的所有者密钥",
+
+	// Oracle. The order follows the page's three stages: the add form, the
+	// source actions, then health and readings. A feed's error text arrives
+	// verbatim from the source, so only the labels around it are translated.
 	"Add Source":                             "添加数据源",
 	"Preset (optional)":                      "预设（可选）",
 	"URL":                                    "URL",
@@ -418,14 +422,22 @@ var desktopMessages = map[string]string{
 	"Couldn't load readings":         "无法加载读数",
 	"Couldn't load the latest value": "无法加载最新值",
 	"Delete this source?":            "删除这个数据源？",
-	"Delete %s? Its scheduling entry is removed; readings already stored stay.":      "删除 %s？其调度条目会被移除；已存储的读数会保留。",
-	"The source and its scheduling entry are removed. Readings already stored stay.": "数据源及其调度条目会被移除；已存储的读数会保留。",
-	"The asset is destroyed and cannot be recovered.":                                "资产会被销毁且无法恢复。",
-	"Burn %s? The asset is destroyed and cannot be recovered.":                       "销毁 %s？资产会被销毁且无法恢复。",
+	"Delete %s? Its scheduling entry is removed; readings already stored stay.":                               "删除 %s？其调度条目会被移除；已存储的读数会保留。",
+	"The source and its scheduling entry are removed. Readings already stored stay.":                          "数据源及其调度条目会被移除；已存储的读数会保留。",
+	"Select a source in Sources to fetch it now, enable/disable it, or delete it.":                            "在“数据源”中选择数据源后，可立即抓取、启用/禁用或删除。",
+	"Health shows the scheduler's attempts and last error; Readings queries stored values or the latest one.": "“健康”显示调度器的尝试次数和最近错误；“读数”可查询已存储的值或最新值。",
+
+	// Confirmation prompts shared by the destructive writes. The dialog states
+	// the concrete target, so these carry placeholders for it.
+	"The asset is destroyed and cannot be recovered.":          "资产会被销毁且无法恢复。",
+	"Burn %s? The asset is destroyed and cannot be recovered.": "销毁 %s？资产会被销毁且无法恢复。",
 	"Burn this NFT?": "销毁这个 NFT？",
 	"Burning destroys the amount permanently. This cannot be undone.":                "销毁会永久移除这些代币，且无法撤销。",
 	"Burn %s from %s? The tokens are destroyed permanently and cannot be recovered.": "从 %[2]s 销毁 %[1]s？代币会被永久销毁且无法恢复。",
 	"Burn tokens?": "销毁代币？",
+
+	// Required-field and pre-write refusals. Each names the fields the form
+	// asked for, so the message matches the inputs the operator is looking at.
 	"Token name, symbol, supply, and owner are required.":                                                                                 "代币名称、符号、供应量和所有者均为必填项。",
 	"Token ID, recipient, amount, and private key are required.":                                                                          "代币 ID、接收方、数量和私钥均为必填项。",
 	"Token ID, sender, recipient, amount, and private key are required.":                                                                  "代币 ID、发送方、接收方、数量和私钥均为必填项。",
@@ -486,8 +498,6 @@ var desktopMessages = map[string]string{
 	"Couldn't load NFT history":  "无法加载 NFT 历史",
 	"Failed to load NFTs":        "加载 NFT 失败",
 	"Use generated creator key":  "使用已生成的创建者密钥",
-	"Select a source in Sources to fetch it now, enable/disable it, or delete it.":                            "在“数据源”中选择数据源后，可立即抓取、启用/禁用或删除。",
-	"Health shows the scheduler's attempts and last error; Readings queries stored values or the latest one.": "“健康”显示调度器的尝试次数和最近错误；“读数”可查询已存储的值或最新值。",
 
 	// First-run guidance. Each module names its first write, then the
 	// capabilities that appear once that write exists.
