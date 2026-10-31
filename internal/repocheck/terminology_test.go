@@ -47,6 +47,15 @@ func TestTheCatalogsUseOneWordPerConcept(t *testing.T) {
 		{"Base64", "Base64", "base64", "the encoding is written base64, as the guide does", false},
 		// Characters that do not belong are 无效; 非法 appeared once.
 		{"非法", "非法", "无效", "a rejected character is 无效", true},
+		// A lookup that fails says 未找到, not 找不到: the window used both for
+		// the same "not found" errors.
+		{"找不到", "找不到", "未找到", "a failed lookup says 未找到", true},
+		// People take 一位; the CLI used 一名 for candidates and participants.
+		{"一名", "一名", "一位", "a person takes the counter 一位", true},
+		// 数量 is deliberately absent: it is the right word for a count of
+		// people (参与者数量) and the wrong one for a token amount. The two
+		// cannot be told apart from the string alone, so the rule would fire on
+		// correct copy.
 	}
 
 	catalogs := [][]string{
