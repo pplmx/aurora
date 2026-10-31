@@ -28,6 +28,19 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The NFT page no longer calls its holder an owner**: the burn form labelled
+  the current holder's key 所有者, and the Inspect card's filter did the same,
+  while three sentences on the same page say 持有者 — 创建者会成为第一个持有者,
+  按持有者筛选. The catalog could not fix it by itself: the English string
+  "Owner (base64 public key)" is right on the token page, where the account signs
+  writes, so it had to stay 所有者 there.
+- **The NFT fields got their own keys instead**: Holder (base64 public key),
+  Holder Private Key, Filter by Holder and its hint, in both scripts. The four
+  older entries stayed for the token page and their two stale variants were
+  removed.
+- **The unused-key test caught the leftovers**: it failed with the two keys the
+  view no longer reads, which is what that check exists for.
+
 - **The shared walk helper has tests of its own**: `skipWalkDir` decides what
   nine checks never look at, and `walkGoSource` decides what they do. Both were
   untested, and both fail in ways the callers cannot see — a walk that skips a

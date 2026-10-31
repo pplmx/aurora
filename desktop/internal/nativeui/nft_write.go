@@ -28,8 +28,8 @@ func (a *App) nftWrite(c *ui.Context) {
 	case 1:
 		formCard(c, "Burn", "Destroy an NFT permanently. This cannot be undone.", func() {
 			field(c, "NFT ID", &a.nft.burnID)
-			field(c, "Owner (base64 public key)", &a.nft.burnOwner)
-			field(c, "Owner Private Key", &a.nft.burnPriv)
+			field(c, "Holder (base64 public key)", &a.nft.burnOwner)
+			field(c, "Holder Private Key", &a.nft.burnPriv)
 			a.useCreatorKeyButton(c, &a.nft.burnPriv, a.nft.burnID, a.nft.burnOwner)
 			a.useSavedKeyButton(c, a.nft.burnOwner, &a.nft.burnPriv)
 			burnReady := allSet(a.nft.burnID, a.nft.burnOwner, a.nft.burnPriv)
