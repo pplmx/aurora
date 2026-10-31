@@ -562,6 +562,19 @@ func collectionPager(c *ui.Context, name string, offset, count int, hasMore bool
 	return previous, next
 }
 
+// announcePagerMove tells a screen reader that the range changed after a pager
+// click. A pager move replaces the rows while focus stays on its own button, so
+// the new range is otherwise a silent visual change. It announces once per
+// offset change: not on the first frame, not on an unrelated repaint, and not
+// after a failed move that kept the old page.
+func announcePagerMove(c *ui.Context, pager ui.Element, offset int, rangeLabel string) {
+	announcedOffset := ui.Local(pager, "announced-offset", func() int { return offset })
+	if *announcedOffset != offset {
+		*announcedOffset = offset
+		c.Announce(rangeLabel)
+	}
+}
+
 // pagerInline is pagerControls without its own full-width band: the range and
 // the two buttons sit beside the search field, and the accessible group name
 // and announcement are unchanged.
@@ -570,14 +583,7 @@ func pagerInline(c *ui.Context, name string, offset, count int, hasMore bool) (p
 	pagerLabel := fmt.Sprintf(tr("%s pager, %s"), tr(name), rangeLabel)
 	pager := ui.Row(c).AlignItems(ui.Center).Gap(space2).
 		Role(ui.RoleGroup).Label(pagerLabel).Shrink(0)
-	// A pager move replaces the rows while focus stays on its button. Announce
-	// the range once the offset has changed, but not on the first frame, a
-	// repaint, or a failed move that kept the old page.
-	announcedOffset := ui.Local(pager, "announced-offset", func() int { return offset })
-	if *announcedOffset != offset {
-		*announcedOffset = offset
-		c.Announce(rangeLabel)
-	}
+	announcePagerMove(c, pager, offset, rangeLabel)
 	pager.Children(func() {
 		previous = pagerButton(c, "Previous").
 			Description(fmt.Sprintf(tr("Show the previous %s page."), tr(name))).
@@ -599,14 +605,7 @@ func pagerControls(c *ui.Context, name string, offset int, rangeLabel string, pr
 	pagerLabel := fmt.Sprintf(tr("%s pager, %s"), tr(name), rangeLabel)
 	pager := ui.Row(c).FillWidth().AlignItems(ui.Center).Gap(12).
 		Role(ui.RoleGroup).Label(pagerLabel)
-	// A pager move replaces the rows while focus stays on its button. Announce
-	// the range once the offset has changed, but not on the first frame, a
-	// repaint, or a failed move that kept the old page.
-	announcedOffset := ui.Local(pager, "announced-offset", func() int { return offset })
-	if *announcedOffset != offset {
-		*announcedOffset = offset
-		c.Announce(rangeLabel)
-	}
+	announcePagerMove(c, pager, offset, rangeLabel)
 	pager.Children(func() {
 		previous = pagerButton(c, "Previous").
 			Description(fmt.Sprintf(tr("Show the previous %s page."), tr(name))).
