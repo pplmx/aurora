@@ -28,6 +28,13 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **Every metric the API reference names has to exist**: the metrics section is
+  correct today, but a documented series that stops being emitted is the quiet
+  kind of wrong — the dashboard or alert built on it draws an empty graph rather
+  than failing, so nothing points at the mistake. A test reads the series names
+  out of the registry, the API gauges and the oracle scheduler, and fails when
+  the reference mentions one that no package registers.
+
 - **The lottery reference states the id resolution order instead of pointing at
   the CLI**: it said `{id}` accepts an id, a block height or a substring "in the
   same order as the CLI", which meant opening a second document to learn an
