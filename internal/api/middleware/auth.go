@@ -1,3 +1,10 @@
+// Package middleware holds the HTTP wrappers every route passes through: the
+// API key check, the request body limit, the client-address policy, CORS, the
+// access log, the rate limiter, panic recovery, request IDs and the security
+// headers.
+//
+// Order matters and lives in one place, the router, because a limit applied
+// after authentication protects nothing.
 package middleware
 
 import (

@@ -1,3 +1,8 @@
+// Package events defines the audit events each module can emit and the shape
+// they share.
+//
+// The types are domain-level so a use case can describe what happened without
+// depending on the store that delivers it.
 package events
 
 import (

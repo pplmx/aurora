@@ -1,3 +1,9 @@
+// Package lotteryapp holds the lottery use cases: create a draw, verify its VRF
+// proof, and import or export history.
+//
+// It orchestrates the domain entity and the ledger; it never touches SQL or
+// HTTP, which is what lets the CLI, the REST handler and the window share one
+// implementation of a draw.
 package lotteryapp
 
 type CreateLotteryRequest struct {

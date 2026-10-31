@@ -1,3 +1,9 @@
+// Package migrate applies and rolls back the numbered SQL migrations embedded in
+// the binary.
+//
+// Files are named <version>_<name>.up.sql and .down.sql; the runner applies them
+// in order inside a transaction and records the applied set, so a failed
+// migration leaves the schema where it started.
 package migrate
 
 import (

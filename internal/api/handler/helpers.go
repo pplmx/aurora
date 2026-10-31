@@ -1,3 +1,8 @@
+// Package handler maps HTTP requests onto application use cases.
+//
+// A handler parses and validates the request, calls one use case, and encodes
+// the result; it holds no business rule of its own. Errors are classified in
+// one place so every route answers with the same envelope and code.
 package handler
 
 import (

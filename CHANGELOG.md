@@ -28,6 +28,17 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **Every package in the tree opens with a sentence saying what it is for**:
+  nineteen were missing a doc comment — the five use-case packages, the whole
+  api layer, five infra packages, and the two command packages. `go doc` showed
+  a wall of member listings with no orientation, and a reader new to the
+  repository had to infer the layering from import statements.
+- **A test keeps it that way**: it walks `internal/` and `cmd/`, and fails with
+  the list of directories whose Go files do not begin with `// Package` or
+  `// Command`. A new package cannot be added blank.
+- **`repocheck` gained a `doc.go`**: the package is tests only, so the comment
+  lives in the one non-test file Go needs for `go doc` to show it.
+
 - **Three packages that carry the hardest constraints now say so**: `ledger`,
   `i18n` and `infra/sqlite` had no package comment, while `records`,
   `background`, `netguard` and `app/container` did. Their comments state what a
