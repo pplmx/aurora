@@ -940,6 +940,10 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **A rejected amount says it once**: the four token write use cases wrapped the
+  sentinel in its own text, so the API answered
+  `{"error":"invalid amount: invalid amount"}` and the CLI printed the duplicate
+  too. The sentinel already reads "invalid amount", so the prefix is gone.
 - **A rejected oracle source explains itself in Chinese**: the source validator's
   stable English details ("disallowed scheme ...", "missing host", a blocked
   private address) reached the Chinese CLI verbatim. Every detail it can produce

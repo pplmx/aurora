@@ -2,7 +2,6 @@ package tokenapp
 
 import (
 	"encoding/base64"
-	"fmt"
 
 	"github.com/pplmx/aurora/internal/domain/token"
 )
@@ -28,7 +27,9 @@ func (uc *MintUseCase) Execute(req *MintRequest) (*MintResponse, error) {
 
 	amount, err := token.NewAmountFromString(req.Amount)
 	if err != nil {
-		return nil, fmt.Errorf("invalid amount: %w", err)
+		// The sentinel already reads "invalid amount"; repeating it as a prefix
+		// produced "invalid amount: invalid amount" in the API and the CLI.
+		return nil, err
 	}
 
 	event, err := uc.service.Mint(&token.MintRequest{
