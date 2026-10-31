@@ -28,6 +28,13 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The card-group test checks rendering as well as the source**: it read
+  `layout.go` for the label call and asserted nothing about the frame, so it
+  would have passed had `formCard` stopped drawing its title. It now renders a
+  card and checks both strings reached the screen, and matches the source
+  loosely — a rename in `tr(title)` is not an accessibility regression, while
+  the panel losing its label is.
+
 - **The guide's account of the capture script matches what it does**: it said a
   language run captured Settings and Dashboard and stopped, and that it wrote to
   `dist/e2e/zh/`. Neither was true any more — the run walks the same page loop in

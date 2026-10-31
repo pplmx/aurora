@@ -342,11 +342,31 @@ func TestCollectionsHaveAccessibleNames(t *testing.T) {
 // TestFormCardsNameTheirSections keeps repeated field labels in context. The
 // ballot and session controls both have a Session ID field, while every token
 // write card has an owner field; the containing group names the task.
+//
+// The rendered half checks that the title reaches the screen. The source half
+// checks the group name, which Tester cannot see: MyGo exposes the accessibility
+// tree over the automation protocol, not to a headless frame.
 func TestFormCardsNameTheirSections(t *testing.T) {
+	tester := ui.NewTester(func(c *ui.Context) {
+		formCard(c, "Create Token", "Supply and the key that signs later writes.", func() {
+			value, message := "", ""
+			validatedField(c, "Name", &value, &message)
+		})
+	}, 720, 320)
+	tester.Frame()
+	require.True(t, tester.HasText(tr("Create Token")), "the card title must render")
+	require.True(t, tester.HasText(tr("Supply and the key that signs later writes.")),
+		"the card purpose must render")
+
 	layout, err := os.ReadFile("layout.go")
 	require.NoError(t, err)
-	require.True(t, strings.Contains(string(layout), "panel.Label(tr(title))"),
-		"formCard must name its card group after the section title")
+	// Matched loosely: the name comes from tr(title), and a rename there is not
+	// an accessibility regression. What must not change is that the card panel
+	// is given a label at all.
+	require.Contains(t, string(layout), "panel.Label(",
+		"formCard must name its card group")
+	require.Contains(t, string(layout), "tr(title)",
+		"the group name must be the translated section title")
 }
 
 // TestValidatedFieldsAttachErrorsToTheirControls keeps an error from becoming
