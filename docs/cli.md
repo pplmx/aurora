@@ -9,6 +9,26 @@ aurora <module> --help            # 模块参数
 aurora version                    # 版本、构建时间、Go 工具链
 ```
 
+本文按命令分组，可直接跳到关心的一块：
+
+- [Shell 补全](#shell-补全)
+- [抽奖（VRF）](#抽奖vrf)
+- [投票（Ed25519）](#投票ed25519)
+- [NFT（Ed25519 签名）](#nfted25519-签名)
+- [代币（FT）](#代币ft)
+- [预言机](#预言机)
+- [运维命令](#运维命令)
+    - [账本](#账本)
+    - [备份](#备份)
+    - [自检](#自检)
+    - [迁移](#迁移)
+- [确认门](#确认门)
+- [错误与退出码](#错误与退出码)
+- [配置诊断](#配置诊断)
+- [日志与文件权限](#日志与文件权限)
+- [语言](#语言)
+- [交互式界面](#交互式界面)
+
 ## Shell 补全
 
 `aurora` 自带 Cobra 生成的补全脚本，按各 shell 的惯例加载即可：
@@ -218,23 +238,41 @@ aurora blockchain blocks -l 50 -p 100
 aurora blockchain blocks -s transfer   # 按记录文本或解码后的记录过滤（不区分大小写）
 ```
 
-`blockchain verify` 的表格打印区块数、头区块哈希前缀与校验结论——头前缀是与另一台
-机器对照时的锚点（`--json` 里是完整 64 位哈希）。
+### 账本
 
-`blockchain blocks` 的表格把每条载荷渲染成与桌面账本页相同的记录：`模块 · 动作 ·
-对象`，后面跟可读事实（如中奖者、参与者数、seed）；无法识别的载荷原样打印。
-可读句子只是阅读帮助，`--json` 始终带着 `payload` 原文，审计时以它为准。
-`-s` 同时匹配存储文本、解码后的句子与高度，和桌面账本搜索一致——查 `transfer`
-或 `Winners` 都能命中。
+`aurora blockchain verify` 打印区块数、头区块哈希前缀与校验结论，链无效时再给出
+第一处断点的原因；退出码非 0。头前缀是与另一台机器对照时的锚点，`--json` 里是
+完整的 64 位哈希，与 REST 的 `/api/v1/blockchain/verify` 和桌面 Blockchain 页是
+同一份完整性报告。
 
-迁移命令（`migrate status|up|down|repair`）都支持 `--json`，输出同一个状态文档
-`{"current","dirty","applied","pending"}`——包括「已经是最新」「已到底部」
-「本就干净」这些空操作路径。表格模式下 `migrate up`/`down` 在版本行之后列出本次
-实际应用/回滚的版本（升序，如 `Applied: 5, 6, 7` 与 `Rolled back: 5, 6, 7`）；
-无事可做时 `up` 省略该行、`down` 给出「没有可回滚的迁移」；`backup create` 输出
-`{"dir","size","checksum","schema_version"}`（`dir` 是输出目录，里面固定是
-`aurora.db` 与 `metadata.json`），`backup verify` 输出
-`{"path","status":"verified"}`。
+`aurora blockchain blocks` 把每条载荷渲染成与桌面账本页相同的记录：`模块 · 动作 ·
+对象`，后面跟可读事实（中奖者、参与者数、seed 等），认不出的载荷原样打印。
+`-l` 默认 20（`0` 表示全部），`-p` 按条目计偏移，`-s` 同时匹配存储文本、解码后的
+句子与高度——查 `transfer` 或 `Winners` 都能命中，过滤时打印的是匹配条数。
+
+可读句子只是阅读帮助：`--json` 里的 `payload` 始终是原始字节，审计时以它为准。
+`blocks` 输出与 `/api/v1/blockchain/blocks` 相同的分页信封，stdout 只有这一个文档，
+可直接交给 jq。
+
+「账本还没有记录」「没有匹配」「这一页为空」是三种不同的提示，脚本可以按退出码
+或文本区分。
+
+### 备份
+
+备份目录不能被指定为数据库自身所在目录（会把 live DB 覆盖成快照）；`backup create`
+先写同目录临时文件再原子改名，失败不会破坏上一份可用备份。`db.path` 若使用磁盘型
+SQLite `file:` URI，备份与恢复会先解码到真实文件路径；`:memory:` 或 `mode=memory`
+数据库没有可备份的磁盘状态，会在创建输出目录前直接报错。
+
+`backup restore` 会先把当前数据库快照成 `<备份目录>.pre_restore`，并写成可校验的
+完整备份；恢复错了用 `aurora backup restore <备份目录>.pre_restore --confirm`
+回滚，命令结束时会打印这条路径。
+
+`backup create` 的 `--json` 输出 `{"dir","size","checksum","schema_version"}`
+（`dir` 是输出目录，里面固定是 `aurora.db` 与 `metadata.json`），`backup verify`
+输出 `{"path","status":"verified"}`。
+
+### 自检
 
 `doctor` 按固定顺序检查五项：配置来源（配置文件权限放开到同组或其他用户可读时给出
 警告并建议 `chmod 600`——它可能保存 `[api] key`）、数据库路径与占用、迁移版本、账本完整性
@@ -247,6 +285,14 @@ aurora blockchain blocks -s transfer   # 按记录文本或解码后的记录过
 同时说明构建与体检结果，`name` 是稳定的英文键
 （`config`/`database`/`migrations`/`ledger`/`outbox`）。
 
+### 迁移
+
+迁移命令（`migrate status|up|down|repair`）都支持 `--json`，输出同一个状态文档
+`{"current","dirty","applied","pending"}`——包括「已经是最新」「已到底部」
+「本就干净」这些空操作路径。表格模式下 `migrate up`/`down` 在版本行之后列出本次
+实际应用/回滚的版本（升序，如 `Applied: 5, 6, 7` 与 `Rolled back: 5, 6, 7`）；
+无事可做时 `up` 省略该行、`down` 给出「没有可回滚的迁移」。
+
 `[migrate] autoRun = true` 时，CLI 会在执行任何命令前先应用待执行迁移；REST 服务与
 桌面窗口不跑迁移，它们的仓储在首次打开时自建所需表。
 
@@ -254,27 +300,6 @@ aurora blockchain blocks -s transfer   # 按记录文本或解码后的记录过
 运行器无法判断半执行的 SQL 是否已提交，这是有意的安全选择。`migrate repair`
 只清除这个标记，不撤销也不重跑失败的迁移；确认表结构后，再用 `up` / `down`
 把版本推进或回退到正确位置。没有它时，唯一的出路是删库重建。
-
-`blockchain verify` 打印区块数、状态与第一处断点原因；链无效时退出码非 0，脚本
-可以直接按退出码判断。REST 的 `/api/v1/blockchain/verify` 与桌面的 Blockchain 页
-给出同一份结论。`blockchain blocks` 按最新在前输出 `#高度 时间 记录`，记录是解码
-后的句子（`模块 · 动作 · 对象`，后跟事实），认不出的载荷原样打印——与桌面账本页
-同一套词汇；`-l` 默认 20、`0` 表示全部，`-p` 按条目计偏移；`-s` 比较存储文本、
-解码句子与高度，过滤时打印的是匹配条数。「账本还没有记录」「没有匹配」「这一页
-为空」是三种不同的提示，脚本可以按退出码或文本区分；`--json` 里的 `payload`
-始终是原始字节，需要 grep 原文时用它。两个命令都支持 `--json`：`verify` 输出与
-REST 相同的完整性报告（含头区块哈希 `head`），`blocks` 输出与
-`/blockchain/blocks` 相同的分页信封，
-stdout 只有这一个文档，可直接交给 jq。
-
-备份目录不能被指定为数据库自身所在目录（会把 live DB 覆盖成快照）；
-`backup create` 先写同目录临时文件再原子改名，失败不会破坏上一份可用备份。
-`db.path` 若使用磁盘型 SQLite `file:` URI，备份与恢复会先解码到真实文件路径；
-`:memory:` 或 `mode=memory` 数据库没有可备份的磁盘状态，会在创建输出目录前
-直接报错。`backup restore` 会先把当前数据库快照成 `<备份目录>.pre_restore`，
-并写成可校验的完整备份；恢复错了用
-`aurora backup restore <备份目录>.pre_restore --confirm` 回滚，命令结束时会打印
-这条路径。
 
 ## 确认门
 
