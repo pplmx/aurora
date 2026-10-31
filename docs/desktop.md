@@ -110,7 +110,7 @@ just check && just test
   Latest Data 等标签/值读数也会在同等字号下换行，而不是只显示前缀。
   Copy、Dismiss 等低强调按钮也随字号增高，避免
   2x 文字被 26px 的固定高度裁切；Create、Refresh、Delete 等主要/次要/危险
-  操作使用同一套缩放规则，标签与内边距都会随字号增长；侧栏底部固定的 File
+  操作使用同一套缩放规则，标签与内边距都会随字号增长；侧栏底部固定的 File（中文界面为「文件」）
   菜单也按相同规则增高，不会在放大的文字外留下过窄的点击区域。NFT 描述与
   Oracle 请求头等多行输入框同样随字号增高，放大后仍保留多行编辑空间。
   Reduce Motion 无需额外处理——MyGo 会把动画直接送到目标值。系统开启
@@ -476,7 +476,7 @@ just check && just test
   File/Edit/Go/View/Window/Help 只是重复已有入口，也把窗口上方压出一条突兀的
   横栏。Linux/Windows 现在根本不安装应用菜单（`AutoHideMenuBar` 只作为宿主或
   工具包仍装了菜单时的兜底），Cmd/Ctrl+E/I/B 由窗口自己注册并继续生效。备份、
-  导出、导入和最近打开放在侧栏底部的 **File** 菜单（`ui.MenuButton`）；语言、
+  导出、导入和最近打开放在侧栏底部的 **File** 菜单（`ui.MenuButton`；中文界面显示「文件」）；语言、
   数据位置、外观和构建信息放在侧栏 Application 区的 **Settings** 页面。macOS 的
   菜单栏归系统所有、无法移除，因此只保留平台角色（应用菜单、File→Close、Edit、
   Window）；Aurora 自己的入口在三端都只在窗口内出现，Cmd+E/I/B 也由同一个窗口
