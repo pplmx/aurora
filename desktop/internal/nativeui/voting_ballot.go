@@ -164,8 +164,14 @@ func (a *App) rosterCandidateChips(c *ui.Context) {
 
 func (a *App) votingSessionControlsCard(c *ui.Context) {
 	formCard(c, "Session Controls", "Start or end a session by id.", func() {
-		fieldHint(c, "Session ID",
-			"Choose a session in Setup or enter its ID first.", &a.voting.controlID)
+		if strings.TrimSpace(a.voting.controlID) == "" {
+			fieldHint(c, "Session ID",
+				"Choose a session in Setup or enter its ID first.", &a.voting.controlID)
+		} else {
+			// The id is already chosen; repeating "choose a session" beside a
+			// filled field contradicted it. The hint is the first step only.
+			field(c, "Session ID", &a.voting.controlID)
+		}
 		sessionReady := strings.TrimSpace(a.voting.controlID) != ""
 		ui.Row(c).Wrap().Gap(8).Children(func() {
 			if secondaryButton(c, "Start Session").Disabled(!sessionReady).Clicked() {
