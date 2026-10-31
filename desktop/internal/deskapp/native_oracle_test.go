@@ -1,6 +1,7 @@
 package deskapp
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/pplmx/aurora/desktop/internal/nativeui"
@@ -65,4 +66,55 @@ func TestOracleLatestExplainsAnEmptySource(t *testing.T) {
 	rows, err := services.OracleData(id, 10)
 	require.NoError(t, err)
 	require.Empty(t, rows, "an unfetched feed has no stored readings")
+}
+
+// stubFetcher stands in for the HTTP client. It returns whatever the test
+// configured for the source it was asked about.
+type stubFetcher struct {
+	value string
+	err   error
+	asked string
+}
+
+func (f *stubFetcher) FetchData(source *oracle.DataSource) (*oracle.OracleData, error) {
+	f.asked = source.ID
+	if f.err != nil {
+		return nil, f.err
+	}
+	return &oracle.OracleData{SourceID: source.ID, Value: f.value, Timestamp: 1, BlockHeight: 1}, nil
+}
+
+// TestFetchOracleSourceStoresTheReading covers the Fetch now button: the source
+// is handed to the fetcher, and what comes back is readable through the same
+// two reads the Readings card uses.
+func TestFetchOracleSourceStoresTheReading(t *testing.T) {
+	services, id := oracleServices(t)
+	fetcher := &stubFetcher{value: "68421.50"}
+	services.oracleFetcher = fetcher
+
+	require.NoError(t, services.FetchOracleSource(id))
+	require.Equal(t, id, fetcher.asked, "the fetcher must receive the source the button names")
+
+	latest, err := services.OracleLatest(id)
+	require.NoError(t, err)
+	require.Equal(t, "68421.50", latest.Value)
+
+	rows, err := services.OracleData(id, 10)
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+	require.Equal(t, "68421.50", rows[0].Value)
+}
+
+// TestFetchOracleSourceReportsTheFailure keeps the upstream error visible: a
+// fetch that fails must not leave the card looking freshly updated.
+func TestFetchOracleSourceReportsTheFailure(t *testing.T) {
+	services, id := oracleServices(t)
+	boom := errors.New("upstream returned 503")
+	services.oracleFetcher = &stubFetcher{err: boom}
+
+	err := services.FetchOracleSource(id)
+	require.Error(t, err)
+
+	_, latestErr := services.OracleLatest(id)
+	require.Error(t, latestErr, "a failed fetch stores nothing, so there is still no latest value")
 }
