@@ -275,3 +275,25 @@ func TestEnsureSQLiteDirectoryRejectsADirectoryPath(t *testing.T) {
 		t.Fatalf("error = %v, want it to say the path is a directory", err)
 	}
 }
+
+// TestEnsureSQLiteDirectoryCreatesAnOwnerOnlyDirectory: the database file is
+// 0600, so the directory this helper creates for it is 0700 like the log,
+// backup and desktop data directories; a shared parent the operator created
+// keeps its own mode because MkdirAll only applies permissions it creates.
+func TestEnsureSQLiteDirectoryCreatesAnOwnerOnlyDirectory(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Unix permission bits are not meaningful on Windows")
+	}
+
+	dbPath := filepath.Join(t.TempDir(), "fresh", "aurora.db")
+	if err := EnsureSQLiteDirectory(dbPath); err != nil {
+		t.Fatalf("EnsureSQLiteDirectory: %v", err)
+	}
+	info, err := os.Stat(filepath.Dir(dbPath))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := info.Mode().Perm(); got != 0o700 {
+		t.Fatalf("database directory mode = %04o, want 0700", got)
+	}
+}

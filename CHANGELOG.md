@@ -12,6 +12,11 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The database's directory is owner-only like the file**: the shared helper
+  created the parent directory 0755 while the database file itself, the logs, the
+  backups and the desktop data directory are all 0700. A newly created parent is
+  0700 now; an existing one keeps the mode its owner chose, because MkdirAll only
+  applies permissions it creates.
 - **The lint gate also watches SQL handles and error handling**: `nilerr`,
   `durationcheck`, `rowserrcheck` and `sqlclosecheck` join the shared config, so a
   `rows.Err()` nobody checks, a `*sql.Rows` nobody closes, a `nil` returned next
