@@ -28,6 +28,15 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The CLI reference's operations section is grouped by command**: it ran as
+  one block of prose under the example commands, and the `blockchain` and
+  `migrate` notes appeared in two places each — the same facts about `verify`'s
+  output and `blocks`'s payload restated eleven paragraphs apart. Four
+  subsections — 账本, 备份, 自检, 迁移 — now hold one command family each, the
+  duplicated sentences are one statement the first time, and the `backup`
+  JSON shapes moved from the migrate paragraph to the backup one. A contents
+  list at the top links every heading, including the new ones.
+
 - **A wrapped tab row loses its underline, not its meaning**: the active tab's
   underline exists to join it to the hairline the list draws beneath, so the tab
   reads as part of the panel. When a narrow window at a large text size wrapped
