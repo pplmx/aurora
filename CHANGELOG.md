@@ -12,6 +12,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The README's project tree lists every package**: it is the first map a
+  contributor reads and seven shipped packages were missing from it
+  (`config`, `logger`, `metrics`, `netguard`, `records`, `background` and
+  `tools/`), so the tree described a smaller repository than the one on disk.
+  A `repocheck` test now fails when an `internal/` package is absent from it,
+  the same guard the architecture document already had.
+
 - **The architecture document's dependency table is checked, not trusted**:
   the table claims to be verifiable against `go list` and had already drifted —
   `domain`'s row said standard library and same-layer only while
