@@ -1006,6 +1006,10 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **Five more service messages read Chinese in the window**: a fetch with no
+  body, an oversized import, a draw that failed its integrity or could not be
+  found, and an empty public key were the last reachable sentinel texts without
+  desktop entries, so a Chinese window showed them verbatim.
 - **The window's export failure speaks Chinese too**: the CLI localizes the two
   destination checks, and the window showed their English text because the path
   inside the sentence defeats a full-message lookup. The sentence around the path
