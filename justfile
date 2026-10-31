@@ -19,6 +19,10 @@ lint:
 test:
     CGO_ENABLED=0 go test ./...
 
+# Run the tests in random order to surface order dependencies
+test-shuffle:
+    CGO_ENABLED=0 go test -count=1 -shuffle=on ./...
+
 # Run tests with the race detector (needs cgo; the desktop has its own)
 race:
     CGO_ENABLED=1 go test -race -count=1 ./...

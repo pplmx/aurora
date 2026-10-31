@@ -700,6 +700,10 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Added
 
+- **`just test-shuffle`**: the suite runs in registration order, so an
+  order-dependent test only fails when the full run happens to hit it (that is how
+  the store singleton leak above surfaced). The recipe runs the same packages with
+  `-shuffle=on`, and both modules are green under it today.
 - **`migrate down` names the migrations it removed**: the mirror of the `up`
   change. "current version 4" alone does not say which three migrations a
   `down 3` rolled back, so the command now prints `Rolled back: 5, 6, 7`
