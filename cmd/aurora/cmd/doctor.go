@@ -3,6 +3,7 @@ package cmd
 import (
 	"database/sql"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -83,11 +84,7 @@ var doctorCmd = &cobra.Command{
 func runDoctor() []doctorCheck {
 	checks := make([]doctorCheck, 0, 5)
 
-	configDetail := i18n.GetText("doctor.detail.defaults")
-	if used := viper.ConfigFileUsed(); used != "" {
-		configDetail = used
-	}
-	checks = append(checks, doctorCheck{Name: "config", Status: doctorOK, Detail: configDetail})
+	checks = append(checks, configCheck())
 
 	path := blockchain.DBPath()
 	db, err := blockchain.InitDB()
@@ -173,6 +170,32 @@ func doctorOutboxCheck(db *sql.DB) doctorCheck {
 	}
 	return doctorCheck{Name: "outbox", Status: doctorOK,
 		Detail: i18n.GetTextF("doctor.detail.outbox", pending)}
+}
+
+// configCheck names the configuration source and warns when another user can
+// read the file: it can hold the API key and other credentials. The command
+// still ran with that configuration, so this is a warning, not a failure.
+func configCheck() doctorCheck {
+	used := viper.ConfigFileUsed()
+	if used == "" {
+		return doctorCheck{Name: "config", Status: doctorOK, Detail: i18n.GetText("doctor.detail.defaults")}
+	}
+	if mode, open := configReadableByOthers(used); open {
+		return doctorCheck{Name: "config", Status: doctorWarn,
+			Detail: i18n.GetTextF("doctor.detail.config_open", used, mode)}
+	}
+	return doctorCheck{Name: "config", Status: doctorOK, Detail: used}
+}
+
+// configReadableByOthers reports the file's permission bits when they let a
+// user outside the owner's group read it. A missing file is not a warning here:
+// the configuration was read, so the check is about its mode.
+func configReadableByOthers(path string) (string, bool) {
+	info, err := os.Stat(path)
+	if err != nil || info.Mode().Perm()&0o077 == 0 {
+		return "", false
+	}
+	return fmt.Sprintf("%04o", info.Mode().Perm()), true
 }
 
 // oldestPendingAge reads how long the oldest parked audit event has waited,

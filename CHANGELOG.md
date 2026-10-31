@@ -667,6 +667,10 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Added
 
+- **The doctor checks who can read the configuration**: the file may hold
+  `[api] key`, so a mode that lets another user read it now produces a warning
+  with the advice (`mode 0644; other users can read it — chmod 600`) instead of a
+  silent OK. A failure to stat it is not a warning: the configuration was read.
 - **The About card names the toolchain**: the first question for a window bug
   ("which Go and which MyGo?") now has an answer —
   `Runtime: go1.27.3 · mygo v0.7.3`, read from the build info, with the MyGo half
