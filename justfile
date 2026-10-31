@@ -52,9 +52,7 @@ check:
     goimports -l -w $(fd -e go -E desktop .)
     CGO_ENABLED=0 go vet ./...
 
-# The same three checks without writing: `verify` must not change the tree it is
-# validating, and `check` above repairs formatting on purpose for a developer
-# about to commit.
+# Check formatting and vet without writing, for `verify`
 check-verify:
     test -z "$(gofmt -l -s $(fd -e go -E desktop .))"
     test -z "$(goimports -l $(fd -e go -E desktop .))"
