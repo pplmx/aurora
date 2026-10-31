@@ -12,11 +12,11 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
-- **An exported document is owner-only**: the export lists participant names and
-  their draws, yet it was written 0644 while the database, the logs and the
-  backups are 0600. It now matches them, and a re-export tightens a file that an
-  older build left readable; sharing a draw is an explicit copy, not the default
-  state of the file.
+- **A fresh export is owner-only**: the export lists participant names and their
+  draws, yet a new file was written 0644 while the database, the logs and the
+  backups are 0600. A new document now gets 0600; a destination that already
+  exists keeps its own bits, as `WriteFileAtomic` promises, so re-exporting does
+  not silently change a mode the operator chose.
 - **The lint gate lives in one place**: `.golangci.yml` still enabled errcheck
   while both `just lint` invocations passed `--disable=errcheck`, so a bare
   `golangci-lint run` checked a different set than the documented gate. errcheck
