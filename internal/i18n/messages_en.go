@@ -65,7 +65,7 @@ nft, token) and operational commands (migrate, backup, version).`,
 	// Flags
 	"lottery.participants": "Participant names (comma-separated)",
 	"lottery.seed":         "Random seed",
-	"lottery.count":        "Number of winners; at most the participant count",
+	"lottery.count":        "Number of winners; at most the participant count. Omitted: lottery.defaultCount (3 when unset)",
 
 	// Messages
 	"lottery.success":                "Lottery created successfully!",

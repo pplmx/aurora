@@ -463,14 +463,25 @@ func TestHelpLocalizesFlagDefaults(t *testing.T) {
 	tr.SetLocale("zh")
 	t.Cleanup(func() { tr.SetLocale(before) })
 
-	resetFlags(createCmd)
-	out := renderCommandHelp(t, createCmd)
+	resetFlags(blockchainBlocksCmd)
+	out := renderCommandHelp(t, blockchainBlocksCmd)
 	assert.Contains(t, out, "（默认 ")
 	assert.NotContains(t, out, "(default ")
 
 	tr.SetLocale("en")
-	resetFlags(createCmd)
-	out = renderCommandHelp(t, createCmd)
+	resetFlags(blockchainBlocksCmd)
+	out = renderCommandHelp(t, blockchainBlocksCmd)
 	assert.Contains(t, out, "(default ")
 	assert.NotContains(t, out, "（默认 ")
+}
+
+// TestLotteryCreateHelpNamesTheConfiguredDefault: the flag is registered with
+// the zero value because the effective default is lottery.defaultCount, which
+// only the config knows; the usage text has to say so, or a help page would
+// promise a "3" that a configured install contradicts.
+func TestLotteryCreateHelpNamesTheConfiguredDefault(t *testing.T) {
+	resetFlags(createCmd)
+	out := renderCommandHelp(t, createCmd)
+	assert.Contains(t, out, "lottery.defaultCount")
+	assert.NotContains(t, out, "(default 3)")
 }

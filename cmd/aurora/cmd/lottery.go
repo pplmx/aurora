@@ -545,7 +545,10 @@ func init() {
 	// The registered default (3) is only for help text; the run-time default is
 	// resolved in RunE so a configured lottery.defaultCount is honored after
 	// initConfig loads (a viper read at init() time is always 0 — TASK-108).
-	createCmd.Flags().IntP("count", "c", 3, i18n.GetText("lottery.count"))
+	// The effective default is lottery.defaultCount, resolved in RunE; the flag
+	// keeps the zero value so pflag does not print a "(default 3)" that would
+	// contradict a configured value.
+	createCmd.Flags().IntP("count", "c", 0, i18n.GetText("lottery.count"))
 	historyCmd.Flags().IntP("limit", "l", 0, i18n.GetText("token.list_limit"))
 	historyCmd.Flags().IntP("offset", "p", 0, i18n.GetText("token.offset"))
 	historyCmd.Flags().StringP("search", "s", "", i18n.GetText("lottery.history_search"))
