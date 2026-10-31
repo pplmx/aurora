@@ -28,6 +28,14 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The HTTP client separates the request from the transport and the budget**:
+  `fetcher.go` held the Fetcher, the per-source rate limiter and the guarded
+  transport in 636 lines, so three lifetimes shared one file — a request, a
+  window of requests, and the connection the request crosses. The limiter is
+  `ratelimit.go` and the transport `transport.go`; `fetcher.go` keeps the
+  client, its options and the fetch path in 453 lines. The redirect policy
+  stays with the fetch path because it decides what a request may carry.
+
 - **The desktop reference is navigable**: its "架构" section was a flat list of
   58 bullets, three of them longer than 25 lines, so finding the one that
   answered a question meant scrolling the whole thing. It is now eight
