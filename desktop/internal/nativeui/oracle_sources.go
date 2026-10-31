@@ -104,8 +104,14 @@ func (a *App) oracleSourceActions(c *ui.Context) {
 			copyRow(c, "URL", chosen.URL, nil)
 			readout(c, []readoutRow{{"Every", sourceInterval(chosen.Interval)}})
 		}
-		fieldHint(c, "Source ID for the actions below",
-			"Choose a source in Sources or enter its ID first.", &a.oracle.fetchID)
+		if strings.TrimSpace(a.oracle.fetchID) == "" {
+			fieldHint(c, "Source ID for the actions below",
+				"Choose a source in Sources or enter its ID first.", &a.oracle.fetchID)
+		} else {
+			// The row above already names the chosen source; the first-step hint
+			// beside a filled field would contradict it.
+			field(c, "Source ID for the actions below", &a.oracle.fetchID)
+		}
 		copyRow(c, "Source ID", strings.TrimSpace(a.oracle.fetchID), nil)
 		sourceReady := strings.TrimSpace(a.oracle.fetchID) != ""
 		// A 2x2 grid rather than a wrapping row: the four labels have very

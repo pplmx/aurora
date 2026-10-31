@@ -15,9 +15,15 @@ func (a *App) oracleRead(c *ui.Context) {
 }
 
 func (a *App) oracleReadBody(c *ui.Context) {
-	// The card is on the Readings stage, where the Sources list is one tab
-	// away; the hint names the same way in as Source Actions does.
-	fieldHint(c, "Source ID", "Choose a source in Sources or enter its ID first.", &a.oracle.queryID)
+	if strings.TrimSpace(a.oracle.queryID) == "" {
+		// The card is on the Readings stage, where the Sources list is one tab
+		// away; the hint names the same way in as Source Actions does.
+		fieldHint(c, "Source ID", "Choose a source in Sources or enter its ID first.", &a.oracle.queryID)
+	} else {
+		// A selected source fills the field; repeating "choose a source" beside
+		// it would contradict the value, exactly as the session controls did.
+		field(c, "Source ID", &a.oracle.queryID)
+	}
 	ui.Field(c, tr("Limit"), func() {
 		ui.NumberInput(c, &a.oracle.queryLim, 1, maxListLimit, 1)
 	})
