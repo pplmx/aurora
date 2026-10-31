@@ -28,6 +28,16 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The voting repository is split by entity**: 578 lines held the schema, the
+  shared transaction plumbing and all four registries — votes, voters,
+  candidates, sessions — in one file, so a reader following a ballot through
+  the store scrolled past three unrelated CRUD groups. Votes and the plumbing
+  stay in `voting.go`; the voter, candidate and session registries moved to
+  `voting_voters.go`, `voting_candidates.go` and `voting_sessions.go`. The
+  method set is unchanged (22 across the four files) and the concurrency tests
+  pass untouched. A doc comment that described a `DeleteVote` this file never
+  defined — it sat above `GetVotesByCandidate` — is gone.
+
 - **The verify section states its failure conditions as a list**: the
   sentence broke mid-enumeration ("记录没有中奖者、" ended a line), so the four
   conditions that reject a record read as prose fragments. They are a
