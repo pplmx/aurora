@@ -76,4 +76,34 @@ func TestTheCatalogsUseOneWordPerConcept(t *testing.T) {
 		}
 	}
 	require.Greater(t, checked, 500, "the scan must reach the catalogs")
+
+	// The documents are where a retired word comes back: a paragraph written
+	// from memory, or a phrase copied from an old release note. They are checked
+	// for the same rejected spellings.
+	for _, doc := range []string{"README.md", "docs/cli.md", "docs/desktop.md", "docs/api.md"} {
+		body := readRepoFile(t, strings.Split(doc, "/")...)
+		for _, c := range concepts {
+			if c.rejected == "会话" {
+				// A process session is still 会话, and the documents speak of
+				// 会话密钥 and the current shell session. Only the voting sense
+				// was renamed, and a document that says 会话 for a voting session
+				// would still carry a word the window does not use — so the
+				// check runs on every 会话 that is not one of these phrases.
+				if remaining := stripProcessSessions(body); !strings.Contains(remaining, "会话") {
+					continue
+				}
+			}
+			assert.Falsef(t, strings.Contains(body, c.rejected),
+				"%s uses %q where the house word is %q: %s", doc, c.rejected, c.accepted, c.why)
+		}
+	}
+}
+
+// stripProcessSessions removes the phrases where 会话 is the right word: a
+// private key held "for this session" is not a voting session.
+func stripProcessSessions(body string) string {
+	for _, phrase := range []string{"会话密钥", "會話密鑰", "本次会话", "本次會話", "本会话", "本會話", "当前会话", "當前會話"} {
+		body = strings.ReplaceAll(body, phrase, "")
+	}
+	return body
 }
