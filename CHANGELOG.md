@@ -28,6 +28,14 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The lottery commands are grouped by what an operator is doing**:
+  `lottery.go` held all nine commands in 581 lines — making a draw, checking
+  one, moving records between installations, and inspecting or resetting the
+  store. They now follow the split `token` already uses: `lottery.go` keeps
+  create/history/verify, `lottery_portability.go` holds export/import, and
+  `lottery_admin.go` holds stats/reset/db-info. Command names, flags and help
+  output are unchanged; `aurora lottery --help` lists the same eight.
+
 - **The backup package separates the happy path from crash recovery**:
   `create.go` held `Create`'s two-phase write beside ten helpers whose job is
   repairing a run that SIGKILL or power loss interrupted before it began — two
