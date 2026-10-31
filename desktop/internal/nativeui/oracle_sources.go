@@ -125,19 +125,19 @@ func (a *App) oracleSourceActions(c *ui.Context) {
 		}
 		actionPair(
 			func() {
-				if secondaryButton(c, "Enable").FillWidth().Disabled(!sourceReady).Clicked() {
+				if secondaryButton(c, "Enable", sourceReady).FillWidth().Clicked() {
 					a.setOracleEnabled(true)
 				}
 			},
 			func() {
-				if secondaryButton(c, "Disable").FillWidth().Disabled(!sourceReady).Clicked() {
+				if secondaryButton(c, "Disable", sourceReady).FillWidth().Clicked() {
 					a.setOracleEnabled(false)
 				}
 			},
 		)
 		actionPair(
 			func() {
-				if secondaryButton(c, "Fetch now").FillWidth().Disabled(!sourceReady).Clicked() {
+				if secondaryButton(c, "Fetch now", sourceReady).FillWidth().Clicked() {
 					a.fetchOracleSource()
 				}
 			},

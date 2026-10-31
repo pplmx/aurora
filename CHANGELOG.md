@@ -12,6 +12,11 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **A disabled secondary action looks disabled**: controls such as Start/End
+  Session, Query, Get Latest, Enable/Disable/Fetch now, Get NFT and Register
+  Candidate blocked the click but kept the normal surface and hover accent, so
+  they read as available; `secondaryButton` now takes the `ready` flag the
+  primary and danger buttons already had and renders a muted, hover-free form.
 - **First-step hints belong to the empty state only**: the "Choose a session in
   Setup or enter its ID first" hint sat beside a filled Session ID field, and the
   Oracle cards did the same with "Choose a source in Sources…" after a selection.

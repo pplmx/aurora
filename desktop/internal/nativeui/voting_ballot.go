@@ -174,10 +174,10 @@ func (a *App) votingSessionControlsCard(c *ui.Context) {
 		}
 		sessionReady := strings.TrimSpace(a.voting.controlID) != ""
 		ui.Row(c).Wrap().Gap(8).Children(func() {
-			if secondaryButton(c, "Start Session").Disabled(!sessionReady).Clicked() {
+			if secondaryButton(c, "Start Session", sessionReady).Clicked() {
 				a.setSessionControl("Starting session…", a.services.StartSession, "Session started.")
 			}
-			if secondaryButton(c, "End Session").Disabled(!sessionReady).Clicked() {
+			if secondaryButton(c, "End Session", sessionReady).Clicked() {
 				a.setSessionControl("Ending session…", a.services.EndSession, "Session ended.")
 			}
 		})

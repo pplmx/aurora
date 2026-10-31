@@ -28,7 +28,7 @@ func (a *App) oracleReadBody(c *ui.Context) {
 		ui.NumberInput(c, &a.oracle.queryLim, 1, maxListLimit, 1)
 	})
 	ui.Row(c).Children(func() {
-		if secondaryButton(c, "Query").Disabled(!allSet(a.oracle.queryID)).Clicked() {
+		if secondaryButton(c, "Query", allSet(a.oracle.queryID)).Clicked() {
 			a.readOracleData()
 		}
 	})
@@ -171,7 +171,7 @@ func (a *App) oracleLatest(c *ui.Context) {
 func (a *App) oracleLatestBody(c *ui.Context) {
 	field(c, "Source ID", &a.oracle.latestID)
 	ui.Row(c).Children(func() {
-		if secondaryButton(c, "Get Latest").Disabled(!allSet(a.oracle.latestID)).Clicked() {
+		if secondaryButton(c, "Get Latest", allSet(a.oracle.latestID)).Clicked() {
 			a.readOracleLatest()
 		}
 	})
