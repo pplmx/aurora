@@ -157,6 +157,18 @@ func Colon() string {
 	return strings.TrimRight(GetTranslator().Separator(), " ")
 }
 
+// Paren wraps a note in the brackets the language uses. Chinese prose puts a
+// full-width pair around a parenthetical in every catalog entry, so a printed
+// line that hard-coded "(%s)" beside Chinese text read as a different hand.
+func Paren(note string) string {
+	// Chinese sets the bracket against what precedes it, so the returned string
+	// carries its own leading space only in the Latin spelling.
+	if strings.HasPrefix(GetTranslator().GetLocale(), "zh") {
+		return "（" + note + "）"
+	}
+	return " (" + note + ")"
+}
+
 // Label formats "name: value" with the separator the language expects.
 func Label(name string, value interface{}) string {
 	return name + GetTranslator().Separator() + fmt.Sprint(value)

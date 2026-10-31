@@ -28,6 +28,13 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **A printed bracket follows the language too**: two lines built "(%s)"
+  themselves — the doctor's database check and a candidate's party on the results
+  list — so a Chinese window showed 数据库：./data/aurora.db (80.1 KiB) next to
+  labels that all use full-width brackets. `i18n.Paren` owns the bracket and the
+  space before it, because Chinese sets it against the preceding word while the
+  Latin spelling keeps one.
+
 - **The bracket rule covers the spelling the catalog does not use**: it matched
   a Chinese character, spaces, then a half-width bracket, which is how the fix in
   the previous change reads. A bracket with no space at all went uncaught, so a
