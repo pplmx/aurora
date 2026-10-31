@@ -58,7 +58,7 @@ aurora lottery history --search beta   # 按 id/seed/参与者/中奖者过滤�
 aurora lottery stats                 # 统计信息
 aurora lottery verify <id或区块高度>  # 复验 VRF 证明与中奖者
 aurora lottery verify <id 或 seed 子串> # 也支持子串匹配
-aurora lottery export draws.json     # 原子写入（0600），空库导出 []
+aurora lottery export draws.json     # 原子写入（新文件 0600），空库导出 []
 aurora lottery import draws.json     # 重复记录会被拒绝并逐条报告
 aurora lottery db-info               # 数据库路径、占用（含 -wal/-shm）与区块数
 aurora lottery reset --confirm       # 清空抽奖记录
