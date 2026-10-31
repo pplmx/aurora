@@ -28,6 +28,14 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The NFT readout labels its account Holder, not Owner**: the token page
+  calls the account behind a token its 所有者; the NFT page calls the account
+  holding an asset its 持有者, and that word appears in thirteen of its
+  sentences. One shared "Owner" key could only render one of them, so the NFT
+  collection readout showed 持有者 while the token inspect readout showed 所有者
+  from a different key. The NFT field is "Holder" now, and a vocabulary test
+  keeps the two apart.
+
 - **The NFT page says transfer, not remit**: the English "Transfer" key is
   shared with the token page, where 转账 is right — moving value between
   accounts. The NFT page moves an asset between owners, and every sentence

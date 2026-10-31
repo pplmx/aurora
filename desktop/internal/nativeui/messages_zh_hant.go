@@ -382,7 +382,7 @@ var desktopMessagesHant = map[string]string{
 	"Oracle Feeds":              "預言機數據源",
 	"Oracle readings":           "預言機讀數",
 	"Oracle sections":           "預言機分區",
-	"Owner":                     "持有者",
+	"Holder":                    "持有者",
 	"Owner (base64 public key)": "所有者（base64 公鑰）",
 	"Owner Private Key":         "所有者私鑰",
 	"Owner is required to filter the collection.": "按持有者篩選需要填寫持有者。",

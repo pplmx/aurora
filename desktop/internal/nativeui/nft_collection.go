@@ -48,7 +48,7 @@ func (a *App) nftReadBody(c *ui.Context) {
 	copyRow(c, "NFT ID", strings.TrimSpace(a.nft.id), nil)
 	if n := a.nft.nft; n != nil && a.nft.nftLoadedID == id {
 		rows := []readoutRow{
-			{"Name", n.Name}, {"Owner", n.Owner}, {"Creator", n.Creator},
+			{"Name", n.Name}, {"Holder", n.Owner}, {"Creator", n.Creator},
 			{"Block", strconv.FormatInt(n.BlockHeight, 10)},
 		}
 		if n.Description != "" {
