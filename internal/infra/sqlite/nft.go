@@ -152,7 +152,9 @@ func (r *NFTRepository) ensureNoCascadeFK() error {
 		hasFK = true
 		break
 	}
-	_ = rows.Close()
+	// Closed explicitly, not deferred: the rebuild below opens a transaction on
+	// the same handle, and rows.Err is checked on the next line.
+	_ = rows.Close() //nolint:sqlclosecheck // see above
 	if err := rows.Err(); err != nil {
 		return err
 	}

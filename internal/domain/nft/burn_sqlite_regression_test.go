@@ -147,15 +147,21 @@ func TestNFTRepository_EnsureNoCascadeFKUpgradesLegacyDB(t *testing.T) {
 	defer repo.Close()
 
 	// 1. The FK must be gone.
-	rows, err := repo.GetDB().Query(`PRAGMA foreign_key_list(nft_operations)`)
-	if err != nil {
-		t.Fatalf("inspect FKs: %v", err)
-	}
-	fkRows := 0
-	for rows.Next() {
-		fkRows++
-	}
-	rows.Close()
+	fkRows := func() int {
+		rows, err := repo.GetDB().Query(`PRAGMA foreign_key_list(nft_operations)`)
+		if err != nil {
+			t.Fatalf("inspect FKs: %v", err)
+		}
+		defer func() { _ = rows.Close() }()
+		count := 0
+		for rows.Next() {
+			count++
+		}
+		if err := rows.Err(); err != nil {
+			t.Fatalf("read foreign keys: %v", err)
+		}
+		return count
+	}()
 	if fkRows != 0 {
 		t.Fatalf("nft_operations still carries %d foreign key(s) after rebuild", fkRows)
 	}
