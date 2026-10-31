@@ -259,6 +259,19 @@ curl -s -H "X-API-Key: $KEY" -H 'Content-Type: application/json' \
  "start_time":1793376742,"end_time":1793463142,"created_at":1793376742}
 ```
 
+`GET /voting/results/{id}` 的计票结果：
+
+```json
+{"session_id":"95f640cd-cc8e-4178-b5fa-8e9b89073125","total_votes":1,
+ "candidates":[{"id":"5974ffa1-…","name":"Alice","party":"Greens","vote_count":1},
+               {"id":"8a2f19c4-…","name":"Bob","party":"Reds","vote_count":0}]}
+```
+
+`total_votes` 等于下列各行 `vote_count` 之和（每个 `(session_id, voter_pk)` claim
+计一张）；`candidates` 按会期名单顺序返回，名单里已删除的候选人仍占一行、票数为
+0 且其历史票数不再计入——数组顺序与 `session.candidates` 一致而不是按票数排序，
+要排名请在客户端排序。
+
 `POST /voting/vote` 的请求体（键均为 base64）：
 
 ```json
