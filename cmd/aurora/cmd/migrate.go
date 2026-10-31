@@ -100,16 +100,18 @@ var migrateUpCmd = &cobra.Command{
 			return wrapCLIError("migrate.error.version", err)
 		}
 
-		// Cap an explicit N to the number of genuinely pending migrations, so
-		// "up 5" with two pending applies both and exits successfully instead
-		// of treating the overrun as an error after changing the schema.
+		// One status read answers both questions below: which migrations are
+		// pending (to cap an explicit N, and to name what a run applied) and
+		// whether the overrun should exit successfully instead of treating it
+		// as an error after changing the schema.
+		status, err := m.Status()
+		if err != nil {
+			return wrapCLIError("migrate.error.status", err)
+		}
+		pending := status.PendingVersions
 		if steps > 0 {
-			st, err := m.Status()
-			if err != nil {
-				return wrapCLIError("migrate.error.status", err)
-			}
-			if len(st.PendingVersions) < steps {
-				steps = len(st.PendingVersions)
+			if len(pending) < steps {
+				steps = len(pending)
 			}
 			if steps == 0 {
 				if jsonRequested(cmd) {
@@ -130,8 +132,17 @@ var migrateUpCmd = &cobra.Command{
 		}
 		if version == before && before > 0 {
 			fmt.Println(i18n.GetTextF("migrate.already", version))
-		} else {
-			fmt.Println(i18n.GetTextF("migrate.up_done", version))
+			return nil
+		}
+		fmt.Println(i18n.GetTextF("migrate.up_done", version))
+		// Name what ran: "current version 8" alone leaves an operator guessing
+		// whether a repair or a backfill migration was part of it.
+		applied := pending
+		if steps > 0 && steps < len(applied) {
+			applied = applied[:steps]
+		}
+		if len(applied) > 0 {
+			fmt.Println(i18n.GetTextF("migrate.applied", joinVersions(applied)))
 		}
 		return nil
 	},

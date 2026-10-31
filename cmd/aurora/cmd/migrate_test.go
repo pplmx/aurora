@@ -173,6 +173,7 @@ func TestMigrateUp_WithSteps(t *testing.T) {
 			out, err := runCmd(t, "migrate", "up", "1")
 			require.NoError(t, err)
 			assert.Contains(t, out, fmt.Sprintf("Current version: %d", version))
+			assert.Contains(t, out, fmt.Sprintf("Applied: %d", version), "a stepped run names the one migration it applied")
 			assert.Equal(t, version, appliedSchemaVersion(t))
 
 			switch version {
@@ -475,5 +476,28 @@ func TestMigrateRepair_UnsticksADirtyDatabase(t *testing.T) {
 		require.NoError(t, json.Unmarshal([]byte(out), &status), "got %q", out)
 		assert.False(t, status.Dirty)
 		assert.Equal(t, uint(latestMigrationVersion(t)), status.Current)
+	})
+}
+
+// TestMigrateUp_NamesTheAppliedMigrations: "current version N" alone leaves an
+// operator guessing which migrations ran (a repair or backfill included); the
+// run prints them in order, and a second run applies nothing to name.
+func TestMigrateUp_NamesTheAppliedMigrations(t *testing.T) {
+	withTempDir(t, func(t *testing.T) {
+		setMigrationsPathForTest(t)
+
+		versions := migrationVersions(t)
+		want := make([]string, len(versions))
+		for i, v := range versions {
+			want[i] = strconv.FormatUint(uint64(v), 10)
+		}
+
+		out, err := runCmd(t, "migrate", "up")
+		require.NoError(t, err)
+		assert.Contains(t, out, "Applied: "+strings.Join(want, ", "))
+
+		out, err = runCmd(t, "migrate", "up")
+		require.NoError(t, err)
+		assert.NotContains(t, out, "Applied: ", "a second run applies nothing")
 	})
 }
