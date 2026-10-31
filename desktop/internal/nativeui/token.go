@@ -195,7 +195,8 @@ func (a *App) tokenView(c *ui.Context) {
 		guide(c, &a.guides.token,
 			"Select a token in Tokens, or create one. Its owner public key fills the account fields for you.",
 			"Choose a write in the action tabs: Mint, Transfer, Approve, Transfer From or Burn. A spender's remaining allowance is in Allowance.",
-			"Mint/Approve/Burn sign with the owner private key; Transfer with the sender's; Transfer From with the spender's. Keys are never stored, and Use generated owner key works only for the token that key created.",
+			"Each write signs with a different key: Mint/Approve/Burn use the owner's, Transfer the sender's, Transfer From the spender's.",
+			"Keys are never stored. Use generated owner key works only for the token that key created.",
 		)
 		twoColumns(c, func() {
 			a.tokenList(c)
