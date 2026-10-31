@@ -226,6 +226,10 @@ AURORA_SERVER_HOST=127.0.0.1 AURORA_SERVER_PORT=9090 ./aurora-api
 | 投票   | `SESSION_TITLE_TOO_LONG`       | 400  |
 | 投票   | `SESSION_DESCRIPTION_TOO_LONG` | 400  |
 
+`NOT_TOKEN_OWNER`（403）与 `DUPLICATE_TRANSFER`（409）在上表中有定义，服务端
+当前不会产生：两个哨兵随 domain 层一起建好，但还没有用例返回它们。列出是为了
+让调用方在它们启用时不必改解析逻辑；按「已返回」处理会写出永远不触发的分支。
+
 ## 健康与指标
 
 | 方法 | 路径              | 说明                                   |

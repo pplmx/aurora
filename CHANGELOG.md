@@ -28,6 +28,16 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **Two listed error codes are never produced**: `NOT_TOKEN_OWNER` and
+  `DUPLICATE_TRANSFER` sit in the classifier and their sentinels have existed
+  since the domain layer was written, but no use case returns either. The
+  reference listed them among the errors a caller can receive, which invites a
+  branch that never runs.
+- **The reference says so now**, and a test keeps the list honest: it reads the
+  classifier, finds the codes no other file mentions, and requires both to be
+  named in the note. The day a use case starts returning one, the test asks for
+  the note to change.
+
 - **A failed lookup says 未找到, and a person takes 一位**: the window used 找不到
   and 未找到 for the same four "not found" errors, and the CLI counted candidates
   with 一名 while the window used 一位 for the same people. Both are one word now,
