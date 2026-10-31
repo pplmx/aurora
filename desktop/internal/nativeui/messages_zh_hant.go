@@ -48,6 +48,7 @@ var desktopMessagesHant = map[string]string{
 	"Approving…":                      "正在授權…",
 	"Attempts":                        "嘗試",
 	"Audit outbox: %d pending events": "審計待發事件 %d 條",
+	"Audit outbox: %d pending events, oldest waiting %s":    "審計 outbox：%d 條待投遞，最久已等待 %s",
 	"Aurora keeps the ledger in one local SQLite database.": "Aurora 把賬本保存在一個本地 SQLite 數據庫中。",
 	"Back Up Database…": "備份數據庫…",
 	"Back up database":  "備份數據庫",

@@ -657,6 +657,10 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Added
 
+- **The outbox warning says how long it has waited**: `aurora doctor`'s outbox
+  check and the window's copied diagnostics now append the age of the oldest
+  parked event ("pending events: 1; oldest waits 2m0s"), which is what separates a
+  just-parked event from a stuck retry loop.
 - **The scrape says how long the outbox has been waiting**: alongside
   `aurora_outbox_pending_events`, `/metrics` now carries
   `aurora_outbox_oldest_pending_seconds`, the age of the oldest parked event. A

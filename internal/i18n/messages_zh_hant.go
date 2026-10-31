@@ -180,6 +180,7 @@ var traditionalMessages = map[string]string{
 	"doctor.detail.migrations_dirty":            "版本 %d 處於 dirty 狀態",
 	"doctor.detail.no_database":                 "數據庫不可用",
 	"doctor.detail.outbox":                      "待投遞事件 %d 條",
+	"doctor.detail.outbox_oldest":               "待投遞事件: %d；最久已等待 %s",
 	"doctor.failed":                             "存在未通過的檢查",
 	"doctor.short":                              "檢查配置、數據庫、遷移、賬本與審計 outbox",
 	"doctor.title":                              "自檢",

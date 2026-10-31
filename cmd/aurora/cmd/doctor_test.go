@@ -89,6 +89,8 @@ func TestDoctorWarnsOnPendingOutbox(t *testing.T) {
 		out, err := runCmd(t, "doctor")
 		require.NoError(t, err)
 		assert.Contains(t, out, "▲ Audit outbox")
+		assert.Contains(t, out, "oldest waits",
+			"the warning says whether the retry loop is moving, not only that something is parked")
 
 		out, err = runCmd(t, "doctor", "--json")
 		require.NoError(t, err)
