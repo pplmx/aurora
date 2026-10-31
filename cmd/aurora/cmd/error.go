@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/pplmx/aurora/internal/app/lotteryapp"
+	"github.com/pplmx/aurora/internal/domain/events"
 	"github.com/pplmx/aurora/internal/domain/lottery"
 	"github.com/pplmx/aurora/internal/domain/nft"
 	"github.com/pplmx/aurora/internal/domain/oracle"
@@ -370,6 +371,9 @@ var cliErrorTranslations = []cliErrorTranslation{
 	{token.ErrPrivateKeyRequired, "error.private_key_required"},
 	{token.ErrInvalidPrivateKeyLength, "error.invalid_private_key_length"},
 	{token.ErrInvalidBase64, "error.invalid_base64"},
+	// The last unmapped sentinel: a ledger payload that cannot be decoded is
+	// reported by the audit readers, so it must not fall back to English.
+	{events.ErrInvalidPayload, "error.invalid_event_payload"},
 	{token.ErrTokenDecimalsInvalid, "error.invalid_decimals"},
 	{token.ErrAmountTooLarge, "error.amount_too_large"},
 	{token.ErrAuditPublishFailed, "error.audit_publish_failed"},
