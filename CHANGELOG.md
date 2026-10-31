@@ -28,6 +28,17 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **A configuration key the sample file never mentions is caught now**: 19 keys
+  are read through viper across `internal/config` and the CLI's own defaults, and
+  all 19 appear in `config/aurora.toml` with a value, a commented-out default or
+  a note. A key the loader honours and the sample omits is a setting nobody knows
+  exists; the reverse — a key the sample shows and the code ignores — silently
+  does nothing.
+- **The values agree too**: the commented-out defaults match the code
+  (`api.rateLimit.requests` 120, its window `1m`, `oracle.scheduler.checkInterval`
+  1), and `log.path` differs only in a trailing slash that `NormalizePath`
+  removes.
+
 - **A callback the view asks for and the command forgets to fill is caught now**:
   `Actions` is a struct of callbacks, and adding a field is how the view asks for
   something new. A field the command never sets is a nil callback reached on the
