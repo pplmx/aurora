@@ -28,6 +28,12 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **Parentheses follow the same rule the other marks do**: six entries wrote
+  公钥 (Base64) and 代币 (FT) 系统 with half-width brackets while seventy wrote
+  会话开始时间（Unix）with full-width ones. The punctuation test covered the marks
+  that end a clause and not the pair that surrounds a note, so the rule held
+  everywhere except where a Latin term was being explained.
+
 - **The remaining source assertions match a call, not an expression**: two of
   them spelled out the full argument list, and one of those was rewritten twice
   for the separator and the label helper — each rewrite read as an
