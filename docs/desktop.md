@@ -205,7 +205,9 @@ just check && just test
 - **Results/Readings 打开即读已选对象**：在 Setup 里选中的会期切到 Results 会直接加载计票；
   Sources 里选中的数据源切到 Readings 会直接查询该源与最新值。显式 Query / Get Latest /
   Show Results 仍是失败后的重试入口；同一对象/上限不会每帧重复查询。没有选中对象时，
-  Results 的空计票卡直接列出最近三个会期，点一次即加载，不必回 Setup 抄 ID；
+  Results 的 Session ID 字段下方直接列出最近三个会期（`Stored sessions`），点一次即
+  加载，不必回 Setup 抄 ID；这组快捷项放在它填写的字段下面，而不是隔壁计票卡的
+  空态里——读者要能一眼看出“点了会写进上面这个框”；
   Ballot 选中会期后把名单渲染成候选人名按钮，点名字即写入候选人 ID；注册过的选民
   也以名字出现，点名字填入公钥（私钥始终手填，只走内存中的会话密钥记忆）。
 - **空态有身份**：Token/NFT/Oracle 的空列表使用模块图标 + 标题 + 下一步说明，

@@ -796,8 +796,20 @@ func TestResultsTabOffersTheStoredSessions(t *testing.T) {
 	require.NoError(t, tester.Click("Results"), "open the results tab")
 	tester.Frame()
 
-	require.True(t, tester.HasText("Choose a session in Setup or enter its ID first."))
+	require.True(t, tester.HasText("Choose a stored session in Results, or paste its ID first."))
 	require.True(t, tester.HasText("Board 2027"), "the newest session is offered in place")
+
+	// The chip belongs to the field it fills. It used to hang under the empty
+	// tally in the next column, so the reader saw a choice named for a session
+	// while the input it writes sat across the gutter in another card.
+	fieldLabel, ok := tester.Find("Session ID")
+	require.True(t, ok)
+	chip, ok := tester.Find("Board 2027")
+	require.True(t, ok)
+	require.Greater(t, chip.Y, fieldLabel.Y, "the chip sits below the field it fills")
+	require.InDelta(t, float64(fieldLabel.X), float64(chip.X), 40,
+		"and shares that field's column rather than the tally's")
+	require.True(t, tester.HasText("Stored sessions"), "the picker names what the chips are")
 
 	require.NoError(t, tester.Click("Board 2027"))
 	tester.Frame()

@@ -12,6 +12,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The Results tab's session chips sit under the field they fill**: the
+  newest sessions were offered inside the empty tally card in the right column,
+  so a reader saw a chip named for a session while the "Session ID" input it
+  writes sat across the gutter in another card. The picker is under that field
+  now, labelled "Stored sessions", and the empty tally's prompt names that
+  picker instead of sending the reader back to Setup.
+
 - **The README's project tree lists every package**: it is the first map a
   contributor reads and seven shipped packages were missing from it
   (`config`, `logger`, `metrics`, `netguard`, `records`, `background` and
