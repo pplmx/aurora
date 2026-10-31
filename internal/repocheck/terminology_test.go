@@ -21,16 +21,32 @@ func TestTheCatalogsUseOneWordPerConcept(t *testing.T) {
 	// is the house word.
 	// The rejected spelling is written once per script so a rule does not have
 	// to guess how a character converts.
-	type concept struct{ rejected, rejectedHant, accepted, why string }
+	// proseOnly marks a word whose other sense is legitimate in running text:
+	// 停用记忆 means "stop remembering", not "a disabled feed". Such a rule
+	// judges the catalogs and leaves the documents alone.
+	type concept struct {
+		rejected, rejectedHant, accepted, why string
+		proseOnly                             bool
+	}
 	concepts := []concept{
-		{"投票人", "投票人", "选民", "the guide and the window call the voter 选民"},
-		{"会话", "會話", "会期", "the guide and the window call a voting session 会期"},
+		{"投票人", "投票人", "选民", "the guide and the window call the voter 选民", false},
+		{"会话", "會話", "会期", "the guide and the window call a voting session 会期", false},
 		// A token moves money and an NFT moves an asset; the two were separate
 		// house words before the CLI called both of them 转移.
-		{"转移", "轉移", "转让", "an NFT transfer is 转让 and a token transfer is 转账"},
+		{"转移", "轉移", "转让", "an NFT transfer is 转让 and a token transfer is 转账", false},
 		// The token's precision is 精度 in the guide and the window; the CLI
 		// spelled it out as 小数位数.
-		{"小数位", "小數位", "精度", "the guide and the window call token decimals 精度"},
+		{"小数位", "小數位", "精度", "the guide and the window call token decimals 精度", false},
+		// Minting is 铸造 everywhere; the CLI had a second word for the same
+		// capability in its mintable flag.
+		{"增发", "增發", "铸造", "minting a token is 铸造, including its mintable flag", true},
+		// A feed that is turned off is 禁用; 停用 appeared once in the window.
+		{"停用", "停用", "禁用", "a disabled feed is 禁用", true},
+		// The encoding name is written the way the Go package and the guide
+		// write it: lowercase.
+		{"Base64", "Base64", "base64", "the encoding is written base64, as the guide does", false},
+		// Characters that do not belong are 无效; 非法 appeared once.
+		{"非法", "非法", "无效", "a rejected character is 无效", true},
 	}
 
 	catalogs := [][]string{
@@ -83,6 +99,9 @@ func TestTheCatalogsUseOneWordPerConcept(t *testing.T) {
 	for _, doc := range []string{"README.md", "docs/cli.md", "docs/desktop.md", "docs/api.md"} {
 		body := readRepoFile(t, strings.Split(doc, "/")...)
 		for _, c := range concepts {
+			if c.proseOnly {
+				continue
+			}
 			if c.rejected == "会话" {
 				// A process session is still 会话, and the documents speak of
 				// 会话密钥 and the current shell session. Only the voting sense
