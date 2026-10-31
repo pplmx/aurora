@@ -21,7 +21,6 @@ func TestMain(m *testing.M) {
 		panic(err)
 	}
 	viper.Set("db.path", filepath.Join(dir, "aurora.db"))
-	viper.Set("migrate.path", filepath.Join("..", "..", "..", "migrations"))
 
 	code := m.Run()
 
