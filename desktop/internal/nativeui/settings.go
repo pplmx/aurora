@@ -46,12 +46,34 @@ func (a *App) settingsLanguageCard(c *ui.Context) {
 			language = a.actions.Language()
 			current = languageLabel(language)
 		}
+		// The language in effect does not say whether it was chosen. Following
+		// the system on an English machine and choosing English deliberately
+		// produce the same locale, so the card reads the stored choice to tell
+		// them apart: a chooser that highlights English either way leaves the
+		// operator unable to see what a later system change would do.
+		//
+		// known is false when the shell did not supply the getter. The card then
+		// says nothing about the policy rather than assuming one: claiming the
+		// window follows the system would be a guess, and the wrong guess sends
+		// the operator looking for a system setting they never chose.
+		follows, known := true, false
+		if a.actions.FollowsSystem != nil {
+			follows, known = a.actions.FollowsSystem(), true
+		}
+		if known && follows && a.actions.Language != nil {
+			current = tr("Follow System") + " · " + current
+		}
 		readout(c, []readoutRow{{"Current", current}})
 		if a.actions.SetLanguage != nil {
 			ui.Row(c).Wrap().Gap(12).AlignItems(ui.Center).Children(func() {
-				languageChooser(c, languageChoice(language), a.actions.SetLanguage)
-				follow := secondaryButton(c, "Follow System").
-					Description(tr("Use the language selected by the operating system."))
+				selected := languageChoice(language)
+				if known && follows {
+					// No radio is active: the window takes the system's
+					// language, which is not a choice from this list.
+					selected = ""
+				}
+				languageChooser(c, selected, a.actions.SetLanguage)
+				follow := followSystemButton(c, follows)
 				if follow.Clicked() {
 					a.actions.SetLanguage("")
 				}
@@ -327,6 +349,20 @@ func (a *App) renderForgetKeysDialog(c *ui.Context) {
 // languageChooser exposes the installed languages as one keyboard-operable
 // radio group. Follow System stays a separate action because it changes the
 // selection policy, not which installed language is currently shown.
+// followSystemButton is the "follow the system" control. It is a primary
+// button while that is the active policy and a secondary one otherwise, so the
+// card has one place that answers "what happens when the system language
+// changes" instead of leaving it to be inferred from a radio that is not part
+// of the same group.
+func followSystemButton(c *ui.Context, active bool) ui.Element {
+	if active {
+		return primaryButton(c, "Follow System").
+			Description(tr("Use the language selected by the operating system."))
+	}
+	return secondaryButton(c, "Follow System").
+		Description(tr("Use the language selected by the operating system."))
+}
+
 func languageChooser(c *ui.Context, current string, set func(string)) {
 	if set == nil {
 		return

@@ -545,15 +545,36 @@ func (s *Shell) SetPageTitle(title string) {
 	}
 }
 
-// SetLanguage changes the app's language. MyGo reports the change through
-// OnLocaleChanged, which relabels the native menu and redraws the window.
+// SetLanguage changes the app's language and records whether the operator chose
+// it or asked to follow the system. MyGo reports the change through
+// OnLocaleChanged, which relabels the native menu and redraws the window. The
+// stored choice is written before the locale changes so a failed write cannot
+// leave the window in a language Settings does not describe.
 func (s *Shell) SetLanguage(tag string) {
+	s.mu.Lock()
+	next := s.prefs
+	next.Language = tag
+	saved := savePreferences(s.prefsPath, next)
+	if saved == nil {
+		s.prefs = next
+	}
+	s.mu.Unlock()
+
 	mygo.App.SetLocale(tag)
 }
 
 // Language reports the language in effect, for Settings' current-language row.
 func (s *Shell) Language() string {
 	return appLocale()
+}
+
+// LanguageFollowsSystem reports whether no language was ever chosen, so the
+// window takes the operating system's. An older preferences file has no
+// language field, and an empty value is exactly that: following the system.
+func (s *Shell) LanguageFollowsSystem() bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.prefs.Language == ""
 }
 
 // LiveUpdates reports the persisted live-update choice. It is read when the
