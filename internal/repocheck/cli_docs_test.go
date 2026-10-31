@@ -142,7 +142,12 @@ func TestCLIDocsMentionEveryJSONCommand(t *testing.T) {
 			return
 		}
 		checked++
-		assert.Containsf(t, docs, path, "docs/cli.md must name `aurora %s`, which takes --json", path)
+		// The reference's convention is a backticked command name or a command
+		// line; a substring match alone would accept a wrong path that happens
+		// to contain the right words.
+		named := strings.Contains(docs, "`"+path+"`") || strings.Contains(docs, "aurora "+path)
+		assert.Truef(t, named,
+			"docs/cli.md must name `aurora %s` (backticked or as a command), which takes --json", path)
 	})
 	require.GreaterOrEqual(t, checked, 40, "the parser must find the --json commands")
 }
@@ -311,4 +316,37 @@ func isExampleValue(word string) bool {
 	}
 	_, err := strconv.Atoi(word)
 	return err == nil
+}
+
+// TestCLIDocsJSONListNamesRealCommands: the row that promises "arrays; empty
+// collections are []" is the script author's contract, and it once named
+// `voter list` / `session list`, which are not commands (the real paths are
+// `voting voter list` / `voting session list`). Nothing else in the reference
+// had to disagree, so only a path check here catches it.
+func TestCLIDocsJSONListNamesRealCommands(t *testing.T) {
+	tree := parseCLICommandTree(t, filepath.Join(repoRoot(t), "cmd", "aurora", "cmd"))
+	paths := map[string]bool{}
+	tree.eachPath(t, func(path, _ string) { paths[path] = true })
+
+	docs := readRepoFile(t, "docs", "cli.md")
+	var row string
+	for _, line := range strings.Split(docs, "\n") {
+		if strings.HasPrefix(line, "| 列表：") {
+			row = line
+			break
+		}
+	}
+	require.NotEmpty(t, row, "the JSON guidance must keep its list row")
+
+	checked := 0
+	// Backticked names sit at the odd indexes of a split on the backtick.
+	for i, part := range strings.Split(row, "`") {
+		if i%2 == 0 || !strings.Contains(part, " ") {
+			continue
+		}
+		checked++
+		assert.Truef(t, paths[part],
+			"the JSON list row names `%s`, which is not a command path", part)
+	}
+	require.GreaterOrEqual(t, checked, 5, "the row must still list several commands")
 }
