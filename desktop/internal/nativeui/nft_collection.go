@@ -38,7 +38,7 @@ func (a *App) nftReadBody(c *ui.Context) {
 	field(c, "NFT ID", &a.nft.id)
 	id := strings.TrimSpace(a.nft.id)
 	ui.Row(c).Children(func() {
-		if secondaryButton(c, "Get NFT").Disabled(!allSet(a.nft.id)).Clicked() {
+		if secondaryButton(c, "Get NFT", allSet(a.nft.id)).Clicked() {
 			a.readNFTDetails()
 		}
 	})
@@ -65,7 +65,7 @@ func (a *App) nftReadBody(c *ui.Context) {
 	// owner, and Show All restores everything.
 	fieldHint(c, "Owner (base64 public key)", "Narrow the Collection card to one owner.", &a.nft.owner)
 	ui.Row(c).Gap(8).Children(func() {
-		if secondaryButton(c, "Filter by Owner").Disabled(!allSet(a.nft.owner)).Clicked() {
+		if secondaryButton(c, "Filter by Owner", allSet(a.nft.owner)).Clicked() {
 			a.filterNFTs()
 		}
 		if secondaryButton(c, "Show All").Clicked() {

@@ -82,7 +82,7 @@ func (a *App) votingResultsQuery(c *ui.Context) {
 	formCard(c, "Results", "Live tally per candidate for a session.", func() {
 		field(c, "Session ID", &a.voting.resultsSession)
 		ui.Row(c).Wrap().Gap(8).Children(func() {
-			if secondaryButton(c, "Show Results").Disabled(!allSet(a.voting.resultsSession)).Clicked() {
+			if secondaryButton(c, "Show Results", allSet(a.voting.resultsSession)).Clicked() {
 				a.readSessionResults()
 			}
 		})

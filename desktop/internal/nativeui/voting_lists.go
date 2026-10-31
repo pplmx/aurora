@@ -334,7 +334,7 @@ func (a *App) votingCandidateList(c *ui.Context) {
 		a.voting.candChoice, func(i int) { a.chooseCandidate(candidates, i) })
 	rosterReady := a.voting.candChoice >= 0 && a.voting.candChoice < len(candidates)
 	ui.Row(c).Children(func() {
-		if secondaryButton(c, "Add to session roster").Disabled(!rosterReady).Clicked() {
+		if secondaryButton(c, "Add to session roster", rosterReady).Clicked() {
 			a.addCandidateToRoster()
 		}
 	})

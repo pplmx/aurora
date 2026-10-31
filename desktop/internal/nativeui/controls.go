@@ -194,8 +194,48 @@ func primaryButton(c *ui.Context, label string, ready ...bool) ui.Element {
 // secondaryButton is the supporting action: a read, a cancel, or the second
 // write in a card. It keeps the surface and gains an accent-tinted outline on
 // hover instead of filling with colour, so it never competes with the primary.
-func secondaryButton(c *ui.Context, label string) ui.Element {
-	return glassButton(c, label, c.Theme().Text)
+//
+// Pass ready=false for the disabled form: a muted surface and label, no hover
+// accent and no press scale. An inert control that still lights up under the
+// pointer reads as available, and the click then does nothing.
+func secondaryButton(c *ui.Context, label string, ready ...bool) ui.Element {
+	enabled := true
+	if len(ready) > 0 {
+		enabled = ready[0]
+	}
+	label = tr(label)
+	textColor := c.Theme().Text
+	from, to := c.Theme().Surface, c.Theme().Surface.Mix(c.Theme().Background, 0.2)
+	outline := c.Theme().Border
+	if !enabled {
+		textColor = c.Theme().TextMuted
+		from, to = disabledFill(c), c.Theme().Background.Mix(c.Theme().Surface, 0.42)
+	}
+	b := ui.ButtonBase(c).Height(max(buttonHeight, textSize(c, buttonHeight))).
+		PaddingX(max(space4-2, textSize(c, 14))).Radius(radiusSmall + 2).
+		AlignItems(ui.Center).Label(label).TextColor(textColor).Disabled(!enabled)
+	if enabled {
+		switch {
+		case b.Pressed():
+			from, to = c.Theme().SurfacePressed, c.Theme().SurfaceHover
+		case b.Hovered():
+			from, to = c.Theme().SurfaceHover, c.Theme().Surface
+			outline = c.Theme().Accent.Alpha(0.62)
+		}
+	}
+	b.Gradient(from, to, 180)
+	b.BorderWidth(1).BorderColor(outline)
+	if enabled {
+		pose := ui.Pose{}
+		if b.Pressed() {
+			pose.Scale = 0.97
+		}
+		b.AnimatePose(pose, ui.Snappy)
+	}
+	b.Children(func() {
+		ui.Text(c, label).FontSize(textSize(c, 13)).FontWeight(600).SingleLine().TextColor(textColor)
+	})
+	return b
 }
 
 // dangerButton draws the destructive action. Pass ready=false for the disabled
@@ -386,33 +426,6 @@ func tabs(c *ui.Context, selected *int, name string, labels ...string) {
 // glassButton is the shared supporting-button shape: the card's own surface,
 // a hairline border that turns accent on hover, and the button's native press
 // and focus feedback. The caller supplies only the label colour.
-func glassButton(c *ui.Context, label string, textColor ui.Color) ui.Element {
-	label = tr(label)
-	b := ui.ButtonBase(c).Height(max(buttonHeight, textSize(c, buttonHeight))).
-		PaddingX(max(space4-2, textSize(c, 14))).Radius(radiusSmall + 2).
-		AlignItems(ui.Center).Label(label).TextColor(textColor)
-	from, to := c.Theme().Surface, c.Theme().Surface.Mix(c.Theme().Background, 0.2)
-	outline := c.Theme().Border
-	switch {
-	case b.Pressed():
-		from, to = c.Theme().SurfacePressed, c.Theme().SurfaceHover
-	case b.Hovered():
-		from, to = c.Theme().SurfaceHover, c.Theme().Surface
-		outline = c.Theme().Accent.Alpha(0.62)
-	}
-	b.Gradient(from, to, 180)
-	b.BorderWidth(1).BorderColor(outline)
-	pose := ui.Pose{}
-	if b.Pressed() {
-		pose.Scale = 0.97
-	}
-	b.AnimatePose(pose, ui.Snappy)
-	b.Children(func() {
-		ui.Text(c, label).FontSize(textSize(c, 13)).FontWeight(600).SingleLine().TextColor(textColor)
-	})
-	return b
-}
-
 // fieldHint builds a labelled input with a hint under it, for inputs whose
 // accepted range is not obvious from the label.
 func fieldHint(c *ui.Context, label, hintText string, value *string) {

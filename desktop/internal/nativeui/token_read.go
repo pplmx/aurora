@@ -17,7 +17,7 @@ func (a *App) tokenReadBody(c *ui.Context) {
 	field(c, "Token ID", &a.token.tokenID)
 	tokenID := strings.TrimSpace(a.token.tokenID)
 	ui.Row(c).Children(func() {
-		if secondaryButton(c, "Get Token Info").Disabled(!allSet(a.token.tokenID)).Clicked() {
+		if secondaryButton(c, "Get Token Info", allSet(a.token.tokenID)).Clicked() {
 			a.readTokenInfo()
 		}
 	})
@@ -36,7 +36,7 @@ func (a *App) tokenReadBody(c *ui.Context) {
 	field(c, "Account (base64 public key)", &a.token.balanceAccount)
 	account := strings.TrimSpace(a.token.balanceAccount)
 	ui.Row(c).Children(func() {
-		if secondaryButton(c, "Get Balance").Disabled(!allSet(a.token.tokenID, a.token.balanceAccount)).Clicked() {
+		if secondaryButton(c, "Get Balance", allSet(a.token.tokenID, a.token.balanceAccount)).Clicked() {
 			a.readTokenBalance()
 		}
 	})
@@ -190,7 +190,7 @@ func (a *App) tokenAllowance(c *ui.Context) {
 		field(c, "Owner (base64 public key)", &a.token.allowanceOwner)
 		field(c, "Spender (base64 public key)", &a.token.allowanceTo)
 		ui.Row(c).Children(func() {
-			if secondaryButton(c, "Get Allowance").Disabled(!allSet(a.token.tokenID, a.token.allowanceOwner, a.token.allowanceTo)).Clicked() {
+			if secondaryButton(c, "Get Allowance", allSet(a.token.tokenID, a.token.allowanceOwner, a.token.allowanceTo)).Clicked() {
 				a.loadAllowance()
 			}
 		})
@@ -294,7 +294,7 @@ func (a *App) tokenHistoryBody(c *ui.Context) {
 		})
 	})
 	ui.Row(c).Children(func() {
-		if secondaryButton(c, "Load History").Disabled(!allSet(a.token.tokenID)).Clicked() {
+		if secondaryButton(c, "Load History", allSet(a.token.tokenID)).Clicked() {
 			a.readTokenHistory()
 		}
 	})

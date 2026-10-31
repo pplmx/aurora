@@ -47,7 +47,7 @@ func (a *App) nftWrite(c *ui.Context) {
 		formCard(c, "History", "Every mint, transfer and burn recorded for this NFT.", func() {
 			field(c, "NFT ID", &a.nft.historyID)
 			ui.Row(c).Children(func() {
-				if secondaryButton(c, "Show History").Disabled(!allSet(a.nft.historyID)).Clicked() {
+				if secondaryButton(c, "Show History", allSet(a.nft.historyID)).Clicked() {
 					a.readNFTHistory()
 				}
 			})
