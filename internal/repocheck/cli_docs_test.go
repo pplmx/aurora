@@ -350,3 +350,18 @@ func TestCLIDocsJSONListNamesRealCommands(t *testing.T) {
 	}
 	require.GreaterOrEqual(t, checked, 5, "the row must still list several commands")
 }
+
+// TestCLIDocsNameEveryCompletionShell covers the one command family the tree
+// parser cannot see: Cobra adds the shell subcommands itself, so no source file
+// declares `completion fish`. The reference said "four shell subcommands" and
+// named two of them in examples, which leaves a fish user unsure whether their
+// shell is supported.
+func TestCLIDocsNameEveryCompletionShell(t *testing.T) {
+	docs := readRepoFile(t, "docs", "cli.md")
+	// Compared on the search result so a failure names the shell instead of
+	// printing the whole document.
+	for _, shell := range []string{"bash", "zsh", "fish", "powershell"} {
+		assert.NotEqualf(t, -1, strings.Index(docs, "`"+shell+"`"),
+			"docs/cli.md must name the %s completion shell", shell)
+	}
+}
