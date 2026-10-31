@@ -2,6 +2,7 @@ package nativeui
 
 import (
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/egoist/mygo/ui"
@@ -293,10 +294,12 @@ func TestFailedLedgerQueryDoesNotRetryEveryFrame(t *testing.T) {
 	require.True(t, tester.HasText("Couldn't read chain blocks"))
 }
 
-// TestFailedVotingReadsReportEachCauseOnce covers the page warning's error
-// text. All three list reads fail with the same cause when the database is
-// locked, and errors.Join rendered each of them, so the strip painted the
-// identical sentence three times under a heading that already named the module.
+// TestFailedVotingReadsReportEachCauseOnce covers the page warning's text. All
+// three list reads fail with the same cause when the database is locked, and
+// errors.Join renders each of them, so the strip painted the identical sentence
+// three times under a heading that already named the module. The dedup lives in
+// loadWarning, which the strip reaches through a Label rather than a text run,
+// so the assertion is on the message it builds.
 func TestFailedVotingReadsReportEachCauseOnce(t *testing.T) {
 	boom := errors.New("database is locked")
 	app := New(&fakeServices{loadErrs: fakeLoadErrors{
@@ -306,8 +309,12 @@ func TestFailedVotingReadsReportEachCauseOnce(t *testing.T) {
 	app.ShowPage("Voting")
 	tester.Frame()
 
-	require.Equal(t, "database is locked", app.voting.loadErr.Error(),
-		"the same cause from three reads must appear once")
+	// The model keeps every cause, so a caller reading loadErr still learns all
+	// three reads failed.
+	require.Equal(t, 3, strings.Count(app.voting.loadErr.Error(), "database is locked"))
+	// What the strip draws states it once.
+	require.Equal(t, "Failed to load voting data: database is locked",
+		dedupeLines("Failed to load voting data: "+localizeServiceError(app.voting.loadErr)))
 	require.True(t, tester.HasText("Failed to load voting data"))
 
 	// Different causes are different facts: every one has to survive, because
@@ -320,7 +327,24 @@ func TestFailedVotingReadsReportEachCauseOnce(t *testing.T) {
 	tester = ui.NewTester(app.View, 1280, 1400)
 	app.ShowPage("Voting")
 	tester.Frame()
-	require.Equal(t,
-		"voters table missing\ncandidates table missing\nsessions table missing",
-		app.voting.loadErr.Error())
+	message := dedupeLines("Failed to load voting data: " + localizeServiceError(app.voting.loadErr))
+	for _, reason := range []string{"voters table missing", "candidates table missing", "sessions table missing"} {
+		require.Containsf(t, message, reason, "the strip must keep %q", reason)
+	}
+}
+
+// TestDedupeLinesKeepsTheFirstOfEachAndItsOrder pins the helper itself, because
+// it is what every load warning now goes through.
+func TestDedupeLinesKeepsTheFirstOfEachAndItsOrder(t *testing.T) {
+	for _, tc := range []struct{ in, want string }{
+		{"one reason", "one reason"},
+		{"a\na\na", "a"},
+		{"a\nb\na", "a\nb"},
+		{"heading: a\na", "heading: a"},
+		{"a\n\na", "a"},
+		{"heading: a\nb", "heading: a\nb"},
+		{"", ""},
+	} {
+		require.Equalf(t, tc.want, dedupeLines(tc.in), "dedupeLines(%q)", tc.in)
+	}
 }
