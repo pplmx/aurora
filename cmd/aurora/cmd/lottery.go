@@ -225,17 +225,29 @@ var verifyCmd = &cobra.Command{
 		// get the cryptographic proof check (see app/lottery.VerifyRecord).
 		// The "✅ Verified" line is printed only for a passing record — it must
 		// never follow a plain parse, which was a false positive.
+		var passed []string
 		for _, check := range report.Checks {
 			if check.Status == lotteryapp.VerifyFail {
 				fmt.Printf("\n❌ %s\n",
 					i18n.GetTextF("lottery.verify_failed", i18n.LocalizeVerifyCheckMessage(check.Message)))
+				continue
 			}
+			passed = append(passed, i18n.LocalizeVerifyCheckMessage(check.Message))
 		}
 		if report.IntegrityOK {
 			if report.ProofVerified {
 				fmt.Println("\n✅ " + i18n.GetText("lottery.verified"))
 			} else {
 				fmt.Println("\n✅ " + i18n.GetText("lottery.verified_deterministic"))
+			}
+			// The verdict says the record passed; the checks say what passed —
+			// a proof against the stored key, or the deterministic winner match
+			// a pre-v1.31 draw falls back to.
+			if len(passed) > 0 {
+				fmt.Printf("\n🔍 %s:\n", i18n.GetText("lottery.checks"))
+				for _, message := range passed {
+					fmt.Printf("   - %s\n", message)
+				}
 			}
 		}
 

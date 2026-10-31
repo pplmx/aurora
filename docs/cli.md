@@ -66,6 +66,10 @@ aurora lottery db-info               # 数据库路径、占用（含 -wal/-shm�
 aurora lottery reset --confirm       # 清空抽奖记录
 ```
 
+`lottery verify` 的表格先给出结论（`✅ 抽奖记录已验证！`，老记录无可验证公钥时改用
+确定性匹配的结论），再用 `🔍 校验项:` 列出这一结论依据的检查——`--json` 里对应
+`checks` 数组与 `integrity_ok`/`proof_verified`。
+
 `lottery import` 的文档读取上限为 64 MiB（桌面端的 File → Import 与拖放导入
 走同一个读取函数），超限会在解析前直接报错，而不是先把整个文件读进内存。
 

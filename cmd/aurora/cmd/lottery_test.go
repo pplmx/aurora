@@ -172,6 +172,11 @@ func TestLotteryVerify_ByID_Startswith(t *testing.T) {
 		vout, err := runCmd(t, "lottery", "verify", id)
 		require.NoError(t, err)
 		assert.Contains(t, vout, "Block Height: #")
+		// The verdict says the record passed; the checks say what passed, so a
+		// reader comparing two machines sees the proof line and not only the
+		// conclusion.
+		assert.Contains(t, vout, "Checks:")
+		assert.Contains(t, vout, "VRF proof verified against the stored public key")
 
 		// Substring prefix match fallback: first 8 chars of the id.
 		// NOTE: only asserted when the prefix is NOT all-decimal-digits —

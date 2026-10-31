@@ -704,6 +704,11 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Added
 
+- **`lottery verify` lists what it checked**: the table printed the conclusion
+  alone (`✅ 抽奖记录已验证！`), leaving the reason — a proof checked against the
+  stored key, or the deterministic winner match a pre-v1.31 draw falls back to —
+  to the JSON document. A `🔍 校验项:` block now prints each passing check, so two
+  machines can be compared without reading the document.
 - **The punctuation guard**: a repocheck test fails when a Chinese character in
   either zh catalog is followed by an ASCII comma, colon or semicolon, so the next
   label cannot drift back to `当前版本: 8`; it leaves Latin labels (`ID: %s`) and
