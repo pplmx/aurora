@@ -165,9 +165,17 @@ func TestChineseTranslationsKeepChromeVocabularyInChinese(t *testing.T) {
 			[]string{"Spender"},
 		},
 		{
-			"Mint/Approve/Burn sign with the owner private key; Transfer with the sender's; Transfer From with the spender's. Keys are never stored, and Use generated owner key works only for the token that key created.",
+			// The signing rule and the storage rule are separate guide steps so
+			// neither sentence has to carry the other's subject; both keep their
+			// protocol names untranslated, like the rest of the page.
+			"Each write signs with a different key: Mint/Approve/Burn use the owner's, Transfer the sender's, Transfer From the spender's.",
 			"铸造、授权和销毁",
-			[]string{"Mint", "Transfer", "Approve", "Burn", "Use generated owner key"},
+			[]string{"Mint", "Transfer", "Approve", "Burn", "owner"},
+		},
+		{
+			"Keys are never stored. Use generated owner key works only for the token that key created.",
+			"使用已生成的所有者密钥",
+			[]string{"Use generated owner key"},
 		},
 		{
 			"No NFTs for this owner. Show All restores the collection.",

@@ -28,6 +28,12 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The token guide separates the signing rule from the storage rule**: its
+  third step packed three signing keys and a storage disclaimer into one
+  sentence, so the page's most important safety fact — which key signs which
+  write — arrived as the tail of a 200-character paragraph. It is two steps
+  now: which key each write uses, and that no key is stored.
+
 - **The voting commands are grouped by registry**: `voting.go` held the shared
   repository singletons, all eleven subcommands and the registration table in
   596 lines. The commands moved by what they act on — `voting_registry.go`
