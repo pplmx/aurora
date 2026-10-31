@@ -20,6 +20,7 @@ import (
 	infraevents "github.com/pplmx/aurora/internal/infra/events"
 	"github.com/pplmx/aurora/internal/infra/http"
 	"github.com/pplmx/aurora/internal/infra/sqlite"
+	"github.com/pplmx/aurora/internal/infra/store"
 )
 
 // Container holds the assembled application services. Its fields are
@@ -87,8 +88,8 @@ func (c *Container) Close() error {
 // failure closes every handle opened so far, so callers never inherit a
 // half-constructed container or a leaked SQLite handle.
 func Open() (*Container, error) {
-	dbPath := blockchain.DBPath()
-	db, err := blockchain.OpenDB(dbPath)
+	dbPath := store.Path()
+	db, err := store.Open(dbPath)
 	if err != nil {
 		return nil, err
 	}

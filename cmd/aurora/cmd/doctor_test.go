@@ -15,6 +15,7 @@ import (
 	"github.com/pplmx/aurora/internal/domain/events"
 	"github.com/pplmx/aurora/internal/infra/blockchain"
 	infraevents "github.com/pplmx/aurora/internal/infra/events"
+	"github.com/pplmx/aurora/internal/infra/store"
 )
 
 // TestDoctorReportsAHealthyInstallation: the table names every check and the
@@ -78,7 +79,7 @@ func TestDoctorWarnsOnPendingOutbox(t *testing.T) {
 	withTempDir(t, func(t *testing.T) {
 		setTestLocale(t, "en")
 
-		dbPath := blockchain.DBPath()
+		dbPath := store.Path()
 		require.NoError(t, os.MkdirAll(filepath.Dir(dbPath), 0o700))
 		store, err := infraevents.NewSQLiteEventStore(dbPath)
 		require.NoError(t, err)

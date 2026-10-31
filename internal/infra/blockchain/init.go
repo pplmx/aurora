@@ -1,7 +1,6 @@
 package blockchain
 
 import (
-	"database/sql"
 	"errors"
 	"fmt"
 	"sync"
@@ -22,14 +21,6 @@ var (
 // an append: writing on top of it would make a bad ledger look usable again.
 var ErrLedgerCorruption = errors.New("blockchain: persisted ledger is corrupt")
 
-// InitDB returns the process-wide database handle. Opening and path resolution
-// live in internal/infra/store; the ledger only needs the handle it reads and
-// writes through.
-func InitDB() (*sql.DB, error) { return store.OpenShared() }
-
-// DBPath returns the configured database path without touching the filesystem.
-func DBPath() string { return store.Path() }
-
 // InitWithError initializes the process-wide chain and reports any database
 // failure, unreadable row, or integrity violation. Returning a chain after an
 // open failure would label writes as durable while they existed only in memory.
@@ -37,7 +28,7 @@ func InitWithError() (*Chain, error) {
 	once.Do(func() {
 		chain := &Chain{Blocks: []*Block{Genesis()}}
 
-		db, err := InitDB()
+		db, err := store.OpenShared()
 		if err != nil {
 			initErr = fmt.Errorf("open blockchain database: %w", err)
 			return

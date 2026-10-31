@@ -11,6 +11,7 @@ import (
 	"github.com/pplmx/aurora/internal/i18n"
 	"github.com/pplmx/aurora/internal/infra/blockchain"
 	"github.com/pplmx/aurora/internal/infra/sqlite"
+	"github.com/pplmx/aurora/internal/infra/store"
 	"github.com/pplmx/aurora/internal/logger"
 	"github.com/pplmx/aurora/internal/utils"
 	"github.com/spf13/cobra"
@@ -43,7 +44,7 @@ var createCmd = &cobra.Command{
 			count, _ = cmd.Flags().GetInt("count")
 		}
 
-		lotteryRepo, err := sqlite.NewLotteryRepository(blockchain.DBPath())
+		lotteryRepo, err := sqlite.NewLotteryRepository(store.Path())
 		if err != nil {
 			return wrapCLIError("lottery.error.create_repo", err)
 		}
@@ -101,7 +102,7 @@ var historyCmd = &cobra.Command{
 		// the structured draw data (winners, addresses, VRF proof, block
 		// height) that raw blocks do not carry, and survives restarts without
 		// parsing block data.
-		repo, err := sqlite.NewLotteryRepository(blockchain.DBPath())
+		repo, err := sqlite.NewLotteryRepository(store.Path())
 		if err != nil {
 			return wrapCLIError("lottery.error.open_repo", err)
 		}
@@ -186,7 +187,7 @@ var verifyCmd = &cobra.Command{
 		// Open the persistent lottery repository. Lookups go through the
 		// dedicated lottery_records table (structured draw data that survives
 		// restarts) rather than the blockchain's raw blocks.
-		repo, err := sqlite.NewLotteryRepository(blockchain.DBPath())
+		repo, err := sqlite.NewLotteryRepository(store.Path())
 		if err != nil {
 			return wrapCLIError("lottery.error.open_repo", err)
 		}
@@ -273,7 +274,7 @@ var exportCmd = &cobra.Command{
 
 		// Read from the persistent lottery_records table, not the in-memory
 		// chain — see historyCmd for the full rationale.
-		repo, err := sqlite.NewLotteryRepository(blockchain.DBPath())
+		repo, err := sqlite.NewLotteryRepository(store.Path())
 		if err != nil {
 			return wrapCLIError("lottery.error.open_repo", err)
 		}
@@ -316,7 +317,7 @@ var importCmd = &cobra.Command{
 		// Persist via the SQLite repository so the structured draw record
 		// (ID, winners, VRF proof, block height) survives restarts; the
 		// blockchain is a separate append-only audit log.
-		repo, err := sqlite.NewLotteryRepository(blockchain.DBPath())
+		repo, err := sqlite.NewLotteryRepository(store.Path())
 		if err != nil {
 			return wrapCLIError("lottery.error.open_repo", err)
 		}
@@ -365,7 +366,7 @@ var statsCmd = &cobra.Command{
 		// only reflects draws added as blocks; imported draws write
 		// lottery_records and never reach the chain, so counting the chain
 		// made stats disagree with history (TASK-070, ISS-062).
-		repo, err := sqlite.NewLotteryRepository(blockchain.DBPath())
+		repo, err := sqlite.NewLotteryRepository(store.Path())
 		if err != nil {
 			return wrapCLIError("lottery.error.open_repo", err)
 		}
@@ -387,7 +388,7 @@ var statsCmd = &cobra.Command{
 				Total       int    `json:"total"`
 				DBPath      string `json:"db_path"`
 				LatestBlock *int64 `json:"latest_block,omitempty"`
-			}{Total: len(records), DBPath: blockchain.DBPath()}
+			}{Total: len(records), DBPath: store.Path()}
 			if latest >= 0 {
 				out.LatestBlock = &latest
 			}
@@ -397,7 +398,7 @@ var statsCmd = &cobra.Command{
 		fmt.Println("\n📊 " + i18n.GetText("lottery.statistics"))
 		fmt.Println("────────────────────────────")
 		fmt.Printf("  %s: %d\n", i18n.GetText("lottery.total"), len(records))
-		fmt.Printf("  %s: %s\n", i18n.GetText("lottery.db_path"), blockchain.DBPath())
+		fmt.Printf("  %s: %s\n", i18n.GetText("lottery.db_path"), store.Path())
 
 		if latest >= 0 {
 			fmt.Printf("  %s: #%d\n", i18n.GetText("lottery.latest_block"), latest)
@@ -419,7 +420,7 @@ var resetCmd = &cobra.Command{
 			return err
 		}
 
-		db, err := blockchain.InitDB()
+		db, err := store.OpenShared()
 		if err != nil {
 			return wrapCLIError("lottery.error.init_db", err)
 		}
@@ -481,7 +482,7 @@ var dbInfoCmd = &cobra.Command{
 	Use:   "db-info",
 	Short: i18n.GetText("lottery.db_info"),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		db, err := blockchain.InitDB()
+		db, err := store.OpenShared()
 		if err != nil {
 			return wrapCLIError("lottery.error.init_db", err)
 		}
@@ -502,7 +503,7 @@ var dbInfoCmd = &cobra.Command{
 			return wrapCLIError("lottery.error.count_blocks", err)
 		}
 
-		path := blockchain.DBPath()
+		path := store.Path()
 		size := utils.SQLiteDiskUsage(path)
 		if jsonRequested(cmd) {
 			return printJSON(struct {

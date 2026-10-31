@@ -11,8 +11,8 @@ import (
 	"github.com/pplmx/aurora/internal/config"
 	"github.com/pplmx/aurora/internal/domain/token"
 	"github.com/pplmx/aurora/internal/i18n"
-	"github.com/pplmx/aurora/internal/infra/blockchain"
 	"github.com/pplmx/aurora/internal/infra/migrate"
+	"github.com/pplmx/aurora/internal/infra/store"
 	"github.com/pplmx/aurora/internal/logger"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -63,16 +63,16 @@ var rootCmd = &cobra.Command{
 		// $HOME/.aurora/data with an unused tokens.db/events.db/nonces.db trio
 		// (TASK-103, ISS-095). The wiring was dead (nothing reads GlobalApp), so
 		// it is removed; the only remaining pre-run work is the optional
-		// migrate.autoRun, which targets the same blockchain.DBPath() every
+		// migrate.autoRun, which targets the same store.Path() every
 		// store uses.
 		if viper.GetBool("migrate.autoRun") {
 			// Migrate the very same database every store and `aurora migrate`
-			// use. blockchain.DBPath() honors a configured db.path; the previous
+			// use. store.Path() honors a configured db.path; the previous
 			// fallback here (filepath.Join(dataDir, "aurora.db"), i.e.
 			// $HOME/.aurora/data/aurora.db) diverged from the stores'
 			// ./data/aurora.db — the migrate-vs-stores split-brain (TASK-102,
 			// ISS-094).
-			dbPath := blockchain.DBPath()
+			dbPath := store.Path()
 			migPath := viper.GetString("migrate.path")
 
 			if err := migrate.RunMigrationsIfEnabled(dbPath, migrate.MigrateConfig{

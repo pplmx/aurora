@@ -8,15 +8,15 @@ import (
 
 	"github.com/pplmx/aurora/internal/i18n"
 	"github.com/pplmx/aurora/internal/infra/backup"
-	"github.com/pplmx/aurora/internal/infra/blockchain"
+	"github.com/pplmx/aurora/internal/infra/store"
 	"github.com/spf13/cobra"
 )
 
 // newCLIBackup builds a backup service over the same SQLite file the rest of
-// the CLI uses (blockchain.DBPath(), i.e. ./data/aurora.db relative to the
+// the CLI uses (store.Path(), i.e. ./data/aurora.db relative to the
 // cwd). Opening and reading the source owns filesystem-error reporting.
 func newCLIBackup() (*backup.BackupService, error) {
-	dbPath := blockchain.DBPath()
+	dbPath := store.Path()
 	return backup.NewBackupService(map[string]string{"aurora": dbPath}), nil
 }
 

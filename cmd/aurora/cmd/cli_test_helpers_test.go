@@ -16,6 +16,7 @@ import (
 
 	"github.com/pplmx/aurora/internal/infra/blockchain"
 	"github.com/pplmx/aurora/internal/infra/migrate"
+	"github.com/pplmx/aurora/internal/infra/store"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
@@ -67,7 +68,7 @@ func captureStderr(t *testing.T) func() string {
 // or shared state.
 //
 // Oracle CLI commands now open a persistent SQLite repo per command on
-// blockchain.DBPath(), so their state lives in the same ./data/aurora.db that
+// store.Path(), so their state lives in the same ./data/aurora.db that
 // blockchain.ResetForTest() wipes below — no separate oracle reset needed.
 func resetCliForTest() {
 	// Voting singletons (voting.go) — reassign, not mutate in place.
@@ -207,14 +208,14 @@ func withTempDir(t *testing.T, fn func(t *testing.T)) {
 
 	fn(t)
 
-	// The CLI commands share blockchain.InitDB()'s process-wide singleton,
+	// The CLI commands share store.OpenShared()'s process-wide singleton,
 	// which is never explicitly closed (the real process exits and the OS
 	// reclaims it). In-process tests must close it before t.TempDir()'s
 	// RemoveAll cleanup or the SQLite handle is still open and Windows cannot
 	// delete the temp directory. Cleanups run LIFO, so this (registered last,
 	// before the t.TempDir() registration captured above) executes first.
 	t.Cleanup(func() {
-		_ = blockchain.Close()
+		_ = store.Close()
 		// The NFT repo is cached in a package-global (getNFTRepo) that CLI
 		// commands never close (the real process exits). Its *sql.DB is a
 		// separate handle on the same aurora.db, so it too must be released

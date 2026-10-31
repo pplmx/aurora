@@ -9,6 +9,7 @@ import (
 	"github.com/pplmx/aurora/internal/i18n"
 	"github.com/pplmx/aurora/internal/infra/blockchain"
 	"github.com/pplmx/aurora/internal/infra/sqlite"
+	"github.com/pplmx/aurora/internal/infra/store"
 	"github.com/spf13/cobra"
 )
 
@@ -34,7 +35,7 @@ var (
 
 func getNFTRepo() (nft.TransactableRepository, error) {
 	nftRepoOnce.Do(func() {
-		nftRepo, nftRepoErr = sqlite.NewNFTRepository(blockchain.DBPath())
+		nftRepo, nftRepoErr = sqlite.NewNFTRepository(store.Path())
 	})
 	if nftRepoErr != nil {
 		return nil, nftRepoErr

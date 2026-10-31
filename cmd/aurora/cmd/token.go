@@ -13,12 +13,13 @@ import (
 	"github.com/pplmx/aurora/internal/infra/blockchain"
 	infraevents "github.com/pplmx/aurora/internal/infra/events"
 	"github.com/pplmx/aurora/internal/infra/sqlite"
+	"github.com/pplmx/aurora/internal/infra/store"
 	"github.com/pplmx/aurora/internal/logger"
 	"github.com/spf13/cobra"
 )
 
 func newTokenService() (*token.TokenService, func(), error) {
-	dbPath := blockchain.DBPath()
+	dbPath := store.Path()
 	repo, err := sqlite.NewTokenRepository(dbPath)
 	if err != nil {
 		return nil, nil, wrapCLIError("token.error.create_repo", err)

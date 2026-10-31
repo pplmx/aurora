@@ -11,6 +11,7 @@ import (
 
 	"github.com/pplmx/aurora/internal/i18n"
 	"github.com/pplmx/aurora/internal/infra/blockchain"
+	"github.com/pplmx/aurora/internal/infra/store"
 	"github.com/pplmx/aurora/internal/utils"
 )
 
@@ -86,8 +87,8 @@ func runDoctor() []doctorCheck {
 
 	checks = append(checks, configCheck())
 
-	path := blockchain.DBPath()
-	db, err := blockchain.InitDB()
+	path := store.Path()
+	db, err := store.OpenShared()
 	if err != nil {
 		checks = append(checks, doctorCheck{Name: "database", Status: doctorFail, Detail: err.Error()})
 		return appendUnavailable(checks, "migrations", "ledger", "outbox")
