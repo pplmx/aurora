@@ -28,6 +28,12 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The source type is a word, so the window translates it**: the Oracle
+  source row showed the domain's own "custom" beside translated labels. The
+  first language run over every page is what surfaced it — the earlier runs
+  stopped at Settings and Dashboard. "json" names a format and keeps its
+  spelling, which tr() already does by falling back to the key.
+
 - **A language run captures every page, not two of them**: the window script
   stopped after Settings and Dashboard because its title, page-marker and stage
   tables were English-only, so a Chinese or Traditional run proved the switch
