@@ -28,6 +28,13 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **Both Chinese catalogs and both window edges**: the test added in the
+  previous change ran the Simplified table and checked only the right edge. The
+  two tables are separate, so a line can be short in one and long in the other,
+  and content can be pushed off to the left as well. It now runs 简体 and 繁體 as
+  subtests and reports the leftmost and rightmost edge, each with the string
+  that produced it.
+
 - **Chinese at double text is checked against the window edge**: the suite had
   eighty-six assertions at 2x and none of them in Chinese, where every
   non-Latin character is twice as wide before the scale applies. The new test
