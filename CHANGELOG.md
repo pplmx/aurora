@@ -28,6 +28,17 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The oracle's four error messages are translated**: the domain reports in
+  English and the desktop looks each whole sentence up in its Chinese table, so
+  a missing entry reaches a Chinese window in English while every surrounding
+  word is Chinese. Fetch now, Delete and Enable/Disable could show "rate limit
+  exceeded", "source not found", "invalid source" and "source is disabled"
+  untranslated. All four are in both Chinese catalogs now.
+- **A test holds the two halves together**: it collects every message the
+  domain declares and fails when one has no desktop entry, with an explicit
+  list of the three that never reach the window — two programming faults and
+  the not-found sentinel the desktop rewrites into a module-specific sentence.
+
 - **The architecture document says what it closed, not what it found**: the
   section was headed 已识别的边界问题 and every one of its seven entries began
   with 已做, so a reader reaching the heading could not tell whether it listed
