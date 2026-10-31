@@ -14,8 +14,10 @@
 # Environment:
 #   AURORA_E2E_OUT      output directory (default dist/e2e)
 #   AURORA_E2E_DISPLAY  X display to use; an Xvfb is started when DISPLAY is unset
-#   AURORA_E2E_SEED=1   fill a fresh database through the CLI first, so the
-#                       captures show records instead of the first-run pages
+#   AURORA_E2E_SEED=1   fill the database through the CLI before the window
+#                       opens, so the captures show records instead of the
+#                       first-run pages. Every run recreates the data directory
+#                       first, so captures without this flag are always empty.
 #   AURORA_E2E_THEME    dark (default) or light; light switches the window from
 #                       Settings first and writes under <out>/light
 #   AURORA_E2E_SIZE     window size as WIDTHxHEIGHT (for example 900x600), so

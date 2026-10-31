@@ -160,7 +160,9 @@ desktop-race:
 # plugin. The offscreen tester covers rendering, but only this path proves a
 # built binary draws what the tests expect; it complements the packaging job's
 # Xvfb smoke. Pass page ids to limit the run: `just desktop-shot token nft`.
-# Needs a display; Linux without one starts an Xvfb.
+# Needs a display; Linux without one starts an Xvfb. Every run recreates the
+# data directory, so set AURORA_E2E_SEED=1 for captures with records; the
+# script header lists the light-theme and narrow-window variants.
 
 # Capture each page in the real window as a PNG
 desktop-shot *PAGES:
