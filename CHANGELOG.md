@@ -28,6 +28,12 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The same rule covers the core catalog, against its own reference**: the
+  key there is an identifier (`backup.restore_done`) and the sentence lives in
+  `messages_en.go`, so the argument list to match is the English one rather than
+  the key. 75 entries per Chinese table are checked, and a dropped `%s` in
+  已恢复数据库 is caught.
+
 - **A translation cannot drop or invent a format verb**: the desktop catalog
   uses the English literal as its key, so a translation that loses `%s` prints
   `%!s(MISSING)` to the user and one that adds a verb prints `%!d(string=...)`.
