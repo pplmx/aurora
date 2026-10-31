@@ -28,6 +28,15 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The Chinese catalog's sections match the pages they serve**: the table
+  already had section comments, but the Oracle block opened inside the Token
+  block and two of its guide sentences closed the NFT one, so a reader editing
+  feed copy had to know the file's history to find it. Oracle now has its own
+  section with the page's three stages in order, and the destructive
+  confirmation prompts and required-field refusals — both shared across modules
+  — are marked as their own groups instead of trailing whichever page happened
+  to precede them.
+
 - **The lottery commands are grouped by what an operator is doing**:
   `lottery.go` held all nine commands in 581 lines — making a draw, checking
   one, moving records between installations, and inspecting or resetting the
