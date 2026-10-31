@@ -157,7 +157,7 @@ func (uc *CastVoteUseCase) Execute(req CastVoteRequest) (*VoteResponse, error) {
 	// so the API can classify it as a 4xx, mirroring the NFT boundary
 	// (internal/app/nft/decode.go) and ErrInvalidBase64 above (TASK-121, ISS-113).
 	if len(privBytes) != ed25519.PrivateKeySize {
-		return nil, fmt.Errorf("invalid private key length: %w", voting.ErrInvalidPrivateKey)
+		return nil, voting.ErrInvalidPrivateKey
 	}
 
 	timestamp := time.Now().Unix()
