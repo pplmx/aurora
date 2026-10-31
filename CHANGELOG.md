@@ -28,6 +28,20 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **Two punctuation tests became one**: `punctuation_test.go` checked the ASCII
+  colon after Chinese on two catalogs, and `cjk_punctuation_test.go` — added later
+  — checked the same marks plus brackets and periods on all four. The older test
+  was a subset of the newer one and had been running alongside it for sixty
+  rounds.
+- **Its two good ideas moved instead of disappearing**: the merged test reports
+  the offending line rather than only the value, and keeps the matcher's own
+  self-check, so a rule that stopped matching fails loudly instead of passing on
+  zero hits.
+- **The layering test now counts what it walked**: a rule whose directory was
+  renamed would pass on an empty walk, which is the failure mode that makes a
+  layering check decorative. Each of the four rules must examine more than
+  fifteen files.
+
 - **Every page is rendered in the stacked layout a narrow window gets**: below
   `twoColumnMinWidth` the two columns become one, and only the token page had
   ever been drawn at that width. The other seven share the branch by

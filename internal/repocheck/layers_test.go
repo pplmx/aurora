@@ -50,6 +50,10 @@ func TestLayerDependencies(t *testing.T) {
 		rule := rule
 		t.Run(rule.dir, func(t *testing.T) {
 			base := filepath.Join(repo, rule.dir)
+			// checked counts the files the rule actually examined. A rule whose
+			// directory was renamed, or emptied, would otherwise pass by walking
+			// nothing — the failure mode that makes a layering check decorative.
+			checked := 0
 			err := filepath.WalkDir(base, func(path string, entry fs.DirEntry, err error) error {
 				if err != nil {
 					return err
@@ -63,6 +67,7 @@ func TestLayerDependencies(t *testing.T) {
 				if !strings.HasSuffix(entry.Name(), ".go") || strings.HasSuffix(entry.Name(), "_test.go") {
 					return nil
 				}
+				checked++
 				fset := token.NewFileSet()
 				file, err := parser.ParseFile(fset, path, nil, parser.ImportsOnly)
 				if err != nil {
@@ -83,6 +88,8 @@ func TestLayerDependencies(t *testing.T) {
 				return nil
 			})
 			require.NoError(t, err)
+			require.Greaterf(t, checked, 15,
+				"%s: the rule must examine the layer's files, not pass on an empty walk", rule.dir)
 		})
 	}
 }
