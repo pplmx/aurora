@@ -30,10 +30,11 @@ func walkGoSource(root string, fn func(path, body string)) error {
 // and module caches hold tens of thousands of files — .gocache alone is 25 GB in
 // a working checkout — and walking them made one translation test take twelve
 // seconds. Every walk in this package shares the list so a new one cannot forget
-// part of it.
+// part of it. `.rumdl_cache` is a tool cache that carries its own .gitignore; it
+// is small today but grows with the prose it indexes.
 func skipWalkDir(name string) bool {
 	switch name {
-	case ".git", ".gocache", ".gomodcache", ".gopath", ".gotmp",
+	case ".git", ".gocache", ".gomodcache", ".gopath", ".gotmp", ".rumdl_cache",
 		"node_modules", "dist", ".screens", "logs", "data", ".planning", "testdata":
 		return true
 	}
