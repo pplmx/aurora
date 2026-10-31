@@ -129,16 +129,11 @@ func (a *App) voterKeyChips(c *ui.Context) {
 		voters = append(voters, voter{name: name, key: row.PublicKey})
 	}
 	sort.Slice(voters, func(i, j int) bool { return voters[i].name < voters[j].name })
-	ui.Column(c).FillWidth().Gap(space1).Children(func() {
-		eyebrow(c, "Voters")
-		ui.Row(c).Wrap().Gap(space2).Children(func() {
-			for _, v := range voters {
-				if quietButton(c, v.name).Clicked() {
-					a.applyVoteVoter(v.key)
-				}
-			}
-		})
-	})
+	items := make([]chipItem, 0, len(voters))
+	for _, v := range voters {
+		items = append(items, chipItem{label: v.name, pick: func() { a.applyVoteVoter(v.key) }})
+	}
+	chipPicker(c, "Voters", items)
 }
 
 // rosterCandidateChips turns the selected session's roster into one-click
@@ -156,20 +151,15 @@ func (a *App) rosterCandidateChips(c *ui.Context) {
 		candidates = append(candidates, candidate{id: id, name: name})
 	}
 	sort.Slice(candidates, func(i, j int) bool { return candidates[i].name < candidates[j].name })
-	ui.Column(c).FillWidth().Gap(space1).Children(func() {
-		eyebrow(c, "Candidates")
-		ui.Row(c).Wrap().Gap(space2).Children(func() {
-			for _, cand := range candidates {
-				label := cand.name
-				if label == "" {
-					label = shortID(cand.id)
-				}
-				if quietButton(c, label).Clicked() {
-					a.voting.voteCandidate = cand.id
-				}
-			}
-		})
-	})
+	items := make([]chipItem, 0, len(candidates))
+	for _, cand := range candidates {
+		label := cand.name
+		if label == "" {
+			label = shortID(cand.id)
+		}
+		items = append(items, chipItem{label: label, pick: func() { a.voting.voteCandidate = cand.id }})
+	}
+	chipPicker(c, "Candidates", items)
 }
 
 func (a *App) votingSessionControlsCard(c *ui.Context) {

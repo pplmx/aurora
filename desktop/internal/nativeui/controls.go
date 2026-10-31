@@ -259,6 +259,36 @@ func quietButton(c *ui.Context, label string) ui.Element {
 	return b
 }
 
+// chipItem is one choice in a chipPicker: the word the button shows and what
+// choosing it writes.
+type chipItem struct {
+	label string
+	pick  func()
+}
+
+// chipPicker renders a labelled row of quiet buttons. It is the shape the
+// voting cards use to turn stored ids into one click — a session, a roster
+// candidate, a registered voter — so the three keep one rhythm and a later card
+// can offer the same choice without copying the layout. An empty list draws
+// nothing.
+func chipPicker(c *ui.Context, label string, items []chipItem) {
+	if len(items) == 0 {
+		return
+	}
+	// No FillWidth: the row takes the width of its chips, so a parent that
+	// centres its children (the empty-tally card) centres the picker too.
+	ui.Column(c).Gap(space1).Children(func() {
+		eyebrow(c, label)
+		ui.Row(c).Wrap().Gap(space2).Children(func() {
+			for _, item := range items {
+				if quietButton(c, item.label).Clicked() {
+					item.pick()
+				}
+			}
+		})
+	})
+}
+
 // actionSubject names the record the current action card acts on. Token's
 // write column established this pattern; sharing it keeps a page from making
 // the operator infer a subject from a form field that may have changed.

@@ -163,19 +163,16 @@ func (a *App) resultsSessionShortcuts(c *ui.Context) {
 	if len(recent) > 3 {
 		recent = recent[:3]
 	}
-	ui.Column(c).FillWidth().Gap(space2).AlignItems(ui.Center).Children(func() {
-		eyebrow(c, "Sessions")
-		ui.Row(c).Wrap().Gap(space2).AlignItems(ui.Center).Children(func() {
-			for _, session := range recent {
-				label := session.Title
-				if label == "" {
-					label = session.ID
-				}
-				if quietButton(c, label).Clicked() {
-					a.showResultsFor(session.ID)
-				}
-			}
-		})
+	items := make([]chipItem, 0, len(recent))
+	for _, session := range recent {
+		label := session.Title
+		if label == "" {
+			label = session.ID
+		}
+		items = append(items, chipItem{label: label, pick: func() { a.showResultsFor(session.ID) }})
+	}
+	ui.Column(c).FillWidth().AlignItems(ui.Center).Children(func() {
+		chipPicker(c, "Sessions", items)
 	})
 }
 
