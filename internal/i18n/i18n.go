@@ -140,6 +140,28 @@ func (tr *Translator) GetLocale() string {
 	return tr.locale
 }
 
+// Separator is the colon the language puts between a label and its value.
+// Chinese prose uses the full-width colon, and every Chinese entry in the
+// message table already does; a printed label is the one place the rule has to
+// be applied by code rather than by a translation.
+func (tr *Translator) Separator() string {
+	if strings.HasPrefix(tr.GetLocale(), "zh") {
+		return "："
+	}
+	return ": "
+}
+
+// Colon is the separator on its own, for a heading that names a list rather
+// than a value: "Winners:" in English, "中奖者：" in Chinese.
+func Colon() string {
+	return strings.TrimRight(GetTranslator().Separator(), " ")
+}
+
+// Label formats "name: value" with the separator the language expects.
+func Label(name string, value interface{}) string {
+	return name + GetTranslator().Separator() + fmt.Sprint(value)
+}
+
 func (tr *Translator) AvailableLocales() []string {
 	tr.mu.RLock()
 	defer tr.mu.RUnlock()

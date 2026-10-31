@@ -69,7 +69,7 @@ var doctorCmd = &cobra.Command{
 				case doctorFail:
 					mark = "✖"
 				}
-				fmt.Printf("  %s %s: %s\n", mark, i18n.GetText("doctor.check."+check.Name), check.Detail)
+				fmt.Printf("  %s %s\n", mark, i18n.Label(i18n.GetText("doctor.check."+check.Name), check.Detail))
 			}
 		}
 

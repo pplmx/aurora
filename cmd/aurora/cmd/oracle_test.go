@@ -316,8 +316,13 @@ func extractSourceIDs(t *testing.T, out string) []string {
 	var ids []string
 	for _, line := range strings.Split(out, "\n") {
 		line = strings.TrimSpace(line)
-		if after, ok := strings.CutPrefix(line, "ID: "); ok {
-			ids = append(ids, after)
+		// The label follows the output language: "ID: abc" in English,
+		// "ID：abc" in Chinese, and the value may still be padded after it.
+		for _, prefix := range []string{"ID: ", "ID："} {
+			if after, ok := strings.CutPrefix(line, prefix); ok {
+				ids = append(ids, strings.TrimSpace(after))
+				break
+			}
 		}
 	}
 	return ids

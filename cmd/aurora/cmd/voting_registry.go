@@ -78,18 +78,16 @@ var candidateListCmd = &cobra.Command{
 		}
 
 		if limit > 0 {
-			fmt.Printf("\n📋 %s: %s\n",
-				i18n.GetText("voting.candidates"),
-				i18n.GetTextF("common.page_with_offset", len(list), offset))
+			fmt.Printf("\n📋 %s\n", i18n.Label(i18n.GetText("voting.candidates"), i18n.GetTextF("common.page_with_offset", len(list), offset)))
 		} else {
-			fmt.Println("\n📋 " + i18n.GetText("voting.candidates") + ":")
+			fmt.Println("\n📋 " + i18n.GetText("voting.candidates") + i18n.Colon())
 		}
 		if len(list) == 0 {
 			fmt.Println("   " + i18n.GetText("voting.none"))
 		}
 		for _, c := range list {
 			fmt.Printf("   - %s [%s] - %s\n", c.Name, c.Party, i18n.GetTextF("voting.votes", c.VoteCount))
-			fmt.Printf("     %s: %s\n", i18n.GetText("voting.id"), c.ID)
+			fmt.Printf("     %s\n", i18n.Label(i18n.GetText("voting.id"), c.ID))
 		}
 		return nil
 	},
@@ -158,11 +156,9 @@ var voterListCmd = &cobra.Command{
 		}
 
 		if limit > 0 || offset > 0 {
-			fmt.Printf("\n👥 %s: %s\n",
-				i18n.GetText("voting.page_total"),
-				i18n.GetTextF("common.page_with_offset", len(list), offset))
+			fmt.Printf("\n👥 %s\n", i18n.Label(i18n.GetText("voting.page_total"), i18n.GetTextF("common.page_with_offset", len(list), offset)))
 		} else {
-			fmt.Println("\n👥 " + i18n.GetText("voting.voters") + ":")
+			fmt.Println("\n👥 " + i18n.GetText("voting.voters") + i18n.Colon())
 		}
 		if len(list) == 0 {
 			if limit > 0 || offset > 0 {
@@ -177,7 +173,7 @@ var voterListCmd = &cobra.Command{
 			}
 			fmt.Printf("   - %s [%s]\n", v.Name, status)
 			if len(v.PublicKey) > 16 {
-				fmt.Printf("     %s: %s...\n", i18n.GetText("voting.public_key_label"), v.PublicKey[:16])
+				fmt.Printf("     %s\n", i18n.Label(i18n.GetText("voting.public_key_label"), fmt.Sprintf("%s...", v.PublicKey[:16])))
 			} else {
 				printField("  "+i18n.GetText("voting.public_key_label"), v.PublicKey)
 			}

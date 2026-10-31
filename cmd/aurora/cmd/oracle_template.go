@@ -24,7 +24,7 @@ var templateListCmd = &cobra.Command{
 		if jsonRequested(cmd) {
 			return printJSON(templates)
 		}
-		fmt.Printf("\n📋 %s:\n", i18n.GetText("oracle.templates_heading"))
+		fmt.Printf("\n📋 %s\n", i18n.GetText("oracle.templates_heading")+i18n.Colon())
 		for _, t := range templates {
 			fmt.Printf("   - %s\n", t.ID)
 		}

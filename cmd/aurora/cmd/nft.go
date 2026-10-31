@@ -102,7 +102,7 @@ var mintCmd = &cobra.Command{
 		printLocalizedField("common.id", result.ID)
 		printLocalizedField("common.name", result.Name)
 		printLocalizedField("common.owner", result.Owner)
-		fmt.Printf("   %s: #%d\n", i18n.GetText("common.block_height"), result.BlockHeight)
+		fmt.Printf("   %s\n", i18n.Label(i18n.GetText("common.block_height"), fmt.Sprintf("#%d", result.BlockHeight)))
 		return nil
 	},
 }
@@ -146,7 +146,7 @@ var transferCmd = &cobra.Command{
 		printLocalizedField("nft.operation_id", result.ID)
 		printLocalizedField("common.from", truncateBase64(result.From))
 		printLocalizedField("common.to", truncateBase64(result.To))
-		fmt.Printf("   %s: #%d\n", i18n.GetText("common.block_height"), result.BlockHeight)
+		fmt.Printf("   %s\n", i18n.Label(i18n.GetText("common.block_height"), fmt.Sprintf("#%d", result.BlockHeight)))
 		return nil
 	},
 }
@@ -216,7 +216,7 @@ var getCmd = &cobra.Command{
 			return printJSON(result)
 		}
 
-		fmt.Printf("\n🎨 %s:\n", i18n.GetText("nft.details_heading"))
+		fmt.Printf("\n🎨 %s\n", i18n.GetText("nft.details_heading")+i18n.Colon())
 		printLocalizedField("common.id", result.ID)
 		printLocalizedField("common.name", result.Name)
 		// Metadata is optional: an NFT minted without it keeps the fields out of
@@ -226,7 +226,7 @@ var getCmd = &cobra.Command{
 		printLocalizedOptionalField("nft.token_uri", result.TokenURI)
 		printLocalizedField("nft.creator_label", result.Creator)
 		printLocalizedField("common.owner", result.Owner)
-		fmt.Printf("   %s: #%d\n", i18n.GetText("common.block_height"), result.BlockHeight)
+		fmt.Printf("   %s\n", i18n.Label(i18n.GetText("common.block_height"), fmt.Sprintf("#%d", result.BlockHeight)))
 		return nil
 	},
 }
@@ -268,7 +268,7 @@ var listCmd = &cobra.Command{
 		if owner == "" {
 			label = i18n.GetText("nft.list_all")
 		}
-		fmt.Printf("\n🎨 %s: %d\n", label, len(results))
+		fmt.Printf("\n🎨 %s\n", i18n.Label(label, len(results)))
 		if len(results) == 0 {
 			fmt.Println("   " + i18n.GetText("common.none"))
 		}
@@ -310,11 +310,9 @@ var nftHistoryCmd = &cobra.Command{
 		}
 
 		if limit > 0 {
-			fmt.Printf("\n📜 %s: %s\n",
-				i18n.GetText("nft.operations_heading"),
-				i18n.GetTextF("common.page_with_offset", len(results), offset))
+			fmt.Printf("\n📜 %s\n", i18n.Label(i18n.GetText("nft.operations_heading"), i18n.GetTextF("common.page_with_offset", len(results), offset)))
 		} else {
-			fmt.Printf("\n📜 %s: %d\n", i18n.GetText("nft.operations_heading"), len(results))
+			fmt.Printf("\n📜 %s\n", i18n.Label(i18n.GetText("nft.operations_heading"), len(results)))
 		}
 		if len(results) == 0 {
 			fmt.Println("   " + i18n.GetText("common.none"))

@@ -238,7 +238,7 @@ func setDefaultConfig() {
 // header. Four modules wrote this line by hand 55 times; the alignment is part
 // of the CLI's output contract, so it lives in one place.
 func printField(label, value string) {
-	fmt.Printf("   %s: %s\n", label, value)
+	fmt.Printf("   %s\n", i18n.Label(label, value))
 }
 
 // printLocalizedOptionalField skips an optional field that has no value, so the

@@ -46,8 +46,8 @@ var fetchCmd = &cobra.Command{
 
 		fmt.Println("✅ " + i18n.GetText("oracle.fetched"))
 		printLocalizedField("common.value", resp.Value)
-		fmt.Printf("   %s: %d\n", i18n.GetText("common.timestamp"), resp.Timestamp)
-		fmt.Printf("   %s: %d\n", i18n.GetText("common.block_height"), resp.BlockHeight)
+		fmt.Printf("   %s\n", i18n.Label(i18n.GetText("common.timestamp"), resp.Timestamp))
+		fmt.Printf("   %s\n", i18n.Label(i18n.GetText("common.block_height"), resp.BlockHeight))
 		return nil
 	},
 }
@@ -78,7 +78,7 @@ var dataCmd = &cobra.Command{
 			return printJSON(resp)
 		}
 
-		fmt.Printf("\n📊 %s:\n", i18n.GetText("oracle.data_heading"))
+		fmt.Printf("\n📊 %s\n", i18n.GetText("oracle.data_heading")+i18n.Colon())
 		if len(resp.Data) == 0 {
 			fmt.Println("   " + i18n.GetText("common.none"))
 		}
@@ -118,10 +118,10 @@ var latestCmd = &cobra.Command{
 			return nil
 		}
 
-		fmt.Printf("\n📈 %s:\n", i18n.GetText("oracle.latest_heading"))
+		fmt.Printf("\n📈 %s\n", i18n.GetText("oracle.latest_heading")+i18n.Colon())
 		printLocalizedField("common.value", resp.Data.Value)
-		fmt.Printf("   %s: %d\n", i18n.GetText("common.timestamp"), resp.Data.Timestamp)
-		fmt.Printf("   %s: %d\n", i18n.GetText("common.block_height"), resp.Data.BlockHeight)
+		fmt.Printf("   %s\n", i18n.Label(i18n.GetText("common.timestamp"), resp.Data.Timestamp))
+		fmt.Printf("   %s\n", i18n.Label(i18n.GetText("common.block_height"), resp.Data.BlockHeight))
 		return nil
 	},
 }

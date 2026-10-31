@@ -74,9 +74,9 @@ var createCmd = &cobra.Command{
 		}
 
 		fmt.Println("\n✅ " + i18n.GetText("lottery.success"))
-		fmt.Printf("📋 %s: %s\n", i18n.GetText("lottery.lottery_id"), resp.ID)
-		fmt.Printf("🔢 %s: #%d\n", i18n.GetText("lottery.block_height"), resp.BlockHeight)
-		fmt.Println("\n🎉 " + i18n.GetText("lottery.winners") + ":")
+		fmt.Printf("📋 %s\n", i18n.Label(i18n.GetText("lottery.lottery_id"), resp.ID))
+		fmt.Printf("🔢 %s\n", i18n.Label(i18n.GetText("lottery.block_height"), fmt.Sprintf("#%d", resp.BlockHeight)))
+		fmt.Println("\n🎉 " + i18n.GetText("lottery.winners") + i18n.Colon())
 		for i, w := range resp.Winners {
 			// Guard against mismatched slice lengths (could happen with
 			// imported data, older DB schemas, or partial writes).
@@ -87,8 +87,8 @@ var createCmd = &cobra.Command{
 			}
 			fmt.Printf("   %d. %s (%s)\n", i+1, w, addr)
 		}
-		fmt.Printf("\n🔐 %s: %s...\n", i18n.GetText("lottery.vrf_output"), resp.VRFOutput[:min(16, len(resp.VRFOutput))])
-		fmt.Printf("📜 %s: %s...\n", i18n.GetText("lottery.vrf_proof"), resp.VRFProof[:min(16, len(resp.VRFProof))])
+		fmt.Printf("\n🔐 %s\n", i18n.Label(i18n.GetText("lottery.vrf_output"), fmt.Sprintf("%s...", resp.VRFOutput[:min(16, len(resp.VRFOutput))])))
+		fmt.Printf("📜 %s\n", i18n.Label(i18n.GetText("lottery.vrf_proof"), fmt.Sprintf("%s...", resp.VRFProof[:min(16, len(resp.VRFProof))])))
 
 		return nil
 	},
@@ -137,9 +137,7 @@ var historyCmd = &cobra.Command{
 
 		if len(records) == 0 {
 			if limit > 0 || offset > 0 {
-				fmt.Printf("\n📜 %s: %s\n",
-					i18n.GetText("lottery.page_total"),
-					i18n.GetTextF("common.page_with_offset", 0, offset))
+				fmt.Printf("\n📜 %s\n", i18n.Label(i18n.GetText("lottery.page_total"), i18n.GetTextF("common.page_with_offset", 0, offset)))
 				return nil
 			}
 			if search != "" {
@@ -151,28 +149,26 @@ var historyCmd = &cobra.Command{
 		}
 
 		if limit > 0 {
-			fmt.Printf("\n📜 %s: %s\n\n",
-				i18n.GetText("lottery.page_total"),
-				i18n.GetTextF("common.page_with_offset", len(records), offset))
+			fmt.Printf("\n📜 %s\n", i18n.Label(i18n.GetText("lottery.page_total"), fmt.Sprintf("%s\n", i18n.GetTextF("common.page_with_offset", len(records), offset))))
 		} else if search != "" {
 			// "Total lotteries" beside a filter would read as the store's
 			// count; name what the number is.
-			fmt.Printf("\n📜 %s: %d\n\n", i18n.GetText("lottery.matches"), len(records))
+			fmt.Printf("\n📜 %s\n", i18n.Label(i18n.GetText("lottery.matches"), fmt.Sprintf("%d\n", len(records))))
 		} else {
-			fmt.Printf("\n📜 %s: %d\n\n", i18n.GetText("lottery.total"), len(records))
+			fmt.Printf("\n📜 %s\n", i18n.Label(i18n.GetText("lottery.total"), fmt.Sprintf("%d\n", len(records))))
 		}
 		for i, record := range records {
 			// The table is the reading view: one labelled line per auditable
 			// field instead of a JSON blob cut at 200 characters. `--json`
 			// carries the whole record for a script.
 			fmt.Printf("%s\n", i18n.GetTextF("lottery.history_item", i+1))
-			fmt.Printf("  %s: %s\n", i18n.GetText("common.id"), record.ID)
-			fmt.Printf("  %s: %s\n", i18n.GetText("lottery.seed_label"), record.Seed)
-			fmt.Printf("  %s: %s\n", i18n.GetText("lottery.winners"), strings.Join(record.Winners, ", "))
-			fmt.Printf("  %s: %d\n", i18n.GetText("lottery.participants_label"), len(record.Participants))
-			fmt.Printf("  %s: %d\n", i18n.GetText("common.block_height"), record.BlockHeight)
-			fmt.Printf("  %s: %s\n", i18n.GetText("common.timestamp"),
-				time.Unix(record.Timestamp, 0).Format(blockTimeLayout))
+			fmt.Printf("  %s\n", i18n.Label(i18n.GetText("common.id"), record.ID))
+			fmt.Printf("  %s\n", i18n.Label(i18n.GetText("lottery.seed_label"), record.Seed))
+			fmt.Printf("  %s\n", i18n.Label(i18n.GetText("lottery.winners"), strings.Join(record.Winners, ", ")))
+			fmt.Printf("  %s\n", i18n.Label(i18n.GetText("lottery.participants_label"), len(record.Participants)))
+			fmt.Printf("  %s\n", i18n.Label(i18n.GetText("common.block_height"), record.BlockHeight))
+			fmt.Printf("  %s\n", i18n.Label(i18n.GetText("common.timestamp"),
+				time.Unix(record.Timestamp, 0).Format(blockTimeLayout)))
 			fmt.Println()
 		}
 		return nil
@@ -216,11 +212,11 @@ var verifyCmd = &cobra.Command{
 		record := report.Record
 
 		// Display verification info
-		fmt.Println("\n📋 " + i18n.GetText("lottery.lottery_id") + ": " + record.ID)
-		fmt.Printf("🔢 %s: #%d\n", i18n.GetText("common.block_height"), record.BlockHeight)
-		fmt.Printf("🌱 %s: %s\n", i18n.GetText("lottery.seed_label"), record.Seed)
-		fmt.Printf("👥 %s: %d\n", i18n.GetText("lottery.participants_label"), len(record.Participants))
-		fmt.Printf("🎉 %s: %d\n", i18n.GetText("lottery.winners"), len(record.Winners))
+		fmt.Println("\n📋 " + i18n.Label(i18n.GetText("lottery.lottery_id"), record.ID))
+		fmt.Printf("🔢 %s\n", i18n.Label(i18n.GetText("common.block_height"), fmt.Sprintf("#%d", record.BlockHeight)))
+		fmt.Printf("🌱 %s\n", i18n.Label(i18n.GetText("lottery.seed_label"), record.Seed))
+		fmt.Printf("👥 %s\n", i18n.Label(i18n.GetText("lottery.participants_label"), len(record.Participants)))
+		fmt.Printf("🎉 %s\n", i18n.Label(i18n.GetText("lottery.winners"), len(record.Winners)))
 
 		// Draws created before v1.31 have no persisted public key, so the
 		// verdict falls back to a deterministic winner match; later draws also
@@ -246,14 +242,14 @@ var verifyCmd = &cobra.Command{
 			// a proof against the stored key, or the deterministic winner match
 			// a pre-v1.31 draw falls back to.
 			if len(passed) > 0 {
-				fmt.Printf("\n🔍 %s:\n", i18n.GetText("lottery.checks"))
+				fmt.Printf("\n🔍 %s\n", i18n.GetText("lottery.checks")+i18n.Colon())
 				for _, message := range passed {
 					fmt.Printf("   - %s\n", message)
 				}
 			}
 		}
 
-		fmt.Printf("\n🏆 %s:\n", i18n.GetText("lottery.winners"))
+		fmt.Printf("\n🏆 %s\n", i18n.GetText("lottery.winners")+i18n.Colon())
 		for i, w := range record.Winners {
 			// Same guard as in createCmd: defend against mismatched slice
 			// lengths in imported/corrupted records.
@@ -263,12 +259,12 @@ var verifyCmd = &cobra.Command{
 			}
 			fmt.Printf("   %d. %s (%s)\n", i+1, w, addr)
 		}
-		fmt.Printf("\n🔐 %s: %s...\n", i18n.GetText("lottery.vrf_output"), record.VRFOutput[:min(16, len(record.VRFOutput))])
-		fmt.Printf("📜 %s: %s...\n", i18n.GetText("lottery.vrf_proof"), record.VRFProof[:min(16, len(record.VRFProof))])
+		fmt.Printf("\n🔐 %s\n", i18n.Label(i18n.GetText("lottery.vrf_output"), fmt.Sprintf("%s...", record.VRFOutput[:min(16, len(record.VRFOutput))])))
+		fmt.Printf("📜 %s\n", i18n.Label(i18n.GetText("lottery.vrf_proof"), fmt.Sprintf("%s...", record.VRFProof[:min(16, len(record.VRFProof))])))
 		if record.VRFPublicKey != "" {
-			fmt.Printf("🔑 %s: %s...\n", i18n.GetText("lottery.vrf_public_key"), record.VRFPublicKey[:min(16, len(record.VRFPublicKey))])
+			fmt.Printf("🔑 %s\n", i18n.Label(i18n.GetText("lottery.vrf_public_key"), fmt.Sprintf("%s...", record.VRFPublicKey[:min(16, len(record.VRFPublicKey))])))
 		}
-		fmt.Printf("⏰ %s: %d\n", i18n.GetText("common.timestamp"), record.Timestamp)
+		fmt.Printf("⏰ %s\n", i18n.Label(i18n.GetText("common.timestamp"), record.Timestamp))
 
 		if !report.IntegrityOK {
 			// Surface the failure to the caller (e.g. shell scripts that

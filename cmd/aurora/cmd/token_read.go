@@ -37,7 +37,7 @@ var tokenBalanceCmd = &cobra.Command{
 			return printJSON(resp)
 		}
 
-		fmt.Printf("\n💰 %s:\n", i18n.GetText("token.balance_heading"))
+		fmt.Printf("\n💰 %s\n", i18n.GetText("token.balance_heading")+i18n.Colon())
 		printLocalizedField("common.token", resp.TokenID)
 		printLocalizedField("common.owner", truncateBase64(resp.Owner))
 		printLocalizedField("common.balance", resp.Amount)
@@ -76,7 +76,7 @@ var tokenAllowanceCmd = &cobra.Command{
 			return printJSON(resp)
 		}
 
-		fmt.Printf("\n🔑 %s:\n", i18n.GetText("token.allowance_heading"))
+		fmt.Printf("\n🔑 %s\n", i18n.GetText("token.allowance_heading")+i18n.Colon())
 		printLocalizedField("common.token", resp.TokenID)
 		printLocalizedField("common.owner", truncateBase64(resp.Owner))
 		printLocalizedField("common.spender", truncateBase64(resp.Spender))
@@ -133,7 +133,7 @@ var tokenHistoryCmd = &cobra.Command{
 			return printJSON(transfers)
 		}
 
-		fmt.Printf("\n📜 %s: %d\n", i18n.GetText("token.history_heading"), len(transfers))
+		fmt.Printf("\n📜 %s\n", i18n.Label(i18n.GetText("token.history_heading"), len(transfers)))
 		if len(transfers) == 0 {
 			fmt.Println("   " + i18n.GetText("token.no_history"))
 		}
