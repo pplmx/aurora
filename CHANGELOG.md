@@ -28,6 +28,11 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The dashboard called one number two things**: the card's label is 投票会期
+  and its caption was 治理时间窗口, both reading `dashboard.Sessions`. The window
+  counts governance windows, and the Voting page calls each one 会期, so the
+  caption is 会期数量 now and the section sentence lost its 治理时间窗口 too.
+
 - **The NFT page no longer calls its holder an owner**: the burn form labelled
   the current holder's key 所有者, and the Inspect card's filter did the same,
   while three sentences on the same page say 持有者 — 创建者会成为第一个持有者,
