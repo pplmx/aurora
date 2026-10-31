@@ -704,6 +704,10 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Added
 
+- **The punctuation guard**: a repocheck test fails when a Chinese character in
+  either zh catalog is followed by an ASCII comma, colon or semicolon, so the next
+  label cannot drift back to `当前版本: 8`; it leaves Latin labels (`ID: %s`) and
+  URLs alone, and checks its own matcher against both shapes.
 - **`just test-shuffle`**: the suite runs in registration order, so an
   order-dependent test only fails when the full run happens to hit it (that is how
   the store singleton leak above surfaced). The recipe runs the same packages with
