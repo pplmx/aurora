@@ -96,10 +96,16 @@ func localizeServiceErrorMessage(message string) string {
 	// the detail stays as it is, so the head is tried before the tail — trying
 	// the tail alone translates "status" on its own and leaves the sentence
 	// half English.
+	//
+	// A cause can be wrapped twice: the fetcher reports
+	// "failed to fetch data: request failed: Service Unavailable", where only
+	// the middle segment has an entry. The head is therefore localized first
+	// and the remainder localized again, so the inner cause is reached instead
+	// of leaving the whole line English.
 	if i := strings.Index(message, ": "); i >= 0 {
-		head := message[:i]
+		head, rest := message[:i], message[i+2:]
 		if translated := tr(head); translated != head {
-			return translated + "：" + message[i+2:]
+			return translated + "：" + localizeServiceErrorMessage(rest)
 		}
 	}
 	if i := strings.LastIndex(message, ": "); i >= 0 {
