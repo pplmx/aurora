@@ -84,10 +84,9 @@ func (a *App) votingResultsQuery(c *ui.Context) {
 		// The stored sessions sit under the field they fill. They used to hang
 		// under the empty tally in the next column, so the reader saw a chip
 		// named for a session while the input it writes sat across the gutter,
-		// in another card under another heading.
-		if strings.TrimSpace(a.voting.resultsSession) == "" {
-			a.resultsSessionShortcuts(c)
-		}
+		// in another card under another heading. The picker stays visible after
+		// a session loads, so reading a second session is one click.
+		a.sessionShortcuts(c, a.showResultsFor)
 		ui.Row(c).Wrap().Gap(8).Children(func() {
 			if secondaryButton(c, "Show Results", allSet(a.voting.resultsSession)).Clicked() {
 				a.readSessionResults()
@@ -158,10 +157,11 @@ func (a *App) votingResultsBody(c *ui.Context) {
 // available to a screen reader. At enlarged text, records take over because a
 // bar cannot wrap a long name.
 
-// resultsSessionShortcuts offers the newest stored sessions under the query
-// field they fill, so reading a session's results no longer requires leaving the
-// tab for Setup just to copy an id. Setup keeps the full, searchable list.
-func (a *App) resultsSessionShortcuts(c *ui.Context) {
+// sessionShortcuts offers the newest stored sessions under a field that takes a
+// session id, so naming one no longer requires leaving the tab for Setup just to
+// copy an id. Setup keeps the full, searchable list. pick receives the id, which
+// lets each stage apply the choice the way its own selection path does.
+func (a *App) sessionShortcuts(c *ui.Context, pick func(id string)) {
 	if len(a.voting.sessions) == 0 {
 		return
 	}
@@ -175,7 +175,7 @@ func (a *App) resultsSessionShortcuts(c *ui.Context) {
 		if label == "" {
 			label = session.ID
 		}
-		items = append(items, chipItem{label: label, pick: func() { a.showResultsFor(session.ID) }})
+		items = append(items, chipItem{label: label, pick: func() { pick(session.ID) }})
 	}
 	chipPicker(c, "Stored sessions", items)
 }

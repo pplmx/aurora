@@ -98,6 +98,13 @@ func (a *App) votingNoSessionCard(c *ui.Context, body string) {
 func (a *App) votingCastVoteCard(c *ui.Context) {
 	formCard(c, "Cast Vote", "Sign a ballot for one candidate in one session.", func() {
 		fieldPair(c, "Session ID", &a.voting.voteSession, "Candidate ID", &a.voting.voteCandidate)
+		// A ballot names a session, and the stored ones belong under that
+		// field: without them the only way to fill it was copying an id out of
+		// Setup. The picker stays visible once a session is chosen, like the
+		// candidate and voter pickers below it, so switching sessions is one
+		// click rather than clearing the field first. Choosing one follows the
+		// path a Setup click takes, so the roster resolves for the new session.
+		a.sessionShortcuts(c, a.chooseSessionForBallot)
 		a.rosterCandidateChips(c)
 		field(c, "Voter Public Key", &a.voting.voteVoterPub)
 		a.voterKeyChips(c)
@@ -110,6 +117,15 @@ func (a *App) votingCastVoteCard(c *ui.Context) {
 		})
 		inlineStatus(c, a.voting.voteResult)
 	})
+}
+
+// chooseSessionForBallot points the ballot and the session controls at one
+// stored session and loads its roster, the state selecting that row in Setup
+// leaves behind.
+func (a *App) chooseSessionForBallot(id string) {
+	a.voting.controlID, a.voting.voteSession = id, id
+	a.restoreSessionChoice(id)
+	a.loadSelectedSessionRoster()
 }
 
 // voterKeyChips puts the registered voters' public keys one click away. The
@@ -166,12 +182,16 @@ func (a *App) votingSessionControlsCard(c *ui.Context) {
 	formCard(c, "Session Controls", "Start or end a session by id.", func() {
 		if strings.TrimSpace(a.voting.controlID) == "" {
 			fieldHint(c, "Session ID",
-				"Choose a session in Setup or enter its ID first.", &a.voting.controlID)
+				"Choose a stored session below, or paste its ID.", &a.voting.controlID)
 		} else {
 			// The id is already chosen; repeating "choose a session" beside a
 			// filled field contradicted it. The hint is the first step only.
 			field(c, "Session ID", &a.voting.controlID)
 		}
+		// The same picker the ballot uses, under the same field: both cards act
+		// on one session id, and only one of them offering a choice made the
+		// other look like it accepted a free-form id alone.
+		a.sessionShortcuts(c, a.chooseSessionForBallot)
 		sessionReady := strings.TrimSpace(a.voting.controlID) != ""
 		ui.Row(c).Wrap().Gap(8).Children(func() {
 			if secondaryButton(c, "Start Session", sessionReady).Clicked() {

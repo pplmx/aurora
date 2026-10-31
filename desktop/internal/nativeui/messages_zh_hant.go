@@ -85,7 +85,7 @@ var desktopMessagesHant = map[string]string{
 	"Casting vote…":                     "正在投票…",
 	"Choose a candidate first.":         "請先選擇一位候選人。",
 	"Choose a session and a candidate.": "請選擇會期和候選人。",
-	"Choose a session in Setup or enter its ID first.":           "在“準備”中選擇會期，或先輸入它的 ID。",
+	"Choose a stored session below, or paste its ID.":            "在下方選擇已存會期，或直接粘貼 ID。",
 	"Choose a stored session in Results, or paste its ID first.": "在“結果”中選擇已存會期，或先粘貼它的 ID。",
 	"Stored sessions": "已存會期",
 	"Choose a source in Sources or enter its ID first.": "請先在“數據源”中選擇數據源，或輸入它的 ID。",

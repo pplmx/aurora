@@ -272,7 +272,7 @@ var desktopMessages = map[string]string{
 	"Total votes":                                                           "总票数",
 	"Votes":                                                                 "票数",
 	"No tally loaded yet.":                                                  "还没有加载计票。",
-	"Choose a session in Setup or enter its ID first.":                      "在“准备”中选择会期，或先输入它的 ID。",
+	"Choose a stored session below, or paste its ID.":                       "在下方选择已存会期，或直接粘贴 ID。",
 	"Choose a stored session in Results, or paste its ID first.": "在“结果”中选择已存会期，或先粘贴它的 ID。",
 	"Stored sessions":                     "已存会期",
 	"No votes recorded for this session.": "此会期还没有投票。",

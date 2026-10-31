@@ -12,6 +12,15 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The Ballot tab offers the stored sessions under both of its id fields**:
+  Cast Vote and Session Controls each take a session id, and neither offered a
+  stored one, so naming a session meant copying an id out of Setup. Both cards
+  now carry the Results tab's `Stored sessions` picker under their own field;
+  choosing one also loads that session's roster, so the candidate chips resolve
+  by name. The picker stays visible once a session is chosen, which makes
+  switching sessions one click instead of clearing the field first, and the
+  Session Controls hint now points at the picker below it rather than only at
+  Setup.
 - **The Results tab's session chips sit under the field they fill**: the
   newest sessions were offered inside the empty tally card in the right column,
   so a reader saw a chip named for a session while the "Session ID" input it
