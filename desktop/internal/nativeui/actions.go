@@ -51,9 +51,12 @@ type Actions struct {
 	OpenRecent      func(string)
 	// SetLanguage takes "", "en", "zh-Hans" or "zh-Hant"; "" follows the
 	// system again. Language reports the language currently in effect, for the
-	// check marks.
-	SetLanguage func(string)
-	Language    func() string
+	// check marks; FollowsSystem reports whether no language was ever chosen,
+	// which the effect alone cannot say — a system locale of English looks the
+	// same as an explicit English choice until this answers.
+	SetLanguage   func(string)
+	Language      func() string
+	FollowsSystem func() bool
 	// LiveUpdates/SetLiveUpdates persist the Settings toggle. The getter is
 	// read when SetActions runs; the setter reports a failed write so the page
 	// can show it instead of silently resetting on the next launch.

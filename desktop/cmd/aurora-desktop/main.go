@@ -270,6 +270,7 @@ func main() {
 		OpenRecent:      shell.OpenRecent,
 		SetLanguage:     shell.SetLanguage,
 		Language:        shell.Language,
+		FollowsSystem:   shell.LanguageFollowsSystem,
 		LiveUpdates:     shell.LiveUpdates,
 		SetLiveUpdates:  shell.SetLiveUpdates,
 		ThemeMode:       shell.ThemeMode,

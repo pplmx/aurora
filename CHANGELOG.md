@@ -28,6 +28,18 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **Settings says whether the language was chosen or follows the system**: the
+  card showed the language in effect as an active radio plus a separate Follow
+  System button, so a window following an English system and one set to English
+  on purpose looked identical — and the difference decides what a later system
+  change does. The stored choice is now recorded in `desktop-settings.json`
+  (`language`, absent means follow the system), `Shell.LanguageFollowsSystem`
+  answers from that record, and the card reads it: following shows "Follow
+  System · English" with no radio active and the follow control filled in,
+  choosing shows the language alone with the follow control quiet. When no
+  getter is supplied the card says nothing about the policy rather than
+  guessing one.
+
 - **The current-language row is covered**: `languageLabel` was exercised on
   one of its branches. The cases that matter are the two the row gets wrong
   when it guesses — an unsupported tag must be shown as itself, because

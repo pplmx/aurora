@@ -133,3 +133,48 @@ func TestSystemDarkBeforeMyGoStarts(t *testing.T) {
 		})
 	}
 }
+
+// TestLanguageChoiceSurvivesARestart covers the field that lets Settings tell
+// an explicit choice from a followed system. MyGo reports only the language in
+// effect, so without this record a window following an English system and one
+// set to English on purpose are indistinguishable after a restart.
+func TestLanguageChoiceSurvivesARestart(t *testing.T) {
+	path := filepath.Join(t.TempDir(), preferencesName)
+
+	require.NoError(t, savePreferences(path, Preferences{Language: "zh-Hans"}))
+	loaded := loadPreferences(path)
+	require.Equal(t, "zh-Hans", loaded.Language, "an explicit choice is restored")
+
+	require.NoError(t, savePreferences(path, Preferences{Language: ""}))
+	loaded = loadPreferences(path)
+	require.Empty(t, loaded.Language, "following the system is stored as no choice")
+
+	// An older file has no language field; that is the same as following the
+	// system, which is what the app did before the field existed.
+	require.NoError(t, os.WriteFile(path, []byte(`{"liveUpdates":true}`), 0o600))
+	require.Empty(t, loadPreferences(path).Language)
+}
+
+// TestShellReportsWhetherItFollowsTheSystem covers the getter Settings reads.
+// It is the one place that answers "did the operator choose this language",
+// and it must answer from the stored record rather than from the locale in
+// effect, which cannot tell the two apart.
+func TestShellReportsWhetherItFollowsTheSystem(t *testing.T) {
+	dir := t.TempDir()
+	shell := NewShell(About{DBPath: filepath.Join(dir, "aurora.db")})
+
+	require.True(t, shell.LanguageFollowsSystem(),
+		"a fresh window takes the system language")
+
+	// Record a choice the way SetLanguage does, without calling into MyGo: the
+	// locale change needs a running app, the persistence does not.
+	shell.mu.Lock()
+	next := shell.prefs
+	next.Language = "zh-Hant"
+	require.NoError(t, savePreferences(shell.prefsPath, next))
+	shell.prefs = next
+	shell.mu.Unlock()
+
+	require.False(t, shell.LanguageFollowsSystem(),
+		"a stored choice means the window no longer follows the system")
+}

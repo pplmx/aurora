@@ -22,6 +22,12 @@ const preferencesName = "desktop-settings.json"
 type Preferences struct {
 	LiveUpdates bool   `json:"liveUpdates"`
 	Theme       string `json:"theme,omitempty"`
+	// Language is the language the operator chose, empty when the window
+	// follows the system. It is stored because MyGo reports only the language
+	// in effect: without this field Settings cannot tell an explicit choice
+	// from a system locale that happens to match it, and the chooser would
+	// show the same state for both.
+	Language string `json:"language,omitempty"`
 }
 
 // preferencesPath is empty when there is no database path yet; saving then
