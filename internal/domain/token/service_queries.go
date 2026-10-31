@@ -2,6 +2,7 @@ package token
 
 import (
 	"database/sql"
+	"errors"
 )
 
 func (s *TokenService) CreateToken(req *CreateTokenRequest) (*Token, error) {
@@ -33,7 +34,7 @@ func (s *TokenService) CreateToken(req *CreateTokenRequest) (*Token, error) {
 	// never a silent data-loss (TASK-075, ISS-067).
 	tokenID := TokenID(req.Symbol)
 	existing, err := s.repo.GetToken(tokenID)
-	if err != nil && err != ErrTokenNotFound {
+	if err != nil && !errors.Is(err, ErrTokenNotFound) {
 		return nil, err
 	}
 	if existing != nil {

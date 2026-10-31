@@ -17,6 +17,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/pplmx/aurora/internal/config"
+	"github.com/pplmx/aurora/internal/domain/errdetail"
 	"github.com/pplmx/aurora/internal/domain/oracle"
 	"github.com/pplmx/aurora/internal/netguard"
 	"github.com/spf13/viper"
@@ -165,7 +166,7 @@ func checkRedirectAllowed(req *http.Request, via []*http.Request) error {
 	}
 	blocked, err := redirectHostBlocked(req.URL.Host)
 	if err != nil {
-		return fmt.Errorf("%w: %v", ErrBlockedDestination, err)
+		return errdetail.Wrap(ErrBlockedDestination, err)
 	}
 	if blocked {
 		return fmt.Errorf("%w: %q", ErrBlockedDestination, req.URL.Host)

@@ -25,7 +25,9 @@ func (m *TxManager) WithTransaction(fn func(tx *sql.Tx) error) error {
 
 	if err := fn(tx); err != nil {
 		if rbErr := tx.Rollback(); rbErr != nil {
-			return fmt.Errorf("rollback failed: %v (original error: %w)", rbErr, err)
+			// The rollback failure is context; the caller's error stays the one
+			// in the chain.
+			return fmt.Errorf("rollback failed: %v (original error: %w)", rbErr, err) //nolint:errorlint // see above
 		}
 		return err
 	}

@@ -5,11 +5,11 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/pplmx/aurora/internal/domain/errdetail"
 	"github.com/pplmx/aurora/internal/domain/token"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -86,7 +86,7 @@ func TestTokenHandler_Approve_AuditPublishFailed(t *testing.T) {
 	h := NewTokenHandler(fakeTokenServiceFull{
 		// The detail must stay unwrappable: the handler prints it and must not
 		// map it back to a sentinel.
-		err: fmt.Errorf("%w: %v", token.ErrAuditPublishFailed, errors.New("event store unavailable")),
+		err: errdetail.Wrap(token.ErrAuditPublishFailed, errors.New("event store unavailable")),
 	})
 
 	// Valid base64 keys (32-byte public, 64-byte private) so the usecase

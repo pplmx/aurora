@@ -41,6 +41,7 @@ desktop          ─┘                                              ^
 | `internal/ledger`                                          | 标准库                                           | 纯账本端口：`BlockWriter`、事务追加助手；domain 与应用层只依赖它        |
 | `internal/app/*`                                           | `domain`, `ledger`（`container` 例外）           | 用例编排；错误哨兵、HTTP fetcher、账本实现均已端口化                    |
 | `internal/records`                                         | 仅标准库                                         | 账本载荷解码：模块/动作/对象/事实；CLI、REST 搜索与桌面共用同一句       |
+| `internal/domain/errdetail`                                | 仅标准库                                         | 哨兵 + 可打印细节：细节只作文本，不进入错误链（`errors.Is` 只命中哨兵） |
 | `internal/infra/sqlite`                                    | 全部领域包                                       | 仓储实现                                                                |
 | `internal/api`                                             | `app`, `app/container`, `domain`, `ledger`       | HTTP 表示层；数据库、账本、HTTP 与 outbox 实现由 `app/container` 注入   |
 | `desktop/internal/deskapp`                                 | `internal/api`, `app/container`, `app`, `domain` | 桌面适配器；通过 `container.Services` 取依赖，不接触 SQLite/backup 实现 |
@@ -175,6 +176,7 @@ internal/
 ├── netguard/          # 出站地址校验（SSRF 守卫）
 ├── background/        # 后台循环辅助
 ├── records/           # 账本载荷解码：模块/动作/对象/事实（CLI、REST、桌面共用）
+├── domain/errdetail/  # 哨兵 + 可打印细节（细节不进入错误链）
 ├── repocheck/         # 仓库级机械契约
 └── utils/             # 无业务语义的工具
 tools/                 # 仓库工具：genzhhant（繁体表）、coverfloor（覆盖率底线）

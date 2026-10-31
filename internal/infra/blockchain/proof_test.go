@@ -2,6 +2,7 @@ package blockchain
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 )
@@ -81,7 +82,7 @@ func TestProofOfWorkRun_Interrupt(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error on context cancellation, got nil")
 	}
-	if err != context.Canceled {
+	if !errors.Is(err, context.Canceled) {
 		t.Fatalf("expected context.Canceled, got %v", err)
 	}
 }
@@ -104,7 +105,7 @@ func TestProofOfWorkRun_Deadline(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error on deadline exceeded, got nil")
 	}
-	if err != context.DeadlineExceeded {
+	if !errors.Is(err, context.DeadlineExceeded) {
 		t.Fatalf("expected context.DeadlineExceeded, got %v", err)
 	}
 }

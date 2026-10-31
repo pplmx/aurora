@@ -4,6 +4,8 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
+
+	"github.com/pplmx/aurora/internal/domain/errdetail"
 )
 
 func (s *TokenService) Burn(req *BurnRequest) (*BurnEvent, error) {
@@ -64,7 +66,7 @@ func (s *TokenService) Burn(req *BurnRequest) (*BurnEvent, error) {
 	// Publish the audit event only after the transaction commits (ISS-074);
 	// see the identical note in Mint.
 	if err := s.eventBus.Publish(event); err != nil {
-		return nil, fmt.Errorf("%w: %v", ErrAuditPublishFailed, err)
+		return nil, errdetail.Wrap(ErrAuditPublishFailed, err)
 	}
 
 	return event, nil

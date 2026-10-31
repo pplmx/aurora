@@ -2,7 +2,8 @@ package events
 
 import (
 	"encoding/json"
-	"fmt"
+
+	"github.com/pplmx/aurora/internal/domain/errdetail"
 )
 
 type NFTMintEvent struct {
@@ -20,7 +21,7 @@ func (e *NFTMintEvent) Owner() ([]byte, error) {
 func (e *NFTMintEvent) Metadata() (string, error) {
 	var p nftMintPayload
 	if err := json.Unmarshal(e.Payload(), &p); err != nil {
-		return "", fmt.Errorf("%w: %v", ErrInvalidPayload, err)
+		return "", errdetail.Wrap(ErrInvalidPayload, err)
 	}
 	return p.Metadata, nil
 }

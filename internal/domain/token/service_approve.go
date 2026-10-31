@@ -2,8 +2,9 @@ package token
 
 import (
 	"errors"
-	"fmt"
 	"math/big"
+
+	"github.com/pplmx/aurora/internal/domain/errdetail"
 )
 
 func (s *TokenService) Approve(req *ApproveRequest) (*ApproveEvent, error) {
@@ -44,7 +45,7 @@ func (s *TokenService) Approve(req *ApproveRequest) (*ApproveEvent, error) {
 
 	event := NewApproveEvent(req.TokenID, req.Owner, req.Spender, req.Amount)
 	if err := s.eventBus.Publish(event); err != nil {
-		return nil, fmt.Errorf("%w: %v", ErrAuditPublishFailed, err)
+		return nil, errdetail.Wrap(ErrAuditPublishFailed, err)
 	}
 
 	return event, nil
@@ -89,7 +90,7 @@ func (s *TokenService) IncreaseAllowance(req *AllowanceRequest) (*ApproveEvent, 
 
 	event := NewApproveEvent(req.TokenID, req.Owner, req.Spender, newAmount)
 	if err := s.eventBus.Publish(event); err != nil {
-		return nil, fmt.Errorf("%w: %v", ErrAuditPublishFailed, err)
+		return nil, errdetail.Wrap(ErrAuditPublishFailed, err)
 	}
 	return event, nil
 }
@@ -137,7 +138,7 @@ func (s *TokenService) DecreaseAllowance(req *AllowanceRequest) (*ApproveEvent, 
 
 	event := NewApproveEvent(req.TokenID, req.Owner, req.Spender, newAmount)
 	if err := s.eventBus.Publish(event); err != nil {
-		return nil, fmt.Errorf("%w: %v", ErrAuditPublishFailed, err)
+		return nil, errdetail.Wrap(ErrAuditPublishFailed, err)
 	}
 	return event, nil
 }
