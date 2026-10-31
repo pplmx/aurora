@@ -12,6 +12,10 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The dashboard's ledger route looks like a button**: "Open ledger" was quiet
+  text at the hero's edge, so the one navigation action on the landing panel
+  read like a caption. It uses the secondary button shape now, with the hover
+  and press feedback every other card action has.
 - **A selectable record says so with a radio mark**: token, NFT, draw, voter,
   candidate, session and data-source lists drew the same recessed card whether
   or not a row was a choice, so the only cues were the hint above the list and

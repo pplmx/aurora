@@ -168,7 +168,7 @@ func (a *App) dashboardHero(c *ui.Context) {
 			})
 		}
 		openLedger := func() {
-			if quietButton(c, "Open ledger").Clicked() {
+			if secondaryButton(c, "Open ledger").Clicked() {
 				a.setPage(pageBlockchain)
 			}
 		}
