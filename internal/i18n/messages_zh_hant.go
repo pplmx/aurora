@@ -209,6 +209,7 @@ var traditionalMessages = map[string]string{
 	"error.invalid_amount":                      "數量無效",
 	"error.invalid_base64":                      "Base64 編碼無效",
 	"error.invalid_decimals":                    "代幣小數位數無效",
+	"error.invalid_event_payload":               "事件負載無效",
 	"error.invalid_import_document":             "抽獎導入文件無效",
 	"error.invalid_input":                       "輸入無效",
 	"error.invalid_participant_name":            "參與者姓名包含無效字符",
