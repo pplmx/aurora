@@ -28,6 +28,13 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **Chinese at double text is checked against the window edge**: the suite had
+  eighty-six assertions at 2x and none of them in Chinese, where every
+  non-Latin character is twice as wide before the scale applies. The new test
+  walks all eight pages at 2x in Chinese and fails when the widest string runs
+  past the window. The layout holds at every width above 400px; the check is
+  what proves it, and a 320px window is what proves the check.
+
 - **A printed bracket follows the language too**: two lines built "(%s)"
   themselves — the doctor's database check and a candidate's party on the results
   list — so a Chinese window showed 数据库：./data/aurora.db (80.1 KiB) next to
