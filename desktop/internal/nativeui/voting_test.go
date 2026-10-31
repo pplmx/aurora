@@ -864,3 +864,31 @@ func TestBallotOffersTheRegisteredVoters(t *testing.T) {
 	require.Equal(t, pubKey, app.voting.voteVoterPub, "the chip writes the public key")
 	require.Empty(t, app.voting.votePriv, "another voter's private key is cleared")
 }
+
+// TestSessionControlsDropTheChooseHintOnceASessionIsChosen: the hint told the
+// operator to choose a session even after one had filled the field, which
+// contradicted the value beside it.
+func TestSessionControlsDropTheChooseHintOnceASessionIsChosen(t *testing.T) {
+	const sessionID = "66666666-5555-4444-3333-222222222222"
+	fake := &fakeServices{
+		sessions: []SessionRow{{ID: sessionID, Title: "Budget 2026", Status: "active"}},
+	}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 2400)
+	app.ShowPage("Voting")
+	tester.Frame()
+	require.NoError(t, tester.Click("Ballot"))
+	tester.Frame()
+	require.True(t, tester.HasText("Choose a session in Setup or enter its ID first."),
+		"with nothing chosen the hint names the first step")
+
+	require.NoError(t, tester.Click("Setup"))
+	tester.Frame()
+	require.NoError(t, tester.Click("Budget 2026"))
+	tester.Frame()
+	require.NoError(t, tester.Click("Ballot"))
+	tester.Frame()
+	require.False(t, tester.HasText("Choose a session in Setup or enter its ID first."),
+		"a chosen session must not be told to choose one")
+	require.Equal(t, sessionID, app.voting.controlID, "the field still holds the chosen session")
+}

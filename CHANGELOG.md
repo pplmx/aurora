@@ -12,6 +12,10 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The session controls stop asking for a session once one is chosen**: the
+  "Choose a session in Setup or enter its ID first" hint sat beside a filled
+  Session ID field, contradicting it; the hint now belongs to the empty state
+  only, whether the session came from Setup or from the Results shortcuts.
 - **`compose.yml` drops the obsolete `version:` key**: Compose v2 ignores it and
   warns on every command; the service, volume and network definitions are the
   whole file, and the reason is now written beside the header.
