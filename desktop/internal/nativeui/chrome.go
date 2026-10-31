@@ -215,28 +215,46 @@ func (a *App) header(c *ui.Context) {
 			a.navigateByKeyboard(c, p)
 		}
 	}
-	ui.Row(c).FillWidth().AlignItems(ui.Center).Gap(space4).Children(func() {
+	// The header stacks instead of squeezing its parts to nothing. In a narrow
+	// window at a large text size the head, the title block and the action no
+	// longer fit on one line, and a plain row co-operated by compressing the
+	// purpose sentence to a vertical strip and clipping the action's chord to
+	// two characters. Below headerStackWidth the action moves under the title
+	// block, which is the arrangement the width has room for.
+	outfit := func() {
 		pageGlyph(c, a.page)
-		ui.Column(c).Grow(1).Gap(2).Children(func() {
+		ui.Column(c).Grow(1).Shrink(1).Gap(2).Children(func() {
 			heading(c, tr(pageTitles[a.page]), pageTitleSize, 1).LetterSpacing(-0.3)
 			ui.Text(c, tr(pagePurpose[a.page])).FontSize(textSize(c, 12)).TextColor(c.Theme().TextMuted)
 		})
-		// Ctrl on Linux and Windows, Cmd on macOS: the platform's own
-		// modifier for a reload. The shortcut is the window's, not the
-		// button's: an element's shortcut only fires while that element has
-		// the keyboard focus, and a reload has to work from anywhere.
-		// Settings reads no database, so a Refresh button there would be a
-		// control with no effect; keep the action on data pages.
 		if a.liveUpdates && (a.page == pageDashboard || a.page == pageOracle) {
 			liveBadge(c)
 		}
-		if a.page != pageSettings {
-			refresh := refreshButton(c).Disabled(a.busy != "")
-			if a.busy == "" &&
-				(c.Shortcut(platformRefreshModifier(), ui.KeyR) || refresh.Clicked()) {
-				a.refresh()
-			}
+	}
+	action := func() {
+		if a.page == pageSettings {
+			return
 		}
+		refresh := refreshButton(c).Disabled(a.busy != "")
+		if a.busy == "" &&
+			(c.Shortcut(platformRefreshModifier(), ui.KeyR) || refresh.Clicked()) {
+			a.refresh()
+		}
+	}
+	if headerStacks(c) {
+		// The glyph and title keep their row; the action drops below it, so the
+		// purpose sentence keeps a readable measure instead of a vertical strip.
+		ui.Column(c).FillWidth().Gap(space3).Children(func() {
+			ui.Row(c).FillWidth().AlignItems(ui.Center).Gap(space4).Children(outfit)
+			// The action keeps its own measure: a column stretches its children
+			// to the full width, which turned the button into a page-wide bar.
+			ui.Row(c).FillWidth().Children(action)
+		})
+		return
+	}
+	ui.Row(c).FillWidth().AlignItems(ui.Center).Gap(space4).Children(func() {
+		outfit()
+		action()
 	})
 }
 

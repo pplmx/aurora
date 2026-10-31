@@ -75,6 +75,22 @@ const twoColumnMinWidth float32 = 1240
 // the window itself: the sentence needs a readable measure beside the icon.
 const heroStackWidth float32 = 860
 
+// headerStackWidth is where the page head's action drops below the title
+// block. The head holds a glyph, a title, a purpose sentence and a labelled
+// button with its chord; the purpose needs a readable measure beside all of
+// them, and below this width at a large text size it did not get one — it
+// rendered as a vertical strip while the chord was clipped to two characters.
+// The threshold scales with text size for the same reason twoColumnMinWidth
+// does: labels grow, the window does not.
+const headerStackWidth float32 = 450
+
+// headerStacks reports whether the page head places its action under the
+// title block instead of beside it.
+func headerStacks(c *ui.Context) bool {
+	width, _ := c.Size()
+	return width < headerStackWidth*textScale(c)
+}
+
 // wideLayoutMinScale is where a side-by-side presentation gives way to a
 // stacked one. The collections themselves no longer switch renderings — they
 // are records at every text size (see collectionList) — but two surfaces still
