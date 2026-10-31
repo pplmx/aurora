@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -133,6 +134,9 @@ func load(explicitPath string) (*Config, error) {
 	// silently running on defaults. Env vars (AURORA_API_KEY and friends) still
 	// take precedence over the file via AutomaticEnv/BindEnv below.
 	if explicitPath != "" {
+		if err := ValidateExplicitConfigPath(explicitPath); err != nil {
+			return nil, err
+		}
 		viper.SetConfigFile(explicitPath)
 	} else {
 		viper.SetConfigName("aurora")
@@ -301,6 +305,20 @@ func loadConfigFileIfPresent() error {
 			return nil
 		}
 		return fmt.Errorf("failed to load config file %s: %w", viper.ConfigFileUsed(), err)
+	}
+	return nil
+}
+
+// ValidateExplicitConfigPath rejects the two paths Viper cannot describe: a
+// directory, and a file without an extension (it answers both with "Unsupported
+// Config Type \"\"" before reading anything). A missing file keeps Viper's own
+// "open …: no such file or directory", which already names the path.
+func ValidateExplicitConfigPath(path string) error {
+	if info, err := os.Stat(path); err == nil && info.IsDir() {
+		return fmt.Errorf("config path %s is a directory", path)
+	}
+	if filepath.Ext(path) == "" {
+		return fmt.Errorf("config file %s has no extension; Aurora reads .toml", path)
 	}
 	return nil
 }
