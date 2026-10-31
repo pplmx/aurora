@@ -28,6 +28,14 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **A failed language write is reported instead of swallowed**: `SetLanguage`
+  applied the locale and then ignored the result of saving the choice, so a
+  read-only preferences file left the operator with a changed window and no
+  hint that the next launch reverts. It reports the error now, the way
+  `SetThemeMode` already does, and Settings shows the same "Couldn't save
+  settings" line the theme control uses. The language is still applied either
+  way — the window and the native controls must not disagree for the session.
+
 - **The blocked-header rules are a table, and the table found a missing
   header**: the same paragraph carried the header rules for a data source, and
   it named six of the seven hop-by-hop headers the domain rejects —
