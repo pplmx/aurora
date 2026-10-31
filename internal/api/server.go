@@ -54,7 +54,7 @@ func NewServer() (*Server, error) {
 	// to nil would be a no-op (a typed nil is still a non-nil interface).
 	registerRuntimeGauges(srv.metrics, c.PendingAuditEvents, func() int {
 		return c.Ledger().Len()
-	})
+	}, c.OldestPendingAuditEvent)
 	return srv, nil
 }
 

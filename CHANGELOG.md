@@ -657,6 +657,11 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Added
 
+- **The scrape says how long the outbox has been waiting**: alongside
+  `aurora_outbox_pending_events`, `/metrics` now carries
+  `aurora_outbox_oldest_pending_seconds`, the age of the oldest parked event. A
+  count can be normal on a busy node; an age that keeps growing means the retry
+  loop is stuck. An empty outbox or a failed read omits the line.
 - **The capture script can prove a language**: `AURORA_E2E_LANG=zh` (or
   `zh-hant`) switches the real window's language from Settings, then captures the
   Settings and Dashboard pages with their localized titles under

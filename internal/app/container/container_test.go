@@ -229,10 +229,20 @@ func TestPendingAuditEventsCountsTheOutbox(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 0, pending, "a fresh outbox is empty")
 
+	_, ok, err := c.OldestPendingAuditEvent(context.Background())
+	require.NoError(t, err)
+	require.False(t, ok, "an empty outbox has no oldest event")
+
 	event := events.NewBaseEvent("token.mint", "agg-1", []byte(`{"agg_id":"agg-1"}`))
 	require.NoError(t, c.EventStore.EnqueuePending(event))
 
 	pending, err = c.PendingAuditEvents(context.Background())
 	require.NoError(t, err)
 	require.Equal(t, 1, pending, "the parked event is counted")
+
+	at, ok, err := c.OldestPendingAuditEvent(context.Background())
+	require.NoError(t, err)
+	require.True(t, ok, "a parked event has a timestamp")
+	require.Equal(t, event.Timestamp().Unix(), at.Unix(),
+		"the age a scraper derives must come from the event's own time")
 }
