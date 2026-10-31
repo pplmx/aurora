@@ -28,6 +28,15 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The token repository is split by question, not by table**: its 641 lines
+  held the schema, the token rows, the allowance primitives and the balance
+  primitives in one file, so a reader looking for "may this spender move this
+  amount" scrolled past three unrelated groups. `token_approvals.go` now holds
+  the allowance half and `token_balances.go` the account half, each with a
+  header naming the atomicity argument it makes; `token.go` keeps the schema,
+  the token rows and the transaction plumbing. No API moved — same package,
+  same method set — and the existing concurrency tests cover both halves.
+
 - **The outbound-address policy lives in one package**: the block list was in
   `internal/netguard` while the host and dial checks that apply it stayed in
   the HTTP client, so a reader had to open two packages to see one policy and
