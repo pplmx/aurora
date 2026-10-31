@@ -28,6 +28,14 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The vote gate is a table of outcomes in the order they are checked**: the
+  section said which conditions reject a ballot but not which error each one
+  produces, and it left out the case that surprises clients — a draft session
+  inside its window is refused with `SESSION_NOT_STARTED`, not accepted and not
+  `SESSION_ENDED`, which decides whether calling start can fix it. The table
+  lists all five outcomes, and a test reads the `return` statements out of
+  `CanAcceptVotes` and fails when a row's code or position disagrees.
+
 - **The latest reading and the transfer write are covered**: both sat at 43%
   with only their guard exercised. The transfer tests pin the rule the code is
   built around — a key that worked is cleared from the screen, a key that was
