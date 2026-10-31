@@ -15,6 +15,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"runtime/debug"
 	"time"
 
 	"github.com/pplmx/aurora/desktop/internal/nativeui"
@@ -56,6 +57,24 @@ type Runtime struct {
 	// app is the window's state and view. The desktop shell renders it with
 	// MyGo's own widgets; there is no web page involved.
 	app *nativeui.App
+}
+
+// RuntimeInfo is the toolchain line a bug report needs: the Go runtime the
+// binary was built with and, when the build info carries it, the MyGo release
+// the window was rendered by. A `go run` build has no module list, so only the
+// Go version is reported then.
+func RuntimeInfo() string {
+	version := runtime.Version()
+	info, ok := debug.ReadBuildInfo()
+	if !ok {
+		return version
+	}
+	for _, dep := range info.Deps {
+		if dep.Path == "github.com/egoist/mygo" {
+			return version + " · mygo " + dep.Version
+		}
+	}
+	return version
 }
 
 // App returns the window's state. The shell passes it to mygo.WindowOptions

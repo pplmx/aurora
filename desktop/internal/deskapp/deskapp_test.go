@@ -552,3 +552,14 @@ func TestLedgerModuleNamesEveryPayloadShape(t *testing.T) {
 	assert.Empty(t, decodeBlockRecord(1, 0, "something else entirely").Module,
 		"an unknown payload claims no module rather than a placeholder")
 }
+
+// TestRuntimeInfoNamesTheToolchain: a bug report needs the Go runtime and, when
+// the build info carries it, the MyGo release; a `go run` build has no module
+// list, so only the Go version must always be there.
+func TestRuntimeInfoNamesTheToolchain(t *testing.T) {
+	info := RuntimeInfo()
+	assert.True(t, strings.HasPrefix(info, "go"), "the Go version comes first: %q", info)
+	if strings.Contains(info, "·") {
+		assert.Contains(t, info, "mygo v", "a module list means the MyGo line too: %q", info)
+	}
+}

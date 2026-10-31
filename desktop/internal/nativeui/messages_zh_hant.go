@@ -449,6 +449,7 @@ var desktopMessagesHant = map[string]string{
 	"Run a draw":                          "運行抽獎",
 	"Run a draw, then re-check its proof": "運行抽獎，然後複驗證明",
 	"Running draw…":                       "正在運行抽獎…",
+	"Runtime":                             "運行時",
 	"Saved key filled.":                   "已填入保存的密鑰。",
 	"Search NFTs":                         "搜索 NFT",
 	"Search blocks":                       "搜索區塊",

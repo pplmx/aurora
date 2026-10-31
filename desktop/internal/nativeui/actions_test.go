@@ -133,6 +133,7 @@ func TestPaletteCopiesDiagnostics(t *testing.T) {
 	app.SetActions(Actions{
 		Version:       "v1.2.3",
 		BuildTime:     "2026-10-26T09:00:00Z",
+		Runtime:       "go1.27.3 · mygo v0.7.3",
 		DBPath:        "/tmp/aurora/aurora.db",
 		LedgerFacts:   func() (int, string, bool, bool) { return 5, "009c4a0820ab", true, true },
 		OutboxPending: func() (int, bool) { return 2, true },
@@ -152,7 +153,7 @@ func TestPaletteCopiesDiagnostics(t *testing.T) {
 	tester.Key(0, ui.KeyEnter)
 	tester.Frame()
 	require.Equal(t,
-		"Version: v1.2.3\nBuild time: 2026-10-26T09:00:00Z\nDatabase: /tmp/aurora/aurora.db\nLedger: 5 blocks, head 009c4a0820ab — chain valid\nAudit outbox: 2 pending events, oldest waiting 5m0s",
+		"Version: v1.2.3\nBuild time: 2026-10-26T09:00:00Z\nDatabase: /tmp/aurora/aurora.db\nRuntime: go1.27.3 · mygo v0.7.3\nLedger: 5 blocks, head 009c4a0820ab — chain valid\nAudit outbox: 2 pending events, oldest waiting 5m0s",
 		tester.Clipboard())
 	require.False(t, app.paletteOpen)
 }

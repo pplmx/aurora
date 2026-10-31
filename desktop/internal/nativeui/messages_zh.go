@@ -548,6 +548,7 @@ var desktopMessages = map[string]string{
 	"Reduced":                      "已减弱",
 	"About Aurora":                 "关于 Aurora",
 	"Version":                      "版本",
+	"Runtime":                      "运行时",
 	"Build time":                   "构建时间",
 	"Database":                     "数据库",
 	"Language, data location, appearance and build information": "语言、数据位置、外观与构建信息",
