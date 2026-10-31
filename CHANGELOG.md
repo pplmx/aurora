@@ -28,6 +28,16 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The guide's control names are checked against the page**: every "How this
+  works" step tells the reader where to go by naming a card, a tab or a button
+  — "Open Ballot", "press Verify". A renamed control leaves the sentence
+  pointing at nothing and nothing fails: the guide still reads well, it just no
+  longer matches the page. A test now opens each guided page with records and
+  checks that every control its steps name is drawn.
+- **The token guide's comment counted its steps wrong**: it said "the same
+  three moves" above four steps, carried over from before the signing rule and
+  the storage rule were split apart.
+
 - **The dashboard names its composition section once**: the page opened the
   section with a ruled "Ledger composition" label and then repeated itself as
   "What the ledger is made of" in the card immediately below. The rule is gone,
