@@ -28,6 +28,16 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The privacy statement lists each file and its mode**: it described the
+  owner-only policy in one long paragraph, so answering "what does Aurora write
+  to disk, and who can read it" meant parsing prose. A table now names every
+  path — the database, its sidecars, the log, the desktop settings, a backup
+  set, the restore undo snapshot — with the mode Aurora gives it. The row for
+  `window-state.json` credits MyGo, because Aurora does not set that one and
+  claiming a number it does not choose would be false. A test reads the modes
+  out of the hardening code (`RestrictSQLiteFiles`, the backup and restore
+  directory calls) and fails when the table disagrees.
+
 - **The NFT readout labels its account Holder, not Owner**: the token page
   calls the account behind a token its 所有者; the NFT page calls the account
   holding an asset its 持有者, and that word appears in thirteen of its

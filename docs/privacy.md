@@ -8,23 +8,40 @@ The desktop application stores its SQLite database, logs, recent-document
 metadata, the window geometry the UI toolkit remembers, and a small
 `desktop-settings.json` (the live-updates and appearance choices) under the
 user's local data directory. Exports and database backups are written wherever
-the user chooses. These files remain on
-the user's machine unless the user explicitly copies or shares them. On
-Unix-like systems the default application data directory is created (or
-tightened) with mode `0700` so other local accounts cannot traverse the
-database or logs; the SQLite database, its WAL/SHM/rollback-journal sidecars,
-log file, and desktop preferences are also kept at mode `0600`. A database
-symlink is resolved before hardening its sidecars. Disk-backed SQLite `file:`
-URIs are decoded to their local filesystem path for directory creation and
-permission hardening; memory and empty-name temporary databases are not
-touched. An explicit `--data-dir` keeps the permissions of an existing
-operator-managed directory; a newly created explicit directory is still
-owner-only. A new database backup set is created as an owner-only
-`0700` directory whose database and metadata files are `0600`; an existing
-backup directory keeps its own permissions while new files in it remain
-owner-only. Restore keeps its hidden undo-snapshot directory at `0700`, its
-database copy at `0600`, and promotes the restored live database with the same
-owner-only file mode.
+the user chooses. These files remain on the user's machine unless the user
+explicitly copies or shares them.
+
+On Unix-like systems every one of them is owner-only; the table below lists
+each path with the mode Aurora gives it.
+
+## Files and permissions
+
+Everything Aurora writes stays under the user's data directory unless the
+operator names another path. On Unix-like systems the defaults are owner-only:
+
+| Path                                | Mode            | What it holds                                                                                          |
+| ----------------------------------- | --------------- | ------------------------------------------------------------------------------------------------------ |
+| `data directory`                    | `0700`          | Created (or tightened) so other local accounts cannot traverse in                                      |
+| `aurora.db`                         | `0600`          | The SQLite database: every module's records, the hash chain, oracle sources with their request headers |
+| `aurora.db-wal`, `-shm`, `-journal` | `0600`          | SQLite sidecars; `-journal` appears only outside WAL mode                                              |
+| `aurora.log`                        | `0600`          | The structured log                                                                                     |
+| `desktop-settings.json`             | `0600`          | Live-updates and appearance choices                                                                    |
+| `backup directory (new)`            | `0700`          | A backup set created by File → Back Up Database                                                        |
+| `files inside a backup`             | `0600`          | The database copy and its metadata                                                                     |
+| `restore undo snapshot`             | `0700` / `0600` | The temporary pre-restore copy; removed when the restore settles                                       |
+| `window-state.json`                 | MyGo's choice   | Window geometry; written by the UI toolkit, not by Aurora                                              |
+
+The last row is the one Aurora does not set: MyGo writes `window-state.json`
+itself, and the recent-document list lives in the platform's own recent store
+rather than in this directory. Both hold only what the user opened and how the
+window was sized.
+
+An explicit `--data-dir` keeps the permissions of an existing directory the
+operator already manages; a directory Aurora creates there is still owner-only.
+A database symlink is resolved before its sidecars are hardened, because SQLite
+names the sidecars after the link target rather than the link. Disk-backed
+`file:` URIs are decoded to their filesystem path; in-memory and empty-name
+temporary databases are skipped.
 
 **This program will not transfer any information to other networked systems
 unless specifically requested by the user or the person installing or
