@@ -631,6 +631,10 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Added
 
+- **The Results tab can start from a stored session**: its empty tally asked for
+  a session id or a trip to Setup. It now lists the newest three sessions as
+  buttons and loads the chosen tally in place; Setup keeps the full, searchable
+  list.
 - **The metrics endpoint exposes the node's state**: `/metrics` now carries
   `aurora_outbox_pending_events`, the gauge an operator watches when a delivery
   keeps failing while the ledger records (the same count `aurora doctor`

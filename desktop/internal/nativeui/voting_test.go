@@ -771,3 +771,37 @@ func TestBallotAndResultsNameTheMissingSession(t *testing.T) {
 	tester.Frame()
 	require.True(t, tester.HasText("Cast Vote"), "a typed session id opens the ballot form")
 }
+
+// TestResultsTabOffersTheStoredSessions: the empty tally used to send the
+// reader to Setup to copy an id. It now offers the newest sessions in place, and
+// choosing one loads that session's tally without a tab switch.
+func TestResultsTabOffersTheStoredSessions(t *testing.T) {
+	const (
+		newest = "99999999-8888-7777-6666-555555555555"
+		older  = "11111111-2222-3333-4444-555555555555"
+	)
+	fake := &fakeServices{
+		sessions: []SessionRow{
+			{ID: newest, Title: "Board 2027", Status: "draft"},
+			{ID: older, Title: "Budget 2026", Status: "active"},
+		},
+		resultsByID: map[string][]ResultRow{
+			newest: {{CandidateID: "c1", Name: "Alice", Votes: 2}},
+		},
+	}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 2000)
+	app.ShowPage("Voting")
+	tester.Frame()
+	require.NoError(t, tester.Click("Results"), "open the results tab")
+	tester.Frame()
+
+	require.True(t, tester.HasText("Choose a session in Setup or enter its ID first."))
+	require.True(t, tester.HasText("Board 2027"), "the newest session is offered in place")
+
+	require.NoError(t, tester.Click("Board 2027"))
+	tester.Frame()
+	require.Equal(t, newest, app.voting.resultsSession, "the shortcut picks the session")
+	require.Equal(t, newest, fake.lastSessionResultsID, "and loads its tally")
+	require.True(t, tester.HasText("Alice"), "the loaded tally renders")
+}
