@@ -72,7 +72,7 @@ func TestKnownErrorContextLocalizesWithoutHidingTechnicalDetail(t *testing.T) {
 		{
 			name: "lottery record participants field",
 			err:  fmt.Errorf("participants: %w", lottery.ErrNoParticipants),
-			want: "参与者名单无效：至少需要一名参与者",
+			want: "参与者名单无效：至少需要一位参与者",
 		},
 		{
 			name: "lottery record winners field",

@@ -28,6 +28,17 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **A failed lookup says 未找到, and a person takes 一位**: the window used 找不到
+  and 未找到 for the same four "not found" errors, and the CLI counted candidates
+  with 一名 while the window used 一位 for the same people. Both are one word now,
+  and the vocabulary test covers them.
+- **A token Amount is 金额 in both layers**: the CLI said 数量 for the amount, the
+  same word it uses for a count of people.
+- **That last pair is deliberately not a rule**: 数量 is correct for 参与者数量 and
+  wrong for a token amount, and the two cannot be told apart from the string, so
+  a rule would fire on correct copy. The exclusion is written in the test beside
+  the rules rather than left to be rediscovered.
+
 - **Four more words had a second spelling in one layer**: the CLI called a
   mintable token 可增发 while both surfaces and the guide say 铸造; the window
   called a disabled feed 已停用 once against 禁用 everywhere else; the encoding

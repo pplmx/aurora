@@ -243,7 +243,7 @@ func TestServiceErrorsUseTheDesktopLanguage(t *testing.T) {
 	t.Cleanup(func() { tr.SetLocale(before) })
 
 	tr.SetLocale("zh")
-	require.Equal(t, "找不到代币", errStatus(errors.New("token not found")).text)
+	require.Equal(t, "未找到代币", errStatus(errors.New("token not found")).text)
 	require.Equal(t, "seed: 种子过短", errStatus(errors.New("seed: seed too short")).text)
 	require.Equal(t, "database is locked", errStatus(errors.New("database is locked")).text)
 	require.True(t, errStatus(errors.New("token not found")).isErr)
