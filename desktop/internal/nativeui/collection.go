@@ -74,14 +74,14 @@ func collectionList(c *ui.Context, name string, rows []collectionRecord, selecte
 			i, row := i, row
 			if onChoose == nil {
 				ui.Column(c).FillWidth().Role(ui.RoleListItem).Children(func() {
-					recordPanel(c, func() { collectionRecordBody(c, row) })
+					recordPanel(c, func() { collectionRecordBody(c, row, false, false) })
 				})
 				continue
 			}
 			isSelected := i == selected
 			record := selectableRecordPanel(c, isSelected,
 				collectionChoiceLabel(row, isSelected), func() {
-					collectionRecordBody(c, row)
+					collectionRecordBody(c, row, true, isSelected)
 				})
 			if record.Clicked() {
 				// Choosing a record fills the page's forms and cards with its
@@ -107,15 +107,41 @@ func collectionChoiceLabel(row collectionRecord, selected bool) string {
 	return fmt.Sprintf(tr("Select %s"), name)
 }
 
+// collectionChoiceMark is the visible form of "this record is a choice": an
+// outlined radio-style circle that fills with the page accent and a light dot
+// when the record is the page's subject. The accessible name already says
+// Select/Selected, and the chosen panel is tinted; the mark is what tells a
+// pointer user, before the first click, that the whole record is a control.
+func collectionChoiceMark(c *ui.Context, selected bool) ui.Element {
+	size := textSize(c, 15)
+	mark := ui.Row(c).Size(size, size).Center().Shrink(0).Radius(999).
+		BorderWidth(1).BorderColor(c.Theme().Border).AlignSelf(ui.Center)
+	if !selected {
+		return mark
+	}
+	mark.BorderColor(c.Theme().Accent).Background(c.Theme().Accent)
+	mark.Children(func() {
+		dot := max(4, size/3)
+		ui.Row(c).Size(dot, dot).Radius(999).Background(c.Theme().AccentText)
+	})
+	return mark
+}
+
 // collectionRecordBody draws the inside of one record: its title, the short
 // facts beside it, the fields under it, and the row's own action if it has one.
+// A selectable record opens its title row with a choice mark, so the row reads
+// as a control before the first click and its chosen state has a shape as well
+// as a tint.
 //
 // The title and the facts share a baseline rather than a bounding box: a
 // label-over-value fact is taller than a single-line title, and aligning their
 // bottoms left the title floating at the label's height instead of beside the
 // value it belongs to.
-func collectionRecordBody(c *ui.Context, row collectionRecord) {
+func collectionRecordBody(c *ui.Context, row collectionRecord, selectable, selected bool) {
 	ui.Row(c).FillWidth().Wrap().Gap(space4).AlignItems(ui.Baseline).Children(func() {
+		if selectable {
+			collectionChoiceMark(c, selected)
+		}
 		// The title wraps rather than clipping: it is the record's identity,
 		// and the values that reach it (a draw id, a public key) are exactly
 		// the long ones a one-line cell used to cut to a prefix.
