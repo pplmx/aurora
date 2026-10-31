@@ -1,3 +1,9 @@
+// Package http fetches oracle data sources over the network.
+//
+// Every outbound request passes the netguard policy first — the same check the
+// domain validator applies — so a redirect or a DNS answer cannot move a
+// request into a blocked range after validation. The package also guards the
+// response size and redacts destination details from the errors it returns.
 package http
 
 import (

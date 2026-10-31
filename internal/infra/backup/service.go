@@ -1,3 +1,8 @@
+// Package backup creates, verifies and restores SQLite database backups.
+//
+// A backup is written to a temporary name and renamed into place, so a crash
+// mid-write leaves no file that looks complete; restore verifies before it
+// replaces anything.
 package backup
 
 import (

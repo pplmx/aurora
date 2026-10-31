@@ -1,3 +1,8 @@
+// Package nftapp holds the NFT use cases: mint, transfer, burn, and read the
+// operation history.
+//
+// Ownership lives in the domain entity; this package decides which key signs
+// which operation and writes the matching ledger record.
 package nftapp
 
 import (

@@ -1,3 +1,9 @@
+// Package config loads aurora.toml, applies defaults and validates the result.
+//
+// The lookup order is --config, then $HOME/aurora.toml, then ./config/aurora.toml.
+// A file named with --config is the only one read; if it is missing the load
+// fails rather than falling back, because a typo in a path must not silently
+// run on defaults.
 package config
 
 import (

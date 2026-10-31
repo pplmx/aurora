@@ -1,3 +1,9 @@
+// Package events implements the audit outbox: events are written in the same
+// transaction as the change they describe, then delivered by a compensating
+// loop, with a replay path for redelivery.
+//
+// Writing the event with the change is what keeps the log from claiming an
+// operation that rolled back.
 package events
 
 import (

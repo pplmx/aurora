@@ -1,3 +1,9 @@
+// Command aurora is the command-line client for the same application layer the
+// desktop window and the REST server use.
+//
+// Output is a table by default and JSON under --json; destructive commands
+// require --confirm, and every message is translated according to the locale
+// variables the shell sets.
 package main
 
 import (

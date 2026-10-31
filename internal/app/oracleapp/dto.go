@@ -1,3 +1,9 @@
+// Package oracleapp holds the oracle use cases: register a source, fetch it on
+// a schedule, and answer queries over the readings.
+//
+// The HTTP fetch itself belongs to internal/infra/http; this package owns the
+// schedule, the retry accounting the health card reads, and the decision to
+// record a reading on the ledger.
 package oracleapp
 
 type FetchDataRequest struct {

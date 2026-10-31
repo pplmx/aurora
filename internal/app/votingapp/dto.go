@@ -1,3 +1,9 @@
+// Package votingapp holds the voting use cases: register voters and candidates,
+// open and close a session, cast a signed ballot, and count the result.
+//
+// A ballot is signed with the voter's own key and checked against the key on
+// record before it is stored, so the tally never trusts a count the caller
+// supplies.
 package votingapp
 
 type CastVoteRequest struct {

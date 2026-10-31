@@ -1,3 +1,8 @@
+// Command aurora-api serves the REST API.
+//
+// It binds the configured address, installs the middleware chain and runs the
+// oracle scheduler alongside the audit outbox. A stop signal drains in-flight
+// requests before the SQLite handle is closed.
 package main
 
 import (

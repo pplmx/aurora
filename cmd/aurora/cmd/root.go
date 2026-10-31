@@ -1,3 +1,9 @@
+// Package cmd wires the CLI: one file per command group, each a thin shell over
+// the application layer.
+//
+// A command parses flags, calls one use case and prints through internal/i18n;
+// the business rule lives in internal/app, which is why the same operation
+// behaves identically from the window and the REST route.
 package cmd
 
 import (

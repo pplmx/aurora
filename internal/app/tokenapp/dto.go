@@ -1,3 +1,8 @@
+// Package tokenapp holds the token use cases: create, mint, burn, transfer,
+// approve and transfer-from, plus the reads behind the info and balance cards.
+//
+// Each write is one file, because each has its own signing rule — an approval
+// and a transfer move different amounts under different keys.
 package tokenapp
 
 type CreateTokenRequest struct {

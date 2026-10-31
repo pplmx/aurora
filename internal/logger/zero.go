@@ -1,3 +1,8 @@
+// Package logger assembles the zerolog logger from the [log] section: level,
+// destination directory and file permissions.
+//
+// The directory is created 0700 and the file 0600, and a looser mode left by an
+// earlier version is tightened on the next start.
 package logger
 
 import (

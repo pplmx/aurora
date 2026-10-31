@@ -1,3 +1,8 @@
+// Package utils holds helpers with no business meaning: atomic file writes,
+// byte formatting, SQLite path and DSN handling, and symlink resolution.
+//
+// Nothing here imports another internal package, which keeps it usable from
+// every layer without creating a cycle.
 package utils
 
 import (

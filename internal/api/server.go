@@ -1,3 +1,8 @@
+// Package api assembles the REST server: the router, the middleware chain and
+// the lifecycle that starts the background workers.
+//
+// It is a presentation layer. Every handler calls the same application use case
+// the CLI and the window call, so a rule cannot drift between the three.
 package api
 
 import (
