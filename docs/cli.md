@@ -148,7 +148,8 @@ aurora token burn -t <token-id> --from <addr> --amount 10 -k "<key>" --confirm
 `token list` 的 `--limit` 默认 0（列出 offset 之后的全部记录），大于 0 时只
 读取该页并打印本页数量与偏移；`--offset` 默认 0。
 `token history` 省略 `--owner` 时分页读取整个代币的转账流水；提供该参数时只
-返回该账户发出或收到的转账。
+返回该账户发出或收到的转账。它的 `--limit` 默认 **50**（与其他列表的 0 不同：
+流水按代币累计，通常只会越读越多），`--offset` 默认 0。
 
 ## 预言机
 
@@ -184,7 +185,9 @@ aurora oracle latest -i <source-id>
 `application/json`。
 
 `oracle source list` 的 `--limit` 默认 0（列出 offset 之后的全部记录），大于
-0 时只读取该页并打印本页数量与偏移；`--offset` 默认 0。调度器不受该选项影响，
+0 时只读取该页并打印本页数量与偏移；`--offset` 默认 0。`oracle data` 的
+`--limit` 默认 **10**，只读取该源最近的这些读数；`oracle latest` 没有该选项，
+固定读最新一条。调度器不受该选项影响，
 仍会枚举全部数据源。
 
 ## 运维命令
