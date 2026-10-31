@@ -28,6 +28,17 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **A translation cannot drop or invent a format verb**: the desktop catalog
+  uses the English literal as its key, so a translation that loses `%s` prints
+  `%!s(MISSING)` to the user and one that adds a verb prints `%!d(string=...)`.
+  Neither fails a test, because `fmt.Sprintf` does not report a bad format. The
+  new check compares the argument count on both sides of all 37 entries that
+  carry one.
+- **Positional verbs are counted by distinct index**: 从 %[2]s 销毁 %[1]s？ reorders
+  the two arguments on purpose, and a highest-index-only count accepted a
+  translation that had dropped `%[1]s` entirely. The first version of the test
+  missed exactly that, which is what its own regression run showed.
+
 - **The narrow-window captures explain the half-visible tab bar**: the script
   scrolls the stage's control into view, and the stage tabs live inside the
   scrolling body while the page header is fixed. The result photographs a tab
