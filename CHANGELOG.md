@@ -28,6 +28,14 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **Cross-document links are checked**: a link into another file's heading
+  rots silently when that heading is renamed, which is how the README's new
+  gate link could have broken on the next edit to the CLI reference. A
+  `repocheck` test now resolves every relative markdown link in the current
+  docs, checks that the file exists, and derives the same slug GitHub does to
+  confirm the heading is really there. Historical material under
+  `docs/superpowers/` and `.planning/` stays out of scope.
+
 - **The dashboard's failure copy names the button that exists**: the broken
   chain's sentence said "Inspect the ledger" while the button beside it reads
   "Open ledger", so a reader looking for an Inspect action on that page found
