@@ -107,3 +107,11 @@ func TestParseReadsModuleNamedBlocks(t *testing.T) {
 	assert.Equal(t, "Ballot", voting.Action)
 	assert.Equal(t, "s1", voting.Subject)
 }
+
+// TestRecordTextRendersOneLine pins the sentence the CLI prints and every
+// search compares: module · action · subject, then the facts.
+func TestRecordTextRendersOneLine(t *testing.T) {
+	record, ok := Parse("transfer|GLD|alice|bob")
+	require.True(t, ok)
+	assert.Equal(t, "token · Transfer · GLD   (Token: GLD; From: alice; To: bob)", record.Text())
+}

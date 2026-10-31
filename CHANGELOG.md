@@ -17,7 +17,8 @@ The milestone notes under `.planning/` are history, not current instructions.
   table now renders the same module · action · facts sentence the window shows,
   from the shared decoder, and leaves an unrecognised payload untouched;
   `--json` still carries the exact `payload`. Its `-s` filter compares that
-  sentence and the height as well, so a word the table shows finds its record.
+  sentence and the height as well, so a word the table shows finds its record,
+  and the REST endpoint's `q` compares the same sentence.
 - **Token history has one shape on every surface**: `token history --json`
   printed `{"transfers": […]}` while the REST endpoint answered a top-level
   array, and the use case wrapped the page in a one-field struct so each

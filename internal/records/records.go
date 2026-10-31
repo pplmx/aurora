@@ -34,6 +34,28 @@ type Record struct {
 	Facts   []Fact
 }
 
+// Text renders the record as one line: `module · action · subject`, then its
+// facts in parentheses. The CLI's audit table prints it and the searches compare
+// it, so what a reader sees and what a query matches are the same sentence.
+func (r Record) Text() string {
+	var line strings.Builder
+	line.WriteString(r.Module)
+	if r.Action != "" {
+		line.WriteString(" · " + r.Action)
+	}
+	if r.Subject != "" {
+		line.WriteString(" · " + r.Subject)
+	}
+	if len(r.Facts) > 0 {
+		parts := make([]string, 0, len(r.Facts))
+		for _, fact := range r.Facts {
+			parts = append(parts, fact.Label+": "+fact.Value)
+		}
+		line.WriteString("   (" + strings.Join(parts, "; ") + ")")
+	}
+	return line.String()
+}
+
 // Parse maps a raw payload to the record's vocabulary. It reports false when
 // the payload matches no known shape, so a caller can keep the stored text as
 // the only description instead of inventing one.

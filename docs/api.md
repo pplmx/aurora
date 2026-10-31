@@ -464,8 +464,9 @@ path 与 query 都可能包含凭据，因此 `/oracle/health` 的 `last_error` 
 时同样带着，两台机器对照记录时先比头哈希。
 
 `/blockchain/blocks` 按最新在前返回创世块之外的记录，`payload` 是模块写入的原始
-文本；`total` 不含创世块，`offset` 以条目计而不是区块高度。`q` 在原始文本上做
-不区分大小写的子串匹配，此时 `total` 为匹配条数：
+文本；`total` 不含创世块，`offset` 以条目计而不是区块高度。`q` 在原始文本
+**和解码后的记录句子**上做不区分大小写的子串匹配（查 `Draw`、`Winners` 或模块名
+都能命中，与 CLI 的 `-s`、桌面账本搜索一致），此时 `total` 为匹配条数：
 
 ```json
 {"blocks": [{"height": 2, "timestamp": 1793385489, "payload": "b8dfb283-1b87-449e-a0aa-271b441e5d54|Star|AQIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyA="}], "total": 2, "limit": 20, "offset": 0}
