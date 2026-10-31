@@ -486,7 +486,7 @@ func (a *App) selectTokenByID(id string) {
 // sign of which token a Mint would hit — the one thing an operator must be
 // sure of before a write.
 func tokenSubject(c *ui.Context, id string) {
-	actionSubject(c, id, "No token selected", "Create or inspect one first.",
+	actionSubject(c, id, "No token selected", "Choose one in the list, or create a token.",
 		"Copy token ID", "Token ID is on the clipboard")
 }
 
