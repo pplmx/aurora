@@ -28,6 +28,11 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The dashboard's failure copy names the button that exists**: the broken
+  chain's sentence said "Inspect the ledger" while the button beside it reads
+  "Open ledger", so a reader looking for an Inspect action on that page found
+  none. The sentence now says "Open the ledger", matching the control.
+
 - **The pager's announcement has one definition**: `pagerInline` and
   `pagerControls` carried the same five-line comment and the same
   announce-once bookkeeping, so a fix to one could leave the other silently

@@ -140,7 +140,7 @@ func (a *App) dashboardHero(c *ui.Context) {
 	switch {
 	case !verified:
 		tone = c.Theme().Danger
-		description = "The stored chain did not verify. Inspect the ledger before trusting the counters below."
+		description = "The stored chain did not verify. Open the ledger before trusting the counters below."
 	case a.dashboardIsEmpty():
 		description = "The ledger is ready. Start with a quick action below; the first record opens block 1."
 	}

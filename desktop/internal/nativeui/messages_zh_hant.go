@@ -539,7 +539,7 @@ var desktopMessagesHant = map[string]string{
 	"The single most recent value recorded for a source.":                                                                     "某個數據源最近記錄的一條值。",
 	"The source and its scheduling entry are removed. Readings already stored stay.":                                          "數據源及其調度條目會被移除；已存儲的讀數會保留。",
 	"The store keeps only the public half, so this is the only copy of the signing key.":                                      "存儲只保留公鑰，這是簽名密鑰的唯一副本。",
-	"The stored chain did not verify. Inspect the ledger before trusting the counters below.":                                 "存儲的哈希鏈未通過校驗。在信任下方計數之前，請先查看賬本。",
+	"The stored chain did not verify. Open the ledger before trusting the counters below.":                                    "存儲的哈希鏈未通過校驗。在信任下方計數之前，請先打開賬本。",
 	"Theme":      "主題",
 	"Theme mode": "主題模式",
 	"This can take a while; the operation will finish on its own.":               "這可能需要一些時間；操作會自行完成。",
