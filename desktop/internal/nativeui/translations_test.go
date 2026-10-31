@@ -207,3 +207,57 @@ func TestChineseTranslationsKeepChromeVocabularyInChinese(t *testing.T) {
 		}
 	}
 }
+
+// TestDesktopTranslationCoversLabelLiterals covers the labels that reach tr
+// through a struct field instead of a call argument: readoutRow,
+// collectionFact, collectionField, the palette hints and the Settings shortcut
+// rows all translate their `label` inside the view, so the call-site walk above
+// cannot see them and a missing entry would show English in a Chinese window.
+func TestDesktopTranslationCoversLabelLiterals(t *testing.T) {
+	entries, err := os.ReadDir(".")
+	require.NoError(t, err)
+
+	fset := token.NewFileSet()
+	checked := 0
+	for _, entry := range entries {
+		name := entry.Name()
+		if entry.IsDir() || !strings.HasSuffix(name, ".go") ||
+			strings.HasSuffix(name, "_test.go") {
+			continue
+		}
+		file, err := parser.ParseFile(fset, name, nil, 0)
+		require.NoError(t, err)
+		ast.Inspect(file, func(node ast.Node) bool {
+			composite, ok := node.(*ast.CompositeLit)
+			if !ok {
+				return true
+			}
+			for _, elt := range composite.Elts {
+				pair, ok := elt.(*ast.KeyValueExpr)
+				if !ok {
+					continue
+				}
+				key, ok := pair.Key.(*ast.Ident)
+				if !ok || (key.Name != "label" && key.Name != "Label") {
+					continue
+				}
+				value, ok := pair.Value.(*ast.BasicLit)
+				if !ok || value.Kind != token.STRING {
+					continue
+				}
+				text, err := strconv.Unquote(value.Value)
+				require.NoError(t, err)
+				if text == "" || literalInEveryLanguage[text] {
+					continue
+				}
+				checked++
+				require.Containsf(t, desktopMessages, text,
+					"%s:%d has a label %q without a Chinese translation",
+					name, fset.Position(value.Pos()).Line, text)
+			}
+			return true
+		})
+	}
+	require.GreaterOrEqual(t, checked, 30,
+		"the label audit must inspect the rendered label surface")
+}
