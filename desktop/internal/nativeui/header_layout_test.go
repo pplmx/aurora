@@ -104,3 +104,79 @@ func TestDisabledButtonDropsHintWhenItCannotFit(t *testing.T) {
 		})
 	}
 }
+
+// TestTabRowWrapsOnlyWhenItMust pins where the tab list stops fitting on one
+// row. The active tab's underline is drawn to join the tab to the list's own
+// hairline; once the labels take two rows, that underline lands on the first
+// row and reads as a divider cutting the remaining tabs off, so the view skips
+// it there. What this test protects is the measurement behind that decision:
+// if it disagrees with the layout, the underline lands on a wrapped row.
+func TestTabRowWrapsOnlyWhenItMust(t *testing.T) {
+	labels := []string{"Transfer NFT", "Burn", "History"}
+	for _, tc := range []struct {
+		name string
+		w    int
+		sc   float32
+		want bool
+	}{
+		{"narrow, default text", 760, 1, false},
+		{"wide, large text", 1280, 2, false},
+		{"narrow, large text", 760, 2, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			app := New(&fakeServices{nftRows: []NFTRow{{ID: "n", Name: "S"}}})
+			tester := ui.NewTester(app.View, tc.w, 1700)
+			tester.SetPreferences(ui.Preferences{TextScale: tc.sc})
+			app.ShowPage("NFT")
+			tester.Frame()
+
+			rows := map[float32]bool{}
+			for _, label := range labels {
+				r, ok := tester.Find(label)
+				require.Truef(t, ok, "%q must be drawn", label)
+				rows[r.Y] = true
+			}
+			require.Equalf(t, tc.want, len(rows) > 1,
+				"tab rows at %dpx, %.0fx text", tc.w, tc.sc)
+		})
+	}
+}
+
+// TestTabRowWrapsAgreesWithTheLayout is the one that matters: the underline's
+// placement depends on tabRowWraps predicting the layout, so the prediction is
+// compared against the rows the list actually produced.
+func TestTabRowWrapsAgreesWithTheLayout(t *testing.T) {
+	labels := []string{"Transfer NFT", "Burn", "History"}
+	for _, tc := range []struct {
+		name string
+		w    int
+		sc   float32
+	}{
+		{"narrow, default text", 760, 1},
+		{"wide, large text", 1280, 2},
+		{"narrow, large text", 760, 2},
+		{"wide, default text", 1280, 1},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			app := New(&fakeServices{nftRows: []NFTRow{{ID: "n", Name: "S"}}})
+			var predicted bool
+			tester := ui.NewTester(func(c *ui.Context) {
+				predicted = tabRowWraps(c, labels)
+				app.View(c)
+			}, tc.w, 1700)
+			tester.SetPreferences(ui.Preferences{TextScale: tc.sc})
+			app.ShowPage("NFT")
+			tester.Frame()
+
+			rows := map[float32]bool{}
+			for _, label := range labels {
+				r, ok := tester.Find(label)
+				require.Truef(t, ok, "%q must be drawn", label)
+				rows[r.Y] = true
+			}
+			require.Equalf(t, len(rows) > 1, predicted,
+				"tabRowWraps predicted %v but the list drew %d row(s) at %dpx, %.0fx text",
+				predicted, len(rows), tc.w, tc.sc)
+		})
+	}
+}
