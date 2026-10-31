@@ -28,6 +28,13 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **A failed Voting load names its cause once**: the page joins the three list
+  reads into one warning, and `errors.Join` renders every error it is given —
+  so when all three failed with "database is locked" the strip read the same
+  sentence three times under a heading that already said which module failed.
+  The join now drops repeated messages and keeps distinct ones, because a
+  different cause per list is a different fact about the failure.
+
 - **The oracle commands are grouped by what they act on**: `oracle.go` held
   the repository helper, the group and all eleven subcommands in 486 lines.
   Feeds are `oracle_source.go`, reads are `oracle_read.go`, presets are

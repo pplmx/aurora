@@ -292,3 +292,35 @@ func TestFailedLedgerQueryDoesNotRetryEveryFrame(t *testing.T) {
 		"repainting the failed query must not issue it again")
 	require.True(t, tester.HasText("Couldn't read chain blocks"))
 }
+
+// TestFailedVotingReadsReportEachCauseOnce covers the page warning's error
+// text. All three list reads fail with the same cause when the database is
+// locked, and errors.Join rendered each of them, so the strip painted the
+// identical sentence three times under a heading that already named the module.
+func TestFailedVotingReadsReportEachCauseOnce(t *testing.T) {
+	boom := errors.New("database is locked")
+	app := New(&fakeServices{loadErrs: fakeLoadErrors{
+		voters: boom, candidates: boom, sessions: boom,
+	}})
+	tester := ui.NewTester(app.View, 1280, 1400)
+	app.ShowPage("Voting")
+	tester.Frame()
+
+	require.Equal(t, "database is locked", app.voting.loadErr.Error(),
+		"the same cause from three reads must appear once")
+	require.True(t, tester.HasText("Failed to load voting data"))
+
+	// Different causes are different facts: every one has to survive, because
+	// the warning is the only place a partial read failure is reported.
+	app = New(&fakeServices{loadErrs: fakeLoadErrors{
+		voters:     errors.New("voters table missing"),
+		candidates: errors.New("candidates table missing"),
+		sessions:   errors.New("sessions table missing"),
+	}})
+	tester = ui.NewTester(app.View, 1280, 1400)
+	app.ShowPage("Voting")
+	tester.Frame()
+	require.Equal(t,
+		"voters table missing\ncandidates table missing\nsessions table missing",
+		app.voting.loadErr.Error())
+}
