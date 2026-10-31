@@ -136,8 +136,14 @@ func Usage(w io.Writer, version, buildTime string) {
 
 // VersionText renders the version block for --version.
 func VersionText(version, buildTime string) string {
-	return fmt.Sprintf("Aurora Desktop\n%s: %s\n%s: %s\n%s: %s\n",
+	text := fmt.Sprintf("Aurora Desktop\n%s: %s\n%s: %s\n%s: %s\n",
 		T("app.version"), version, T("app.build_time"), buildTime, T("app.go_version"), runtime.Version())
+	// A `go run` build carries no module list, so the MyGo half is omitted rather
+	// than printed empty.
+	if mygo := mygoVersion(); mygo != "" {
+		text += fmt.Sprintf("%s: %s\n", T("app.mygo_version"), mygo)
+	}
+	return text
 }
 
 // ForwardedPaths returns the --data-dir value of a launch that was forwarded to

@@ -678,6 +678,10 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Added
 
+- **`aurora-desktop --version` names the MyGo release too**: the binary that draws
+  the window is two toolchains deep, and only the Go half was printed. The output
+  now ends with `MyGo Version: v0.7.3` when the build info carries a module list,
+  mirroring the diagnostics line, in both languages.
 - **The doctor checks who can read the configuration**: the file may hold
   `[api] key`, so a mode that lets another user read it now produces a warning
   with the advice (`mode 0644; other users can read it — chmod 600`) instead of a

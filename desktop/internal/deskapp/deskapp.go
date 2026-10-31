@@ -64,17 +64,25 @@ type Runtime struct {
 // the window was rendered by. A `go run` build has no module list, so only the
 // Go version is reported then.
 func RuntimeInfo() string {
-	version := runtime.Version()
+	if mygo := mygoVersion(); mygo != "" {
+		return runtime.Version() + " · mygo " + mygo
+	}
+	return runtime.Version()
+}
+
+// mygoVersion reports the MyGo release the window was built against, or "" when
+// the build info carries no module list (`go run`).
+func mygoVersion() string {
 	info, ok := debug.ReadBuildInfo()
 	if !ok {
-		return version
+		return ""
 	}
 	for _, dep := range info.Deps {
 		if dep.Path == "github.com/egoist/mygo" {
-			return version + " · mygo " + dep.Version
+			return dep.Version
 		}
 	}
-	return version
+	return ""
 }
 
 // App returns the window's state. The shell passes it to mygo.WindowOptions

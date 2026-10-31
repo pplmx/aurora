@@ -27,6 +27,7 @@ var englishMessages = map[string]string{
 	"blockchain.error.init":        "failed to initialize blockchain",
 	"blockchain.invalid":           "chain integrity check failed",
 	"app.version":                  "Version",
+	"app.mygo_version":             "MyGo Version",
 	"app.go_version":               "Go Version",
 	"app.build_time":               "Build Time",
 	"version.short":                "Show version information",
