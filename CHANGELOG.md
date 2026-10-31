@@ -28,6 +28,14 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The CLI reference's closing section is split by question**: one
+  "确认门与错误输出" list held eight unrelated policies — the confirmation gate,
+  exit-code rules, log levels, file permissions, config validation, duration
+  parsing, timeout overrides and language resolution — so looking up "what
+  does this exit code mean" meant scanning all of them. It is now five
+  sections (确认门, 错误与退出码, 配置诊断, 日志与文件权限, 语言), the gate is a
+  table naming what each command destroys, and the README links to it.
+
 - **The token repository is split by question, not by table**: its 641 lines
   held the schema, the token rows, the allowance primitives and the balance
   primitives in one file, so a reader looking for "may this spender move this
