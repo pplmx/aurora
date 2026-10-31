@@ -110,7 +110,10 @@ func WriteRecordsToFile(repo lottery.Repository, path string) (count int, err er
 	if err != nil {
 		return 0, err
 	}
-	if err := utils.WriteFileAtomic(path, document, 0o644); err != nil {
+	// The document carries participant names and their draws, so it gets the
+	// same owner-only mode as the database, the logs and the backups; sharing it
+	// is an explicit copy, not the default state of the file.
+	if err := utils.WriteFileAtomic(path, document, 0o600); err != nil {
 		return 0, err
 	}
 	return count, nil
