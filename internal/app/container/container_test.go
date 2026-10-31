@@ -14,6 +14,7 @@ import (
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
 
+	"github.com/pplmx/aurora/internal/domain/events"
 	"github.com/pplmx/aurora/internal/domain/lottery"
 	"github.com/pplmx/aurora/internal/domain/nft"
 	"github.com/pplmx/aurora/internal/domain/oracle"
@@ -205,4 +206,33 @@ func TestContainerOwnsOracleFetcher(t *testing.T) {
 	require.NoError(t, c.Close())
 	require.Equal(t, int32(1), fetcher.closeCalls.Load(),
 		"the container must own the fetcher lifecycle exactly once")
+}
+
+// TestPendingAuditEventsCountsTheOutbox pins the count the desktop's copied
+// diagnostics and the /metrics gauge read: an empty outbox is zero, and an event
+// parked through the container's own store is one.
+func TestPendingAuditEventsCountsTheOutbox(t *testing.T) {
+	blockchain.ResetForTest()
+	t.Cleanup(blockchain.ResetForTest)
+	viper.Reset()
+	t.Cleanup(viper.Reset)
+
+	dir := t.TempDir()
+	t.Chdir(dir)
+	viper.Set("db.path", filepath.Join(dir, "aurora.db"))
+
+	c, err := Open()
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = c.Close() })
+
+	pending, err := c.PendingAuditEvents(context.Background())
+	require.NoError(t, err)
+	require.Equal(t, 0, pending, "a fresh outbox is empty")
+
+	event := events.NewBaseEvent("token.mint", "agg-1", []byte(`{"agg_id":"agg-1"}`))
+	require.NoError(t, c.EventStore.EnqueuePending(event))
+
+	pending, err = c.PendingAuditEvents(context.Background())
+	require.NoError(t, err)
+	require.Equal(t, 1, pending, "the parked event is counted")
 }
