@@ -28,6 +28,14 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The repeat-causing dedup moved to the shared warning**: the previous fix
+  un-joined repeated causes inside the Voting page's own aggregation, which left
+  every other caller of `loadWarning` unprotected and put the rule in the wrong
+  place — the strip is what renders the message. `loadWarning` now drops a
+  reason already contained in what it kept, so any page that joins errors gets
+  the same treatment, and `syncVotingLoadErr` is a plain join again that still
+  reports all three failures to anyone reading the model.
+
 - **A failed Voting load names its cause once**: the page joins the three list
   reads into one warning, and `errors.Join` renders every error it is given —
   so when all three failed with "database is locked" the strip read the same

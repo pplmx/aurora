@@ -212,26 +212,12 @@ func (a *App) loadSessionPage(offset int) bool {
 }
 
 // syncVotingLoadErr joins the three list reads into the one error the page
-// warning shows. The join drops repeats: all three reads fail with the same
-// cause when the database is locked, and errors.Join renders each of them,
-// which painted the identical sentence three times under the warning. Only the
-// first occurrence of a message is kept, so the operator sees one reason per
-// distinct failure.
+// warning shows. Joining keeps every cause, so a caller of loadErr learns that
+// all three reads failed rather than only the first; loadWarning drops a reason
+// repeated across them, because three reads failing for the same reason is one
+// fact and the heading already names the module.
 func (a *App) syncVotingLoadErr() {
-	var joined []error
-	seen := make(map[string]bool, 3)
-	for _, err := range []error{a.voting.voterLoadErr, a.voting.candLoadErr, a.voting.sessionLoadErr} {
-		if err == nil {
-			continue
-		}
-		if message := err.Error(); seen[message] {
-			continue
-		} else {
-			seen[message] = true
-		}
-		joined = append(joined, err)
-	}
-	a.voting.loadErr = errors.Join(joined...)
+	a.voting.loadErr = errors.Join(a.voting.voterLoadErr, a.voting.candLoadErr, a.voting.sessionLoadErr)
 }
 
 func (a *App) selectedVoterPublicKey() string {

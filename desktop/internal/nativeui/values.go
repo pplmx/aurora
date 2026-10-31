@@ -156,6 +156,11 @@ func conciseText(value string, limit int) string {
 // when the truth is that it could not be read.
 func loadWarning(c *ui.Context, what string, err error, hasContent bool) bool {
 	message := tr(what) + ": " + localizeServiceError(err)
+	// A caller that joins several reads may hand over the same cause more than
+	// once, and the strip would then state it once per line. The heading already
+	// names what failed, so a reason repeated inside the body adds length
+	// without adding a fact.
+	message = dedupeLines(message)
 	stale := ""
 	if hasContent {
 		stale = tr("Showing the last successful load.")
@@ -242,4 +247,28 @@ func rejectIncomplete(status *statusLine, message string, values ...string) bool
 	}
 	*status = errorStatus(message)
 	return true
+}
+
+// dedupeLines drops repeated reasons from a message built out of several
+// errors, keeping the first occurrence of each in order. errors.Join separates
+// its errors with newlines and does not notice that three reads failed for the
+// same reason; the first line of that message also carries the heading, so a
+// plain line comparison would miss that the heading already contains the
+// reason. A line is dropped when its text appears in what has been kept.
+func dedupeLines(message string) string {
+	if !strings.Contains(message, "\n") {
+		return message
+	}
+	var kept []string
+	for _, line := range strings.Split(message, "\n") {
+		reason := strings.TrimSpace(line)
+		if reason == "" {
+			continue
+		}
+		if strings.Contains(strings.Join(kept, "\n"), reason) {
+			continue
+		}
+		kept = append(kept, line)
+	}
+	return strings.Join(kept, "\n")
 }
