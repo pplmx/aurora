@@ -91,6 +91,17 @@ func localizeServiceErrorMessage(message string) string {
 			}
 		}
 	}
+	// A wrapped error names its cause before the detail:
+	// "http error response: status 503". The cause is the translatable part and
+	// the detail stays as it is, so the head is tried before the tail — trying
+	// the tail alone translates "status" on its own and leaves the sentence
+	// half English.
+	if i := strings.Index(message, ": "); i >= 0 {
+		head := message[:i]
+		if translated := tr(head); translated != head {
+			return translated + "：" + message[i+2:]
+		}
+	}
 	if i := strings.LastIndex(message, ": "); i >= 0 {
 		tail := message[i+2:]
 		if translated := tr(tail); translated != tail {

@@ -28,6 +28,15 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The eight fetch-failure reasons are translated, including the wrapped
+  ones**: a source that fails to fetch shows its reason verbatim in the health
+  card's Last error field, and none of the eight — empty body, invalid JSON,
+  size cap, redirect cap, path extraction, request failure, timeout — had an
+  entry, so that line stayed English between Chinese labels. The translator
+  also learned to translate the cause of a wrapped error: "http error response:
+  status 503" now reads "HTTP 响应错误：status 503", where trying the tail alone
+  left the head in English.
+
 - **The oracle's four error messages are translated**: the domain reports in
   English and the desktop looks each whole sentence up in its Chinese table, so
   a missing entry reaches a Chinese window in English while every surrounding
