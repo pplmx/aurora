@@ -190,8 +190,9 @@ func (a *App) tokenView(c *ui.Context) {
 			a.renderBurnDialog(c)
 			return
 		}
-		// The first-record panel is the page's guide. A second collapsible
-		// explanation above it would repeat the same three moves.
+		// Four moves, not three: the signing rule and the storage rule are
+		// separate steps because neither sentence has to carry the other's
+		// subject. A second explanation above this one would repeat them.
 		guide(c, &a.guides.token,
 			"Select a token in Tokens, or create one. Its owner public key fills the account fields for you.",
 			"Choose a write in the action tabs: Mint, Transfer, Approve, Transfer From or Burn. A spender's remaining allowance is in Allowance.",
