@@ -163,6 +163,82 @@ func TestDashboardCompositionStacksAtMinimumWidth(t *testing.T) {
 		"every module tile must stay inside the window")
 }
 
+// TestDashboardRailsKeepTheirColumnOrder pins the arrangement the two layouts
+// give the same four rails. Narrow, they stack in module order. Wide, they fill
+// two columns by module — the record feeds on the left, the two scales on the
+// right — so the page reads top-to-bottom once per column instead of zig-zagging
+// across a row. A refactor that reorders either list rewrites that narrative
+// without touching a label, which is why the order is asserted here and not
+// only in the module list itself.
+func TestDashboardRailsKeepTheirColumnOrder(t *testing.T) {
+	// The notes are the rail texts that share an indent inside their column,
+	// so equal X means "same column" without depending on where a title's own
+	// text baseline lands beside its icon.
+	const (
+		lotteryNote = "VRF draws recorded"
+		votingNote  = "Votes, candidates and sessions"
+		oracleNote  = "Registered data feeds"
+		ledgerNote  = "Entries on the audit chain"
+	)
+	find := func(t *testing.T, tester *ui.Tester, label string) ui.Rect {
+		t.Helper()
+		r, ok := tester.Find(label)
+		require.Truef(t, ok, "the dashboard must draw the rail note %q", label)
+		return r
+	}
+
+	t.Run("wide", func(t *testing.T) {
+		app := New(&fakeServices{})
+		tester := ui.NewTester(app.View, 1280, 2600)
+		tester.Frame()
+		require.True(t, sideBySideFor(t, 1280), "1280px must use the two-column layout")
+
+		lottery, voting := find(t, tester, lotteryNote), find(t, tester, votingNote)
+		oracle, ledger := find(t, tester, oracleNote), find(t, tester, ledgerNote)
+
+		require.Equal(t, lottery.X, oracle.X, "lottery and oracle share the left column")
+		require.Equal(t, voting.X, ledger.X, "voting and the chain share the right column")
+		require.Less(t, lottery.X, voting.X, "the record feeds lead the two scales")
+		require.Less(t, lottery.Y, oracle.Y, "the oracle rail sits under lottery")
+		require.Less(t, voting.Y, ledger.Y, "the chain rail sits under voting")
+		require.Equal(t, lottery.Y, voting.Y, "the two columns start on the same row")
+		require.Equal(t, oracle.Y, ledger.Y, "and their second rails share the next row")
+	})
+
+	t.Run("narrow", func(t *testing.T) {
+		app := New(&fakeServices{})
+		tester := ui.NewTester(app.View, 900, 2600)
+		tester.Frame()
+		require.False(t, sideBySideFor(t, 900), "900px must use the stacked layout")
+
+		notes := []string{lotteryNote, votingNote, oracleNote, ledgerNote}
+		rects := make([]ui.Rect, 0, len(notes))
+		for _, note := range notes {
+			rects = append(rects, find(t, tester, note))
+		}
+		for i := 1; i < len(rects); i++ {
+			require.Equalf(t, rects[0].X, rects[i].X,
+				"every rail must share the single column's indent")
+			require.Greaterf(t, rects[i].Y, rects[i-1].Y,
+				"%q must follow %q down the page", notes[i], notes[i-1])
+		}
+	})
+}
+
+// sideBySideFor reports the layout the app chooses at a width, so the order
+// test fails on a breakpoint change instead of quietly asserting the wrong
+// axis for the arrangement it got.
+func sideBySideFor(t *testing.T, width int) bool {
+	t.Helper()
+	var side bool
+	tester := ui.NewTester(func(c *ui.Context) {
+		side = sideBySide(c)
+		ui.Column(c).Width(1).Height(1)
+	}, width, 100)
+	tester.Frame()
+	return side
+}
+
 // TestDashboardSharesUseTheVotingTotal keeps voting's three scales in the
 // denominator. Before, voting always reached the largest rail while a smaller
 // ledger showed a shorter one, even though both sums were stored totals.

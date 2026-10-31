@@ -69,6 +69,12 @@ func twoColumns(c *ui.Context, left, right func()) {
 // it while the window does not.
 const twoColumnMinWidth float32 = 1240
 
+// heroStackWidth is where the dashboard's verdict row gives up its single
+// line. It is looser than twoColumnMinWidth because the row holds one mark,
+// one sentence and one button rather than two equal cards, and tighter than
+// the window itself: the sentence needs a readable measure beside the icon.
+const heroStackWidth float32 = 860
+
 // wideLayoutMinScale is where a side-by-side presentation gives way to a
 // stacked one. The collections themselves no longer switch renderings — they
 // are records at every text size (see collectionList) — but two surfaces still

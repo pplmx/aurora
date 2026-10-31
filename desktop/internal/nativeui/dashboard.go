@@ -172,8 +172,11 @@ func (a *App) dashboardHero(c *ui.Context) {
 				a.setPage(pageBlockchain)
 			}
 		}
+		// The verdict and its route share a row while the sentence beside the
+		// mark still has a readable measure; below that the sentence would
+		// wrap under its own mark, so the route moves to its own line.
 		width, _ := c.Size()
-		if width < 860*textScale(c) {
+		if width < heroStackWidth*textScale(c) {
 			ui.Column(c).FillWidth().Gap(space3).Children(func() {
 				ui.Row(c).FillWidth().Gap(space4).AlignItems(ui.Center).Children(verdict)
 				ui.Row(c).FillWidth().Justify(ui.End).Children(openLedger)
@@ -198,24 +201,47 @@ func (a *App) dashboardComposition(c *ui.Context) {
 	card(c, func() {
 		sectionHeading(c, "What the ledger is made of",
 			"Module records first; the audit chain carries all of them.")
-		width, _ := c.Size()
-		if width < twoColumnMinWidth*textScale(c) {
+		// The four rails are one ordered set: listed once here, they cannot
+		// disagree about a title, a note or how a module's total is summed
+		// when the layout changes shape below the two-column threshold.
+		rails := []struct {
+			target page
+			title  string
+			value  string
+			note   string
+		}{
+			{pageLottery, "Total Lotteries", strconv.Itoa(a.dashboard.Lotteries), "VRF draws recorded"},
+			{pageVoting, "Voting", strconv.Itoa(a.dashboard.Votes + a.dashboard.Candidates + a.dashboard.Sessions), "Votes, candidates and sessions"},
+			{pageOracle, "Oracle Feeds", strconv.Itoa(a.dashboard.Oracle), "Registered data feeds"},
+			{pageBlockchain, "Ledger Blocks", strconv.Itoa(a.dashboard.Blocks), "Entries on the audit chain"},
+		}
+		draw := func(rail struct {
+			target page
+			title  string
+			value  string
+			note   string
+		}) {
+			a.dashboardModuleRail(c, rail.target, rail.title, rail.value, rail.note)
+		}
+		if !sideBySide(c) {
 			ui.Column(c).FillWidth().Gap(space2).Children(func() {
-				a.dashboardModuleRail(c, pageLottery, "Total Lotteries", strconv.Itoa(a.dashboard.Lotteries), "VRF draws recorded")
-				a.dashboardModuleRail(c, pageVoting, "Voting", strconv.Itoa(a.dashboard.Votes+a.dashboard.Candidates+a.dashboard.Sessions), "Votes, candidates and sessions")
-				a.dashboardModuleRail(c, pageOracle, "Oracle Feeds", strconv.Itoa(a.dashboard.Oracle), "Registered data feeds")
-				a.dashboardModuleRail(c, pageBlockchain, "Ledger Blocks", strconv.Itoa(a.dashboard.Blocks), "Entries on the audit chain")
+				for _, rail := range rails {
+					draw(rail)
+				}
 			})
 		} else {
+			// Two columns, filled by module rather than by row: lottery and
+			// oracle are the record feeds on the left, voting and the chain the
+			// two scales an operator compares on the right.
 			ui.Row(c).FillWidth().Gap(space2).Children(func() {
-				ui.Column(c).Grow(1).Shrink(1).Gap(space2).Children(func() {
-					a.dashboardModuleRail(c, pageLottery, "Total Lotteries", strconv.Itoa(a.dashboard.Lotteries), "VRF draws recorded")
-					a.dashboardModuleRail(c, pageOracle, "Oracle Feeds", strconv.Itoa(a.dashboard.Oracle), "Registered data feeds")
-				})
-				ui.Column(c).Grow(1).Shrink(1).Gap(space2).Children(func() {
-					a.dashboardModuleRail(c, pageVoting, "Voting", strconv.Itoa(a.dashboard.Votes+a.dashboard.Candidates+a.dashboard.Sessions), "Votes, candidates and sessions")
-					a.dashboardModuleRail(c, pageBlockchain, "Ledger Blocks", strconv.Itoa(a.dashboard.Blocks), "Entries on the audit chain")
-				})
+				for _, column := range [][]int{{0, 2}, {1, 3}} {
+					indices := column
+					ui.Column(c).Grow(1).Shrink(1).Gap(space2).Children(func() {
+						for _, i := range indices {
+							draw(rails[i])
+						}
+					})
+				}
 			})
 		}
 		ui.Column(c).FillWidth().Gap(space1).Children(func() {
