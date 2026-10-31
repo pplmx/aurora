@@ -28,6 +28,15 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The blockchain package separates appending from reading, verifying and
+  constructing**: `block.go` held all four in 576 lines, so the append path —
+  the one with the concurrency argument written into its comments — sat among
+  read projections and a proof-of-work re-check that never share its locks.
+  Reading is `chain_read.go`, integrity is `chain_verify.go`, and block
+  construction with the two constructors is `chain_lifecycle.go`; `block.go`
+  keeps the types, the append path and the transaction hooks in 334 lines. The
+  exported API is byte-identical (`go doc` diff before and after: 30 symbols).
+
 - **The HTTP client separates the request from the transport and the budget**:
   `fetcher.go` held the Fetcher, the per-source rate limiter and the guarded
   transport in 636 lines, so three lifetimes shared one file — a request, a
