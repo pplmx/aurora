@@ -629,3 +629,40 @@ func TestSourceURLDetailsLocalizeToChinese(t *testing.T) {
 		require.Equal(t, tt.want, localizeKnownErrorDetail(tt.detail), tt.detail)
 	}
 }
+
+// TestKnownErrorDetailTranslations pins the whole detail table: these strings are
+// what a Chinese operator reads after the stable sentinel, and a detail that
+// loses its entry silently falls back to the English validator wording.
+func TestKnownErrorDetailTranslations(t *testing.T) {
+	for _, tt := range []struct{ detail, want string }{
+		// Exact details.
+		{"invalid headers json", "请求头 JSON 无效"},
+		{"headers must be a JSON object", "请求头必须是 JSON 对象"},
+		{"name too long", "名称过长"},
+		{"type too long", "类型过长"},
+		{"method too long", "方法过长"},
+		{"path too long", "路径过长"},
+		{"headers too long", "请求头过长"},
+		{"url too long", "URL 过长"},
+		{"empty url", "URL 不能为空"},
+		{"missing host", "URL 缺少主机名"},
+		{"missing port after colon", "冒号后缺少端口"},
+		{"invalid interval", "刷新间隔无效"},
+		{"invalid HTTP method", "HTTP 方法无效"},
+		// Patterns.
+		{"invalid header name X-Bad", "请求头名称 X-Bad 无效"},
+		{"header X-Bad contains a newline", "请求头 X-Bad 不能包含换行"},
+		{"header X-Bad contains an invalid control character", "请求头 X-Bad 包含无效控制字符"},
+		{"headers Accept and accept differ only by case", "请求头 Accept 与 accept 仅大小写不同"},
+		{"header Host is managed by the HTTP transport", "请求头 Host 由 HTTP 传输层管理"},
+		{"header Connection is hop-by-hop", "请求头 Connection 是逐跳头"},
+		{"header Host has an invalid host value", "请求头 Host 的 Host 值无效"},
+		// The import prefix recurses into the detail it wraps.
+		{"parse document: expected a JSON array of lottery records, got null",
+			"解析导入文件失败：应为抽奖记录 JSON 数组，但收到 null"},
+		// An unknown detail stays verbatim so the operator keeps the fact.
+		{"sql: database is locked", "sql: database is locked"},
+	} {
+		require.Equal(t, tt.want, localizeKnownErrorDetail(tt.detail), tt.detail)
+	}
+}
