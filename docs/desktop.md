@@ -532,7 +532,10 @@ just check && just test
   窗口文案通过 `nativeui.tr` 读取，英文原文就是 key；中文表在
   `desktop/internal/nativeui/messages_zh.go`，缺项时回退英文而不是显示 key。
   常见服务层错误也按原文翻译，未知或动态拼接的诊断保留英文原文，日志
-  始终是后端返回的原文。中文有两份表：`messages_zh.go`（简体）与
+  始终是后端返回的原文。包装过的错误按层剥开：`failed to fetch data:
+  request failed: Service Unavailable` 只替换有译文的段，结果是「获取数据失败：
+  请求失败：Service Unavailable」——底层原因（状态码、系统错误文本）保持原样，
+  没有译文的段也不臆造翻译。中文有两份表：`messages_zh.go`（简体）与
   `messages_zh_hant.go`（繁体）。后者由 OpenCC 的简→繁短语/字符表（s2t）
   生成，并把 `爲`/`燬`/`啓` 覆盖为现代写法 `為`/`毀`/`啟`；选择 繁體中文 时 MyGo 的
   菜单角色与 Aurora 的文案都是繁体。词句修正改简体表后用
@@ -799,10 +802,10 @@ Developer ID、公证或 Authenticode，也不会让未签名包变成可发布�
   因此种子模式才会补上 `token:Burn`、`oracle:Health`、`oracle:Readings`、
   `nft:Burn`、`nft:History`，并断言这些阶段专有的控件；空库时投票的两个阶段
   改为断言各自首次运行的说明。`AURORA_E2E_THEME=light`
-  会先在设置里切到浅色外观，再把截图写到 `dist/e2e/light/`；`AURORA_E2E_LANG=zh`
-  （或 `zh-hant`）在设置里切换语言，然后截取设置页与仪表盘并断言对应语言的标题，
-  目录为 `dist/e2e/zh/`——整轮页面断言的标题是英文，所以语言变体单独收尾，
-  不参与后续页面循环。
+  会先在设置里切换为浅色外观，再把截图写到 `dist/e2e/light/`；`AURORA_E2E_LANG=zh`
+  （或 `zh-hant`）先在设置里切换语言，然后走同一套页面循环——页面标题、页面标记与
+  阶段标记都带该语言的表，所以语言变体同样逐页截图并断言，而不是只证明切换生效。
+  变体名可叠加：`light-zh`、`light-zh-900-600` 等都各占一个目录。
   `AURORA_E2E_SIZE=900x600` 通过预写 `window-state.json` 让窗口以该尺寸打开，
   用来验收窄窗的堆叠布局；输出目录按变体命名（如 `900-600`、`light-900-600`）。
   窄窗下阶段内容位于左栏之后，脚本会把该阶段的标记控件滚进视野再截图，否则只会

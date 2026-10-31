@@ -28,6 +28,19 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The guide's account of the capture script matches what it does**: it said a
+  language run captured Settings and Dashboard and stopped, and that it wrote to
+  `dist/e2e/zh/`. Neither was true any more — the run walks the same page loop in
+  all three languages and names its directory after the variants it combines
+  (`light-zh`, `light-zh-900-600`). A reader planning a release would have
+  believed six pages were unverified in the other two languages.
+- **Two tests hold that**: one reads the stage table and the page-loop sentence
+  the script needs, the other rejects the two phrases that described the old
+  behaviour.
+- **A wrapped error is described in the guide**: the section on copy and
+  diagnostics now says how a twice-wrapped cause is localized segment by
+  segment, because that is the shape a failed fetch actually arrives in.
+
 - **A cause that is wrapped twice is translated all the way down**: the Oracle
   health card shows a failed fetch verbatim, and the fetcher wraps it as
   "failed to fetch data: request failed: Service Unavailable". The localizer
