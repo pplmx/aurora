@@ -28,6 +28,17 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **Four Traditional entries said 資料源 where the other 42 say 數據源**: the
+  Oracle page's error messages disagreed with the page's own labels, and each
+  spelling is a legitimate word, so nothing failed. They are 數據源 now, and a
+  test compares the two forms in both Traditional catalogs.
+- **The test reads the census before it objects**: the desktop table is written
+  in mainland vocabulary throughout, so 數據 wins there and 資料 would be the
+  stray form; a table written the other way would be judged the other way. A
+  single stray occurrence fails, because mixing is the defect.
+- **預設 and 默認 are not a pair**: they translate preset and default, two
+  different things, and the Simplified table makes the same distinction.
+
 - **The dashboard called one number two things**: the card's label is 投票会期
   and its caption was 治理时间窗口, both reading `dashboard.Sessions`. The window
   counts governance windows, and the Voting page calls each one 会期, so the
