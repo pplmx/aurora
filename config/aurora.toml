@@ -32,6 +32,11 @@ path = "./migrations"
 # defaultSeedPrefix exists.
 defaultCount = 3
 
+# [i18n] picks the language Aurora writes: "en", "zh" (Simplified) or
+# "zh-Hant" (Traditional). The locale environment wins over this key
+# (LC_ALL, LANGUAGE, LC_MESSAGES, then LANG); this is the fallback for a
+# launcher or container that exports none of them. The desktop window follows
+# the same rule.
 [i18n]
 locale = "en"
 
