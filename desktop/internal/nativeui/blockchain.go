@@ -130,13 +130,24 @@ func (a *App) blockchainBlocks(c *ui.Context) {
 			"No module records yet; the first write adds one.")
 		return
 	}
-	ui.Row(c).FillWidth().Gap(12).AlignItems(ui.End).Children(func() {
-		ui.Row(c).Grow(1).Children(func() {
+	// The query and the page size are one control strip: the size belongs to
+	// the list the query narrows, and the search fills the row instead of
+	// leaving a mostly empty band beside a field-sized input. The size is a
+	// ui.Form field so its label sits beside the control it names; a stacked
+	// ui.Field left the word "Show" floating above the card, a line away from
+	// the number it described.
+	ui.Row(c).FillWidth().Gap(space4).AlignItems(ui.Center).Children(func() {
+		ui.Row(c).Grow(1).Shrink(1).MinWidth(0).Children(func() {
 			searchField(c, &a.blockchain.search, "Search blocks").
-				Description(tr("Search matches module, payload or height across the whole chain."))
+				Description(tr("Search matches module, payload or height across the whole chain.")).
+				FillWidth()
 		})
-		ui.Field(c, tr("Show"), func() {
-			ui.NumberInput(c, &a.blockchain.blockLimit, 10, 10000, 10)
+		ui.Row(c).Shrink(0).Children(func() {
+			ui.Form(c, func() {
+				ui.Field(c, tr("Show"), func() {
+					ui.NumberInput(c, &a.blockchain.blockLimit, 10, 10000, 10)
+				})
+			})
 		})
 	})
 	if a.blockchain.blockTotal == 0 {
