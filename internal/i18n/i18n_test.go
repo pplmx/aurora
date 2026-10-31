@@ -3,6 +3,7 @@ package i18n
 import (
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 	"testing"
@@ -584,4 +585,31 @@ func TestEveryCoreKeyIsUsed(t *testing.T) {
 	}
 	sort.Strings(unused)
 	assert.Emptyf(t, unused, "these keys are never read: %v", unused)
+}
+
+// formatVerb matches one fmt verb: flags, width, precision, an optional
+// argument index and the verb letter.
+var formatVerb = regexp.MustCompile(`%[-+# 0-9.]*(?:\[[0-9]+\])?[a-zA-Z%]`)
+
+// formatVerbs returns the verbs that consume an argument (%% does not).
+func formatVerbs(s string) []string {
+	var verbs []string
+	for _, verb := range formatVerb.FindAllString(s, -1) {
+		if verb != "%%" {
+			verbs = append(verbs, verb)
+		}
+	}
+	return verbs
+}
+
+// TestChineseCatalogKeepsThePlaceholders: a translation has to carry the same
+// number of format verbs as its English source, or the CLI prints
+// "%!s(MISSING)" (or silently drops a value) where the sentence expects one.
+func TestChineseCatalogKeepsThePlaceholders(t *testing.T) {
+	for key, english := range englishMessages {
+		chinese, ok := chineseMessages[key]
+		require.Truef(t, ok, "%s has no Chinese entry", key)
+		assert.Equalf(t, len(formatVerbs(english)), len(formatVerbs(chinese)),
+			"%s keeps a different number of placeholders\n  en: %q\n  zh: %q", key, english, chinese)
+	}
 }
