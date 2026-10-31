@@ -4,20 +4,16 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"os"
 	"sync"
 
+	"github.com/pplmx/aurora/internal/infra/store"
 	"github.com/pplmx/aurora/internal/logger"
-	"github.com/spf13/viper"
 )
 
 var (
-	instance   *Chain
-	dbInstance *sql.DB
-	dbInitOnce sync.Once
-	dbInitErr  error
-	once       sync.Once
-	initErr    error
+	instance *Chain
+	once     sync.Once
+	initErr  error
 )
 
 // ErrLedgerCorruption marks a persisted ledger that cannot be decoded or no
@@ -26,41 +22,13 @@ var (
 // an append: writing on top of it would make a bad ledger look usable again.
 var ErrLedgerCorruption = errors.New("blockchain: persisted ledger is corrupt")
 
-const defaultDBPath = "./data/aurora.db"
-
-// resolvedDBPath returns the effective SQLite database location: the
-// configured db.path (aurora.toml / env / viper, set by config.Load and the
-// CLI's initConfig) when non-empty, else the default. Every store, the API
-// server, and both migrate paths resolve through this single function, so a
-// configured db.path can no longer silently split-brain with the hardcoded
-// default (TASK-102, ISS-094).
-func resolvedDBPath() string {
-	if p := viper.GetString("db.path"); p != "" {
-		return p
-	}
-	return defaultDBPath
-}
+// InitDB returns the process-wide database handle. Opening and path resolution
+// live in internal/infra/store; the ledger only needs the handle it reads and
+// writes through.
+func InitDB() (*sql.DB, error) { return store.OpenShared() }
 
 // DBPath returns the configured database path without touching the filesystem.
-// Opening the database (or constructing a repository) owns directory creation
-// and must surface its error; returning an empty path here would make SQLite
-// silently open a temporary database and report writes that vanish at exit.
-func DBPath() string { return resolvedDBPath() }
-
-// InitDB returns the process-wide singleton *sql.DB, opening it on
-// the first call. Concurrent callers all observe the same pointer
-// (the sync.Once guarantees sql.Open runs exactly once).
-//
-// The previous implementation read dbInstance, called sql.Open, and
-// assigned dbInstance without any synchronization — two concurrent
-// callers could both see nil, both call sql.Open, and leak the first
-// connection (it would never get closed).
-func InitDB() (*sql.DB, error) {
-	dbInitOnce.Do(func() {
-		dbInstance, dbInitErr = OpenDB(resolvedDBPath())
-	})
-	return dbInstance, dbInitErr
-}
+func DBPath() string { return store.Path() }
 
 // InitWithError initializes the process-wide chain and reports any database
 // failure, unreadable row, or integrity violation. Returning a chain after an
@@ -106,22 +74,14 @@ func Get() *Chain {
 	return chain
 }
 
+// ResetForTest forgets the chain and the shared handle so a test can point
+// db.path at a fresh database and start over.
 func ResetForTest() {
-	if dbInstance != nil {
-		_ = dbInstance.Close()
-		dbInstance = nil
-	}
-	dbInitOnce = sync.Once{}
-	dbInitErr = nil
+	store.ResetForTest()
 	instance = nil
 	once = sync.Once{}
 	initErr = nil
-	_ = os.RemoveAll("./data")
 }
 
-func Close() error {
-	if dbInstance != nil {
-		return dbInstance.Close()
-	}
-	return nil
-}
+// Close closes the shared handle, if one was opened.
+func Close() error { return store.Close() }
