@@ -4,6 +4,10 @@
 host = "0.0.0.0"
 port = 8080
 
+# level takes zerolog's names: debug, info, warn, error (the default), and the
+# quieter fatal/panic. An unknown value logs a warning and falls back to info
+# rather than silently changing the stream. path is the directory holding
+# aurora.log, created with 0600 permissions.
 [log]
 level = "info"
 path = "./logs/"
@@ -21,6 +25,10 @@ path = "./logs/"
 # Memory databases are for tests only and cannot be backed up.
 path = "./data/aurora.db"
 
+# The CLI applies the migrations under `path` before running a command when
+# autoRun is true. The REST server and the window do not run them: their
+# repositories create the tables they need when first opened. `aurora doctor`
+# warns when the directory cannot be read.
 [migrate]
 autoRun = false
 path = "./migrations"

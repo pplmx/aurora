@@ -231,6 +231,9 @@ aurora blockchain blocks -s transfer   # 按记录文本或解码后的记录过
 同时说明构建与体检结果，`name` 是稳定的英文键
 （`config`/`database`/`migrations`/`ledger`/`outbox`）。
 
+`[migrate] autoRun = true` 时，CLI 会在执行任何命令前先应用待执行迁移；REST 服务与
+桌面窗口不跑迁移，它们的仓储在首次打开时自建所需表。
+
 迁移失败时，记录的目标版本会被标记为 dirty，此后 `up` 与 `down` 都拒绝执行——
 运行器无法判断半执行的 SQL 是否已提交，这是有意的安全选择。`migrate repair`
 只清除这个标记，不撤销也不重跑失败的迁移；确认表结构后，再用 `up` / `down`
