@@ -12,6 +12,11 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The Data card states what actually leaves the machine**: it said "No data
+  leaves this machine", while an oracle fetch contacts the source the operator
+  configured. The line now reads "Nothing is uploaded; the window opens no
+  network listener and contacts only the oracle sources you configure", matching
+  the privacy statement.
 - **A disabled secondary action looks disabled**: controls such as Start/End
   Session, Query, Get Latest, Enable/Disable/Fetch now, Get NFT and Register
   Candidate blocked the click but kept the normal surface and hover accent, so

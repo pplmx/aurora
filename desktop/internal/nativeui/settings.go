@@ -66,11 +66,11 @@ func (a *App) settingsDataCard(c *ui.Context) {
 	formCard(c, "Data", "Aurora keeps the ledger in one local SQLite database.", func() {
 		copyRow(c, "Database path", a.actions.DBPath, nil)
 		ui.Row(c).Wrap().Gap(8).Children(func() {
-			const privacy = "No data leaves this machine; the desktop opens no network listener."
+			const privacy = "Nothing is uploaded; the window opens no network listener and contacts only the oracle sources you configure."
 			a.settingsButton(c, "Show Data Folder", privacy, a.actions.ShowDataFolder)
 			a.settingsButton(c, "Back Up Database…", privacy, a.actions.BackUpDatabase)
 		})
-		hint(c, "No data leaves this machine; the desktop opens no network listener.")
+		hint(c, "Nothing is uploaded; the window opens no network listener and contacts only the oracle sources you configure.")
 	})
 }
 
