@@ -81,13 +81,13 @@ func Init() {
 		// only created by the very call that never ran. A desktop app has no
 		// console to fall back to, so that lost the whole log.
 		if err := ensurePrivateLogDir(cfg.LogPath); err != nil {
-			fallbackToConsole(fmt.Sprintf("Failed to prepare private log directory: %v", err))
+			fallbackToConsole(fmt.Sprintf("failed to prepare private log directory: %v", err))
 		} else if normPath, err := utils.NormalizePath(cfg.LogPath); err != nil {
-			fallbackToConsole(fmt.Sprintf("Failed to normalize log path: %v", err))
+			fallbackToConsole(fmt.Sprintf("failed to normalize log path: %v", err))
 		} else {
 			f, err := openPrivateLogFile(filepath.Join(normPath, "aurora.log"))
 			if err != nil {
-				fallbackToConsole(fmt.Sprintf("Failed to open log file: %v", err))
+				fallbackToConsole(fmt.Sprintf("failed to open log file: %v", err))
 			} else {
 				// Close any prior handle before replacing it (repeated
 				// Init() calls used to leak the previous file). Called as
