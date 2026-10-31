@@ -9,7 +9,7 @@ Aurora 的主要使用方式：CLI 与 `aurora-api` 仍然保留，供脚本和�
 ```bash
 just desktop          # 构建 ./aurora-desktop（需 Go 1.27+ 与 WebKitGTK / WebView2）
 ./aurora-desktop      # 打开窗口；首次运行在用户数据目录创建 aurora.db
-./aurora-desktop --version
+./aurora-desktop --version                         # 版本、构建时间、Go 与 MyGo
 ./aurora-desktop --data-dir /path/to/data          # 换数据库位置
 ./aurora-desktop 'aurora://lottery?id=<draw>'      # 深链：直接验该期开奖
 ./aurora-desktop aurora-lotteries.json             # 导入一份导出文件

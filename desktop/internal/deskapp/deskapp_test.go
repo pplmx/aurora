@@ -102,6 +102,11 @@ func TestUsageAndVersionText(t *testing.T) {
 	require.Contains(t, version, "v1.2.3")
 	require.Contains(t, version, "built-then")
 	require.Contains(t, version, T("app.go_version")+": go")
+	// The test binary's build info lists MyGo, the same list `--version` reads in
+	// a packaged app; a `go run` build reports only the Go line.
+	if mygo := mygoVersion(); mygo != "" {
+		require.Contains(t, version, T("app.mygo_version")+": "+mygo)
+	}
 }
 
 func TestPrepareDataDir(t *testing.T) {

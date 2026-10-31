@@ -10,6 +10,7 @@ package i18n
 var traditionalMessages = map[string]string{
 	"app.build_time":                            "構建時間",
 	"app.go_version":                            "Go 版本",
+	"app.mygo_version":                          "MyGo 版本",
 	"app.name":                                  "Aurora - 區塊鏈系統",
 	"app.version":                               "版本",
 	"backup.create":                             "將數據庫備份到目錄",

@@ -26,6 +26,7 @@ var chineseMessages = map[string]string{
 	"blockchain.error.init":        "区块链初始化失败",
 	"blockchain.invalid":           "链完整性校验未通过",
 	"app.version":                  "版本",
+	"app.mygo_version":             "MyGo 版本",
 	"app.go_version":               "Go 版本",
 	"app.build_time":               "构建时间",
 	"version.short":                "显示版本信息",
