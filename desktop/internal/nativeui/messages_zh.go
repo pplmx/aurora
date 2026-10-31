@@ -420,7 +420,7 @@ var desktopMessages = map[string]string{
 	"Burn %s? The asset is destroyed and cannot be recovered.":                       "销毁 %s？资产会被销毁且无法恢复。",
 	"Burn this NFT?": "销毁这个 NFT？",
 	"Burning destroys the amount permanently. This cannot be undone.":                "销毁会永久移除这些代币，且无法撤销。",
-	"Burn %s from %s? The tokens are destroyed permanently and cannot be recovered.": "从 %s 销毁 %s？代币会被永久销毁且无法恢复。",
+	"Burn %s from %s? The tokens are destroyed permanently and cannot be recovered.": "从 %[2]s 销毁 %[1]s？代币会被永久销毁且无法恢复。",
 	"Burn tokens?": "销毁代币？",
 	"Token name, symbol, supply, and owner are required.":                                                                                 "代币名称、符号、供应量和所有者均为必填项。",
 	"Token ID, recipient, amount, and private key are required.":                                                                          "代币 ID、接收方、数量和私钥均为必填项。",

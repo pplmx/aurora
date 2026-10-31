@@ -55,7 +55,7 @@ var translatedCallArgs = map[string][]int{
 	// test that only reads tables.
 	"chipPicker":         {1},
 	"fieldPair":          {1, 3},
-	"destructiveConfirm": {2, 3, 4},
+	"destructiveConfirm": {2, 4},
 	"eyebrow":            {1},
 	"verdictPill":        {2},
 	"searchField":        {2},

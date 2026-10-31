@@ -301,9 +301,9 @@ func (a *App) renderForgetKeysDialog(c *ui.Context) {
 		return
 	}
 	disableMemory := a.disableKeyMemoryOnForget
-	title := tr("Forget all session keys?")
+	title := "Forget all session keys?"
 	if disableMemory {
-		title = tr("Turn off session key memory?")
+		title = "Turn off session key memory?"
 	}
 	cancelFocus := a.forgetKeysButton
 	if disableMemory {
@@ -311,7 +311,7 @@ func (a *App) renderForgetKeysDialog(c *ui.Context) {
 	}
 	result := destructiveConfirm(c, &a.confirmForgetKeys, title,
 		tr("All private keys kept only in this session will be removed. If they are not saved elsewhere, they cannot be recovered."),
-		tr("Forget keys"), cancelFocus, a.rememberKeysControl)
+		"Forget keys", cancelFocus, a.rememberKeysControl)
 	if !a.confirmForgetKeys {
 		a.disableKeyMemoryOnForget = false
 	}

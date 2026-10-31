@@ -955,6 +955,12 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **The burn question follows the window language, all of it**: the token burn
+  dialog kept an English title, an English detail and a reversed argument order
+  in Chinese ("从 25 销毁 owner-pk？"), because the helper did not translate the
+  title and the detail's format string was never looked up. The helper translates
+  the title now, the detail goes through `tr`, and the Chinese format names the
+  account first with indexed verbs.
 - **A rejected write says it once**: five token write use cases, the lottery
   participant check and the voting key-length check wrapped a sentinel in its own
   text, so the API answered `{"error":"invalid amount: invalid amount"}` (and
