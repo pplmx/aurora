@@ -67,6 +67,10 @@ func TestNFTGet_Found(t *testing.T) {
 		require.NoError(t, err)
 		assert.Contains(t, gout, "GetMe")
 		assert.Contains(t, gout, "NFT Details")
+		assert.Contains(t, gout, "Description: d", "a set field keeps its value")
+		// Optional metadata that was never set must not leave a dangling label.
+		assert.NotContains(t, gout, "Image URL:")
+		assert.NotContains(t, gout, "Token URI:")
 	})
 }
 
