@@ -207,6 +207,9 @@ aurora blockchain blocks -l 50 -p 100
 aurora blockchain blocks -s transfer   # 按记录文本或解码后的记录过滤（不区分大小写）
 ```
 
+`blockchain verify` 的表格打印区块数、头区块哈希前缀与校验结论——头前缀是与另一台
+机器对照时的锚点（`--json` 里是完整 64 位哈希）。
+
 `blockchain blocks` 的表格把每条载荷渲染成与桌面账本页相同的记录：`模块 · 动作 ·
 对象`，后面跟可读事实（如中奖者、参与者数、seed）；无法识别的载荷原样打印。
 可读句子只是阅读帮助，`--json` 始终带着 `payload` 原文，审计时以它为准。

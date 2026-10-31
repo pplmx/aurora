@@ -23,6 +23,8 @@ func TestBlockchainVerifyReportsAValidChain(t *testing.T) {
 		require.NoError(t, err)
 		assert.Contains(t, out, "Chain integrity")
 		assert.Contains(t, out, "Blocks: 1")
+		assert.Regexp(t, `Head: [0-9a-f]{12}`, out,
+			"the head prefix is what a support thread compares between machines")
 		assert.Contains(t, out, "State: valid")
 	})
 }

@@ -52,6 +52,9 @@ var blockchainVerifyCmd = &cobra.Command{
 		fmt.Printf("\n⛓  %s\n", i18n.GetText("blockchain.verify_title"))
 		fmt.Println("────────────────────────────")
 		fmt.Printf("  %s: %d\n", i18n.GetText("blockchain.length"), report.Length)
+		if report.Head != "" {
+			fmt.Printf("  %s: %s\n", i18n.GetText("blockchain.head"), shortHash(report.Head))
+		}
 		if report.Valid {
 			fmt.Printf("  %s: %s\n", i18n.GetText("blockchain.state"), i18n.GetText("blockchain.valid"))
 			return nil

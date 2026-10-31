@@ -18,6 +18,7 @@ var chineseMessages = map[string]string{
 	"blockchain.blocks_no_match":   "没有记录匹配 %q。",
 	"blockchain.blocks_empty_page": "这一页没有记录，账本共 %d 条。",
 	"blockchain.length":            "区块数",
+	"blockchain.head":              "头区块",
 	"blockchain.state":             "状态",
 	"blockchain.valid":             "有效",
 	"blockchain.broken_at":         "第 %d 块起无效：%s",

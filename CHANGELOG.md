@@ -43,7 +43,8 @@ The milestone notes under `.planning/` are history, not current instructions.
   diagnostics, each reading the chain beside its verdict. The integrity report
   now carries it as a hex field, present whenever a last block exists (a broken
   chain still reports the head it read), so one verification supplies both the
-  verdict and the identity.
+  verdict and the identity; `aurora blockchain verify` prints its 12-character
+  prefix beside the block count.
 - **`BackupResult.File` is now `Dir`**: the value the backup returns is the
   output directory (the file names inside are fixed), and the field name plus
   its JSON tag (`file`) said otherwise; the struct, the CLI message, the
