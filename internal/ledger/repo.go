@@ -1,3 +1,12 @@
+// Package ledger holds the ports the shared chain exposes to the application
+// layer, plus the one transaction helper those ports need.
+//
+// It sits below infra on purpose: the interfaces name database/sql.Tx because a
+// business record and its block commit together or not at all, and the caller
+// supplies the chain rather than this package knowing which implementation it
+// is talking to. AppendWithRecord is here because it branches on the
+// transaction capability of that chain, and the branch used to be copied into
+// the token and NFT services.
 package ledger
 
 import "database/sql"

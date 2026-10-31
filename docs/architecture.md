@@ -168,6 +168,8 @@ cmd/
 └── api/               # REST 入口
 internal/
 ├── domain/            # 实体、领域服务、仓储端口、领域错误（不依赖其它层）
+│                      # 子包按模块分：lottery、voting、nft、token、oracle、events
+│                      # 以及横切的 errdetail、repoerr
 ├── ledger/            # 账本端口：BlockWriter、事务追加助手
 ├── app/               # 用例；只依赖 domain 与 ledger 端口
 │   └── container/     # 组合根：打开存储、构造仓储/用例、生命周期
@@ -182,6 +184,7 @@ internal/
 ├── background/        # 后台循环辅助
 ├── records/           # 账本载荷解码：模块/动作/对象/事实（CLI、REST、桌面共用）
 ├── domain/errdetail/  # 哨兵 + 可打印细节（细节不进入错误链）
+├── domain/repoerr/    # 仓储共享哨兵（ErrNotFound），让用例不必导入 SQLite
 ├── repocheck/         # 仓库级机械契约
 └── utils/             # 无业务语义的工具
 tools/                 # 仓库工具：genzhhant（繁体表）、coverfloor（覆盖率底线）
