@@ -19,6 +19,7 @@ var englishMessages = map[string]string{
 	"blockchain.blocks_no_match":   "No record matches %q.",
 	"blockchain.blocks_empty_page": "No entries on this page; the ledger has %d in total.",
 	"blockchain.length":            "Blocks",
+	"blockchain.head":              "Head",
 	"blockchain.state":             "State",
 	"blockchain.valid":             "valid",
 	"blockchain.broken_at":         "broken at block %d: %s",
