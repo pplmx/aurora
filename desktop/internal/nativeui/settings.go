@@ -72,10 +72,12 @@ func (a *App) settingsLanguageCard(c *ui.Context) {
 					// language, which is not a choice from this list.
 					selected = ""
 				}
-				languageChooser(c, selected, a.actions.SetLanguage)
+				languageChooser(c, selected, a.actions.SetLanguage, reportLanguageSaveError(a))
 				follow := followSystemButton(c, follows)
 				if follow.Clicked() {
-					a.actions.SetLanguage("")
+					if err := a.actions.SetLanguage(""); err != nil {
+						reportLanguageSaveError(a)(err)
+					}
 				}
 			})
 		}
@@ -349,6 +351,16 @@ func (a *App) renderForgetKeysDialog(c *ui.Context) {
 // languageChooser exposes the installed languages as one keyboard-operable
 // radio group. Follow System stays a separate action because it changes the
 // selection policy, not which installed language is currently shown.
+// reportLanguageSaveError turns a failed preferences write into the status line
+// Settings already uses for the theme. The language changed either way; the
+// message says the choice will not survive a restart.
+func reportLanguageSaveError(a *App) func(error) {
+	return func(err error) {
+		a.settingsStatus = errorStatusText(
+			tr("Couldn't save settings") + ": " + localizeServiceError(err))
+	}
+}
+
 // followSystemButton is the "follow the system" control. It is a primary
 // button while that is the active policy and a secondary one otherwise, so the
 // card has one place that answers "what happens when the system language
@@ -363,7 +375,7 @@ func followSystemButton(c *ui.Context, active bool) ui.Element {
 		Description(tr("Use the language selected by the operating system."))
 }
 
-func languageChooser(c *ui.Context, current string, set func(string)) {
+func languageChooser(c *ui.Context, current string, set func(string) error, onErr func(error)) {
 	if set == nil {
 		return
 	}
@@ -381,7 +393,9 @@ func languageChooser(c *ui.Context, current string, set func(string)) {
 		}
 	}).Row().Wrap().Gap(16).Label(tr("Display language"))
 	if choice != current {
-		set(choice)
+		if err := set(choice); err != nil && onErr != nil {
+			onErr(err)
+		}
 	}
 }
 

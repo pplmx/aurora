@@ -50,11 +50,13 @@ type Actions struct {
 	RecentDocuments func() []string
 	OpenRecent      func(string)
 	// SetLanguage takes "", "en", "zh-Hans" or "zh-Hant"; "" follows the
-	// system again. Language reports the language currently in effect, for the
-	// check marks; FollowsSystem reports whether no language was ever chosen,
-	// which the effect alone cannot say — a system locale of English looks the
-	// same as an explicit English choice until this answers.
-	SetLanguage   func(string)
+	// system again. It reports a failed write so the page can say the choice
+	// will not survive a restart — the language is applied either way.
+	// Language reports the language currently in effect, for the check marks;
+	// FollowsSystem reports whether no language was ever chosen, which the
+	// effect alone cannot say — a system locale of English looks the same as an
+	// explicit English choice until this answers.
+	SetLanguage   func(string) error
 	Language      func() string
 	FollowsSystem func() bool
 	// LiveUpdates/SetLiveUpdates persist the Settings toggle. The getter is

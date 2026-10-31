@@ -22,7 +22,7 @@ func TestSettingsPageCarriesTheApplicationConfiguration(t *testing.T) {
 		BuildTime:      "2026-10-26T09:00:00Z",
 		DBPath:         "/tmp/aurora/aurora.db",
 		Language:       func() string { return "zh-Hans" },
-		SetLanguage:    func(tag string) { calls = append(calls, "language:"+tag) },
+		SetLanguage:    func(tag string) error { calls = append(calls, "language:"+tag); return nil },
 		ShowDataFolder: func() { calls = append(calls, "folder") },
 		BackUpDatabase: func() { calls = append(calls, "backup") },
 		ShowAbout:      func() { calls = append(calls, "about") },
@@ -63,9 +63,10 @@ func TestSettingsPageCarriesTheApplicationConfiguration(t *testing.T) {
 func TestLanguageChooserIsKeyboardOperable(t *testing.T) {
 	var selected []string
 	tester := ui.NewTester(func(c *ui.Context) {
-		languageChooser(c, "zh-Hans", func(tag string) {
+		languageChooser(c, "zh-Hans", func(tag string) error {
 			selected = append(selected, tag)
-		})
+			return nil
+		}, nil)
 	}, 640, 160)
 	tester.Frame()
 

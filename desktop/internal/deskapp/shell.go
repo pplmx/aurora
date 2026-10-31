@@ -547,20 +547,25 @@ func (s *Shell) SetPageTitle(title string) {
 
 // SetLanguage changes the app's language and records whether the operator chose
 // it or asked to follow the system. MyGo reports the change through
-// OnLocaleChanged, which relabels the native menu and redraws the window. The
-// stored choice is written before the locale changes so a failed write cannot
-// leave the window in a language Settings does not describe.
-func (s *Shell) SetLanguage(tag string) {
+// OnLocaleChanged, which relabels the native menu and redraws the window.
+//
+// The language is applied even when the write fails, so the window and the
+// native controls stay in agreement for this session; the error comes back so
+// Settings can say the choice will not survive a restart. Swallowing it would
+// leave the operator with a changed window and no hint that the next launch
+// reverts — the same failure SetThemeMode reports.
+func (s *Shell) SetLanguage(tag string) error {
 	s.mu.Lock()
 	next := s.prefs
 	next.Language = tag
-	saved := savePreferences(s.prefsPath, next)
-	if saved == nil {
+	err := savePreferences(s.prefsPath, next)
+	if err == nil {
 		s.prefs = next
 	}
 	s.mu.Unlock()
 
 	mygo.App.SetLocale(tag)
+	return err
 }
 
 // Language reports the language in effect, for Settings' current-language row.
