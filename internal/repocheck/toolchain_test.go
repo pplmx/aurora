@@ -273,3 +273,25 @@ func TestCIRunsTheDesktopLint(t *testing.T) {
 	require.Contains(t, desktopJob, "working-directory: desktop",
 		"the lint step must run inside desktop/, where the module boundary is")
 }
+
+// TestArchitectureTreeListsEveryPackage keeps the target-structure sketch true:
+// a package that ships without a line in the tree is invisible to a reader
+// orienting themselves, and this list has drifted before (internal/records was
+// added to the dependency table but not to the tree).
+func TestArchitectureTreeListsEveryPackage(t *testing.T) {
+	entries, err := os.ReadDir(filepath.Join(repoRoot(t), "internal"))
+	require.NoError(t, err)
+	tree := readRepoFile(t, "docs", "architecture.md")
+	checked := 0
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			continue
+		}
+		name := entry.Name()
+		checked++
+		assert.Truef(t,
+			strings.Contains(tree, "├── "+name+"/") || strings.Contains(tree, "└── "+name+"/"),
+			"docs/architecture.md must list internal/%s in the target tree", name)
+	}
+	require.GreaterOrEqual(t, checked, 10, "the tree check must see the package set")
+}

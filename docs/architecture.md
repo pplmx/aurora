@@ -168,6 +168,7 @@ internal/
 ├── metrics/           # 请求指标注册表与 Prometheus 文本
 ├── netguard/          # 出站地址校验（SSRF 守卫）
 ├── background/        # 后台循环辅助
+├── records/           # 账本载荷解码：模块/动作/对象/事实（CLI、REST、桌面共用）
 ├── repocheck/         # 仓库级机械契约
 └── utils/             # 无业务语义的工具
 tools/                 # 仓库工具：genzhhant（繁体表）、coverfloor（覆盖率底线）
