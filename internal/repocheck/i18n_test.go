@@ -1,10 +1,12 @@
 package repocheck
 
 import (
+	"bytes"
 	"go/ast"
 	"go/parser"
 	"go/token"
 	"io/fs"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -96,16 +98,15 @@ func TestEveryTranslationKeyExists(t *testing.T) {
 	root := repoRoot(t)
 	used := map[string]string{} // key -> first file that used it
 
-	skipDirs := map[string]bool{
-		".git": true, ".planning": true, "dist": true, "data": true,
-		"logs": true, "node_modules": true, "testdata": true,
-	}
+	// The shared list covers the build and module caches; without them this
+	// walk spends twelve seconds inside .gocache and .gomodcache.
+	skipDir := skipWalkDir
 	err := filepath.WalkDir(root, func(path string, entry fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
 		if entry.IsDir() {
-			if skipDirs[entry.Name()] {
+			if skipDir(entry.Name()) {
 				return filepath.SkipDir
 			}
 			return nil
@@ -125,7 +126,19 @@ func TestEveryTranslationKeyExists(t *testing.T) {
 			return nil
 		}
 
-		parsed, err := parser.ParseFile(token.NewFileSet(), path, nil, 0)
+		// A literal pre-filter before the parser: 551 Go files hold 29 that call
+		// a translation helper, and parsing the other 522 costs twelve seconds.
+		// The filter is deliberately generous — any occurrence of one of the
+		// helper names — so a call the parser would recognise is never skipped.
+		body, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		if !mayHoldTranslationCall(body) {
+			return nil
+		}
+
+		parsed, err := parser.ParseFile(token.NewFileSet(), path, body, 0)
 		if err != nil {
 			return err
 		}
@@ -157,4 +170,16 @@ func TestEveryTranslationKeyExists(t *testing.T) {
 		require.Truef(t, english[key], "%s: translation key %q is missing from the English catalog", file, key)
 		require.Truef(t, chinese[key], "%s: translation key %q is missing from the Chinese catalog", file, key)
 	}
+}
+
+// mayHoldTranslationCall reports whether the source mentions any helper name
+// translationKeyCall accepts. It is a superset check: a file it rejects holds no
+// call the parser would have found.
+func mayHoldTranslationCall(source []byte) bool {
+	for _, name := range []string{"GetText", "GetTextF", "TFormat", "requireConfirm", "addConfirmFlag", "T"} {
+		if bytes.Contains(source, []byte(name)) {
+			return true
+		}
+	}
+	return false
 }
