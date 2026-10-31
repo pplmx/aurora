@@ -278,6 +278,7 @@ func main() {
 		SetPageTitle:    shell.SetPageTitle,
 		Version:         meta.Version,
 		BuildTime:       meta.BuildTime,
+		Runtime:         deskapp.RuntimeInfo(),
 		DBPath:          meta.DBPath,
 		DatabaseSize:    func() string { return deskapp.DatabaseSizeText(meta.DBPath) },
 		LedgerFacts: func() (int, string, bool, bool) {

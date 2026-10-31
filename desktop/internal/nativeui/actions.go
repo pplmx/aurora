@@ -27,7 +27,10 @@ type Actions struct {
 	// values rather than callbacks because they do not change at run time.
 	Version   string
 	BuildTime string
-	DBPath    string
+	// Runtime is the toolchain line ("go1.27.3 · mygo v0.7.3") shown in the
+	// copied diagnostics; empty drops the row.
+	Runtime string
+	DBPath  string
 	// DatabaseSize reports the ledger's current disk usage (the database plus
 	// its -wal/-shm siblings). Unlike the values above it is a callback because
 	// it grows as the app writes; the About readout asks each time it draws.

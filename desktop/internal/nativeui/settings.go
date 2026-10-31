@@ -251,6 +251,9 @@ func (a *App) diagnosticsText() string {
 		{"Build time", valueOr(a.actions.BuildTime)},
 		{"Database", valueOr(a.actions.DBPath)},
 	}
+	if a.actions.Runtime != "" {
+		rows = append(rows, readoutRow{"Runtime", a.actions.Runtime})
+	}
 	if a.actions.DatabaseSize != nil {
 		if size := a.actions.DatabaseSize(); size != "" {
 			rows = append(rows, readoutRow{"Database size", size})

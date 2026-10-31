@@ -667,6 +667,10 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Added
 
+- **The copied diagnostics name the toolchain**: the found-time question for a
+  window bug ("which Go and which MyGo?") now has an answer —
+  `Runtime: go1.27.3 · mygo v0.7.3`, read from the build info, with the MyGo half
+  omitted when a `go run` build carries no module list.
 - **The outbox warning says how long it has waited**: `aurora doctor`'s outbox
   check and the window's copied diagnostics now append the age of the oldest
   parked event ("pending events: 1; oldest waits 2m0s"), which is what separates a
