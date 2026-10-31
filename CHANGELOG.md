@@ -28,6 +28,14 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The current-language row is covered**: `languageLabel` was exercised on
+  one of its branches. The cases that matter are the two the row gets wrong
+  when it guesses — an unsupported tag must be shown as itself, because
+  displaying "English" for a French setting is a false statement about the
+  window, and an empty choice stays an em dash rather than claiming a language
+  nobody selected. `nativeui` coverage rose from 93.5% to 93.7%; the function
+  itself from 25% to 87.5%.
+
 - **The ledger status, session controls and manual fetch are covered**:
   `LedgerStatus`, `StartSession`, `EndSession` and `FetchOracleSource` had no
   test. The first derives its height as `Len()-1`, which is only right because
