@@ -28,6 +28,14 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The lint configuration states what it excludes and why, with counts**: the
+  errcheck note claimed its findings were "stdout writes and test-only Close
+  calls". Run against this tree it reports 28 sites — nine `fmt.Fprint*` writes
+  to a help screen the process cannot act on, and nineteen unchecked Close,
+  Remove and Unsetenv calls in test cleanup. The note now carries those numbers,
+  and it records why four further linters were tried and left off, so the next
+  reader does not repeat the experiment.
+
 - **The vocabulary rule reaches the documents**: the catalogs were checked for
   the retired spellings and the prose was not, which is where an old word comes
   back — copied from a release note, or written from memory. A document that
