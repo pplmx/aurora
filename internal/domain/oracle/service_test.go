@@ -403,7 +403,7 @@ func TestEnableSource_NotFound(t *testing.T) {
 	svc := NewService(repo)
 
 	err := svc.EnableSource("non-existent")
-	if err != ErrSourceNotFound {
+	if !errors.Is(err, ErrSourceNotFound) {
 		t.Errorf("expected ErrSourceNotFound, got %v", err)
 	}
 }
@@ -437,7 +437,7 @@ func TestDisableSource_NotFound(t *testing.T) {
 	svc := NewService(repo)
 
 	err := svc.DisableSource("non-existent")
-	if err != ErrSourceNotFound {
+	if !errors.Is(err, ErrSourceNotFound) {
 		t.Errorf("expected ErrSourceNotFound, got %v", err)
 	}
 }
@@ -515,7 +515,7 @@ func TestFetchData_Disabled(t *testing.T) {
 	}
 
 	_, err := svc.FetchData(source)
-	if err != ErrSourceDisabled {
+	if !errors.Is(err, ErrSourceDisabled) {
 		t.Errorf("expected ErrSourceDisabled, got %v", err)
 	}
 }

@@ -1,6 +1,7 @@
 package sqlite
 
 import (
+	"errors"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -44,12 +45,12 @@ func TestVotingRepository_SaveVote_ConcurrentNoDoubleVote(t *testing.T) {
 			err := repo.SaveVote(voting.NewSessionVote(
 				"test-pk", "candidate-1", "session-1", "signature", "message",
 			))
-			switch err {
-			case nil:
+			switch {
+			case err == nil:
 				atomic.AddInt32(&successCount, 1)
-			case ErrAlreadyVoted:
+			case errors.Is(err, ErrAlreadyVoted):
 				atomic.AddInt32(&alreadyVotedCount, 1)
-			case ErrNotFound:
+			case errors.Is(err, ErrNotFound):
 				atomic.AddInt32(&notFoundCount, 1)
 			}
 		}()

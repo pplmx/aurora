@@ -262,7 +262,7 @@ func TestNFTService_Transfer_NotOwner(t *testing.T) {
 	recipientPub, _, _ := ed25519.GenerateKey(nil)
 
 	_, err = svc.Transfer(minted.ID, notOwnerPub, recipientPub, notOwnerPriv, chain)
-	if err != ErrNotOwner {
+	if !errors.Is(err, ErrNotOwner) {
 		t.Fatalf("expected ErrNotOwner, got %v", err)
 	}
 }
@@ -412,7 +412,7 @@ func TestNFTService_Burn_NotOwner(t *testing.T) {
 
 	notOwnerPub, notOwnerPriv, _ := ed25519.GenerateKey(nil)
 	err = svc.Burn(minted.ID, notOwnerPub, notOwnerPriv, chain)
-	if err != ErrNotOwner {
+	if !errors.Is(err, ErrNotOwner) {
 		t.Fatalf("expected ErrNotOwner, got %v", err)
 	}
 }
@@ -424,7 +424,7 @@ func TestNFTService_Burn_NotFound(t *testing.T) {
 
 	ownerPub, ownerPriv, _ := ed25519.GenerateKey(nil)
 	err := svc.Burn("nonexistent-id", ownerPub, ownerPriv, chain)
-	if err != ErrNFTNotFound {
+	if !errors.Is(err, ErrNFTNotFound) {
 		t.Fatalf("expected ErrNFTNotFound, got %v", err)
 	}
 }
@@ -509,7 +509,7 @@ func TestNFTService_Transfer_NotFound(t *testing.T) {
 
 	pub, priv, _ := ed25519.GenerateKey(nil)
 	_, err := svc.Transfer("nonexistent-id", pub, pub, priv, chain)
-	if err != ErrNFTNotFound {
+	if !errors.Is(err, ErrNFTNotFound) {
 		t.Fatalf("expected ErrNFTNotFound, got %v", err)
 	}
 }
@@ -1155,7 +1155,7 @@ func TestNFTService_Transfer_ForgeMismatchedKey(t *testing.T) {
 
 	attackerPub, attackerPriv, _ := ed25519.GenerateKey(nil)
 	_, err = svc.Transfer(minted.ID, victimPub, attackerPub, attackerPriv, chain)
-	if err != ErrKeyMismatch {
+	if !errors.Is(err, ErrKeyMismatch) {
 		t.Fatalf("expected ErrKeyMismatch for forged transfer, got %v", err)
 	}
 }
@@ -1177,7 +1177,7 @@ func TestNFTService_Burn_ForgeMismatchedKey(t *testing.T) {
 
 	_, attackerPriv, _ := ed25519.GenerateKey(nil)
 	err = svc.Burn(minted.ID, victimPub, attackerPriv, chain)
-	if err != ErrKeyMismatch {
+	if !errors.Is(err, ErrKeyMismatch) {
 		t.Fatalf("expected ErrKeyMismatch for forged burn, got %v", err)
 	}
 }

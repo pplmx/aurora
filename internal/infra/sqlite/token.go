@@ -3,6 +3,7 @@ package sqlite
 import (
 	"database/sql"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"time"
 
@@ -160,7 +161,7 @@ func (r *TokenRepository) GetToken(id token.TokenID) (*token.Token, error) {
 	var createdAt int64
 
 	err := row.Scan(&idStr, &name, &symbol, &totalSupplyStr, &decimals, &ownerB64, &isMintable, &isBurnable, &createdAt)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, token.ErrTokenNotFound
 	}
 	if err != nil {
@@ -465,7 +466,7 @@ func (r *TokenRepository) GetApproval(tokenID token.TokenID, owner, spender toke
 	var expiresAt int64
 
 	err := row.Scan(&tkID, &ownB64, &spendB64, &amountStr, &expiresAt)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {
@@ -495,7 +496,7 @@ func (r *TokenRepository) GetAccountBalance(tokenID token.TokenID, owner token.P
 
 	var balanceStr string
 	err := row.Scan(&balanceStr)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return token.NewAmount(0), nil
 	}
 	if err != nil {

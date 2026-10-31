@@ -1,6 +1,7 @@
 package token
 
 import (
+	"errors"
 	"fmt"
 	"math/big"
 )
@@ -13,7 +14,7 @@ func (s *TokenService) Approve(req *ApproveRequest) (*ApproveEvent, error) {
 	// create an orphaned allowance row referencing a token that never existed.
 	token, err := s.repo.GetToken(req.TokenID)
 	if err != nil {
-		if err == ErrTokenNotFound {
+		if errors.Is(err, ErrTokenNotFound) {
 			return nil, ErrTokenNotFound
 		}
 		return nil, err
@@ -57,7 +58,7 @@ func (s *TokenService) IncreaseAllowance(req *AllowanceRequest) (*ApproveEvent, 
 	// orphaned approval data that references nothing.
 	token, err := s.repo.GetToken(req.TokenID)
 	if err != nil {
-		if err == ErrTokenNotFound {
+		if errors.Is(err, ErrTokenNotFound) {
 			return nil, ErrTokenNotFound
 		}
 		return nil, err
@@ -99,7 +100,7 @@ func (s *TokenService) DecreaseAllowance(req *AllowanceRequest) (*ApproveEvent, 
 	// token_id.
 	token, err := s.repo.GetToken(req.TokenID)
 	if err != nil {
-		if err == ErrTokenNotFound {
+		if errors.Is(err, ErrTokenNotFound) {
 			return nil, ErrTokenNotFound
 		}
 		return nil, err
