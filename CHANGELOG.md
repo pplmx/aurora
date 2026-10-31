@@ -28,6 +28,14 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The voting commands are grouped by registry**: `voting.go` held the shared
+  repository singletons, all eleven subcommands and the registration table in
+  596 lines. The commands moved by what they act on — `voting_registry.go`
+  (candidates, voters), `voting_ballot.go` (the vote), `voting_sessions.go`
+  (session lifecycle and results) — while `voting.go` keeps the singletons,
+  the group and the single `init` that registers everything in order. Command
+  names, flags and help output are unchanged.
+
 - **The voting use cases are split by stage**: `usecase.go` held all nine use
   cases — the ballot transaction, voter and candidate registration, session
   lifecycle and the tally — in 585 lines. They now follow the flow an operator
