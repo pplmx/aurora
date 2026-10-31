@@ -5,6 +5,13 @@ package nativeui
 // English instead of a lookup name. The table lives beside the views, not in
 // the core CLI catalog, so the core module does not carry desktop vocabulary.
 // messages_zh_hant.go is generated from it (OpenCC s2t); fix wording here.
+//
+// Sections run in the order a reader meets them: chrome, then each module, then
+// the copy that spans modules, then errors. Put a new key in the section of the
+// page that draws it, because that is where someone looking for its wording
+// will search. Copy used by more than one page goes in the shared section that
+// names its condition (destructive prompts, refusals, warnings), not in the
+// first module that happened to need it.
 var desktopMessages = map[string]string{
 	// Chrome and navigation.
 	"Dashboard":               "仪表盘",
@@ -486,6 +493,7 @@ var desktopMessages = map[string]string{
 	"Narrow the Collection card to one owner.": "将“收藏”卡片筛选到某个持有者。",
 	"Filter by Owner":                          "按持有者筛选",
 	"Show All":                                 "显示全部",
+	"Transfer NFT":                             "转让",
 	"Move an NFT to a new owner; the transfer is signed by the current one.": "把 NFT 转给新持有者；由当前持有者签名。",
 	"Destroy an NFT permanently. This cannot be undone.":                     "永久销毁 NFT。此操作不可撤销。",
 	"Show History": "显示历史",
