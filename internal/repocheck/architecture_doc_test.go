@@ -14,6 +14,31 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// TestReadmeStructureListsEveryInternalPackage keeps the README's project tree
+// usable as a map. It is the first place a new contributor looks for "where
+// does this live", and it had drifted by six packages: records, background,
+// metrics, netguard, config, logger and tools were all shipped but absent, so
+// the tree implied a smaller repository than the one in front of a reader.
+// The architecture document has the same check (TestArchitectureTreeListsEveryPackage);
+// the README needs its own because it is read first and updated separately.
+func TestReadmeStructureListsEveryInternalPackage(t *testing.T) {
+	readme := readRepoFile(t, "README.md")
+	entries, err := os.ReadDir(filepath.Join(repoRoot(t), "internal"))
+	require.NoError(t, err)
+	checked := 0
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			continue
+		}
+		name := entry.Name()
+		checked++
+		assert.Truef(t,
+			strings.Contains(readme, "├── "+name+"/") || strings.Contains(readme, "└── "+name+"/"),
+			"README.md must list internal/%s in its project tree", name)
+	}
+	require.GreaterOrEqual(t, checked, 10, "the tree check must see the package set")
+}
+
 // TestArchitectureDependencyTableMatchesImports keeps the "current dependency
 // facts" table honest. It claims to be checkable against `go list`, and the
 // claim had already drifted: domain's row said standard library and same-layer

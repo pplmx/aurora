@@ -195,10 +195,17 @@ internal/
 ├── app/        # 应用层：用例编排（<module>app 包）与 container 组合根
 ├── infra/      # 基础设施：SQLite、账本实现、HTTP 客户端、备份、迁移、事件
 ├── api/        # 路由、handler、中间件
-├── i18n/       # 国际化
-├── repocheck/  # 仓库级契约测试（格式、工具链、纯 Go 边界）
+├── config/     # 配置加载、默认值与校验
+├── i18n/       # 国际化（英文、简体、繁体；繁体由 tools/genzhhant 生成）
+├── logger/     # zerolog 装配（级别、文件、权限）
+├── metrics/    # 请求指标注册表与 Prometheus 文本
+├── netguard/   # 出站地址校验（SSRF 守卫，纯函数）
+├── records/    # 账本载荷解码：模块 / 动作 / 对象 / 事实（三端共用）
+├── background/ # 后台工作：停止函数等在途工作真正退出后才返回
+├── repocheck/  # 仓库级契约测试（格式、工具链、纯 Go 边界、文档一致性）
 └── utils/      # 工具（含原子写文件）
 e2e/            # E2E 测试
+tools/          # 仓库工具：genzhhant（繁体表）、coverfloor（覆盖率底线）
 ```
 
 DDD 分层：`domain` 持有实体、领域服务与仓储接口，不依赖任何其他层；`app`
