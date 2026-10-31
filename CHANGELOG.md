@@ -28,6 +28,16 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The desktop adapter's own three errors are translated**: these are not
+  domain rules with a sentence around them, they are the whole explanation —
+  "blockchain not initialised" on a ledger card, "no data recorded for this
+  source yet" under Get Latest, "desktop settings path is empty" beside the save
+  that failed. All three are in both catalogs.
+- **Three such checks now share one walker**: the domain and adapter i18n tests
+  each repeated the same directory walk, so it moved into one helper. The
+  adapter test deduplicates its report, because one message is declared twice
+  and a list that repeats it reads like two problems.
+
 - **The eight fetch-failure reasons are translated, including the wrapped
   ones**: a source that fails to fetch shows its reason verbatim in the health
   card's Last error field, and none of the eight — empty body, invalid JSON,
