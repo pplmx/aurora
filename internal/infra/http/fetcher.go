@@ -6,11 +6,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net"
 	"net/http"
 	"net/url"
 	"strings"
-	"sync"
 	"sync/atomic"
 	"syscall"
 	"time"
@@ -128,19 +126,6 @@ func effectiveURLPort(u *url.URL) string {
 	}
 }
 
-type RateLimiter struct {
-	mu       sync.RWMutex
-	requests map[string][]time.Time
-	limit    int
-	window   time.Duration
-}
-
-// limiterSweepThreshold bounds the RateLimiter's requests map: when it grows
-// past this many tracked sources, Allow sweeps keys idle beyond the window.
-// Without it every sourceID ever fetched stayed in the map forever, since
-// Reset was never wired to the source lifecycle (TASK-136, ISS-129).
-const limiterSweepThreshold = 1024
-
 type Fetcher struct {
 	client      *http.Client
 	rateLimiter *RateLimiter
@@ -158,79 +143,6 @@ func (f *Fetcher) Close() error {
 	}
 	f.client.CloseIdleConnections()
 	return nil
-}
-
-func NewRateLimiter(limit int, window time.Duration) *RateLimiter {
-	return &RateLimiter{
-		requests: make(map[string][]time.Time),
-		limit:    limit,
-		window:   window,
-	}
-}
-
-func (r *RateLimiter) Allow(sourceID string) bool {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-
-	now := time.Now()
-	windowStart := now.Add(-r.window)
-
-	// Reclaim keys idle past the window so the requests map stays bounded by
-	// sources active within a window rather than every source ever fetched
-	// (Reset exists but was never called, so keys leaked forever; TASK-136,
-	// ISS-129). Per-source slices are pruned below, so an expired key has no
-	// remaining recent entry.
-	if len(r.requests) >= limiterSweepThreshold {
-		for key, ts := range r.requests {
-			if len(ts) == 0 || ts[len(ts)-1].Before(windowStart) {
-				delete(r.requests, key)
-			}
-		}
-	}
-
-	requests := r.requests[sourceID]
-	valid := make([]time.Time, 0, len(requests))
-	for _, t := range requests {
-		if t.After(windowStart) {
-			valid = append(valid, t)
-		}
-	}
-
-	if len(valid) >= r.limit {
-		r.requests[sourceID] = valid
-		return false
-	}
-
-	valid = append(valid, now)
-	r.requests[sourceID] = valid
-	return true
-}
-
-func (r *RateLimiter) Reset(sourceID string) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	delete(r.requests, sourceID)
-}
-
-func (r *RateLimiter) Remaining(sourceID string) int {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-
-	now := time.Now()
-	windowStart := now.Add(-r.window)
-
-	count := 0
-	for _, t := range r.requests[sourceID] {
-		if t.After(windowStart) {
-			count++
-		}
-	}
-
-	remaining := r.limit - count
-	if remaining < 0 {
-		return 0
-	}
-	return remaining
 }
 
 func NewFetcher(opts ...FetcherOption) *Fetcher {
@@ -311,101 +223,6 @@ func WithRateLimit(limit int, window time.Duration) FetcherOption {
 		}
 		f.rateLimiter = NewRateLimiter(limit, window)
 	}
-}
-
-type securityTransport struct {
-	transport http.RoundTripper
-	userAgent string
-	dialer    *net.Dialer
-}
-
-// CloseIdleConnections forwards the http.Client shutdown hook to the wrapped
-// transport. Without this method, Client.CloseIdleConnections treats the
-// security wrapper as unsupported and silently leaves every keep-alive socket
-// open.
-func (t *securityTransport) CloseIdleConnections() {
-	if t == nil || t.transport == nil {
-		return
-	}
-	if closer, ok := t.transport.(interface{ CloseIdleConnections() }); ok {
-		closer.CloseIdleConnections()
-	}
-}
-
-func newSecurityTransport(userAgent string) *securityTransport {
-	return newSecurityTransportFrom(secureBaseTransport(), userAgent)
-}
-
-func newSecurityTransportFrom(transport *http.Transport, userAgent string) *securityTransport {
-	dialer := newSecurityDialer()
-	transport.DialContext = dialer.DialContext
-	// A custom TLS dial hook would bypass DialContext (and therefore the
-	// destination guard) for non-proxied HTTPS requests.
-	transport.DialTLSContext = nil
-	transport.DialTLS = nil //nolint:staticcheck // Intentional: this deprecated hook bypasses the guarded DialContext.
-	if proxy := transport.Proxy; proxy != nil {
-		transport.Proxy = func(req *http.Request) (*url.URL, error) {
-			proxyURL, err := proxy(req)
-			if err == nil && proxyURL != nil {
-				if state, _ := req.Context().Value(proxyDialContextKey{}).(*proxyDialState); state != nil {
-					state.proxied.Store(true)
-				}
-			}
-			return proxyURL, err
-		}
-	}
-	return &securityTransport{transport: transport, userAgent: userAgent, dialer: dialer}
-}
-
-// secureBaseTransport clones the standard transport so this fetcher owns its
-// connection pool. If an embedding application replaced http.DefaultTransport
-// with a non-standard RoundTripper, fall back to explicit net/http defaults
-// rather than silently dropping the dial guard. A proxy selected by that
-// transport is a trusted operator egress path: the dial guard sees the proxy
-// address, so the proxy's own egress policy must complement the pre-request URL
-// validation.
-func secureBaseTransport() *http.Transport {
-	if base, ok := http.DefaultTransport.(*http.Transport); ok {
-		return base.Clone()
-	}
-	return &http.Transport{
-		Proxy:                 http.ProxyFromEnvironment,
-		ForceAttemptHTTP2:     true,
-		MaxIdleConns:          100,
-		IdleConnTimeout:       90 * time.Second,
-		TLSHandshakeTimeout:   10 * time.Second,
-		ExpectContinueTimeout: time.Second,
-	}
-}
-
-func newSecurityDialer() *net.Dialer {
-	dialer := &net.Dialer{
-		Timeout:        30 * time.Second,
-		KeepAlive:      30 * time.Second,
-		ControlContext: checkDialDestination,
-	}
-	return dialer
-}
-
-func (t *securityTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	// Record the concrete proxy decision made by this transport. A private
-	// endpoint is normal for an operator-configured proxy, while a direct
-	// dial must still pass the destination guard.
-	req = req.WithContext(context.WithValue(req.Context(), proxyDialContextKey{}, &proxyDialState{}))
-	if _, configured := req.Header["User-Agent"]; !configured {
-		req.Header.Set("User-Agent", t.userAgent)
-	}
-	if _, configured := req.Header["Accept"]; !configured {
-		req.Header.Set("Accept", "application/json, text/plain, */*")
-	}
-	// Content-Type deliberately keeps its empty-means-absent fallback. Explicit
-	// presence must remain distinguishable for User-Agent, where an empty value
-	// tells Go not to send that header.
-	if req.Header.Get("Content-Type") == "" && (req.Method == http.MethodPost || req.Method == http.MethodPut || req.Method == http.MethodPatch) {
-		req.Header.Set("Content-Type", "application/json")
-	}
-	req.Header.Set("X-Request-ID", uuid.New().String())
-	return t.transport.RoundTrip(req)
 }
 
 func (f *Fetcher) Get(url string) ([]byte, error) {
