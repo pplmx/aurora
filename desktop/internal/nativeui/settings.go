@@ -220,19 +220,7 @@ func themeModeLabel(mode ThemeMode) string {
 // home on this page.
 func (a *App) settingsAboutCard(c *ui.Context) {
 	formCard(c, "About Aurora", "", func() {
-		rows := []readoutRow{
-			{"Version", valueOr(a.actions.Version)},
-			{"Build time", valueOr(a.actions.BuildTime)},
-			{"Database", valueOr(a.actions.DBPath)},
-		}
-		// The size is measured while the card draws, so it matches the file the
-		// path names; a window built without the callback simply omits it.
-		if a.actions.DatabaseSize != nil {
-			if size := a.actions.DatabaseSize(); size != "" {
-				rows = append(rows, readoutRow{"Database size", size})
-			}
-		}
-		readout(c, rows)
+		readout(c, a.aboutRows())
 		// Support asks for the build facts; copying the card's own rows keeps the
 		// reply exact instead of a typed paraphrase.
 		if quietButton(c, tr("Copy")+" "+tr("Diagnostics")).Clicked() {
@@ -242,10 +230,11 @@ func (a *App) settingsAboutCard(c *ui.Context) {
 	})
 }
 
-// diagnosticsText builds the About card's copied text: the build facts, the
-// database and the ledger, in the language the window shows. The palette calls
-// it too, so both paths copy the same words.
-func (a *App) diagnosticsText() string {
+// aboutRows is the fact list the About card draws and the copied diagnostics
+// starts with. One list keeps the card and the copy from telling different
+// stories: the size is measured when the rows are built, so it matches the file
+// the path names, and a window without a callback simply omits it.
+func (a *App) aboutRows() []readoutRow {
 	rows := []readoutRow{
 		{"Version", valueOr(a.actions.Version)},
 		{"Build time", valueOr(a.actions.BuildTime)},
@@ -259,6 +248,14 @@ func (a *App) diagnosticsText() string {
 			rows = append(rows, readoutRow{"Database size", size})
 		}
 	}
+	return rows
+}
+
+// diagnosticsText builds the About card's copied text: the build facts, the
+// database and the ledger, in the language the window shows. The palette calls
+// it too, so both paths copy the same words.
+func (a *App) diagnosticsText() string {
+	rows := a.aboutRows()
 	lines := make([]string, 0, len(rows)+1)
 	for _, row := range rows {
 		lines = append(lines, tr(row.label)+": "+row.value)
