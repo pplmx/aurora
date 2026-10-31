@@ -28,6 +28,15 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The command line and the window name the voter the same word**: the CLI
+  said 投票人 twelve times and the window and every document said 选民 — nobody
+  sees both at once, so nothing failed until an operator moved from one to the
+  other and read two names for one thing. 会话/会期 had the same split, 31 against
+  58, with one sentence using both.
+- **A test holds the vocabulary**: it reads all four catalogs and rejects the
+  spelling the house word replaced, with an exclusion for 会话密钥, where 会话 is
+  the right word for a process session rather than a voting one.
+
 - **Both Chinese catalogs and both window edges**: the test added in the
   previous change ran the Simplified table and checked only the right edge. The
   two tables are separate, so a line can be short in one and long in the other,
