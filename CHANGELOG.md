@@ -28,6 +28,15 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The shared walk helper has tests of its own**: `skipWalkDir` decides what
+  nine checks never look at, and `walkGoSource` decides what they do. Both were
+  untested, and both fail in ways the callers cannot see — a walk that skips a
+  source directory passes on an empty set, which is the same green as a tree with
+  nothing wrong in it.
+- **`.rumdl_cache` joined the skip list**: it is a tool cache that carries its own
+  `.gitignore`, so it never reached a commit, but it already holds 640 files and
+  grows with the prose it indexes.
+
 - **Two punctuation tests became one**: `punctuation_test.go` checked the ASCII
   colon after Chinese on two catalogs, and `cjk_punctuation_test.go` — added later
   — checked the same marks plus brackets and periods on all four. The older test
