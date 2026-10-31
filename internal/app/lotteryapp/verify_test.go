@@ -128,3 +128,26 @@ func TestSameStringSet(t *testing.T) {
 		})
 	}
 }
+
+// TestVerifyRecord_ReportsTheDeterministicPathForOldDraws: a draw recorded
+// before v1.31 has no stored public key, so its verdict rests on the VRF output
+// selecting the same winners. The CLI prints this check under the verdict, which
+// is how a reader tells the two kinds of pass apart.
+func TestVerifyRecord_ReportsTheDeterministicPathForOldDraws(t *testing.T) {
+	record := verifiableLotteryRecord(t)
+	record.VRFPublicKey = ""
+
+	report := VerifyRecord(record)
+	if !report.IntegrityOK {
+		t.Fatalf("a keyless draw must still verify deterministically: %+v", report.Checks)
+	}
+	if report.ProofVerified {
+		t.Fatal("a keyless draw has no proof to verify")
+	}
+	for _, check := range report.Checks {
+		if check.Message == "deterministic winner match (pre-v1.31 draw has no stored key)" {
+			return
+		}
+	}
+	t.Fatalf("the deterministic pass must name itself: %+v", report.Checks)
+}
