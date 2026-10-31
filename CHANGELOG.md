@@ -12,6 +12,10 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The lint gate also watches response bodies and spelling**: `bodyclose` and
+  `misspell` join the shared config, so a leaked `http.Response.Body` and a
+  comment typo fail the gate. `bodyclose` found one real leak, in the redirect-
+  loop test that discarded a response; it closes the body now.
 - **The database handle has a home of its own**: `internal/infra/store` now owns
   the process-wide SQLite handle — `db.path` resolution, the pragmas every writer
   needs, directory creation and the 0600 tightening — so the ledger package no

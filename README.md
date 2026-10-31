@@ -215,7 +215,7 @@ Go 1.27+、Cobra、Viper、Zerolog、SQLite
 just check      # gofmt + goimports + go vet
 just test       # go test ./...
 just race       # 可选：根模块 race detector（需要 cgo）
-just lint       # golangci-lint（配置里不含 errcheck）
+just lint       # golangci-lint（不含 errcheck，含 bodyclose/misspell）
 just desktop-check
 just desktop-race # 可选：race detector 需要 cgo
 just desktop-shot # 真实窗口逐页截图（MyGo automation，无显示器时起 Xvfb）
