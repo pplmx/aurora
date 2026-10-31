@@ -1,0 +1,87 @@
+package nativeui
+
+import (
+	"testing"
+
+	"github.com/stretchr/testify/require"
+)
+
+// TestRestoredChoicesSurviveAFilter records what the three restore functions
+// are for: a reload must not leave the highlight on a row that now means
+// something else. The selection is stored as the row's id, not its index, so a
+// filter that reorders or shortens the list still lands on the same record.
+func TestRestoredChoicesSurviveAFilter(t *testing.T) {
+	app := New(&fakeServices{})
+	app.oracle.sources = []SourceRow{
+		{ID: "src-1", Name: "btc-usd", URL: "https://example.test/btc"},
+		{ID: "src-2", Name: "eth-usd", URL: "https://example.test/eth"},
+	}
+	app.voting.voters = []VoterRow{
+		{PublicKey: "pk-1", Name: "Ada"},
+		{PublicKey: "pk-2", Name: "Grace"},
+	}
+	app.voting.candidates = []CandidateRow{{ID: "cand-1", Name: "Ada"}, {ID: "cand-2", Name: "Grace"}}
+
+	// With no filter, the id lands on its own index.
+	app.restoreSourceChoice("src-2")
+	require.Equal(t, 1, app.oracle.selected)
+	app.restoreVoterChoice("pk-2")
+	require.Equal(t, 1, app.voting.voterChoice)
+	app.restoreCandidateChoice("cand-2")
+	require.Equal(t, 1, app.voting.candChoice)
+
+	// Narrow the lists so the stored records sit at index 0. Restoring the old
+	// index would have pointed at a different record, which is the defect this
+	// design exists to prevent.
+	app.oracle.search = "eth"
+	app.voting.voterSearch = "Grace"
+	app.voting.candSearch = "Grace"
+
+	app.restoreSourceChoice("src-2")
+	require.Equal(t, 0, app.oracle.selected, "the source is found at its new position")
+	app.restoreVoterChoice("pk-2")
+	require.Equal(t, 0, app.voting.voterChoice)
+	app.restoreCandidateChoice("cand-2")
+	require.Equal(t, 0, app.voting.candChoice)
+}
+
+// TestRestoredChoiceOfAMissingRecordIsNoSelection is the half that protects a
+// write: a record that disappeared from the page (deleted, or filtered out)
+// must leave nothing highlighted, so the next action cannot be applied to
+// whichever row happens to occupy the old index.
+func TestRestoredChoiceOfAMissingRecordIsNoSelection(t *testing.T) {
+	app := New(&fakeServices{})
+	app.oracle.sources = []SourceRow{{ID: "src-1", Name: "btc-usd"}}
+	app.voting.voters = []VoterRow{{PublicKey: "pk-1", Name: "Ada"}}
+	app.voting.candidates = []CandidateRow{{ID: "cand-1", Name: "Ada"}}
+
+	app.oracle.selected = 3
+	app.voting.voterChoice = 3
+	app.voting.candChoice = 3
+
+	app.restoreSourceChoice("src-gone")
+	app.restoreVoterChoice("pk-gone")
+	app.restoreCandidateChoice("cand-gone")
+
+	require.Equal(t, -1, app.oracle.selected, "no source is highlighted")
+	require.Equal(t, -1, app.voting.voterChoice, "no voter is highlighted")
+	require.Equal(t, -1, app.voting.candChoice, "no candidate is highlighted")
+}
+
+// TestRestoringAnEmptyChoiceClearsTheSelection covers the reload path that has
+// nothing to restore: it must still clear, because the list may have shrunk
+// under the old index.
+func TestRestoringAnEmptyChoiceClearsTheSelection(t *testing.T) {
+	app := New(&fakeServices{})
+	app.oracle.selected = 2
+	app.voting.voterChoice = 2
+	app.voting.candChoice = 2
+
+	app.restoreSourceChoice("")
+	app.restoreVoterChoice("")
+	app.restoreCandidateChoice("")
+
+	require.Equal(t, -1, app.oracle.selected)
+	require.Equal(t, -1, app.voting.voterChoice)
+	require.Equal(t, -1, app.voting.candChoice)
+}
