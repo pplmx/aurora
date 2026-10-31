@@ -28,6 +28,15 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The reference names all four completion shells**: the paragraph said "four
+  shell subcommands" and the examples showed two, so a fish or PowerShell user
+  could not tell whether their shell was covered. The names are listed now, and
+  a test holds them.
+- **That family is the one the tree parser cannot see**: Cobra adds the shell
+  subcommands itself, so no source file declares `completion fish` and
+  `TestCLIDocsMentionEveryCommand` never demanded it. Every other subcommand in
+  the CLI was already documented.
+
 - **Every package in the tree opens with a sentence saying what it is for**:
   nineteen were missing a doc comment — the five use-case packages, the whole
   api layer, five infra packages, and the two command packages. `go doc` showed
