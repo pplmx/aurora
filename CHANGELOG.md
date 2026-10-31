@@ -28,6 +28,19 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The desktop's token paths are covered**: `TokenInfo`, `TransferToken`,
+  `ApproveToken`, `TransferFromToken`, `BurnToken`, `TokenAllowance` and
+  `TokenHistory` had no test. They are assembled here the way the container
+  assembles them — a real SQLite-backed repository, event store, replay
+  protection and chain — because these paths sign, persist and read back, so a
+  fake service would only prove the adapter calls it. `deskapp` coverage rose
+  from 79.5% to 82.3%.
+- Writing them surfaced two facts the tests now record: creating a token
+  credits its whole supply to the owner, so a balance after a mint is the
+  supply plus the minted amount; and the transfer stream holds transfer events
+  only, so a mint is not history until something moves. The bus also needs the
+  audit subscription for events to reach the reader at all.
+
 - **The desktop's oracle lifecycle is covered**: `SetOracleSourceEnabled`,
   `DeleteOracleSource`, `OracleData` and `OracleLatest` had no test. The first
   one carries the only branch among them — the Sources card's Enable and
