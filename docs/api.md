@@ -50,12 +50,26 @@ AURORA_SERVER_HOST=127.0.0.1 AURORA_SERVER_PORT=9090 ./aurora-api
 
 ## 错误响应
 
-失败时返回 `{"error": "...", "code": "..."}`：`code` 是稳定的机器可读值，
-`error` 是给人看的说明，措辞可能调整；未被分类的失败返回 `500` 与
-`INTERNAL_ERROR`。中间件层另有 `BODY_TOO_LARGE`（413）、`INVALID_REQUEST`
-（400）、`NOT_FOUND`（404）、`METHOD_NOT_ALLOWED`（405）与 `RATE_LIMITED`
-（429）。同一个 `code` 可能
-用于多个模块（如 `INVALID_SIGNATURE`），下表按首次出现的模块列出。
+失败时返回一个文档：
+
+```json
+{"error": "not found", "code": "NOT_FOUND"}
+```
+
+`code` 是稳定的机器可读值，脚本按它分支；`error` 是给人看的说明，措辞可能
+调整，不要解析。未被分类的失败返回 `500` 与 `INTERNAL_ERROR`。
+
+状态码约定：
+
+- 客户端错误（参数缺失、密钥长度不对、越界）→ 4xx；服务端故障 → 5xx。
+- 未授权返回 401，请求体超限返回 413，限流返回 429。
+- 未知资源（NFT id、预言机 source、token_id）统一 404，不用空数组冒充成功。
+
+中间件层另有 `BODY_TOO_LARGE`（413）、`INVALID_REQUEST`（400）、
+`NOT_FOUND`（404）、`METHOD_NOT_ALLOWED`（405）与 `RATE_LIMITED`（429）。
+
+同一个 `code` 可能用于多个模块（如 `INVALID_SIGNATURE`），下表按首次出现的模块
+列出。
 
 | 模块   | code                           | HTTP |
 | ------ | ------------------------------ | ---- |
@@ -497,16 +511,6 @@ path 与 query 都可能包含凭据，因此 `/oracle/health` 的 `last_error` 
 ```json
 {"blocks": [{"height": 2, "timestamp": 1793385489, "payload": "b8dfb283-1b87-449e-a0aa-271b441e5d54|Star|AQIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyA="}], "total": 2, "limit": 20, "offset": 0}
 ```
-
-## 错误格式
-
-```json
-{"error": "not found", "code": "NOT_FOUND"}
-```
-
-- 客户端错误（参数缺失、密钥长度不对、越界）→ 4xx；服务端故障 → 5xx。
-- 未授权返回 401，请求体超限返回 413，限流返回 429。
-- 未知资源（NFT id、预言机 source、token_id）统一 404，不用空数组冒充成功。
 
 ## 生命周期与可观测性
 
