@@ -28,6 +28,13 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **A token's precision is 精度 on both surfaces**: the CLI spelled it out as
+  小数位数 in three entries while the guide and the window said 精度. The
+  vocabulary test covers the pair now.
+- **持有者 and 所有者 stay separate**, checked before changing anything: the first
+  names an NFT's holder and the second the account that signs a token's writes.
+  They look like synonyms and are not.
+
 - **An NFT transfer and a token transfer keep their own words**: the guide and
   the window move an asset with 转让 and money with 转账, and the CLI used 转移
   for both. The distinction is not decoration — the two records are different
