@@ -2,16 +2,15 @@
 // and how it is opened.
 //
 // The ledger, the repositories and both entry points (CLI/API/desktop via the
-// composition root) ask for the same handle, and its location comes from one
-// resolution order: an explicit `--config`/`db.path`, the environment, the
-// default `$HOME`/`./config` search, then the built-in default. Keeping that
-// bootstrap here rather than in a feature package means a package that wants a
-// connection no longer has to own a database singleton to get one.
+// composition root) ask for the same handle. Its location is whatever
+// `internal/config` resolved into `db.path` (`--config`, the environment, the
+// `$HOME`/`./config` search, then the built-in default). Keeping that bootstrap
+// here rather than in a feature package means a package that wants a connection
+// no longer has to own a database singleton to get one.
 package store
 
 import (
 	"database/sql"
-	"fmt"
 	"os"
 	"sync"
 
@@ -95,7 +94,5 @@ func ResetForTest() {
 	}
 	sharedOnce = sync.Once{}
 	sharedErr = nil
-	if err := os.RemoveAll("./data"); err != nil {
-		fmt.Fprintf(os.Stderr, "store: reset removed ./data: %v\n", err)
-	}
+	_ = os.RemoveAll("./data")
 }
