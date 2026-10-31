@@ -64,7 +64,7 @@ var desktopMessagesHant = map[string]string{
 	"Browse stored tokens newest first and choose one as the subject of the cards here.": "按最新優先瀏覽已存儲代幣，並選擇一個作為本頁卡片的操作對象。",
 	"Build time": "構建時間",
 	"Burn":       "銷毀",
-	"Burn %s from %s? The tokens are destroyed permanently and cannot be recovered.": "從 %s 銷毀 %s？代幣會被永久銷毀且無法恢復。",
+	"Burn %s from %s? The tokens are destroyed permanently and cannot be recovered.": "從 %[2]s 銷毀 %[1]s？代幣會被永久銷毀且無法恢復。",
 	"Burn %s? The asset is destroyed and cannot be recovered.":                       "銷毀 %s？資產會被銷毀且無法恢復。",
 	"Burn NFT…":      "銷毀 NFT…",
 	"Burn this NFT?": "銷毀這個 NFT？",

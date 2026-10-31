@@ -215,7 +215,7 @@ func (a *App) renderBurnDialog(c *ui.Context) {
 	owner := strings.TrimSpace(a.token.burnFrom)
 	if amount != "" || owner != "" {
 		detail = fmt.Sprintf(
-			"Burn %s from %s? The tokens are destroyed permanently and cannot be recovered.",
+			tr("Burn %s from %s? The tokens are destroyed permanently and cannot be recovered."),
 			valueOr(amount), valueOr(owner))
 	}
 	switch destructiveConfirm(c, &a.token.askBurn, "Burn tokens?", detail, "Burn",

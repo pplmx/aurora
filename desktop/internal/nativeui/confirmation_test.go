@@ -8,6 +8,8 @@ import (
 
 	"github.com/egoist/mygo/ui"
 	"github.com/stretchr/testify/require"
+
+	"github.com/pplmx/aurora/internal/i18n"
 )
 
 // TestBurnDialogNamesWhatItDestroys pins the confirmation's detail. The bare
@@ -442,4 +444,28 @@ func TestCopyConfirmsWithAToast(t *testing.T) {
 	tester.Frame()
 	require.Equal(t, "sk-Alice", tester.Clipboard())
 	require.True(t, tester.HasText("Private key is on the clipboard"), "a toast must confirm the copy")
+}
+
+// TestDestructiveDialogSpeaksChinese: the dialog translates its title and
+// buttons inside the helper, so the call sites hand it raw literals; a
+// regression shows an English question over a Chinese page.
+func TestDestructiveDialogSpeaksChinese(t *testing.T) {
+	translator := i18n.GetTranslator()
+	before := translator.GetLocale()
+	t.Cleanup(func() { translator.SetLocale(before) })
+	translator.SetLocale("zh")
+
+	app := New(&fakeServices{})
+	app.token.askBurn = true
+	app.token.burnAmount = "25"
+	app.token.burnFrom = "owner-pk"
+	tester := ui.NewTester(app.View, 900, 600)
+	app.ShowPage("Token")
+	tester.Frame()
+
+	require.True(t, tester.HasText("销毁代币？"), "the dialog title follows the window language")
+	require.True(t, tester.HasText("从 owner-pk 销毁 25？代币会被永久销毁且无法恢复。"),
+		"the detail names the amount and the account in the window language, in that order")
+	require.True(t, tester.HasText("销毁"), "the confirm label follows the window language")
+	require.True(t, tester.HasText("取消"), "the cancel label follows the window language")
 }

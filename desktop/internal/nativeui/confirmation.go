@@ -33,11 +33,15 @@ func destructiveConfirm(c *ui.Context, open *bool, title, detail, confirmLabel s
 	}
 	confirmed := false
 	danger := c.Theme().Danger
+	// The title goes through tr() here, like every other card and dialog
+	// helper: the call sites hand over raw literals. The detail stays as given
+	// because it is composed from values ("Burn 25 of GLD?").
+	label := tr(title)
 	dialog := ui.Modal(c, open, func() {
 		ui.Row(c).FillWidth().Gap(space3).AlignItems(ui.Start).Children(func() {
 			iconTile(c, warningIcon, danger, iconTileMedium)
 			ui.Column(c).Grow(1).Shrink(1).MinWidth(0).Gap(space2).Children(func() {
-				heading(c, title, 17, 2)
+				heading(c, label, 17, 2)
 				ui.Text(c, detail).FontSize(textSize(c, 12)).TextColor(c.Theme().TextMuted)
 			})
 		})
@@ -58,7 +62,7 @@ func destructiveConfirm(c *ui.Context, open *bool, title, detail, confirmLabel s
 	// of text over the dimmed page.
 	dialog.MinWidth(400 * textScale(c)).
 		BorderWidth(1).BorderColor(c.Theme().Border).
-		Role(ui.RoleAlertDialog).Label(title).Description(detail)
+		Role(ui.RoleAlertDialog).Label(label).Description(detail)
 	switch {
 	case confirmed:
 		restoreDestructiveFocus(c, confirmFocus)
