@@ -28,6 +28,13 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The oracle commands are grouped by what they act on**: `oracle.go` held
+  the repository helper, the group and all eleven subcommands in 486 lines.
+  Feeds are `oracle_source.go`, reads are `oracle_read.go`, presets are
+  `oracle_template.go`; `oracle.go` keeps the helper, the group and the single
+  `init` that registers everything, so no command moved in the tree. Names,
+  flags and help output are unchanged.
+
 - **Completed removals in the architecture checklist are verified**: the
   document contradicted itself once, marking the `DBPath`/`InitDB`/`OpenDB`
   removal done while another file still listed those symbols as open work. A
