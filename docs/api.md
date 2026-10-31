@@ -531,17 +531,24 @@ Oracle 的读取接口是包装对象：`/oracle/sources` 返回 `{"sources": [.
 `enabled`（布尔），用于启用/停用；`DELETE /oracle/sources/{id}` 没有请求体。
 
 `POST /api/v1/oracle/sources` 的 `headers` 接受 JSON 对象，例如
-`{"Authorization":"Bearer ...","X-API-Key":"..."}`；`method` 必须是 HTTP token，
-请求头名称也必须是 token，值不能包含除 tab 外的控制字符。JSON、CR/LF 和长度
-都在写入前校验（`INVALID_SOURCE`）。`Host` 会覆盖实际请求的虚拟主机并在同源
-重定向中保留，跨源重定向则清除；`Content-Length`、`Transfer-Encoding` 和
-`Trailer` 由 HTTP 传输层派生，写入这些头会返回 `INVALID_SOURCE`。仅大小写不同
-的重复头名同样会被拒绝，避免同一配置按 map 遍历顺序产生不同请求。
-`Proxy-Authorization`、`Proxy-Authenticate`、`Connection`、`Keep-Alive`、`TE`、
-`Upgrade` 等代理或逐跳头也不属于单个数据源，写入会返回 `INVALID_SOURCE`；
-代理凭据应放在 `HTTP_PROXY`/`HTTPS_PROXY` 的 URL 中。URL 必须带非空 hostname，
-端口写出来时必须在 `1..65535` 且不能是只有冒号的空值。`extractByPath` 允许合法的空字符串
-值，但对象/数组/null 叶子会失败而不是把 Go map 存成链上数据。
+`{"Authorization":"Bearer ...","X-API-Key":"..."}`。`method` 必须是 HTTP token，
+请求头名称也必须是 token，值不能包含除 tab 外的控制字符；JSON、CR/LF 和长度都
+在写入前校验，不合法一律返回 `INVALID_SOURCE`。
+
+**有的头不能由数据源设置。** 分三种原因：
+
+| 原因         | 头                                                                                                           | 说明                                      |
+| ------------ | ------------------------------------------------------------------------------------------------------------ | ----------------------------------------- |
+| 由传输层派生 | `Content-Length`、`Transfer-Encoding`、`Trailer`                                                             | 写入会与连接实际状态矛盾                  |
+| 逐跳头       | `Connection`、`Keep-Alive`、`Proxy-Authenticate`、`Proxy-Authorization`、`Proxy-Connection`、`TE`、`Upgrade` | 只对单跳连接有效，不属于某个数据源        |
+| 代理凭据     | —                                                                                                            | 放在 `HTTP_PROXY`/`HTTPS_PROXY` 的 URL 里 |
+
+仅大小写不同的重复头名同样被拒绝，否则同一份配置会随 map 遍历顺序产生不同
+请求。`Host` 会覆盖实际请求的虚拟主机，并在同源重定向中保留、跨源时清除。
+
+数据源 URL 必须带非空 hostname；写出端口时必须在 `1..65535`，不能是只有冒号的
+空值。`extractByPath` 接受合法的空字符串值，但对象、数组与 null 叶子会失败——
+否则 Go map 会被当成链上数据记录下来。
 
 **抓取拒绝内部地址。** URL 校验、重定向与实际拨号三处都查同一份策略，因此
 DNS 在两次检查之间改指向也不会被绕过。被拒绝的是这些类别：
