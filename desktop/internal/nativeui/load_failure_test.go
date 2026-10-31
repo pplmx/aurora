@@ -209,6 +209,65 @@ func TestFailedBlockReadKeepsTheLedgerRows(t *testing.T) {
 	require.False(t, tester.HasText("No module records yet; the first write adds one."))
 }
 
+// TestLoadWarningReadsAsAStrip pins the presentation of a failed list read: the
+// reason sits beside a mark and the word "Failed" instead of in danger-red body
+// copy, and the note about the retained rows is muted rather than red. Colouring
+// the paragraph stated the failure twice and made the retained-data line read as
+// part of the error; the strip's tint is what separates the two lines now.
+func TestLoadWarningReadsAsAStrip(t *testing.T) {
+	fake := &fakeServices{
+		tokenRows: []TokenRow{{ID: "token-1", Name: "Gold", Symbol: "GLD", TotalSupply: "1000"}},
+	}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 1400)
+	app.ShowPage("Token")
+	tester.Frame()
+	fake.loadErrs.tokens = errors.New("database is locked")
+	app.refresh()
+	tester.Frame()
+
+	mark, ok := tester.Find("Failed")
+	require.True(t, ok, "the strip must state the outcome in words, not only in colour")
+	reason, ok := tester.Find("Failed to load tokens: database is locked")
+	require.True(t, ok)
+	require.GreaterOrEqual(t, reason.X, mark.X, "the reason follows the outcome mark")
+	stale, ok := tester.Find("Showing the last successful load.")
+	require.True(t, ok)
+	require.Greater(t, stale.Y, reason.Y, "the retained-data note sits under the reason")
+
+	// The tint is the strip's own surface: it starts lit at the left edge and
+	// fades before the card's right edge, so the warning reads as a band rather
+	// than as a paragraph of coloured text.
+	img := tester.Image()
+	luma := func(x, y int) int {
+		r, g, b, _ := img.At(x, y).RGBA()
+		return int(r>>8) + int(g>>8) + int(b>>8)
+	}
+	y := int(reason.Y) + int(reason.H)/2
+	require.Greater(t, luma(int(mark.X), y), luma(int(mark.X)+420, y),
+		"the danger wash must weaken toward the far edge")
+}
+
+// TestLoadWarningStaysInsideTheCardAtLargeText keeps a long failure reason from
+// pushing the warning past its card at the largest text scale, where the reason
+// and the retained-data note wrap instead of being clipped.
+func TestLoadWarningStaysInsideTheCardAtLargeText(t *testing.T) {
+	tester := ui.NewTester(func(c *ui.Context) {
+		c.SetTheme(auroraThemeFor(c.Preferences()))
+		ui.Column(c).Width(560).Padding(space4).Children(func() {
+			loadWarning(c, "Failed to load tokens", errors.New("database is locked"), true)
+		})
+	}, 640, 400)
+	tester.SetPreferences(ui.Preferences{TextScale: 2})
+	tester.Frame()
+
+	reason, ok := tester.Find("Failed to load tokens: database is locked")
+	require.True(t, ok)
+	require.LessOrEqual(t, reason.X+reason.W, float32(640),
+		"the reason must wrap inside the card")
+	require.True(t, tester.HasText("Showing the last successful load."))
+}
+
 // TestFailedLedgerQueryDoesNotRetryEveryFrame keeps an automatic search reload
 // from hammering the database after it fails. The rendered search still names
 // the failed query, but the attempted-query key stops a repaint from issuing

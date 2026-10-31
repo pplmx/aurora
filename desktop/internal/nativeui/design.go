@@ -141,6 +141,18 @@ func accentHairline(c *ui.Context, e ui.Element, tone ui.Color) ui.Element {
 	return e
 }
 
+// statusTintFill is the wash behind every fixed strip: strongest at the lit
+// left edge, faded before the far edge arrives, so the strip reads as a message
+// anchored to its outcome mark rather than as another full-width card. The
+// three strips (busy, finished, load failure) share it so "working",
+// "finished" and "could not read" look like one family.
+func statusTintFill(tint ui.Color) ui.LinearGradient {
+	return ui.LinearGradient{Angle: 90, Stops: []ui.GradientStop{
+		{Color: tint, At: 0},
+		{Color: tint.Alpha(0.35), At: 0.9},
+	}}
+}
+
 // statusDot is the small round mark beside a state word. It is always drawn
 // next to text that names the state, so the colour is reinforcement, not the
 // only signal.
