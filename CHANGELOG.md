@@ -28,6 +28,16 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **Four failed reads that nobody had exercised now warn in a test**: the fake
+  can fail `chain`, `tokenInfo`, `tokenBalance` and `nftDetails`, and no test had
+  ever set one of them. A card that swallowed an error shows an empty readout,
+  which reads as "there is nothing there" rather than "the read did not work".
+- **Three of them run behind a button, so the test clicks it**: assigning the id
+  before the first frame does not work, because selecting a token clears the
+  subject's inputs; the button, disabled until its fields are set, then swallows
+  the click and the test passes for the wrong reason. The ids are set inside the
+  view closure instead.
+
 - **Every write form behind the Token and NFT tabs is rendered by a test**: only
   Burn on the token page and Burn plus History on the NFT page had ever been
   drawn, so a form that stopped rendering — or drew another tab's body — would
