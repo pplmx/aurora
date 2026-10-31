@@ -158,7 +158,7 @@ func primaryButton(c *ui.Context, label string, ready ...bool) ui.Element {
 		AlignItems(ui.Center).Label(label).Disabled(!enabled)
 	from, to := c.Theme().AccentHover, c.Theme().Accent
 	textColor := c.Theme().AccentText
-	if !enabled {
+	if !enabled && buttonHintFits(c, label) {
 		from, to = disabledFill(c), c.Theme().Background.Mix(c.Theme().Surface, 0.42)
 		textColor = c.Theme().TextMuted
 		b.BorderWidth(1).BorderColor(c.Theme().Border).Shadow(0, 0, 0, 0, ui.Transparent)
@@ -182,13 +182,35 @@ func primaryButton(c *ui.Context, label string, ready ...bool) ui.Element {
 		ui.Row(c).Gap(space2).AlignItems(ui.Center).Children(func() {
 			ui.Text(c, label).FontSize(textSize(c, 13)).FontWeight(600).SingleLine().
 				TextColor(textColor)
-			if !enabled {
+			// The hint is the first thing to go when the button runs out of
+			// width. Both runs are single-line, so a row with no room clips
+			// them: a narrow window at a large text size showed "Complete the
+			// re" and lost the rest. The disabled fill and the muted label
+			// already say the action is not ready; the sentence is the
+			// explanation, and a half-sentence explains nothing.
+			if !enabled && buttonHintFits(c, label) {
 				ui.Text(c, tr("Complete the required fields")).FontSize(textSize(c, 10.5)).
 					TextColor(c.Theme().TextMuted).SingleLine()
 			}
 		})
 	})
 	return b
+}
+
+// buttonHintFits reports whether the disabled button's label and hint fit the
+// page's content width. It measures rather than guesses, because the label
+// varies by action and both runs scale with the user's text size.
+func buttonHintFits(c *ui.Context, label string) bool {
+	width, _ := c.Size()
+	available := width - sidebarWidth(c, width) - 2*space6
+	measure := func(text string, size float32) float32 {
+		w, _ := c.MeasureText(0, ui.Span{Text: text, Size: size, Weight: 600})
+		return w
+	}
+	content := measure(label, textSize(c, 13)) +
+		measure(tr("Complete the required fields"), textSize(c, 10.5)) +
+		space2 + 2*max(space4+2, textSize(c, 18))
+	return content <= available
 }
 
 // secondaryButton is the supporting action: a read, a cancel, or the second
@@ -207,7 +229,7 @@ func secondaryButton(c *ui.Context, label string, ready ...bool) ui.Element {
 	textColor := c.Theme().Text
 	from, to := c.Theme().Surface, c.Theme().Surface.Mix(c.Theme().Background, 0.2)
 	outline := c.Theme().Border
-	if !enabled {
+	if !enabled && buttonHintFits(c, label) {
 		textColor = c.Theme().TextMuted
 		from, to = disabledFill(c), c.Theme().Background.Mix(c.Theme().Surface, 0.42)
 	}
@@ -251,7 +273,7 @@ func dangerButton(c *ui.Context, label string, ready ...bool) ui.Element {
 	label = tr(label)
 	red := c.Theme().Danger
 	fill, textColor, glow := red, c.Theme().Background, red.Alpha(0.35)
-	if !enabled {
+	if !enabled && buttonHintFits(c, label) {
 		fill, textColor, glow = disabledFill(c), c.Theme().TextMuted, ui.Transparent
 	}
 	b := ui.ButtonBase(c).Height(max(buttonHeight, textSize(c, buttonHeight))).

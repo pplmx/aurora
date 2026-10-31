@@ -28,6 +28,14 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **A disabled button drops its hint instead of clipping it**: both runs in
+  the button are single-line, so a row with no room cut them: at 760px with 2x
+  text the Create Token button read "Complete the re" and lost the rest. The
+  disabled fill and the muted label already say the action is not ready, and
+  the sentence is the explanation — so it is drawn only when it measures to
+  fit, which is what the label and the hint are measured for at the page's own
+  content width.
+
 - **The page header stacks instead of shredding its parts**: in a narrow window
   at a large text size the header's single row squeezed the purpose sentence
   into a four-line column and clipped the Refresh button's Ctrl+R chord to two
