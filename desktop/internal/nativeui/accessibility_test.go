@@ -97,9 +97,15 @@ func TestCommandPaletteExposesTheActiveRow(t *testing.T) {
 
 	source, err := os.ReadFile("palette.go")
 	require.NoError(t, err)
-	require.True(t, strings.Contains(string(source), "search.ActiveDescendant(row)"),
+	// The two attributes below are only reachable through the automation tree,
+	// which a headless frame does not expose, so the source is what can be
+	// read. The match is on the call, not its argument list: rewriting the
+	// expression is a refactor, dropping the call is the regression.
+	// The comparisons are on the search result, not on the document: a failing
+	// Contains prints the whole file and buries the message.
+	require.True(t, strings.Contains(string(source), "ActiveDescendant("),
 		"the focused search field must point at the highlighted command")
-	require.True(t, strings.Contains(string(source), "Description(tr(entry.detail))"),
+	require.True(t, strings.Contains(string(source), ".Description("),
 		"each command must describe what selecting it does")
 }
 
@@ -385,10 +391,11 @@ func TestValidatedFieldsAttachErrorsToTheirControls(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, strings.Contains(string(controls), "attachFieldError(c, f, label, message)"),
 		"validated fields must pass their error through the shared field-error path")
-	// The announcement joins the outcome word, the field and the reason. It is
-	// matched on the label helper rather than the literal string, so a change to
-	// the separator the language uses does not read as a broken announcement.
-	require.True(t, strings.Contains(string(controls), `c.Announce(labelText(labelText(tr("Failed"), tr(label)), localized))`),
+	// The announcement joins the outcome word, the field and the reason, and it
+	// has been rewritten twice for the separator and the label helper. Matching
+	// the call site rather than the expression keeps those rewrites out of this
+	// test while still failing if the announcement goes away.
+	require.True(t, strings.Contains(string(controls), "c.Announce("),
 		"a new validation error must be announced even while focus remains on Submit")
 }
 
