@@ -28,6 +28,14 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The narrow-window captures explain the half-visible tab bar**: the script
+  scrolls the stage's control into view, and the stage tabs live inside the
+  scrolling body while the page header is fixed. The result photographs a tab
+  strip cut at the viewport edge, which reads as a layout defect. The guide now
+  says the stage is named by the file name and the tabs scrolled out on purpose.
+- **The layout is right**: the header is fixed chrome above the body, and the
+  tabs belong to the body — that is the design, not a regression to fix.
+
 - **The reference names all four completion shells**: the paragraph said "four
   shell subcommands" and the examples showed two, so a fish or PowerShell user
   could not tell whether their shell was covered. The names are listed now, and
