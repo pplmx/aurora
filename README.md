@@ -247,7 +247,7 @@ Docker 镜像只包含 CLI，没有 HTTP 监听器；`aurora-api` 只提供 REST
 | Token   | 91.2%  | 91.2% |
 | Oracle  | 87.6%  | 91.0% |
 | SQLite  | -      | 81.4% |
-| 组合根  | -      | 87.1% |
+| 组合根  | -      | 87.9% |
 
 所有模块都在 80% 门槛之上，`just coverage-floor` 与 `just desktop-coverage-floor`
 在本地和 CI 逐包校验这两条底线。SQLite 剩余缺口集中在仓储构造函数的错误分支
