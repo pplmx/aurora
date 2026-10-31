@@ -195,7 +195,7 @@ func TestCreateToken_Decimals(t *testing.T) {
 				Decimals:    tc.decimals,
 			})
 			if tc.wantErr {
-				if err != ErrTokenDecimalsInvalid {
+				if !errors.Is(err, ErrTokenDecimalsInvalid) {
 					t.Fatalf("got %v, want ErrTokenDecimalsInvalid", err)
 				}
 				return
@@ -241,7 +241,7 @@ func TestCreateToken_RejectsDuplicateSymbol(t *testing.T) {
 	_, err = service.CreateToken(&CreateTokenRequest{
 		Name: "Second", Symbol: "DUP", TotalSupply: NewAmount(5000), Owner: pubKey(2),
 	})
-	if err != ErrTokenExists {
+	if !errors.Is(err, ErrTokenExists) {
 		t.Fatalf("second create with duplicate symbol: got %v, want ErrTokenExists", err)
 	}
 
@@ -420,19 +420,19 @@ func TestReadPaths_UnknownToken(t *testing.T) {
 	// indistinguishable from "no activity".
 	t.Run("balance", func(t *testing.T) {
 		_, err := service.GetBalance("NONEXISTENT", owner)
-		if err != ErrTokenNotFound {
+		if !errors.Is(err, ErrTokenNotFound) {
 			t.Errorf("expected ErrTokenNotFound, got %v", err)
 		}
 	})
 	t.Run("allowance", func(t *testing.T) {
 		_, err := service.GetAllowance("NONEXISTENT", owner, spender)
-		if err != ErrTokenNotFound {
+		if !errors.Is(err, ErrTokenNotFound) {
 			t.Errorf("expected ErrTokenNotFound, got %v", err)
 		}
 	})
 	t.Run("history", func(t *testing.T) {
 		_, err := service.GetTransferHistory("NONEXISTENT", owner, 10, 0)
-		if err != ErrTokenNotFound {
+		if !errors.Is(err, ErrTokenNotFound) {
 			t.Errorf("expected ErrTokenNotFound, got %v", err)
 		}
 	})
@@ -528,7 +528,7 @@ func TestMint_InvalidToken(t *testing.T) {
 	}
 
 	_, err := service.Mint(mintReq)
-	if err != ErrTokenNotFound {
+	if !errors.Is(err, ErrTokenNotFound) {
 		t.Errorf("expected ErrTokenNotFound, got %v", err)
 	}
 }
@@ -685,7 +685,7 @@ func TestTransfer_InvalidToken(t *testing.T) {
 	}
 
 	_, err := service.Transfer(transferReq)
-	if err != ErrTokenNotFound {
+	if !errors.Is(err, ErrTokenNotFound) {
 		t.Errorf("expected ErrTokenNotFound, got %v", err)
 	}
 }
@@ -1891,7 +1891,7 @@ func TestMint_NonMintableToken(t *testing.T) {
 	}
 
 	_, err := service.Mint(mintReq)
-	if err != ErrTokenNotMintable {
+	if !errors.Is(err, ErrTokenNotMintable) {
 		t.Errorf("expected ErrTokenNotMintable, got %v", err)
 	}
 }
@@ -1949,7 +1949,7 @@ func TestTransferFrom_NilApproval(t *testing.T) {
 	}
 
 	_, err := service.TransferFrom(transferFromReq)
-	if err != ErrInsufficientAllowance {
+	if !errors.Is(err, ErrInsufficientAllowance) {
 		t.Errorf("expected ErrInsufficientAllowance for nil approval, got %v", err)
 	}
 }
@@ -2165,7 +2165,7 @@ func TestTransferFrom_InvalidToken(t *testing.T) {
 	}
 
 	_, err := service.TransferFrom(transferFromReq)
-	if err != ErrTokenNotFound {
+	if !errors.Is(err, ErrTokenNotFound) {
 		t.Errorf("expected ErrTokenNotFound, got %v", err)
 	}
 }
@@ -2403,7 +2403,7 @@ func TestBurn_NonBurnableToken(t *testing.T) {
 		Amount:     NewAmount(400),
 		PrivateKey: privateKey,
 	})
-	if err != ErrTokenNotBurnable {
+	if !errors.Is(err, ErrTokenNotBurnable) {
 		t.Errorf("expected ErrTokenNotBurnable, got %v", err)
 	}
 }
@@ -2470,7 +2470,7 @@ func TestBurn_InvalidToken(t *testing.T) {
 		Amount:     NewAmount(400),
 		PrivateKey: privateKey,
 	})
-	if err != ErrTokenNotFound {
+	if !errors.Is(err, ErrTokenNotFound) {
 		t.Errorf("expected ErrTokenNotFound, got %v", err)
 	}
 }

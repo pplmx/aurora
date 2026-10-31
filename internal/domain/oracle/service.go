@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/pplmx/aurora/internal/domain/errdetail"
 	"github.com/pplmx/aurora/internal/netguard"
 )
 
@@ -317,7 +318,7 @@ func (s *service) AddSource(source *DataSource) error {
 		return err
 	}
 	if err := validateSourceURL(source.URL); err != nil {
-		return fmt.Errorf("%w: %v", ErrInvalidSource, err)
+		return errdetail.Wrap(ErrInvalidSource, err)
 	}
 	if source.ID == "" {
 		source.ID = generateID()

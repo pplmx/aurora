@@ -4,6 +4,8 @@ import (
 	"crypto/ed25519"
 	"encoding/base64"
 	"fmt"
+
+	"github.com/pplmx/aurora/internal/domain/errdetail"
 )
 
 func (s *TokenService) Transfer(req *TransferRequest) (*TransferEvent, error) {
@@ -86,7 +88,7 @@ func (s *TokenService) Transfer(req *TransferRequest) (*TransferEvent, error) {
 	// Publish the audit event only after the transaction commits (ISS-074);
 	// see the identical note in Mint.
 	if err := s.eventBus.Publish(event); err != nil {
-		return nil, fmt.Errorf("%w: %v", ErrAuditPublishFailed, err)
+		return nil, errdetail.Wrap(ErrAuditPublishFailed, err)
 	}
 
 	return event, nil
@@ -189,7 +191,7 @@ func (s *TokenService) TransferFrom(req *TransferFromRequest) (*TransferEvent, e
 	// Publish the audit event only after the transaction commits (ISS-074);
 	// see the identical note in Mint.
 	if err := s.eventBus.Publish(event); err != nil {
-		return nil, fmt.Errorf("%w: %v", ErrAuditPublishFailed, err)
+		return nil, errdetail.Wrap(ErrAuditPublishFailed, err)
 	}
 
 	return event, nil

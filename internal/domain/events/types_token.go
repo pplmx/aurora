@@ -2,7 +2,8 @@ package events
 
 import (
 	"encoding/json"
-	"fmt"
+
+	"github.com/pplmx/aurora/internal/domain/errdetail"
 )
 
 type TokenTransferEvent struct {
@@ -28,7 +29,7 @@ func (e *TokenTransferEvent) To() ([]byte, error) {
 func (e *TokenTransferEvent) Amount() (string, error) {
 	var p tokenTransferPayload
 	if err := json.Unmarshal(e.Payload(), &p); err != nil {
-		return "", fmt.Errorf("%w: %v", ErrInvalidPayload, err)
+		return "", errdetail.Wrap(ErrInvalidPayload, err)
 	}
 	return p.Amount, nil
 }
@@ -36,7 +37,7 @@ func (e *TokenTransferEvent) Amount() (string, error) {
 func (e *TokenTransferEvent) Nonce() (uint64, error) {
 	var p tokenTransferPayload
 	if err := json.Unmarshal(e.Payload(), &p); err != nil {
-		return 0, fmt.Errorf("%w: %v", ErrInvalidPayload, err)
+		return 0, errdetail.Wrap(ErrInvalidPayload, err)
 	}
 	return p.Nonce, nil
 }
@@ -61,7 +62,7 @@ func (e *TokenMintEvent) To() ([]byte, error) {
 func (e *TokenMintEvent) Amount() (string, error) {
 	var p tokenMintPayload
 	if err := json.Unmarshal(e.Payload(), &p); err != nil {
-		return "", fmt.Errorf("%w: %v", ErrInvalidPayload, err)
+		return "", errdetail.Wrap(ErrInvalidPayload, err)
 	}
 	return p.Amount, nil
 }
@@ -82,7 +83,7 @@ func (e *TokenBurnEvent) From() ([]byte, error) {
 func (e *TokenBurnEvent) Amount() (string, error) {
 	var p tokenBurnPayload
 	if err := json.Unmarshal(e.Payload(), &p); err != nil {
-		return "", fmt.Errorf("%w: %v", ErrInvalidPayload, err)
+		return "", errdetail.Wrap(ErrInvalidPayload, err)
 	}
 	return p.Amount, nil
 }
@@ -108,7 +109,7 @@ func (e *TokenApproveEvent) Spender() ([]byte, error) {
 func (e *TokenApproveEvent) Amount() (string, error) {
 	var p tokenApprovePayload
 	if err := json.Unmarshal(e.Payload(), &p); err != nil {
-		return "", fmt.Errorf("%w: %v", ErrInvalidPayload, err)
+		return "", errdetail.Wrap(ErrInvalidPayload, err)
 	}
 	return p.Amount, nil
 }

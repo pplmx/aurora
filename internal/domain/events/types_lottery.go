@@ -2,7 +2,8 @@ package events
 
 import (
 	"encoding/json"
-	"fmt"
+
+	"github.com/pplmx/aurora/internal/domain/errdetail"
 )
 
 type LotteryCreatedEvent struct {
@@ -17,7 +18,7 @@ type lotteryCreatedPayload struct {
 func (e *LotteryCreatedEvent) Participants() (string, error) {
 	var p lotteryCreatedPayload
 	if err := json.Unmarshal(e.Payload(), &p); err != nil {
-		return "", fmt.Errorf("%w: %v", ErrInvalidPayload, err)
+		return "", errdetail.Wrap(ErrInvalidPayload, err)
 	}
 	return p.Participants, nil
 }
@@ -25,7 +26,7 @@ func (e *LotteryCreatedEvent) Participants() (string, error) {
 func (e *LotteryCreatedEvent) WinnerCount() (int, error) {
 	var p lotteryCreatedPayload
 	if err := json.Unmarshal(e.Payload(), &p); err != nil {
-		return 0, fmt.Errorf("%w: %v", ErrInvalidPayload, err)
+		return 0, errdetail.Wrap(ErrInvalidPayload, err)
 	}
 	return p.WinnerCount, nil
 }
@@ -42,7 +43,7 @@ type lotteryDrawnPayload struct {
 func (e *LotteryDrawnEvent) Winners() (string, error) {
 	var p lotteryDrawnPayload
 	if err := json.Unmarshal(e.Payload(), &p); err != nil {
-		return "", fmt.Errorf("%w: %v", ErrInvalidPayload, err)
+		return "", errdetail.Wrap(ErrInvalidPayload, err)
 	}
 	return p.Winners, nil
 }
@@ -50,7 +51,7 @@ func (e *LotteryDrawnEvent) Winners() (string, error) {
 func (e *LotteryDrawnEvent) Proof() (string, error) {
 	var p lotteryDrawnPayload
 	if err := json.Unmarshal(e.Payload(), &p); err != nil {
-		return "", fmt.Errorf("%w: %v", ErrInvalidPayload, err)
+		return "", errdetail.Wrap(ErrInvalidPayload, err)
 	}
 	return p.Proof, nil
 }

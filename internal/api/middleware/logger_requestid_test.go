@@ -64,7 +64,7 @@ func TestLogger_LogsAbortedRequest(t *testing.T) {
 		defer func() { recovered = recover() }()
 		RequestID(Logger(handler)).ServeHTTP(httptest.NewRecorder(), req)
 	}()
-	if recovered != http.ErrAbortHandler {
+	if recovered != http.ErrAbortHandler { //nolint:errorlint // net/http compares it the same way
 		t.Fatalf("recovered panic = %v, want http.ErrAbortHandler", recovered)
 	}
 

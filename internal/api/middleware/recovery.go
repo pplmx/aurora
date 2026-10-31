@@ -85,7 +85,7 @@ func Recovery(next http.Handler) http.Handler {
 			// turning it into a 500 or swallowing it.
 			// net/http documents this exact comparison for ErrAbortHandler
 			// (httputil does the same); the value is never wrapped.
-			if err == http.ErrAbortHandler {
+			if err == http.ErrAbortHandler { //nolint:errorlint // see above
 				panic(http.ErrAbortHandler)
 			}
 

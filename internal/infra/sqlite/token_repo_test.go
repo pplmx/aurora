@@ -124,7 +124,7 @@ func TestTokenRepository_GetToken_NotFound(t *testing.T) {
 	defer cleanup()
 
 	_, err := repo.GetToken("NOTEXIST")
-	if err != token.ErrTokenNotFound {
+	if !errors.Is(err, token.ErrTokenNotFound) {
 		t.Errorf("Expected ErrTokenNotFound, got %v", err)
 	}
 }

@@ -12,6 +12,12 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The lint gate also watches error wrapping**: `errorlint` joins the shared
+  config, so a sentinel compared with `==` (a wrap would slip past it) and an
+  accidental `%v` fail `just lint` in both modules. The deliberate
+  "sentinel plus printed detail" shape now lives in `domain/errdetail.Wrap`, one
+  documented place instead of twenty-two repetitions, and eighteen comparisons
+  across the token/oracle/blockchain code became `errors.Is`.
 - **The lint gate also watches response bodies and spelling**: `bodyclose` and
   `misspell` join the shared config, so a leaked `http.Response.Body` and a
   comment typo fail the gate. `bodyclose` found one real leak, in the redirect-

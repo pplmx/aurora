@@ -4,6 +4,8 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+
+	"github.com/pplmx/aurora/internal/domain/errdetail"
 )
 
 func base64DecodeField(payload []byte, field string) ([]byte, error) {
@@ -11,7 +13,7 @@ func base64DecodeField(payload []byte, field string) ([]byte, error) {
 	if err := json.Unmarshal(payload, &m); err != nil {
 		// Only ErrInvalidPayload is the contract; the JSON detail is printed but
 		// stays unwrappable so a caller cannot branch on the parser's internals.
-		return nil, fmt.Errorf("%w: %v", ErrInvalidPayload, err)
+		return nil, errdetail.Wrap(ErrInvalidPayload, err)
 	}
 	val, ok := m[field].(string)
 	if !ok {

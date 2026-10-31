@@ -3,6 +3,8 @@ package token
 import (
 	"encoding/base64"
 	"fmt"
+
+	"github.com/pplmx/aurora/internal/domain/errdetail"
 )
 
 func (s *TokenService) Mint(req *MintRequest) (*MintEvent, error) {
@@ -63,7 +65,7 @@ func (s *TokenService) Mint(req *MintRequest) (*MintEvent, error) {
 	// rollback cannot undo, so publishing inside the transaction left a
 	// phantom event behind whenever a later step rolled the mint back.
 	if err := s.eventBus.Publish(event); err != nil {
-		return nil, fmt.Errorf("%w: %v", ErrAuditPublishFailed, err)
+		return nil, errdetail.Wrap(ErrAuditPublishFailed, err)
 	}
 
 	return event, nil

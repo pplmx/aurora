@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/pplmx/aurora/internal/app/lotteryapp"
+	"github.com/pplmx/aurora/internal/domain/errdetail"
 	"github.com/pplmx/aurora/internal/domain/lottery"
 	"github.com/pplmx/aurora/internal/domain/nft"
 	"github.com/pplmx/aurora/internal/domain/oracle"
@@ -36,7 +37,7 @@ func TestCLIErrorLocalizesChinese(t *testing.T) {
 		"failed to transfer: %w",
 		// The detail must stay unwrappable: the test asserts it is printed but
 		// never mapped back to a sentinel.
-		fmt.Errorf("%w: %v", token.ErrAuditPublishFailed, errors.New("disk full")),
+		errdetail.Wrap(token.ErrAuditPublishFailed, errors.New("disk full")),
 	)
 	out := formatCLIError(auditErr)
 	assert.Contains(t, out, "操作已提交")
