@@ -530,7 +530,7 @@ var desktopMessages = map[string]string{
 	"Database size":     "数据库大小",
 	"Show Data Folder":  "打开数据目录",
 	"Back Up Database…": "备份数据库…",
-	"No data leaves this machine; the desktop opens no network listener.": "数据不会离开本机；桌面端不开放网络监听。",
+	"Nothing is uploaded; the window opens no network listener and contacts only the oracle sources you configure.": "不会上传任何数据；窗口不开放网络监听，只访问你配置的预言机数据源。",
 	"Appearance": "外观",
 	"Choose the window palette; text size, contrast and motion follow the operating system.": "选择窗口配色；字号、对比度和动效跟随系统。",
 	"Theme":      "主题",
