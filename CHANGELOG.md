@@ -28,6 +28,19 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **One test spent twelve of the suite's twelve-and-a-half seconds in the build
+  cache**: `TestEveryTranslationKeyExists` walks the repository, and its skip
+  list named `dist`, `data` and `testdata` but not `.gocache`, `.gomodcache`,
+  `.gopath` or `.gotmp`. A working checkout holds 122,000 files, almost all of
+  them in those four directories. The suite now runs in 0.39s instead of 12.8s.
+- **The skip list moved to one function** the walks in this package share, so the
+  next test cannot forget part of it. Nine tests walk; the other eight either
+  start below the repository root or already skip every dotted directory.
+- **A literal pre-filter runs before the parser**: 551 Go files hold 29 that call
+  a translation helper, and parsing the rest bought nothing. The filter is a
+  superset — any mention of a helper name — so it cannot skip a call the parser
+  would have found.
+
 - **A nil error is pinned as "nothing to announce"**: both `errStatus` and
   `localizeServiceError` start with a nil branch — every successful write handler
   reaches it — and neither branch was covered. The tests now fix what a caller
