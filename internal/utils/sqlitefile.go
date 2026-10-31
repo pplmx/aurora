@@ -101,7 +101,11 @@ func EnsureSQLiteDirectory(dsn string) error {
 		return fmt.Errorf("database path %s is a directory", path)
 	}
 	dir := filepath.Dir(path)
-	if err := os.MkdirAll(dir, 0o755); err != nil {
+	// The database file is created 0600, so the directory that holds it gets the
+	// same owner-only treatment as the log, backup and desktop data directories
+	// (0700). MkdirAll leaves an existing directory's mode alone, so a shared
+	// parent the operator created keeps whatever they chose.
+	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return fmt.Errorf("create %s: %w", dir, err)
 	}
 	return nil
