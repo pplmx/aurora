@@ -1006,6 +1006,9 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **A source without a path no longer prints a dangling label**: the list line
+  read `Method: GET  Path:   Interval: 60s`, with the optional path empty; the
+  field is omitted when the source has none, so the line says what it means.
 - **An unusable export destination says so**: an empty path answered
   `replace : rename ..tmp : no such file or directory`, and a missing directory
   named the temporary file instead of the destination. Both are rejected up front

@@ -537,9 +537,12 @@ func TestOracleResultsLocalizeChinese(t *testing.T) {
 	withTempDir(t, func(t *testing.T) {
 		setTestLocale(t, "zh")
 
+		// The path is what makes the localized "路径:" label appear: a source
+		// without one omits the field entirely.
 		out, err := runCmd(t, "oracle", "source", "add",
 			"--name", "btc",
 			"--url", "https://api.example.com/price",
+			"--path", "/v1/price",
 			"--headers", `{"Authorization":"Bearer secret"}`)
 		require.NoError(t, err)
 		assert.Contains(t, out, "数据源已创建：btc")
