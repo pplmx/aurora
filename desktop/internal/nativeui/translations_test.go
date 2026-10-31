@@ -165,6 +165,14 @@ func TestChineseTranslationsKeepChromeVocabularyInChinese(t *testing.T) {
 			[]string{"Spender"},
 		},
 		{
+			// One English word, two domains: the token page moves value, the NFT
+			// page moves an asset. Sharing the key made the NFT tab read 转账
+			// while every sentence around it said 转让.
+			"Transfer NFT",
+			"转让",
+			[]string{"Transfer NFT"},
+		},
+		{
 			// The signing rule and the storage rule are separate guide steps so
 			// neither sentence has to carry the other's subject; both keep their
 			// protocol names untranslated, like the rest of the page.

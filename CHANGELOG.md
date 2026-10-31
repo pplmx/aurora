@@ -28,6 +28,19 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The NFT page says transfer, not remit**: the English "Transfer" key is
+  shared with the token page, where 转账 is right — moving value between
+  accounts. The NFT page moves an asset between owners, and every sentence
+  around its tab already said 转让 while the tab itself said 转账. The NFT page
+  now keys off "Transfer NFT" (转让), so the tab, the card and the button agree
+  with the prose. English reads "Transfer NFT" there too, which is clearer next
+  to Burn and History than a bare "Transfer".
+- **The Chinese catalog states where a new entry belongs**: the table is
+  sectioned by page and had no rule for which section a new key joins. Its
+  header now says to file a key under the page that draws it, and to put copy
+  shared by several pages in the shared section that names its condition rather
+  than in whichever module needed it first.
+
 - **The repeat-causing dedup moved to the shared warning**: the previous fix
   un-joined repeated causes inside the Voting page's own aggregation, which left
   every other caller of `loadWarning` unprotected and put the rule in the wrong
