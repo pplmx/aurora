@@ -28,6 +28,16 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The remaining source assertions match a call, not an expression**: two of
+  them spelled out the full argument list, and one of those was rewritten twice
+  for the separator and the label helper — each rewrite read as an
+  accessibility regression. They now match `ActiveDescendant(`, `.Description(`
+  and `c.Announce(`: rewriting the expression is a refactor, dropping the call
+  is the regression.
+- **Those failures no longer print the file**: `require.Contains` on a whole
+  source file dumps every line, which buried the one message the test exists to
+  give. The comparisons are on the search result instead.
+
 - **The card-group test checks rendering as well as the source**: it read
   `layout.go` for the label call and asserted nothing about the frame, so it
   would have passed had `formCard` stopped drawing its title. It now renders a
