@@ -28,6 +28,15 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The blocked-header rules are a table, and the table found a missing
+  header**: the same paragraph carried the header rules for a data source, and
+  it named six of the seven hop-by-hop headers the domain rejects —
+  `Proxy-Connection` was absent. Grouped by why a header is refused (the
+  transport derives it, it belongs to one connection, or it is a proxy
+  credential), with the URL and JSON-path rules as their own sentences. A test
+  reads both sets out of `internal/domain/oracle/service.go` and fails when the
+  table omits one.
+
 - **The SSRF rules are a table of reasons, not a run-on list of prefixes**:
   the API reference named blocked ranges inline in a twenty-line paragraph that
   also carried the header rules and the redirect policy. It listed about half of
