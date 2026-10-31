@@ -635,9 +635,12 @@ The milestone notes under `.planning/` are history, not current instructions.
   a session id or a trip to Setup. It now lists the newest three sessions as
   buttons and loads the chosen tally in place; Setup keeps the full, searchable
   list, and the choice also sets the roster the other tabs read.
-- **The ballot offers the session roster by name**: a session stores candidate
-  ids, so the Cast Vote card asked for an id copied out of Setup. With a session
-  chosen it now lists the roster as name chips that write the id.
+- **The ballot offers the session roster and the voters by name**: a session
+  stores candidate ids and a voter key is long base64, so the Cast Vote card
+  asked for both copied out of Setup. With a session chosen it now lists the
+  roster as name chips (writing the candidate id) and the registered voters as
+  name chips (writing the public key, clearing another voter's private key). The
+  private key itself stays manual.
 - **The metrics endpoint exposes the node's state**: `/metrics` now carries
   `aurora_outbox_pending_events`, the gauge an operator watches when a delivery
   keeps failing while the ledger records (the same count `aurora doctor`

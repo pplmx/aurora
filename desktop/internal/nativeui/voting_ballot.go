@@ -100,6 +100,7 @@ func (a *App) votingCastVoteCard(c *ui.Context) {
 		fieldPair(c, "Session ID", &a.voting.voteSession, "Candidate ID", &a.voting.voteCandidate)
 		a.rosterCandidateChips(c)
 		field(c, "Voter Public Key", &a.voting.voteVoterPub)
+		a.voterKeyChips(c)
 		field(c, "Voter Private Key", &a.voting.votePriv)
 		a.useSavedKeyButton(c, a.voting.voteVoterPub, &a.voting.votePriv)
 		ui.Row(c).Children(func() {
@@ -108,6 +109,35 @@ func (a *App) votingCastVoteCard(c *ui.Context) {
 			}
 		})
 		inlineStatus(c, a.voting.voteResult)
+	})
+}
+
+// voterKeyChips puts the registered voters' public keys one click away. The
+// private key stays manual on purpose: it is the secret the window keeps only in
+// the optional session-key memory, never in the stored voter row.
+func (a *App) voterKeyChips(c *ui.Context) {
+	if len(a.voting.voters) == 0 {
+		return
+	}
+	type voter struct{ name, key string }
+	voters := make([]voter, 0, len(a.voting.voters))
+	for _, row := range a.voting.voters {
+		name := row.Name
+		if name == "" {
+			name = shortID(row.PublicKey)
+		}
+		voters = append(voters, voter{name: name, key: row.PublicKey})
+	}
+	sort.Slice(voters, func(i, j int) bool { return voters[i].name < voters[j].name })
+	ui.Column(c).FillWidth().Gap(space1).Children(func() {
+		eyebrow(c, "Voters")
+		ui.Row(c).Wrap().Gap(space2).Children(func() {
+			for _, v := range voters {
+				if quietButton(c, v.name).Clicked() {
+					a.applyVoteVoter(v.key)
+				}
+			}
+		})
 	})
 }
 

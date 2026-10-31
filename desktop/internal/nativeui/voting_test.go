@@ -837,3 +837,30 @@ func TestBallotOffersTheSessionRoster(t *testing.T) {
 	tester.Frame()
 	require.Equal(t, candID, app.voting.voteCandidate, "the chip writes the candidate id")
 }
+
+// TestBallotOffersTheRegisteredVoters: the public key is long base64 and used to
+// require copying it out of the voter list. The ballot now offers the registered
+// voters by name and writes the key; the private key stays manual.
+func TestBallotOffersTheRegisteredVoters(t *testing.T) {
+	const (
+		sessionID = "88888888-7777-6666-5555-444444444444"
+		pubKey    = "test-voter-public-key"
+	)
+	fake := &fakeServices{
+		sessions:  []SessionRow{{ID: sessionID, Title: "Budget 2026", Status: "active"}},
+		voterRows: []VoterRow{{Name: "Ada", PublicKey: pubKey}},
+	}
+	app := New(fake)
+	app.voting.votePriv = "stale-key"
+	tester := ui.NewTester(app.View, 1280, 2400)
+	app.ShowPage("Voting")
+	tester.Frame()
+	require.NoError(t, tester.Click("Ballot"), "open the ballot tab")
+	tester.Frame()
+
+	require.True(t, tester.HasText("Ada"), "the registered voter is offered by name")
+	require.NoError(t, tester.Click("Ada"))
+	tester.Frame()
+	require.Equal(t, pubKey, app.voting.voteVoterPub, "the chip writes the public key")
+	require.Empty(t, app.voting.votePriv, "another voter's private key is cleared")
+}
