@@ -931,6 +931,11 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **A rejected oracle source explains itself in Chinese**: the source validator's
+  stable English details ("disallowed scheme ...", "missing host", a blocked
+  private address) reached the Chinese CLI verbatim. Every detail it can produce
+  has a translation now, and an unknown detail still passes through so a new one
+  stays visible.
 - **A wrong-shaped import names the format, not a Go type**: `lottery import`
   answered a JSON object with "json: cannot unmarshal object into Go value of type
   []lottery.LotteryRecord". The document is now described as it should be
