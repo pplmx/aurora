@@ -168,10 +168,14 @@ var migrateDownCmd = &cobra.Command{
 		}
 		defer func() { _ = m.Close() }()
 
-		before, err := m.Version()
+		// One status read answers both questions below: the current version (to
+		// cap an explicit N) and the applied list (to name what a rollback
+		// removed).
+		status, err := m.Status()
 		if err != nil {
-			return wrapCLIError("migrate.error.version", err)
+			return wrapCLIError("migrate.error.status", err)
 		}
+		before := status.Current
 
 		// Cap N to the applied count so "down 5" on a version-2 DB rolls back
 		// both steps and reports success instead of erroring after the
@@ -196,6 +200,10 @@ var migrateDownCmd = &cobra.Command{
 			return printMigrateStatus(m)
 		}
 		fmt.Println(i18n.GetTextF("migrate.down_done", version))
+		// Name what the rollback removed, the way `up` names what it applied.
+		if steps > 0 && len(status.Applied) >= steps {
+			fmt.Println(i18n.GetTextF("migrate.rolled_back", joinVersions(status.Applied[len(status.Applied)-steps:])))
+		}
 		return nil
 	},
 }

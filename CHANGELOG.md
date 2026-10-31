@@ -678,6 +678,11 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Added
 
+- **`migrate down` names the migrations it removed**: the mirror of the `up`
+  change. "current version 4" alone does not say which three migrations a
+  `down 3` rolled back, so the command now prints `Rolled back: 5, 6, 7`
+  (已回滚 in Chinese) in the same ascending order every other version list uses;
+  the no-op answer at the bottom still says there is nothing to roll back.
 - **`migrate up` names the migrations it ran**: "current version 8" alone left
   an operator guessing whether a repair or backfill migration was part of the
   run. One status read now serves both the pending cap and the applied list, so
