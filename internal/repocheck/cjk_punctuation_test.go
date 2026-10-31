@@ -1,9 +1,11 @@
 package repocheck
 
 import (
+	"fmt"
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -29,27 +31,33 @@ func TestChineseCopyUsesFullWidthPunctuation(t *testing.T) {
 		{"desktop", "internal", "nativeui", "messages_zh_hant.go"},
 	}
 
-	offenders := map[string]bool{}
+	offenders := []string{}
 	checked := 0
+	han := regexp.MustCompile(`\p{Han}`)
 	for _, rel := range catalogs {
 		name := filepath.Join(rel...)
-		for _, m := range catalogEntry.FindAllStringSubmatch(readRepoFile(t, rel...), -1) {
-			value := m[2]
-			if !regexp.MustCompile(`\p{Han}`).MatchString(value) {
+		for i, line := range strings.Split(readRepoFile(t, rel...), "\n") {
+			m := catalogEntry.FindStringSubmatch(line)
+			if m == nil || !han.MatchString(m[2]) {
 				continue
 			}
 			checked++
-			if halfWidthAfterChinese.MatchString(value) {
-				offenders[name+" :: "+value] = true
+			if halfWidthAfterChinese.MatchString(m[2]) {
+				// The line number is what makes this actionable: a value can be
+				// translated twice, and the fixing edit is one line.
+				offenders = append(offenders, fmt.Sprintf("%s:%d %s", name, i+1, strings.TrimSpace(line)))
 			}
 		}
 	}
 	require.Greater(t, checked, 500, "the scan must reach the catalogs")
 
-	names := make([]string, 0, len(offenders))
-	for name := range offenders {
-		names = append(names, name)
-	}
-	sort.Strings(names)
-	assert.Empty(t, names, "these entries put a half-width mark after Chinese text")
+	sort.Strings(offenders)
+	assert.Empty(t, offenders, "these entries put a half-width mark after Chinese text")
+
+	// The matcher must recognise the shape it exists for and leave a Latin label
+	// alone, or a green run would prove nothing.
+	require.True(t, halfWidthAfterChinese.MatchString(`"key": "当前版本: %d"`),
+		"the matcher must recognise an ASCII colon after Chinese")
+	require.False(t, halfWidthAfterChinese.MatchString(`"key": "ID: %s"`),
+		"the matcher must not flag a Latin label")
 }
