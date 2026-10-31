@@ -28,6 +28,14 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The drain window in the reference is checked against the constant**: the
+  API section states that a stopped server finishes within 15s, and nothing tied
+  that number to `shutdownTimeout`. A server that stops sooner than documented
+  drops in-flight writes, and a reader planning a rollout plans around the
+  number. This round also confirmed the rest of the section against the code —
+  the metric names, the log permissions and the two ID formats — without finding
+  anything to change.
+
 - **A token's precision is 精度 on both surfaces**: the CLI spelled it out as
   小数位数 in three entries while the guide and the window said 精度. The
   vocabulary test covers the pair now.

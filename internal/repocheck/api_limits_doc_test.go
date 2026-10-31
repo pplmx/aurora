@@ -61,6 +61,21 @@ func TestRequestIDAndLogLimitsMatchTheDoc(t *testing.T) {
 		"the log truncation widths the code enforces")
 }
 
+// TestShutdownTimeoutDocMatchesTheCode covers the one duration the reference
+// states in prose. A server that stops sooner than documented loses in-flight
+// writes, and a reader planning a rollout relies on the number.
+func TestShutdownTimeoutDocMatchesTheCode(t *testing.T) {
+	code := readRepoFile(t, "cmd", "api", "main.go")
+	seconds := readConst(t, code, "shutdownTimeout")
+	require.Greater(t, seconds, 0, "the server must allow some drain time")
+
+	doc := readRepoFile(t, "docs", "api.md")
+	// Compared as a bool so a failure names the missing sentence instead of
+	// printing the whole document.
+	assert.NotEqual(t, -1, strings.Index(doc, strconv.Itoa(seconds)+"s 内优雅停机"),
+		"the reference must state the drain window the code allows")
+}
+
 // readConst evaluates one integer constant declaration in src.
 func readConst(t *testing.T, src, name string) int {
 	t.Helper()
