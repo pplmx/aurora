@@ -196,6 +196,16 @@ func TestLotteryImportDocumentErrorsLocalizeChinese(t *testing.T) {
 				document: "null",
 				want:     "应为抽奖记录 JSON 数组，但收到 null",
 			},
+			{
+				name:     "object instead of an array",
+				document: `{"not":"an array"}`,
+				want:     "应为抽奖记录 JSON 数组，但收到 object",
+			},
+			{
+				name:     "truncated json",
+				document: `[{"seed":`,
+				want:     "不是有效的 JSON 文档",
+			},
 		} {
 			t.Run(tt.name, func(t *testing.T) {
 				path := filepath.Join(t.TempDir(), "draws.json")

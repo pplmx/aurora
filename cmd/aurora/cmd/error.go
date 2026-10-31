@@ -183,8 +183,6 @@ func localizeKnownErrorDetail(detail string) string {
 		return "请求头 JSON 无效"
 	case "headers must be a JSON object":
 		return "请求头必须是 JSON 对象"
-	case "expected a JSON array of lottery records, got null":
-		return "应为抽奖记录 JSON 数组，但收到 null"
 	case "name too long":
 		return "名称过长"
 	case "type too long":
@@ -234,6 +232,8 @@ var (
 		re        *regexp.Regexp
 		localized string
 	}{
+		{regexp.MustCompile(`^expected a JSON array of lottery records, got (.+)$`), "应为抽奖记录 JSON 数组，但收到 %s"},
+		{regexp.MustCompile(`^not a valid JSON document: (.+)$`), "不是有效的 JSON 文档：%s"},
 		{regexp.MustCompile(`^invalid header name (.+)$`), "请求头名称 %s 无效"},
 		{regexp.MustCompile(`^header (.+) contains a newline$`), "请求头 %s 不能包含换行"},
 		{regexp.MustCompile(`^header (.+) contains an invalid control character$`), "请求头 %s 包含无效控制字符"},

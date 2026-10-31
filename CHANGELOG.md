@@ -931,6 +931,11 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **A wrong-shaped import names the format, not a Go type**: `lottery import`
+  answered a JSON object with "json: cannot unmarshal object into Go value of type
+  []lottery.LotteryRecord". The document is now described as it should be
+  ("expected a JSON array of lottery records, got object"), an unparsable file
+  says so, and the Chinese catalogue translates both.
 - **Oracle readings from the same second keep their order**: `/oracle/data`
   ordered by timestamp alone and `/oracle/latest` did the same, so two polls in
   one second could come back in either order and "latest" could differ from the

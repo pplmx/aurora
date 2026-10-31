@@ -180,6 +180,23 @@ type ImportResult struct {
 	Rejected []int `json:"rejected"`
 }
 
+// importDetail turns a decode failure into the sentence a reader needs. A
+// top-level shape mismatch would otherwise leak the Go type name ("cannot
+// unmarshal object into Go value of type []lottery.LotteryRecord") into the CLI
+// and the window. Errors that name a field keep json's wording, because the
+// field is what the reader has to fix.
+func importDetail(err error) string {
+	var typeErr *json.UnmarshalTypeError
+	if errors.As(err, &typeErr) && typeErr.Field == "" {
+		return fmt.Sprintf("expected a JSON array of lottery records, got %s", typeErr.Value)
+	}
+	var syntaxErr *json.SyntaxError
+	if errors.As(err, &syntaxErr) {
+		return "not a valid JSON document: " + syntaxErr.Error()
+	}
+	return err.Error()
+}
+
 // ImportRecords stores the draws of a portable document. It is the single
 // implementation behind `aurora lottery import` and the desktop shell's native
 // Import action.
@@ -200,7 +217,7 @@ type ImportResult struct {
 func ImportRecords(repo lottery.Repository, document []byte) (ImportResult, error) {
 	var records []lottery.LotteryRecord
 	if err := json.Unmarshal(document, &records); err != nil {
-		return ImportResult{}, &ImportDocumentError{detail: err.Error()}
+		return ImportResult{}, &ImportDocumentError{detail: importDetail(err)}
 	}
 	// json.Unmarshal accepts a literal null into a slice and leaves it nil.
 	// Treating that as an empty document reported a successful import of 0
