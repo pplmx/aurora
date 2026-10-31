@@ -3,6 +3,7 @@ package lottery
 import (
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"testing"
 )
 
@@ -199,9 +200,8 @@ func TestSelectWinners_AllUnique(t *testing.T) {
 }
 
 func TestValidateParticipantName_Empty(t *testing.T) {
-	err := ValidateParticipantName("")
-	if err == nil {
-		t.Error("ValidateParticipantName() empty should error")
+	if err := ValidateParticipantName(""); !errors.Is(err, ErrEmptyParticipantName) {
+		t.Errorf("ValidateParticipantName(\"\") = %v, want ErrEmptyParticipantName", err)
 	}
 }
 
@@ -210,18 +210,16 @@ func TestValidateParticipantName_TooLong(t *testing.T) {
 	for i := 0; i < MaxParticipantNameLength+1; i++ {
 		longName += "a"
 	}
-	err := ValidateParticipantName(longName)
-	if err == nil {
-		t.Error("ValidateParticipantName() too long should error")
+	if err := ValidateParticipantName(longName); !errors.Is(err, ErrParticipantNameTooLong) {
+		t.Errorf("ValidateParticipantName(long) = %v, want ErrParticipantNameTooLong", err)
 	}
 }
 
 func TestValidateParticipantName_InvalidChars(t *testing.T) {
 	invalid := []string{"test@name", "name#1", "bad<>name", "test!name"}
 	for _, name := range invalid {
-		err := ValidateParticipantName(name)
-		if err == nil {
-			t.Errorf("ValidateParticipantName(%q) should error for invalid chars", name)
+		if err := ValidateParticipantName(name); !errors.Is(err, ErrInvalidParticipantName) {
+			t.Errorf("ValidateParticipantName(%q) = %v, want ErrInvalidParticipantName", name, err)
 		}
 	}
 }
@@ -237,9 +235,8 @@ func TestValidateParticipantName_Valid(t *testing.T) {
 }
 
 func TestValidateSeed_TooShort(t *testing.T) {
-	err := ValidateSeed("ab")
-	if err == nil {
-		t.Error("ValidateSeed() 'ab' should error")
+	if err := ValidateSeed("ab"); !errors.Is(err, ErrSeedTooShort) {
+		t.Errorf("ValidateSeed(\"ab\") = %v, want ErrSeedTooShort", err)
 	}
 }
 
@@ -248,16 +245,14 @@ func TestValidateSeed_TooLong(t *testing.T) {
 	for i := 0; i < MaxSeedLength+1; i++ {
 		longSeed += "a"
 	}
-	err := ValidateSeed(longSeed)
-	if err == nil {
-		t.Error("ValidateSeed() too long should error")
+	if err := ValidateSeed(longSeed); !errors.Is(err, ErrSeedTooLong) {
+		t.Errorf("ValidateSeed(long) = %v, want ErrSeedTooLong", err)
 	}
 }
 
 func TestValidateParticipants_Duplicate(t *testing.T) {
-	err := ValidateParticipants([]string{"Alice", "Bob", "Alice"})
-	if err == nil {
-		t.Error("ValidateParticipants() duplicate should error")
+	if err := ValidateParticipants([]string{"Alice", "Bob", "Alice"}); !errors.Is(err, ErrDuplicateParticipant) {
+		t.Errorf("ValidateParticipants(duplicate) = %v, want ErrDuplicateParticipant", err)
 	}
 }
 
@@ -266,37 +261,32 @@ func TestValidateParticipants_TooMany(t *testing.T) {
 	for i := range participants {
 		participants[i] = "Participant"
 	}
-	err := ValidateParticipants(participants)
-	if err == nil {
-		t.Error("ValidateParticipants() too many should error")
+	if err := ValidateParticipants(participants); !errors.Is(err, ErrTooManyParticipants) {
+		t.Errorf("ValidateParticipants(too many) = %v, want ErrTooManyParticipants", err)
 	}
 }
 
 func TestValidateWinnerCount_Negative(t *testing.T) {
-	err := ValidateWinnerCount(-1, 10)
-	if err == nil {
-		t.Error("ValidateWinnerCount() negative should error")
+	if err := ValidateWinnerCount(-1, 10); !errors.Is(err, ErrWinnerCountNotPositive) {
+		t.Errorf("ValidateWinnerCount(-1, 10) = %v, want ErrWinnerCountNotPositive", err)
 	}
 }
 
 func TestValidateWinnerCount_TooMany(t *testing.T) {
-	err := ValidateWinnerCount(MaxWinners+1, 1000)
-	if err == nil {
-		t.Error("ValidateWinnerCount() > MaxWinners should error")
+	if err := ValidateWinnerCount(MaxWinners+1, 1000); !errors.Is(err, ErrTooManyWinners) {
+		t.Errorf("ValidateWinnerCount(MaxWinners+1) = %v, want ErrTooManyWinners", err)
 	}
 }
 
 func TestValidateWinnerCount_ExceedsParticipants(t *testing.T) {
-	err := ValidateWinnerCount(10, 5)
-	if err == nil {
-		t.Error("ValidateWinnerCount() > participants should error")
+	if err := ValidateWinnerCount(10, 5); !errors.Is(err, ErrWinnersExceedParticipants) {
+		t.Errorf("ValidateWinnerCount(10, 5) = %v, want ErrWinnersExceedParticipants", err)
 	}
 }
 
 func TestValidateWinnerCount_Zero(t *testing.T) {
-	err := ValidateWinnerCount(0, 10)
-	if err == nil {
-		t.Error("ValidateWinnerCount() zero should error")
+	if err := ValidateWinnerCount(0, 10); !errors.Is(err, ErrWinnerCountNotPositive) {
+		t.Errorf("ValidateWinnerCount(0, 10) = %v, want ErrWinnerCountNotPositive", err)
 	}
 }
 

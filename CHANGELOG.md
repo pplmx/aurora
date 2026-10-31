@@ -28,6 +28,13 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The lottery validators asserted only that something failed**: eleven tests
+  checked `err == nil` and never the sentinel, so a validator returning the wrong
+  error — or an unrelated one from a bug — passed. They assert `errors.Is` now, and
+  swapping one sentinel makes both affected tests name the expectation.
+- **The same round found the rest of the domain already doing this**: token and
+  nft tests use `errors.Is` throughout; lottery was the one package that did not.
+
 - **The capture guide says why text scale has no flag**: the window's text size
   comes from the framework's preferences, which the app cannot pre-write, so a
   large-text check runs through the offscreen tester rather than a screenshot. A
