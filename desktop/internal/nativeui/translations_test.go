@@ -173,6 +173,15 @@ func TestChineseTranslationsKeepChromeVocabularyInChinese(t *testing.T) {
 			[]string{"Transfer NFT"},
 		},
 		{
+			// The token page calls the account behind a token its 所有者; the NFT
+			// page calls the account holding an asset its 持有者, and uses that
+			// word in thirteen sentences. One "Owner" key could only pick one,
+			// so the NFT readout names the field Holder.
+			"Holder",
+			"持有者",
+			[]string{"Holder"},
+		},
+		{
 			// The signing rule and the storage rule are separate guide steps so
 			// neither sentence has to carry the other's subject; both keep their
 			// protocol names untranslated, like the rest of the page.
