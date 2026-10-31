@@ -11,26 +11,32 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-// cliCommandPaths parses the cobra command declarations in dir and the
-// AddCommand wiring between them, then returns every command path below the
-// root as "lottery create"-style strings.
-//
-// It reads source instead of importing the package because the command
-// variables are unexported and importing the CLI would run its init (flag
-// registration, config defaults) in a repository check that only needs the
-// tree.
-func cliCommandPaths(t *testing.T, dir string) []string {
+// cliCommandTree is the parsed command tree: the Use word of every command
+// variable, the AddCommand parent links, and which variables take --json.
+type cliCommandTree struct {
+	use    map[string]string
+	parent map[string]string
+	json   map[string]bool
+}
+
+// parseCLICommandTree reads the cobra declarations in dir. It reads source
+// instead of importing the package because the command variables are unexported
+// and importing the CLI would run its init (flag registration, config defaults)
+// in a repository check that only needs the tree.
+func parseCLICommandTree(t *testing.T, dir string) cliCommandTree {
 	t.Helper()
 	entries, err := os.ReadDir(dir)
 	require.NoError(t, err)
 
-	// use maps a command variable to the first word of its Use field.
-	use := map[string]string{}
-	// parent maps a child command variable to the variable that adds it.
-	parent := map[string]string{}
+	tree := cliCommandTree{
+		use:    map[string]string{},
+		parent: map[string]string{},
+		json:   map[string]bool{},
+	}
 
 	fset := token.NewFileSet()
 	for _, entry := range entries {
@@ -57,11 +63,19 @@ func cliCommandPaths(t *testing.T, dir string) []string {
 						}
 						useField := cobraCommandUse(value.Values[i])
 						if useField != "" {
-							use[varName.Name] = useField
+							tree.use[varName.Name] = useField
 						}
 					}
 				}
 			case *ast.CallExpr:
+				if ident, ok := n.Fun.(*ast.Ident); ok && ident.Name == "addJSONFlag" {
+					for _, arg := range n.Args {
+						if varIdent, ok := arg.(*ast.Ident); ok {
+							tree.json[varIdent.Name] = true
+						}
+					}
+					return true
+				}
 				sel, ok := n.Fun.(*ast.SelectorExpr)
 				if !ok || sel.Sel.Name != "AddCommand" {
 					return true
@@ -72,35 +86,65 @@ func cliCommandPaths(t *testing.T, dir string) []string {
 				}
 				for _, arg := range n.Args {
 					if childIdent, ok := arg.(*ast.Ident); ok {
-						parent[childIdent.Name] = parentIdent.Name
+						tree.parent[childIdent.Name] = parentIdent.Name
 					}
 				}
 			}
 			return true
 		})
 	}
+	return tree
+}
 
-	var paths []string
+// eachPath visits every command below the root with its "lottery create" path
+// and the variable that declares it.
+func (tree cliCommandTree) eachPath(t *testing.T, visit func(path, varName string)) {
+	t.Helper()
 	var walk func(name string, prefix []string)
 	walk = func(name string, prefix []string) {
 		path := prefix
 		if name != "rootCmd" {
-			part, ok := use[name]
-			if !ok {
-				t.Fatalf("command %s has no cobra.Command Use field (or the declaration changed shape)", name)
-			}
+			part, ok := tree.use[name]
+			require.Truef(t, ok,
+				"command %s has no cobra.Command Use field (or the declaration changed shape)", name)
 			path = append(append([]string{}, prefix...), part)
-			paths = append(paths, strings.Join(path, " "))
+			visit(strings.Join(path, " "), name)
 		}
-		for child, par := range parent {
+		for child, par := range tree.parent {
 			if par == name {
 				walk(child, path)
 			}
 		}
 	}
 	walk("rootCmd", nil)
+}
+
+// cliCommandPaths lists every command path below the root.
+func cliCommandPaths(t *testing.T, dir string) []string {
+	t.Helper()
+	var paths []string
+	parseCLICommandTree(t, dir).eachPath(t, func(path, _ string) {
+		paths = append(paths, path)
+	})
 	require.GreaterOrEqual(t, len(paths), 50, "the parser must find the CLI's command tree")
 	return paths
+}
+
+// TestCLIDocsMentionEveryJSONCommand keeps the machine-readable surface listed:
+// a --json command that no paragraph or table row names is a capability the
+// reference never mentions, and the JSON guidance is what a script author reads.
+func TestCLIDocsMentionEveryJSONCommand(t *testing.T) {
+	tree := parseCLICommandTree(t, filepath.Join(repoRoot(t), "cmd", "aurora", "cmd"))
+	docs := readRepoFile(t, "docs", "cli.md")
+	checked := 0
+	tree.eachPath(t, func(path, name string) {
+		if !tree.json[name] {
+			return
+		}
+		checked++
+		assert.Containsf(t, docs, path, "docs/cli.md must name `aurora %s`, which takes --json", path)
+	})
+	require.GreaterOrEqual(t, checked, 40, "the parser must find the --json commands")
 }
 
 // cobraCommandUse returns the first word of `Use: "..."` when value is a
