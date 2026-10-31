@@ -12,6 +12,7 @@ package store
 import (
 	"database/sql"
 	"os"
+	"path/filepath"
 	"sync"
 
 	"github.com/spf13/viper"
@@ -94,5 +95,11 @@ func ResetForTest() {
 	}
 	sharedOnce = sync.Once{}
 	sharedErr = nil
-	_ = os.RemoveAll("./data")
+	// Remove the default store's directory, which is what callers of this helper
+	// have always relied on. A test that points db.path at its own file expects
+	// the handle to be closed, not its fixture deleted, so only the default
+	// location is cleaned.
+	if filepath.Clean(filepath.Dir(Path())) == "data" {
+		_ = os.RemoveAll("./data")
+	}
 }
