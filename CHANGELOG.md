@@ -1006,6 +1006,11 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **An unusable export destination says so**: an empty path answered
+  `replace : rename ..tmp : no such file or directory`, and a missing directory
+  named the temporary file instead of the destination. Both are rejected up front
+  ("export path is empty", "export directory … does not exist"), and a plain
+  error's detail now goes through the same Chinese table as a wrapped sentinel's.
 - **Sentinels are matched through a wrap where it matters**: a wrapped
   `*cliError` lost its localisation to a plain type assertion, and the approve /
   lookup paths compared `ErrTokenNotFound` and `sql.ErrNoRows` with `==`, so a

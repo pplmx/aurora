@@ -74,6 +74,14 @@ func localizedErrorText(err error) string {
 				return translated
 			}
 		}
+		// A plain error (no sentinel) can still be one of the semantic details
+		// the CLI adds itself, such as the export destination checks. The table
+		// returns unknown text unchanged, so a technical message keeps its words.
+		if detail := strings.TrimSpace(err.Error()); detail != "" {
+			if translated := localizeKnownErrorDetail(detail); translated != detail {
+				return translated
+			}
+		}
 	}
 	return err.Error()
 }
@@ -248,6 +256,8 @@ var (
 		{regexp.MustCompile(`^host "(.+)" resolves to a blocked \(private/internal\) address$`), "主机 %s 解析到被阻止的（私有/内网）地址"},
 		{regexp.MustCompile(`^parse url: (.+)$`), "URL 解析失败：%s"},
 		{regexp.MustCompile(`^verify host: (.+)$`), "校验主机失败：%s"},
+		{regexp.MustCompile(`^export path is empty$`), "导出路径为空"},
+		{regexp.MustCompile(`^export directory (.+) does not exist$`), "导出目录 %s 不存在"},
 		{regexp.MustCompile(`^invalid header name (.+)$`), "请求头名称 %s 无效"},
 		{regexp.MustCompile(`^header (.+) contains a newline$`), "请求头 %s 不能包含换行"},
 		{regexp.MustCompile(`^header (.+) contains an invalid control character$`), "请求头 %s 包含无效控制字符"},

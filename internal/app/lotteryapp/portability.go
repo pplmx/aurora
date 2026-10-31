@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/pplmx/aurora/internal/domain/lottery"
 	"github.com/pplmx/aurora/internal/utils"
@@ -101,6 +102,16 @@ func ExportRecords(repo lottery.Repository) (document []byte, count int, err err
 // same safety checks: the destination may not be the live database (or one of
 // its sidecars), and the write is atomic.
 func WriteRecordsToFile(repo lottery.Repository, path string) (count int, err error) {
+	// The destination is operator input: an empty path or a missing directory
+	// otherwise surfaces as a temporary-file rename failure that names neither.
+	if strings.TrimSpace(path) == "" {
+		return 0, errors.New("export path is empty")
+	}
+	if dir := filepath.Dir(path); dir != "." {
+		if info, statErr := os.Stat(dir); statErr != nil || !info.IsDir() {
+			return 0, fmt.Errorf("export directory %s does not exist", dir)
+		}
+	}
 	if provider, ok := repo.(interface{ DBPath() string }); ok {
 		if err := refuseLiveDatabaseDestination(provider.DBPath(), path); err != nil {
 			return 0, err

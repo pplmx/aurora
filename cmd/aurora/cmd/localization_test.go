@@ -669,3 +669,18 @@ func TestKnownErrorDetailTranslations(t *testing.T) {
 		require.Equal(t, tt.want, localizeKnownErrorDetail(tt.detail), tt.detail)
 	}
 }
+
+// TestPlainErrorDetailsLocalizeToo: not every CLI detail is wrapped around a
+// sentinel — the export destination checks are plain errors — and they used to
+// reach a Chinese line verbatim.
+func TestPlainErrorDetailsLocalizeToo(t *testing.T) {
+	setTestLocale(t, "zh")
+
+	for _, tc := range []struct{ detail, want string }{
+		{"export path is empty", "导出路径为空"},
+		{"export directory .gotmp/missing does not exist", "导出目录 .gotmp/missing 不存在"},
+		{"some unmapped technical detail", "some unmapped technical detail"},
+	} {
+		assert.Equal(t, tc.want, localizeKnownErrorDetail(tc.detail), tc.detail)
+	}
+}
