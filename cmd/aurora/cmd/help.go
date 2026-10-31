@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"io"
+	"regexp"
 	"strings"
 
 	"github.com/pplmx/aurora/internal/i18n"
@@ -100,11 +101,11 @@ func localizedUsage(c *cobra.Command) error {
 	}
 	if c.HasAvailableLocalFlags() {
 		fmt.Fprintf(out, "\n\n%s\n", i18n.GetText("cli.help.flags"))
-		fmt.Fprint(out, trimHelpSpace(c.LocalFlags().FlagUsages()))
+		fmt.Fprint(out, localizeFlagDefaults(trimHelpSpace(c.LocalFlags().FlagUsages())))
 	}
 	if c.HasAvailableInheritedFlags() {
 		fmt.Fprintf(out, "\n\n%s\n", i18n.GetText("cli.help.global_flags"))
-		fmt.Fprint(out, trimHelpSpace(c.InheritedFlags().FlagUsages()))
+		fmt.Fprint(out, localizeFlagDefaults(trimHelpSpace(c.InheritedFlags().FlagUsages())))
 	}
 	if c.HasHelpSubCommands() {
 		fmt.Fprintf(out, "\n\n%s", i18n.GetText("cli.help.additional_help_topics"))
@@ -184,6 +185,26 @@ func localizeCommandHelp(c *cobra.Command) {
 		}
 	}
 }
+
+// localizeFlagDefaults rewrites pflag's " (default X)" annotation with the
+// active translator. The flag table is the one part of the usage frame pflag
+// still renders itself, so a Chinese help page ended with an English "(default
+// 3)". The pattern only matches the annotation at the end of a line, never a
+// word inside a description.
+func localizeFlagDefaults(text string) string {
+	return flagDefaultPattern.ReplaceAllStringFunc(text, func(match string) string {
+		value := strings.TrimSuffix(strings.TrimPrefix(match, " (default "), ")")
+		annotation := i18n.GetTextF("cli.help.default_value", value)
+		if strings.HasPrefix(annotation, "（") {
+			// A full-width bracket carries its own spacing; an ASCII space in
+			// front of it reads as a stray gap in Chinese.
+			return annotation
+		}
+		return " " + annotation
+	})
+}
+
+var flagDefaultPattern = regexp.MustCompile(`(?m) \(default [^)]*\)$`)
 
 func trimHelpSpace(s string) string {
 	return strings.TrimRight(s, " \t\r\n")

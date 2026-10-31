@@ -974,6 +974,10 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **A Chinese `--help` no longer ends in English**: pflag renders the
+  "(default 3)" annotation itself, so every localised flag table still carried it.
+  The annotation now follows the translator and reads `（默认 3）`, with the
+  full-width bracket keeping Chinese spacing; English output is unchanged.
 - **The burn question follows the window language, all of it**: the token burn
   dialog kept an English title, an English detail and a reversed argument order
   in Chinese ("从 25 销毁 owner-pk？"), because the helper did not translate the
