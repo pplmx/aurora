@@ -306,7 +306,38 @@ type chipItem struct {
 	pick  func()
 }
 
-// chipPicker renders a labelled row of quiet buttons. It is the shape the
+// chipButton is one choice offered beside a field: a voter's name, a roster
+// candidate, a stored session. It is a small pill rather than quiet text
+// because the earlier rendering read as a label-value pair — the operator saw
+// "Voters / Ada" and had no cue that clicking Ada fills the public-key field.
+// The border and surface make it identifiable as a control without competing
+// with the card's primary action, and the accent answers hover and press.
+func chipButton(c *ui.Context, label string) ui.Element {
+	label = tr(label)
+	tone := c.Theme().Accent
+	b := ui.ButtonBase(c).Height(max(26, textSize(c, 26))).
+		PaddingX(max(space3, textSize(c, 12))).Radius(999).
+		AlignItems(ui.Center).Label(label)
+	fill, outline := c.Theme().Background.Mix(c.Theme().Surface, 0.42), c.Theme().Border
+	textColor := c.Theme().Text
+	switch {
+	case b.Pressed():
+		fill, outline = tone.Alpha(0.2), tone.Alpha(0.7)
+		textColor = tone
+	case b.Hovered():
+		fill, outline = tone.Alpha(0.12), tone.Alpha(0.55)
+		textColor = tone
+	}
+	b.Background(b.AnimateColor("chip-fill", fill, ui.Animation{Duration: 100 * time.Millisecond}))
+	b.BorderWidth(1).BorderColor(outline)
+	b.Children(func() {
+		ui.Text(c, label).FontSize(textSize(c, 11.5)).FontWeight(500).SingleLine().
+			TextColor(textColor)
+	})
+	return b
+}
+
+// chipPicker renders a labelled row of one-click choices. It is the shape the
 // voting cards use to turn stored ids into one click — a session, a roster
 // candidate, a registered voter — so the three keep one rhythm and a later card
 // can offer the same choice without copying the layout. An empty list draws
@@ -321,7 +352,7 @@ func chipPicker(c *ui.Context, label string, items []chipItem) {
 		eyebrow(c, label)
 		ui.Row(c).Wrap().Gap(space2).Children(func() {
 			for _, item := range items {
-				if quietButton(c, item.label).Clicked() {
+				if chipButton(c, item.label).Clicked() {
 					item.pick()
 				}
 			}
