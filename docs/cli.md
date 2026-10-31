@@ -20,7 +20,8 @@ autoload -U compinit && compinit              # zsh：把 `aurora completion zsh
 ```
 
 补全覆盖子命令、flag 与已注册的枚举值（例如 `--type` 的合法取值）；脚本内容随命令
-树自动更新，不需要仓库另存一份。
+树自动更新，不需要仓库另存一份。`completion` 及其四个 shell 子命令的帮助文本由
+Cobra 生成，保持英文——它们描述的是脚本本身，不是 Aurora 的行为。
 
 读取与写入命令都支持 `--json`：输出**一个**文档（stdout 无横幅），字段与 REST
 一致，可直接 `| jq`；文档里的字段值不随界面语言变化（例如 `version` 的 `name`
