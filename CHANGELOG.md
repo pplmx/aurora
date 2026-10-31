@@ -12,6 +12,12 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **A selectable record says so with a radio mark**: token, NFT, draw, voter,
+  candidate, session and data-source lists drew the same recessed card whether
+  or not a row was a choice, so the only cues were the hint above the list and
+  a tint after the first click. A leading radio circle now marks every
+  selectable row, fills with the page accent when chosen, and the row's border
+  warms on hover; read-only streams keep plain records.
 - **The ledger page size sits on the search row**: the `Show` field stacked its
   label above a number input at the card's far right, so the word floated a line
   away from the control it named while the search field occupied a small part of

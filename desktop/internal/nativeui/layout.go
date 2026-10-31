@@ -152,8 +152,10 @@ func selectableRecordPanel(c *ui.Context, selected bool, label string, fn func()
 		fill, outline = c.Theme().Selection, c.Theme().Accent
 	} else if panel.Pressed() {
 		fill = c.Theme().SurfacePressed
+		outline = c.Theme().Accent.Alpha(0.65)
 	} else if panel.Hovered() {
 		fill = c.Theme().SurfaceHover
+		outline = c.Theme().Accent.Alpha(0.5)
 	}
 	panel.BorderColor(outline)
 	panel.Background(panel.AnimateColor("record-fill", fill,
