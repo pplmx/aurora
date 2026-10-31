@@ -28,6 +28,17 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The outbound-address policy lives in one package**: the block list was in
+  `internal/netguard` while the host and dial checks that apply it stayed in
+  the HTTP client, so a reader had to open two packages to see one policy and
+  the package comment claimed call sites it did not contain. `IsBlockedHost`,
+  `HostBlocked` (the DNS-aware redirect check) and `ValidateDialAddress` moved
+  into `netguard`, their unit tests moved with them, and the HTTP client keeps
+  only the wiring: its redirect policy and dialer call the shared checks, and
+  `ErrBlockedDestination` is an alias of `netguard`'s sentinel so existing
+  `errors.Is` call sites keep working. `fetcher.go` drops from 720 to 636
+  lines.
+
 - **The README's project tree lists every package**: it is the first map a
   contributor reads and seven shipped packages were missing from it
   (`config`, `logger`, `metrics`, `netguard`, `records`, `background` and

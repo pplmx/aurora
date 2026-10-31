@@ -8,67 +8,6 @@ import (
 	"time"
 )
 
-func TestIsBlockedHost(t *testing.T) {
-	tests := []struct {
-		host string
-		want bool
-	}{
-		{"127.0.0.1", true},
-		{"127.0.0.1:8080", true},
-		{"[::1]", true},
-		{"[::1]:8080", true},
-		{"169.254.169.254", true},
-		{"10.0.0.5", true},
-		{"172.16.0.1", true},
-		{"192.168.1.1", true},
-		{"100.64.0.1", true},
-		{"0.0.0.0", true},
-		{"203.0.113.1", true},
-		{"224.0.0.1", true},
-		{"[2002:7f00:1::]", true},
-		{"8.8.8.8", false},
-		{"[2606:4700:4700::1111]", false},
-		{"93.184.216.34", false},
-		{"", false},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.host, func(t *testing.T) {
-			// isBlockedHost is the IP-literal primitive; hostname redirects
-			// are handled by redirectHostBlocked (DNS-aware) below.
-			if got := isBlockedHost(tt.host); got != tt.want {
-				t.Errorf("isBlockedHost(%q) = %v, want %v", tt.host, got, tt.want)
-			}
-		})
-	}
-}
-
-// TestRedirectHostBlocked proves hostname redirect targets are resolved and
-// rejected when they land in blocked space — localhost is the canonical SSRF
-// target and would have slipped through a literal-IP-only check.
-func TestRedirectHostBlocked(t *testing.T) {
-	if got, err := redirectHostBlocked("localhost:8080"); err != nil || !got {
-		t.Fatalf("redirectHostBlocked(localhost:8080) = (%v, %v), want (true, nil)", got, err)
-	}
-
-	if got, err := redirectHostBlocked("127.0.0.1:9"); err != nil || !got {
-		t.Fatalf("redirectHostBlocked(127.0.0.1:9) = (%v, %v), want (true, nil)", got, err)
-	}
-
-	if got, err := redirectHostBlocked("8.8.8.8"); err != nil || got {
-		t.Fatalf("redirectHostBlocked(8.8.8.8) = (%v, %v), want (false, nil)", got, err)
-	}
-
-	if got, err := redirectHostBlocked("[2606:4700:4700::1111]"); err != nil || got {
-		t.Fatalf("redirectHostBlocked(public IPv6) = (%v, %v), want (false, nil)", got, err)
-	}
-
-	// A host that cannot be resolved must be treated as blocked, never followed.
-	if got, err := redirectHostBlocked("does-not-exist-aurora.invalid"); err == nil || got {
-		t.Fatalf("redirectHostBlocked(.invalid) = (%v, %v), want (false, error)", got, err)
-	}
-}
-
 // TestFetcher_RedirectToPrivateIPBlocked proves a redirection that would land
 // the fetcher on a loopback/private address is refused — the SSRF primitive
 // where a hostile source bounces us at 127.0.0.1 or cloud metadata.

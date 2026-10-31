@@ -1,5 +1,12 @@
 // Package netguard centralizes the destination-address policy shared by the
-// Oracle domain validator, redirect policy and guarded HTTP dialer.
+// Oracle domain validator, the HTTP client's redirect policy and its guarded
+// dialer.
+//
+// IsBlockedIP answers the policy for a concrete address; host.go answers it for
+// the two forms a request actually carries — a URL host that may be a name, and
+// the address a dialer is about to connect to. Keeping all three here means the
+// block list sits beside every check that applies it, instead of one check
+// living in this package and two elsewhere.
 package netguard
 
 import (

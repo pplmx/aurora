@@ -83,37 +83,6 @@ func TestNewFetcher_DialContextBlocksPrivateDestination(t *testing.T) {
 	}
 }
 
-func TestValidateDialDestination(t *testing.T) {
-	tests := []struct {
-		address string
-		blocked bool
-	}{
-		{address: "127.0.0.1:80", blocked: true},
-		{address: "10.0.0.5:443", blocked: true},
-		{address: "169.254.169.254:80", blocked: true},
-		{address: "[::1]:443", blocked: true},
-		{address: "[fe80::1%eth0]:443", blocked: true},
-		{address: "[fec0::1]:443", blocked: true},
-		{address: "[::127.0.0.1]:80", blocked: true},
-		{address: "8.8.8.8:53", blocked: false},
-		{address: "[::ffff:8.8.8.8]:443", blocked: false},
-		{address: "[2606:4700:4700::1111]:443", blocked: false},
-		{address: "not-an-address", blocked: true},
-		{address: "unresolved.example:443", blocked: true},
-	}
-	for _, tt := range tests {
-		t.Run(tt.address, func(t *testing.T) {
-			err := validateDialDestination(tt.address)
-			if tt.blocked && !errors.Is(err, ErrBlockedDestination) {
-				t.Fatalf("validateDialDestination(%q) = %v, want ErrBlockedDestination", tt.address, err)
-			}
-			if !tt.blocked && err != nil {
-				t.Fatalf("validateDialDestination(%q) = %v, want nil", tt.address, err)
-			}
-		})
-	}
-}
-
 func TestCheckDialDestination_AllowsTrustedProxyEndpoint(t *testing.T) {
 	dialer := newSecurityDialer()
 	state := &proxyDialState{}
