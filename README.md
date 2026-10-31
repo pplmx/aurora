@@ -70,7 +70,6 @@ just gen-zh-hant <OpenCC 词典目录> # 从简体表重新生成繁体表
 just lint            # golangci-lint
 just dep             # 下载依赖
 just clean           # 清理构建产物
-just dev             # Docker 开发镜像
 ```
 
 ## 桌面端（推荐）
@@ -221,12 +220,10 @@ just coverage-floor         # Domain/App 覆盖率底线（80%）
 just desktop-coverage-floor # 桌面 deskapp/nativeui 覆盖率底线（70%）
 go test ./... -cover
 
-just dev        # 构建并启动 CLI 工具箱容器
 just image      # 只构建镜像
-just prod       # 构建镜像并启动
-just restart    # 重启服务
-just start      # docker compose up -d
-just stop       # docker compose down
+
+docker compose run --rm aurora lottery create -p "A,B,C" -s "seed" -c 3
+docker compose run --rm aurora lottery history
 ```
 
 贡献约定（门槛、分层约束、提交粒度）见 [AGENTS.md](AGENTS.md)。

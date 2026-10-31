@@ -190,23 +190,8 @@ run: build-current
 image:
     docker build --build-arg VERSION="$(git describe --tags --always --dirty 2>/dev/null || git rev-parse --short HEAD)" --build-arg BUILD_TIME="$(date -u +%Y-%m-%dT%H:%M:%SZ)" -t pplmx/aurora .
 
-# Start services with docker compose
-start:
-    docker compose up -d
-
-# Stop services
-stop:
-    docker compose down
-
-# Restart services
-restart:
-    docker compose restart
-
-# Development: build image and start
-dev: image start
-
-# Production: build image and start
-prod: image start
+# The image is a one-shot CLI toolbox, not a daemon: run a command in it with
+# `docker compose run --rm aurora <command>` (see compose.yml).
 
 # Clean up
 clean:
