@@ -28,6 +28,16 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The SSRF rules are a table of reasons, not a run-on list of prefixes**:
+  the API reference named blocked ranges inline in a twenty-line paragraph that
+  also carried the header rules and the redirect policy. It listed about half of
+  the 30 prefixes in the policy and gave no way to tell which half. They are now
+  grouped by why they are blocked — loopback, private, link-local, CGNAT,
+  multicast, documentation ranges, IPv6 transition prefixes — with one example
+  each and a pointer to `internal/netguard/blocked.go` for the full set. A test
+  checks that every prefix the table names exists in that file and that the
+  count in the prose matches the list.
+
 - **Settings says whether the language was chosen or follows the system**: the
   card showed the language in effect as an active radio plus a separate Follow
   System button, so a window following an English system and one set to English
