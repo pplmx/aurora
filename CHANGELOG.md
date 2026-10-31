@@ -974,6 +974,12 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **A config path Viper cannot describe says why**: `--config <directory>` and
+  `--config <file without an extension>` both answered
+  `failed to read config: Unsupported Config Type ""`. Both the CLI and
+  `aurora-api` now report "config path … is a directory" or "config file … has no
+  extension; Aurora reads .toml", while a missing `.toml` keeps the OS message
+  that already names the path.
 - **A database path that names a directory says so**: SQLite answered the first
   write with "unable to open database file (14)", which names neither the path nor
   the reason; the shared directory check now reports "database path … is a

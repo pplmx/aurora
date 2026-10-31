@@ -170,7 +170,12 @@ func validateHTTPTimeout() error {
 func initConfig() {
 	configErr = nil
 	if cfgFile != "" {
-		// Use config file from the flag.
+		// Use config file from the flag. A directory or an extension-less path
+		// would otherwise fail inside Viper as "Unsupported Config Type".
+		if err := config.ValidateExplicitConfigPath(cfgFile); err != nil {
+			configErr = wrapCLIError("cli.error.read_config", err)
+			return
+		}
 		viper.SetConfigFile(cfgFile)
 	} else {
 		// Find home directory.

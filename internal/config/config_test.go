@@ -630,3 +630,19 @@ func TestLoad_RejectsInvalidDuration(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "http.timeout")
 }
+
+// TestLoadFile_RejectsPathsViperCannotDescribe: a directory or an extension-less
+// path used to fail inside Viper as `Unsupported Config Type ""`, which names
+// neither the path nor the reason.
+func TestLoadFile_RejectsPathsViperCannotDescribe(t *testing.T) {
+	resetViper()
+	setDevEnv(t)
+
+	_, err := LoadFile(t.TempDir())
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "is a directory")
+
+	_, err = LoadFile(filepath.Join(t.TempDir(), "aurora"))
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "has no extension")
+}
