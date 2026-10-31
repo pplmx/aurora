@@ -12,6 +12,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The architecture document's dependency table is checked, not trusted**:
+  the table claims to be verifiable against `go list` and had already drifted —
+  `domain`'s row said standard library and same-layer only while
+  `domain/oracle` imported `netguard`, and `nativeui`'s row listed one
+  dependency while the package also imports the lottery domain for pre-write
+  validation. Every row now names the packages its directory actually imports,
+  a new `repocheck` test compares the table to the production imports, and a
+  row that says "no internal dependencies" fails if one appears.
 - **The dashboard's module rails are declared once**: the four rails were
   written out in both layouts, so a rail's title, note or summed total could
   drift between them. They are one ordered list now, with each column naming
