@@ -127,7 +127,7 @@ func (a *App) renderNFTBurnDialog(c *ui.Context) {
 		}
 		detail = fmt.Sprintf(tr("Burn %s? The asset is destroyed and cannot be recovered."), target)
 	}
-	switch destructiveConfirm(c, &a.nft.askBurn, tr("Burn this NFT?"), detail, tr("Burn"),
+	switch destructiveConfirm(c, &a.nft.askBurn, "Burn this NFT?", detail, "Burn",
 		a.nft.burnTrigger, a.nft.burnTrigger) {
 	case destructiveConfirmed:
 		id := strings.TrimSpace(a.nft.burnID)

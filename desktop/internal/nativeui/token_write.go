@@ -218,7 +218,7 @@ func (a *App) renderBurnDialog(c *ui.Context) {
 			"Burn %s from %s? The tokens are destroyed permanently and cannot be recovered.",
 			valueOr(amount), valueOr(owner))
 	}
-	switch destructiveConfirm(c, &a.token.askBurn, tr("Burn tokens?"), detail, tr("Burn"),
+	switch destructiveConfirm(c, &a.token.askBurn, "Burn tokens?", detail, "Burn",
 		a.token.burnTrigger, a.token.burnTrigger) {
 	case destructiveConfirmed:
 		tokenID := strings.TrimSpace(a.token.tokenID)
