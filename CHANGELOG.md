@@ -28,6 +28,13 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The REST reference explains errors once**: "错误响应" opened the document
+  with the envelope and the full code table, then a separate "错误格式" near the
+  end repeated the envelope and stated the status-code rule again, 440 lines
+  later. The second section is gone; its status-code rule and the
+  unknown-resource rule now sit with the envelope at the top, next to the code
+  table a reader consults when one of them fires.
+
 - **The CLI reference's closing section is split by question**: one
   "确认门与错误输出" list held eight unrelated policies — the confirmation gate,
   exit-code rules, log levels, file permissions, config validation, duration
