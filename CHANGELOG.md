@@ -28,6 +28,14 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The CLI spells its labels the way the window does**: the core catalog said
+  抽奖ID, 候选人ID and 会话ID in three places while the desktop table said 抽奖 ID
+  for the same string. The project writes Chinese prose with a space between a
+  Chinese character and a Latin word; a rule applied in three of four places is
+  the kind of thing a reader notices without being able to name.
+- **A test holds that rule across all four catalogs**: it strips placeholders
+  and escaped newlines first, because those separate as much as a space does.
+
 - **The ledger calls an NFT's owner a holder, like the page does**: the NFT
   page and the transfer record were renamed to "Holder" a while back, but the
   decoder kept emitting "Owner" for a mint, so a ledger row read Owner in
