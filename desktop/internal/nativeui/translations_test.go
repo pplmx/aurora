@@ -1,6 +1,7 @@
 package nativeui
 
 import (
+	"fmt"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -21,34 +22,39 @@ import (
 // translatedCallArgs lists the helpers that translate literal string
 // arguments themselves. The test below walks them so a new visible label
 // cannot silently fall back to English when Chinese is selected.
+//
+// The indices count every parameter, including the leading *ui.Context that a
+// view helper takes. An off-by-one there is silent rather than loud: the walk
+// simply finds a non-literal argument at that position and skips the call, so
+// the audit keeps passing while an entire family of labels goes unchecked.
 var translatedCallArgs = map[string][]int{
 	"tr":                   {0},
-	"field":                {0},
-	"fieldWithError":       {0},
-	"validatedField":       {0},
-	"fieldHint":            {0, 1},
-	"textArea":             {0},
-	"textAreaHint":         {0, 1},
-	"hint":                 {0},
-	"emptyNote":            {0},
-	"copyRow":              {0},
-	"primaryButton":        {0},
-	"secondaryButton":      {0},
-	"dangerButton":         {0},
-	"quietButton":          {0},
+	"field":                {1},
+	"fieldWithError":       {1},
+	"validatedField":       {1},
+	"fieldHint":            {1, 2},
+	"textArea":             {1},
+	"textAreaHint":         {1, 2},
+	"hint":                 {1},
+	"emptyNote":            {1},
+	"copyRow":              {1},
+	"primaryButton":        {1},
+	"secondaryButton":      {1},
+	"dangerButton":         {1},
+	"quietButton":          {1},
 	"errorStatus":          {0},
-	"tabs":                 {1},
-	"sectionHeading":       {0, 1},
-	"sectionRule":          {0},
-	"formCard":             {0, 1},
+	"tabs":                 {2},
+	"sectionHeading":       {1, 2},
+	"sectionRule":          {1},
+	"formCard":             {1, 2},
 	"emptyState":           {2, 3},
 	"firstRunPath":         {2, 3, 4, 5, 6, 7},
-	"badge":                {0},
+	"badge":                {1},
 	"guide":                {2, 3, 4, 5, 6},
-	"loadWarning":          {0},
+	"loadWarning":          {1},
 	"preferenceStateLabel": {1, 2},
-	"pagerControls":        {1},
-	"collectionToolbar":    {2, 3},
+	"pagerControls":        {1, 3},
+	"collectionToolbar":    {2, 3, 4},
 	"collectionList":       {1},
 	"collectionPager":      {1},
 	// Helpers that translate their label parameter: without these entries a
@@ -56,7 +62,7 @@ var translatedCallArgs = map[string][]int{
 	// test that only reads tables.
 	"chipPicker":         {1},
 	"fieldPair":          {1, 3},
-	"destructiveConfirm": {2, 4},
+	"destructiveConfirm": {2, 3, 4},
 	"eyebrow":            {1},
 	"verdictPill":        {2},
 	"searchField":        {2},
@@ -211,6 +217,90 @@ func TestChineseTranslationsKeepChromeVocabularyInChinese(t *testing.T) {
 			require.NotContainsf(t, translated, forbidden,
 				"%q still contains untranslated UI chrome %q", translated, forbidden)
 		}
+	}
+}
+
+// TestTranslatedCallArgsPointAtStringParameters keeps the audit above honest.
+// A view helper's first parameter is its *ui.Context, so a label sits one slot
+// later than the call might suggest. An index that points at the context, a
+// *string or a bool is not an error the walk reports: it simply finds a
+// non-literal argument there and skips the call, which is how two untranslated
+// labels shipped while the audit kept passing. Every registered index must name
+// a string parameter of the helper it is registered against.
+func TestTranslatedCallArgsPointAtStringParameters(t *testing.T) {
+	entries, err := os.ReadDir(".")
+	require.NoError(t, err)
+
+	// funcs maps a helper to the parameter types its declaration spells out.
+	// Variadic helpers list their variadic element type once, because a label
+	// passed through it is still a string.
+	funcs := map[string][]string{}
+	fset := token.NewFileSet()
+	for _, entry := range entries {
+		name := entry.Name()
+		if entry.IsDir() || !strings.HasSuffix(name, ".go") ||
+			strings.HasSuffix(name, "_test.go") {
+			continue
+		}
+		file, err := parser.ParseFile(fset, name, nil, 0)
+		require.NoError(t, err)
+		for _, decl := range file.Decls {
+			fn, ok := decl.(*ast.FuncDecl)
+			if !ok || fn.Recv != nil || fn.Type.Params == nil {
+				continue
+			}
+			var types []string
+			for _, field := range fn.Type.Params.List {
+				typ := typesExprString(field.Type)
+				count := len(field.Names)
+				if count == 0 {
+					count = 1
+				}
+				for i := 0; i < count; i++ {
+					types = append(types, typ)
+				}
+			}
+			funcs[fn.Name.Name] = types
+		}
+	}
+
+	for helper, indices := range translatedCallArgs {
+		params, ok := funcs[helper]
+		require.Truef(t, ok, "%q is registered as a translating helper but has no declaration", helper)
+		// A trailing ...string accepts any number of labels past its position:
+		// firstRunPath's steps and guide's steps both arrive that way.
+		variadic := -1
+		if len(params) > 0 && params[len(params)-1] == ".string" {
+			variadic = len(params) - 1
+		}
+		for _, index := range indices {
+			if variadic >= 0 && index >= variadic {
+				continue
+			}
+			require.Lessf(t, index, len(params),
+				"%s has %d parameters; index %d is past its last argument",
+				helper, len(params), index)
+			require.Equalf(t, "string", params[index],
+				"%s parameter %d is %s, not a string label: the audit would skip every call to it",
+				helper, index, params[index])
+		}
+	}
+}
+
+// typesExprString renders the parameter types the audit cares about: a bare
+// string, an ellipsis, and the name of everything else.
+func typesExprString(expr ast.Expr) string {
+	switch t := expr.(type) {
+	case *ast.Ident:
+		return t.Name
+	case *ast.StarExpr:
+		return "*" + typesExprString(t.X)
+	case *ast.Ellipsis:
+		return "." + typesExprString(t.Elt)
+	case *ast.SelectorExpr:
+		return typesExprString(t.X) + "." + t.Sel.Name
+	default:
+		return fmt.Sprintf("%T", expr)
 	}
 }
 

@@ -12,6 +12,15 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The Chinese window says "Failed to load allowance" and "Use this draw for
+  Verify" in Chinese**: two labels had no catalog entry, so the allowance
+  read's failure and the History card's reuse action stayed English. Both are
+  translated now, and the audit that should have caught them was the real bug:
+  its index table pointed at each helper's `*ui.Context` instead of its label,
+  so the walk found a non-literal argument there and skipped every call. A new
+  test asserts each registered index names a string parameter, which fails
+  loudly the next time the table drifts from a helper's signature.
+
 - **A failed list read looks like the other strips**: the in-card failure was
   plain danger-red text, so the one state that must not be missed read as a hint
   line among the card's other copy, and its retained-data note looked like part
