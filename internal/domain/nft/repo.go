@@ -29,7 +29,10 @@ type Repository interface {
 	// `from` to `to` for the given nftID. If the current owner
 	// does not match `from` (e.g. a concurrent transfer has
 	// already moved it), the operation fails and returns
-	// ErrOwnershipChanged without modifying state.
+	// ErrOwnershipChanged without modifying state. Returns
+	// ErrNFTNotFound if the asset no longer exists — a concurrent
+	// burn can delete it between the caller's existence check and
+	// this write, and the two outcomes map to different statuses.
 	//
 	// This is the atomic primitive that closes the TOCTOU window
 	// in NFTService.Transfer (the read-modify-write path silently
