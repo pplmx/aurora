@@ -28,8 +28,28 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
-- **`Amount.Cmp` panicked on an amount whose integer was never set**: `String`,
-  `Sign` and `Int64` all treat a nil embedded `*big.Int` as zero — they check
+- **The desktop's readout label column was estimated from bytes, not
+  measured**: `labelColumnWidth` multiplied the byte length of a label by 7.5
+  instead of asking the text engine. Every Chinese character is three bytes, so
+  数据库路径 — 55px at the label size — reserved 112px and 已记住的密钥 reserved
+  135px. The Chinese About card then spent half its width on an empty label
+  column and pushed its values into the remaining space, where the database
+  path ellipsised.
+- **Each row also sized its own column.** `Version`, `Build time` and
+  `Database` produced three different label widths, so the values beneath them
+  started at three different x positions and the card read as a ragged list
+  instead of a table. `readout` now measures every label in the panel once and
+  gives them one shared column.
+- **The measurement is the text engine's**: `labelColumnWidth` calls
+  `Context.MeasureText`, the same call MyGo lays the text out with, and keeps
+  the 72px floor and 160px ceiling. The label size moved to a `labelSize`
+  constant because the column is derived from it.
+- **Keeping the byte estimate fails the new test in all three locales**: the
+  zh case reports `"133.5" is not less than or equal to "107"`, and the per-row
+  column fails with values beginning at 93, 96 and 111px.
+- **`Amount.Cmp` panicked on an amount whose integer was never set**:
+  `String`, `Sign` and `Int64` all treat a nil embedded `*big.Int` as zero —
+  they check
   `a.Int == nil` before dereferencing. `Cmp` checked only the receivers, so the
   same value printed `"0"`, reported `Sign 0`, and then panicked the moment a
   caller compared it. A money type is the wrong place for three of four methods
