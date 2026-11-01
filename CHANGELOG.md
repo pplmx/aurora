@@ -322,6 +322,16 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **Changing the oracle limit re-reads the card, and now a test says so**: the
+  Query card compares the Limit field against the limit its rows answer and
+  re-reads on a change, so the number in the field describes what is on screen.
+  Nothing covered it — the existing cases changed the subject, not the page size,
+  the same gap the NFT collection had. `docs/desktop.md` now states which cards
+  re-read on a size change (those whose list loads itself) and which return to
+  "not loaded" for their own button (the explicit-read history cards), because a
+  silent re-read there would leave the reader unsure whether the rows came from
+  the button or the edit.
+
 - **A new NFT page size re-reads the collection**: the Show field only changed
   how the *next* page would be read, so the number in the field contradicted the
   rows under it until something else forced a load. The ledger's Show field
