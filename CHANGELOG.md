@@ -246,6 +246,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **The verify count says it includes the genesis block**: `blockchain verify`
+  printed "Blocks: 2" on a ledger whose `blockchain blocks` printed "Audit
+  records: 1". Both were right — verify reports the chain's length, which counts
+  genesis, and blocks reports audit records, which does not — but the labels
+  differed by one plural, so reading them side by side looked like a miscount.
+  It now reads "Blocks (including genesis)", and `docs/cli.md` states the
+  difference beside the commands.
+
 - **The desktop latest-value card says when a read came back empty**: a source
   with no readings drew nothing — no rows, no line — so an answered empty read
   looked like a card that had never been used. `latestLoadedSource` marks the
