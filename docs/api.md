@@ -493,7 +493,7 @@ NFT 写接口的字段：
 
 | 端点                  | 字段                                                                  |
 | --------------------- | --------------------------------------------------------------------- |
-| `token/create`        | `name`、`symbol`、`total_supply`、`owner`、`decimals`（0..127，可选） |
+| `token/create`        | `name`（≤100 字节）、`symbol`（≤10 字节）、`total_supply`、`owner`、`decimals`（0..127，可选） |
 | `token/mint`          | `token_id`、`to`、`amount`、`private_key`                             |
 | `token/transfer`      | `token_id`、`from`、`to`、`amount`、`private_key`                     |
 | `token/approve`       | `token_id`、`owner`、`spender`、`amount`、`private_key`               |
