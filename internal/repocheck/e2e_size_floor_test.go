@@ -104,3 +104,26 @@ func TestTheCaptureScrollsByWheelNotByAccessibilityAction(t *testing.T) {
 	require.NotEqual(t, -1, capture, "the capture call must remain")
 	assert.Less(t, check, capture, "the scroll must be verified before the capture")
 }
+
+// TestTheDesktopLimitCeilingStaysHonest covers the one place the window's paging
+// ceiling differs from the gateway's. The form accepts up to maxListLimit (1000)
+// while REST and the CLI cap the same query at 100; the window may be wider
+// because it reads in process, but only if the number it shows is the number it
+// reads. A clamp added between the field and the request would make the form
+// state a page size the card never used.
+func TestTheDesktopLimitCeilingStaysHonest(t *testing.T) {
+	controls := readRepoFile(t, "desktop", "internal", "nativeui", "controls.go")
+	require.Contains(t, controls, "const maxListLimit = 1000",
+		"the window's ceiling has a documented reason; update this check with it")
+
+	oracle := readRepoFile(t, "desktop", "internal", "nativeui", "oracle.go")
+	limit := oracle[strings.Index(oracle, "func (a *App) oracleQueryLimit() int"):]
+	limit = limit[:strings.Index(limit, "\n}")]
+	assert.Contains(t, limit, "maxListLimit", "the card clamps to the form's own ceiling")
+	assert.NotContains(t, limit, "100)", "clamping to the gateway's ceiling would make the field lie")
+
+	// The gateway's ceiling is still the smaller one, which is what makes the
+	// difference worth documenting rather than treating as a bug.
+	handler := readRepoFile(t, "internal", "api", "handler", "oracle.go")
+	assert.Contains(t, handler, "maxQueryLimit = 100")
+}
