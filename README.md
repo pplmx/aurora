@@ -248,16 +248,16 @@ Docker 镜像只包含 CLI，没有 HTTP 监听器；`aurora-api` 只提供 REST
 
 ## 测试覆盖率
 
-`CGO_ENABLED=0 go test ./... -cover -count=1` 实测（2026-10-31）：
+`CGO_ENABLED=0 go test ./... -cover -count=1` 实测（2026-11-01）：
 
 | 模块    | Domain | App   |
 | ------- | ------ | ----- |
-| Lottery | 91.7%  | 87.4% |
+| Lottery | 94.2%  | 87.4% |
 | Voting  | 93.1%  | 84.1% |
-| NFT     | 82.0%  | 81.6% |
-| Token   | 91.2%  | 91.2% |
-| Oracle  | 87.6%  | 91.0% |
-| SQLite  | -      | 81.4% |
+| NFT     | 87.5%  | 81.6% |
+| Token   | 91.6%  | 91.2% |
+| Oracle  | 92.3%  | 91.1% |
+| SQLite  | -      | 81.5% |
 | 组合根  | -      | 87.9% |
 
 所有模块都在 80% 门槛之上，`just coverage-floor` 与 `just desktop-coverage-floor`
@@ -265,7 +265,7 @@ Docker 镜像只包含 CLI，没有 HTTP 监听器；`aurora-api` 只提供 REST
 （目录不可建、建表失败、权限收紧失败）；正常路径与事务委托都有直接测试。
 每包的数字在连续多次运行中保持一致：此前抽奖模块在 89.8%–90.8% 之间漂移，
 原因是拒绝路径的测试用随机密钥对生成输入，走到哪个校验分支取决于随机结果；
-改用固定字节后稳定在 91.7%。
+改用固定字节后不再漂移，本次三次连跑均为 94.2%。
 抽奖的解析顺序（精确 ID → 区块高度 → 子串）由 `verify_resolution_test.go`
 直接锁定；`nft_cascade_test.go` 用一个旧 schema 数据库验证审计表重建不丢行。
 
