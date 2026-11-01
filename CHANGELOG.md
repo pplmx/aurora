@@ -28,6 +28,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The ledger's own past-the-end fallback is tested too**: the other seven
+  lists recurse to page zero inside their loader, but the ledger's offset and
+  rows arrive in one page document, so its view notices an empty page carrying
+  an offset, resets it and re-reads. That branch had no test, and the existing
+  one covered the opposite case. Reaching it needs the store to shrink under an
+  open page plus a read, since the view re-reads on a changed query or page size
+  only — which is what keeps a repaint from scanning the chain.
+
 - **The page-past-the-end fallback is now tested**: seven window loaders share a
   path nothing exercised — a read that comes back empty with a positive offset
   recurses to page zero, because an empty page carrying an offset is not an
