@@ -28,6 +28,12 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The capture guide names every switch the script reads**: `AURORA_E2E_OUT`
+  and `AURORA_E2E_DISPLAY` were only in the script's own header, so a reader
+  following `docs/desktop.md` met a run that wrote somewhere unexpected or
+  failed to start because it wanted a display it was never told about. A test
+  now holds the two files together.
+
 - **The Simplified and Traditional catalogs must share one key set**: `T` falls
   back to English and then to the key itself, so a key added to one catalog and
   forgotten in another degrades quietly — the window shows English, or a raw
