@@ -322,6 +322,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **A query cleared while the list is empty is still recorded**: the voter,
+  candidate and session lists updated their applied-query field after the
+  empty-list return, so a query cleared at that moment kept looking applied. Two
+  things followed: `votingNeedsFirstRecord` counted the stale query as "the
+  reader has entered", so an empty store showed a work bench instead of the
+  first-record guide, and the next read announced itself as a search result. The
+  field's state is a fact about the field, not about whether rows survived.
+
 - **Changing the oracle limit re-reads the card, and now a test says so**: the
   Query card compares the Limit field against the limit its rows answer and
   re-reads on a change, so the number in the field describes what is on screen.
