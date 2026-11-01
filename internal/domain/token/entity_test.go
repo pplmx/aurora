@@ -292,6 +292,13 @@ func TestAmount_Cmp(t *testing.T) {
 		{"both nil", nil, nil, 0},
 		{"a nil", nil, NewAmount(100), -1},
 		{"b nil", NewAmount(100), nil, 1},
+		// A non-nil Amount whose embedded integer was never set reads as 0
+		// everywhere else (String, Sign, Int64). Comparing one must give the
+		// same answer instead of dereferencing the nil integer.
+		{"zero value vs zero value", &Amount{}, &Amount{}, 0},
+		{"zero value vs positive", &Amount{}, NewAmount(100), -1},
+		{"positive vs zero value", NewAmount(100), &Amount{}, 1},
+		{"nil receiver vs zero value", nil, &Amount{}, 0},
 	}
 
 	for _, tt := range tests {

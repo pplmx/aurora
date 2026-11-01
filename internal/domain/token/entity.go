@@ -49,14 +49,21 @@ func (a *Amount) IsPositive() bool {
 	return a != nil && a.Int != nil && a.Sign() > 0
 }
 
+// Cmp orders two amounts. A nil receiver, or one whose embedded integer was
+// never set, counts as absent — the same reading String, Sign and Int64 give
+// it. Disagreeing with them would make a zero-value Amount print "0" and
+// report Sign 0 while panicking the moment a caller compared it, and a money
+// type is the wrong place for that surprise.
 func (a *Amount) Cmp(other *Amount) int {
-	if a == nil && other == nil {
+	aAbsent := a == nil || a.Int == nil
+	otherAbsent := other == nil || other.Int == nil
+	if aAbsent && otherAbsent {
 		return 0
 	}
-	if a == nil {
+	if aAbsent {
 		return -1
 	}
-	if other == nil {
+	if otherAbsent {
 		return 1
 	}
 	return a.Int.Cmp(other.Int)
