@@ -11,6 +11,8 @@ var chineseMessages = map[string]string{
 	"blockchain.verify_title":      "链完整性",
 	"blockchain.blocks":            "列出审计记录",
 	"blockchain.blocks_title":      "审计记录",
+	"blockchain.blocks_page":       "本页审计记录数",
+	"blockchain.blocks_of_total":   "显示 %d 条，共 %d 条",
 	"blockchain.blocks_empty":      "还没有模块写入记录。",
 	"blockchain.blocks_limit":      "最多列出的记录数（0 表示全部）",
 	"blockchain.blocks_offset":     "按条目计的偏移量",
