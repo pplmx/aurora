@@ -59,3 +59,50 @@ func TestSearchHintsMatchWhatTheSearchDoes(t *testing.T) {
 	assert.Equal(t, 2, wholeStore,
 		"exactly the two lists that query storage may promise a whole-store search")
 }
+
+// TestAppliedQueryIsRecordedBeforeTheEmptyReturn covers the ordering that six
+// window lists had wrong. The field records what the reader typed, so it has to
+// be updated before a list returns early over an empty page: skipped there, a
+// query cleared while the store was empty stayed applied, which hid each page's
+// first-record guide and made the next read announce itself as a search result.
+//
+// The check is structural because the symptom is not: each guard must be
+// preceded by a comparison of the search field against its applied copy, within
+// the same function.
+func TestAppliedQueryIsRecordedBeforeTheEmptyReturn(t *testing.T) {
+	cases := []struct {
+		file  string
+		guard string
+		sync  string
+	}{
+		{"voting_lists.go", "if len(a.voting.voters) == 0 {", "a.voting.voterSearch != a.voting.voterApplied"},
+		{"voting_lists.go", "if len(a.voting.candidates) == 0 {", "a.voting.candSearch != a.voting.candApplied"},
+		{"voting_lists.go", "if len(a.voting.sessions) == 0 {", "a.voting.sessionSearch != a.voting.sessionApplied"},
+		{"token.go", "if len(a.token.tokens) == 0 {", "a.token.search != a.token.appliedSearch"},
+		{"nft_collection.go", "if len(a.nft.list) == 0 {", "a.nft.search != a.nft.appliedSearch"},
+		{"oracle_sources.go", "if len(a.oracle.sources) == 0 {", "a.oracle.search != a.oracle.appliedSearch"},
+	}
+	for _, c := range cases {
+		body := readRepoFile(t, "desktop", "internal", "nativeui", c.file)
+		guard := strings.Index(body, c.guard)
+		require.NotEqualf(t, -1, guard, "%s must keep its empty-list guard", c.file)
+
+		// The comparison has to run whether or not the list is empty, so it may
+		// sit inside the guard's block or before the guard altogether — what it
+		// must not do is sit only after it. Look to the end of the enclosing
+		// function and require the first occurrence to come before the guard's
+		// own body ends.
+		start := strings.LastIndex(body[:guard], "\nfunc ")
+		require.NotEqualf(t, -1, start, "%s: the guard must sit inside a function", c.file)
+		// The guard's own block ends at the matching closing brace of its `if`,
+		// which for these one-level guards is the first "\n\t}" after it.
+		close := strings.Index(body[guard:], "\n\t\t}")
+		require.NotEqualf(t, -1, close, "%s: the guard must close at its own indentation", c.file)
+		block := body[guard : guard+close]
+		if !strings.Contains(body[start:guard], c.sync) && !strings.Contains(block, c.sync) {
+			t.Errorf("%s: %q is not compared before or inside the empty-list guard; "+
+				"a query cleared over an empty page would not be recorded",
+				c.file, c.sync)
+		}
+	}
+}
