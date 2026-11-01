@@ -90,6 +90,7 @@ var desktopMessagesHant = map[string]string{
 	"Choose a start time.":                                       "請選擇開始時間。",
 	"Choose a stored session below, or paste its ID.":            "在下方選擇已存會期，或直接粘貼 ID。",
 	"Choose a stored session in Results, or paste its ID first.": "在“結果”中選擇已存會期，或先粘貼它的 ID。",
+	"Choose a token, or enter its ID first.":                     "選擇代幣，或先輸入它的 ID。",
 	"Choose a write in the action tabs: Mint, Transfer, Approve, Transfer From or Burn. A spender's remaining allowance is in Allowance.": "在操作標籤頁選擇寫操作：鑄造、轉賬、授權、從授權扣款或銷毀。被授權方的剩餘額度在“額度”卡片。",
 	"Choose an asset in Collection or enter its ID first.":                                                                                "在“收藏”中選擇資產，或先輸入它的 ID。",
 	"Choose an end time.":                        "請選擇結束時間。",

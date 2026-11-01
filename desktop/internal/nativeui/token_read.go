@@ -308,7 +308,16 @@ func (a *App) tokenHistoryBody(c *ui.Context) {
 		return
 	}
 	if !matches {
-		emptyNote(c, "No transfers loaded yet.")
+		// The same three states the NFT history and the voting tally name: an
+		// empty field is a missing first step, a token that has not been read is
+		// "not loaded yet", and a read that returned nothing is its own answer
+		// below. Printing "not loaded yet" for the first one told the reader to
+		// press a button they could see was disabled.
+		if id == "" {
+			emptyNote(c, "Choose a token, or enter its ID first.")
+		} else {
+			emptyNote(c, "No transfers loaded yet.")
+		}
 		return
 	}
 	if len(a.token.history) == 0 {

@@ -782,4 +782,5 @@ var desktopMessages = map[string]string{
 	"Saved key filled.": "已填入保存的密钥。",
 	"Applies to menus, pages, dialogs and guidance.":        "作用于菜单、页面、对话框和说明。",
 	"Aurora keeps the ledger in one local SQLite database.": "Aurora 把账本保存在一个本地 SQLite 数据库中。",
+	"Choose a token, or enter its ID first.":                "选择代币，或先输入它的 ID。",
 }

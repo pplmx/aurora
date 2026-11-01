@@ -16,9 +16,21 @@ func TestEmptyReadoutCopyDistinguishesLoadedFromNotLoaded(t *testing.T) {
 		tester := ui.NewTester(app.View, 1280, 5000)
 		app.ShowPage("Token")
 		tester.Frame()
-		require.True(t, tester.HasText("No transfers loaded yet."))
+		// Three states, as the NFT history and the voting tally have: an empty
+		// field asks for a subject, a chosen-but-unread token says it has not
+		// been loaded, and a read that returned nothing says so. The card used
+		// to print the middle answer for the first state too, telling the reader
+		// to press a button that is disabled until an ID is filled in.
+		require.True(t, tester.HasText("Choose a token, or enter its ID first."),
+			"an empty token field is a missing first step, not an empty read")
+		require.False(t, tester.HasText("No transfers loaded yet."))
 
 		app.token.tokenID = "t1"
+		tester.Frame()
+		require.True(t, tester.HasText("No transfers loaded yet."),
+			"a token named but not read is not an empty history")
+		require.False(t, tester.HasText("Choose a token, or enter its ID first."))
+
 		app.token.historyLoadedToken = "t1"
 		app.token.historyLoadedLimit, app.token.historyLoadedOffset = 50, 0
 		tester.Frame()
