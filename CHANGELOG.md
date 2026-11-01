@@ -28,6 +28,16 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **`blockchain blocks` had the wrong row in the `--json` shape table**: it was
+  listed among the commands that print an array. It prints
+  `{"blocks","total","limit","offset"}` — the same page envelope as
+  `GET /blockchain/blocks` — so a script written from that row and indexing the
+  output as a list read null, quietly, on the first run of a fresh install.
+- **A CLI test runs every command in the array row on an empty database** and
+  requires an array, then checks the page's four keys and that an empty ledger
+  sends `[]` rather than null. A one-row documentation error is invisible from
+  the command succeeding.
+
 - **The CLI reference says where the `--json` envelope differs from REST**: the
   page claimed the documents carry fields "consistent with REST". That holds for
   every list command but one — `oracle source list --json` prints a bare array
