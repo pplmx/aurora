@@ -56,6 +56,22 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **An NFT transfer read 转账 in the window — the token word**: the desktop
+  resolved a record's action through its label table by the bare English word,
+  and `Transfer` is one entry, so the NFT ledger row printed the word the
+  token page uses. The repository's own term rule says an NFT transfer is 转让
+  and a token transfer is 转账; the row and the rule disagreed on the same
+  screen.
+- **`records.TextL` hands the record's module to the resolver**, and
+  `records.ScopedKey` builds `record.<kind>.<word>@<module>`. A per-module entry
+  is tried first and falls back to the bare one, so only the word that differs
+  per module carries a second entry.
+- **The window and the CLI now share one vocabulary**: the desktop resolves all
+  three kinds through the same `record.*` keys, which is the drift this removes
+  — two catalogs had been carrying the same words and had already disagreed.
+- **`repocheck` also checks the scoped entries**: a module the decoder never emits
+  or a missing bare fallback fails the check.
+
 - **Translating the row made the ledger filter read one language**: in a Chinese
   process `aurora blockchain blocks -s Winners` found nothing, although the
   documentation, the `--json` payload and every log call the fact that. The
