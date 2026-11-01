@@ -28,6 +28,18 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The reference says how a client notices a clamped page**: an over-limit page
+  request is reduced, not refused — `limit=9999` answers 200 with
+  `"limit":100`. That is deliberate, but silent clamping is only safe when the
+  caller can find out. `/blockchain/blocks` echoes the values it applied;
+  `lottery history`, `token list` and the rest return a bare array and cannot.
+- **The paragraph says what a client can do about it** — keep the request inside
+  the ceiling, or notice the returned count stopped at it. A client that assumes
+  it received everything drops records with no error anywhere.
+- **A handler test pins the behaviour** (200, clamp, echo, and negative or
+  garbage values falling back to the default), and a `repocheck` test pins the
+  paragraph to it.
+
 - **The reference states that every timestamp is unix seconds**: twenty-two
   places build timestamps with `time.Now().Unix()` and nothing uses
   `UnixMilli`/`UnixNano`, but only the voting session fields said so. A client
