@@ -11,6 +11,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/pplmx/aurora/internal/domain/nft"
@@ -494,8 +495,10 @@ func TestNFTRepository_TryTransferOwnership_NFTNotFound(t *testing.T) {
 	defer cleanup()
 
 	err := repo.TryTransferOwnership("nonexistent", []byte("a"), []byte("b"))
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "not found")
+	// The sentinel, not the wording. A message match on "not found" accepted a
+	// formatted string that no caller can classify: it falls through the API's
+	// status table and answers 500 where the missing asset deserves 404.
+	require.ErrorIs(t, err, nft.ErrNFTNotFound)
 }
 
 func TestNFTRepository_TryDeleteNFTIfOwned_Success(t *testing.T) {
@@ -594,44 +597,61 @@ func TestNFTRepository_TryDeleteNFTIfOwned_ConcurrentBurnVsTransfer(t *testing.T
 	n := testNFT(repo, t)
 	originalOwner := make([]byte, len(n.Owner))
 	copy(originalOwner, n.Owner)
+	newOwner := []byte("newowner")
 
-	errorsCh := make(chan error, 2)
+	// Each goroutine reports which operation it was, so the assertions can name
+	// the loser rather than counting outcomes.
+	type outcome struct {
+		op  string
+		err error
+	}
+	results := make(chan outcome, 2)
 	var wg sync.WaitGroup
 	wg.Add(2)
 
 	go func() {
 		defer wg.Done()
-		errorsCh <- repo.TryTransferOwnership(n.ID, originalOwner, []byte("newowner"))
+		results <- outcome{"transfer", repo.TryTransferOwnership(n.ID, originalOwner, newOwner)}
 	}()
-
 	go func() {
 		defer wg.Done()
-		errorsCh <- repo.TryDeleteNFTIfOwned(n.ID, originalOwner)
+		results <- outcome{"burn", repo.TryDeleteNFTIfOwned(n.ID, originalOwner)}
 	}()
 	wg.Wait()
-	close(errorsCh)
+	close(results)
 
-	successCount := 0
-	for err := range errorsCh {
-		if err == nil {
-			successCount++
+	var winner string
+	var loserErr error
+	for r := range results {
+		if r.err == nil {
+			winner = r.op
+			continue
 		}
+		loserErr = r.err
 	}
+	require.NotEmpty(t, winner, "exactly one of burn or transfer must succeed")
+	require.NotNil(t, loserErr, "the other operation must fail rather than also succeeding")
 
-	require.Equal(t, 1, successCount, "exactly one of burn or transfer should succeed")
+	// The loser reports a specific conflict, not an arbitrary error: both
+	// primitives distinguish "ownership moved" from "row is gone", and a caller
+	// branches on which. The old assertion here was require.True(t, true), which
+	// checked nothing at all.
+	assert.Truef(t,
+		errors.Is(loserErr, nft.ErrOwnershipChanged) || errors.Is(loserErr, nft.ErrNFTNotFound),
+		"the losing %s must report a conflict sentinel, got %v",
+		map[string]string{"transfer": "burn", "burn": "transfer"}[winner], loserErr)
 
 	retrieved, err := repo.GetNFT(n.ID)
 	require.NoError(t, err)
-	if successCount == 1 {
-		if retrieved == nil {
-			// burn won
-			require.True(t, true, "burn succeeded, NFT deleted")
-		} else {
-			// transfer won
-			require.True(t, retrieved.IsOwner([]byte("newowner")), "transfer succeeded, owner updated")
-		}
-	} else {
-		t.Fatal("exactly one operation should succeed, both failed or both succeeded")
+
+	// The winner's effect is what the row shows, and the two must agree: a burn
+	// leaves no row, a transfer leaves the new owner.
+	switch winner {
+	case "burn":
+		assert.Nil(t, retrieved, "the burn won, so the asset is gone")
+	case "transfer":
+		require.NotNil(t, retrieved, "the transfer won, so the asset remains")
+		assert.True(t, retrieved.IsOwner(newOwner), "the transfer won, so the owner is the new key")
 	}
 }
 

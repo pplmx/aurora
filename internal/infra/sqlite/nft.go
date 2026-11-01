@@ -415,14 +415,18 @@ func (r *NFTRepository) TryTransferOwnership(nftID string, from, to []byte) erro
 		return fmt.Errorf("try transfer ownership rows: %w", err)
 	}
 	if affected == 0 {
-		// Disambiguate "missing" from "ownership changed" so the
-		// caller can return the right error code.
+		// Disambiguate "missing" from "ownership changed" so the caller can
+		// return the right error code. Both branches must use a sentinel: the
+		// caller classifies with errors.Is, so a formatted message here falls
+		// through the API's status table and answers 500 where a concurrent
+		// burn left the asset gone (the 404 the existence check would have
+		// produced).
 		existing, err := r.GetNFT(nftID)
 		if err != nil {
 			return err
 		}
 		if existing == nil {
-			return fmt.Errorf("nft %q not found", nftID)
+			return nft.ErrNFTNotFound
 		}
 		return nft.ErrOwnershipChanged
 	}
