@@ -96,5 +96,5 @@ var oracleCmd = &cobra.Command{
 	Use:   "oracle",
 	Args:  cobra.NoArgs,
 	Short: i18n.GetText("oracle.cmd"),
-	Long:  i18n.GetText("oracle.cmd"),
+	Long:  i18n.GetText("oracle.long"),
 }

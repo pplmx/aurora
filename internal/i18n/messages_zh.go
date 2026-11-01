@@ -116,6 +116,7 @@ nft、token）和运维命令（migrate、backup、version）。`,
 	// ===== VOTING =====
 	// Commands
 	"voting.cmd":            "Ed25519 签名透明投票系统",
+	"voting.long":           "Ed25519 签名透明投票：注册候选人与选民、创建带投票时间窗的会期、每位选民投一张签名选票并读取计票。",
 	"voting.candidate.cmd":  "候选人管理",
 	"voting.voter.cmd":      "选民管理",
 	"voting.session.cmd":    "投票会期管理",
@@ -190,6 +191,7 @@ nft、token）和运维命令（migrate、backup、version）。`,
 	// ===== NFT =====
 	// Commands
 	"nft.cmd":      "NFT 系统",
+	"nft.long":     "Ed25519 签名 NFT：用创建者密钥铸造资产、转让给新持有者、销毁，并读取其元数据或操作历史。",
 	"nft.mint":     "铸造新 NFT",
 	"nft.transfer": "转让 NFT 所有权",
 	"nft.burn":     "销毁 NFT",
@@ -240,6 +242,7 @@ nft、token）和运维命令（migrate、backup、version）。`,
 	// ===== TOKEN =====
 	// Commands
 	"token.cmd":               "代币（FT）系统",
+	"token.long":              "ERC-20 风格的同质化代币：创建供应量，然后铸造、转账、授权额度、从授权扣款或销毁；读取余额、额度与转账历史。",
 	"token.create.cmd":        "创建新代币",
 	"token.mint.cmd":          "铸造代币",
 	"token.transfer.cmd":      "转账代币",
@@ -312,6 +315,7 @@ nft、token）和运维命令（migrate、backup、version）。`,
 	// ===== ORACLE =====
 	// Commands
 	"oracle.cmd":            "预言机数据服务",
+	"oracle.long":           "HTTP 数据源：登记数据源的方法、JSON 路径与轮询间隔，按需抓取，并读取调度器记录的数值与抓取健康度。",
 	"oracle.source.cmd":     "数据源管理",
 	"oracle.template.cmd":   "数据源模板",
 	"oracle.source.list":    "列出数据源",

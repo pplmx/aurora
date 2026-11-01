@@ -193,6 +193,32 @@ func TestRootCommandRejectsInvalidExplicitConfig(t *testing.T) {
 	})
 }
 
+// TestModuleCommandsExplainThemselves checks that every module command's help
+// opens with a sentence about what the module does, not just its name. Lottery
+// and blockchain had a Long description; the other four repeated their Short
+// line, so `aurora nft --help` opened with "NFT system" and nothing else — the
+// paragraph a reader lands on said less than the subcommand list below it.
+//
+// The test compares the two strings rather than matching words: a module may
+// legitimately restate its name in the first clause, but the help must add
+// something the one-line summary does not already say.
+func TestModuleCommandsExplainThemselves(t *testing.T) {
+	cmds := map[string]*cobra.Command{}
+	for _, c := range rootCmd.Commands() {
+		cmds[c.Name()] = c
+	}
+	for _, name := range []string{"lottery", "nft", "oracle", "token", "voting", "blockchain"} {
+		cmd, ok := cmds[name]
+		require.Truef(t, ok, "root command should register %q", name)
+		require.NotEmptyf(t, cmd.Short, "%s needs a one-line summary", name)
+		require.NotEmptyf(t, cmd.Long, "%s needs a help paragraph", name)
+		assert.NotEqualf(t, cmd.Short, cmd.Long,
+			"%s repeats its summary as its whole help; say what the module does", name)
+		require.Greaterf(t, len(cmd.Long), len(cmd.Short)+20,
+			"%s help adds too little to its summary: %q", name, cmd.Long)
+	}
+}
+
 // TestRootCommandTree asserts that all five module commands plus version
 // are registered under rootCmd. A command added to a module file but
 // forgotten in init() would go undetected here; wait — the modules call
