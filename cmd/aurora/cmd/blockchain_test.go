@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/spf13/viper"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/pplmx/aurora/internal/i18n"
 	"github.com/pplmx/aurora/internal/infra/blockchain"
+	"github.com/pplmx/aurora/internal/ledger"
 	"github.com/pplmx/aurora/internal/records"
 )
 
@@ -196,4 +198,35 @@ func TestBlockLineTranslatesTheRecordVocabulary(t *testing.T) {
 	// language: the fallback never renders raw bytes.
 	tr.SetLocale("zh")
 	require.True(t, records.IsPrintable(blockLine("forged \x1b[31mRED\x1b[0m")))
+}
+
+// TestBlockMatchesSearchesTheEnglishWords covers the filter in a Chinese
+// process. Once a row is translated, a reader who types the word the
+// documentation and the JSON use — "Winners" — must still find the record, and
+// so must the reader who types 中奖者 after reading it on screen.
+//
+// Only the current language and the canonical English are searched; an English
+// window does not answer a Chinese query, which is the tradeoff that keeps the
+// filter from carrying every catalog.
+func TestBlockMatchesSearchesTheEnglishWords(t *testing.T) {
+	entry := ledger.BlockEntry{
+		Height: 2,
+		Data:   `{"participants":["A","B"],"seed":"s","winners":["A"]}`,
+	}
+
+	tr := i18n.GetTranslator()
+	before := tr.GetLocale()
+	t.Cleanup(func() { tr.SetLocale(before) })
+
+	tr.SetLocale("zh")
+	for _, query := range []string{"winners", "中奖者", "lottery", "抽奖", "seed"} {
+		require.Truef(t, blockMatches(entry, strings.ToLower(query)),
+			"a Chinese window must find the record by %q", query)
+	}
+	require.False(t, blockMatches(entry, "no-such-word"))
+
+	tr.SetLocale("en")
+	for _, query := range []string{"winners", "lottery", "draw"} {
+		require.Truef(t, blockMatches(entry, query), "an English window must find the record by %q", query)
+	}
 }
