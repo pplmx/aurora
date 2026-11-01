@@ -56,6 +56,24 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **A Chinese ledger row printed its vocabulary in English**: in a Chinese
+  process `aurora blockchain blocks` showed
+  `lottery · Draw · C, A   (Winners: C, A; Participants: 3; Seed: seed-abc)`
+  under a 审计记录 heading, while the desktop's ledger page rendered the same
+  record translated. The decoder names its words in English and the CLI printed
+  them verbatim; `docs/cli.md` claimed the two surfaces already shared the
+  vocabulary.
+- **`records.Record.TextL` resolves each word through the caller's lookup**, and
+  `TextIn` takes the punctuation separately, because Chinese sets ：；（） where
+  the Latin spelling uses `":; ()"`. An action that resolves to the module's own
+  name is dropped, as the window does.
+- **Fact values and subjects stay verbatim**: they are recorded data, not
+  vocabulary. A translated public key or seed would no longer match the payload
+  an auditor compares the row against.
+- **`repocheck` reads the decoder** and requires a `record.*` entry for every
+  module, action and fact it can emit, so a new module cannot arrive
+  untranslated.
+
 - **A single ballot printed as "1 votes"**: `voting results` and
   `voting candidate list` render every tally through one plural entry, so a
   candidate with one ballot read "Alice (Greens): 1 votes" — the one place a
