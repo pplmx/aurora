@@ -84,6 +84,19 @@ var votingCmd = &cobra.Command{
 	Long:  i18n.GetText("voting.long"),
 }
 
+// voteCountText spells a tally the way English does: one vote, two votes. The
+// catalog entry is plural, so a single ballot printed "1 votes" in the one
+// place a reader compares candidates by number.
+//
+// Chinese has no plural form, so both keys carry the same 票 value there and the
+// branch costs nothing.
+func voteCountText(count int) string {
+	if count == 1 {
+		return i18n.GetTextF("voting.vote_one", count)
+	}
+	return i18n.GetTextF("voting.votes", count)
+}
+
 func localizedVotingStatus(status string) string {
 	key := "voting.status." + status
 	if translated := i18n.GetText(key); translated != key {

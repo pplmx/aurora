@@ -227,7 +227,7 @@ func TestVotingVote_OneBallotPerSession(t *testing.T) {
 		out, err = runCmd(t, "voting", "results", "--session", session2)
 		require.NoError(t, err)
 		assert.Contains(t, out, "Alice")
-		assert.Contains(t, out, "1 votes")
+		assert.Contains(t, out, "1 vote")
 	})
 }
 
@@ -308,7 +308,7 @@ func TestVotingResults_HappyPath(t *testing.T) {
 		require.NoError(t, err)
 		assert.Contains(t, out, "Results:")
 		assert.Contains(t, out, "Alice")
-		assert.Contains(t, out, "1 votes")
+		assert.Contains(t, out, "1 vote")
 	})
 }
 

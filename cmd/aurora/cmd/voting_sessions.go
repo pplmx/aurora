@@ -200,7 +200,7 @@ var resultsCmd = &cobra.Command{
 			if cand.Name != "" {
 				name = cand.Name + i18n.Paren(cand.Party)
 			}
-			fmt.Printf("   %s\n", i18n.Label(name, i18n.GetTextF("voting.votes", cand.VoteCount)))
+			fmt.Printf("   %s\n", i18n.Label(name, voteCountText(cand.VoteCount)))
 		}
 		return nil
 	},

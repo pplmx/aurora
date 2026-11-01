@@ -86,7 +86,7 @@ var candidateListCmd = &cobra.Command{
 			fmt.Println("   " + i18n.GetText("voting.none"))
 		}
 		for _, c := range list {
-			fmt.Printf("   - %s [%s] - %s\n", c.Name, c.Party, i18n.GetTextF("voting.votes", c.VoteCount))
+			fmt.Printf("   - %s [%s] - %s\n", c.Name, c.Party, voteCountText(c.VoteCount))
 			fmt.Printf("     %s\n", i18n.Label(i18n.GetText("voting.id"), c.ID))
 		}
 		return nil

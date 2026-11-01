@@ -566,6 +566,7 @@ var traditionalMessages = map[string]string{
 	"voting.vote":                               "投票",
 	"voting.vote_cast":                          "投票成功！",
 	"voting.vote_id":                            "投票 ID",
+	"voting.vote_one":                           "%d 票",
 	"voting.voted":                              "曾投過票",
 	"voting.voter.cmd":                          "選民管理",
 	"voting.voter.list":                         "列出所有選民",
