@@ -131,6 +131,7 @@ func (a *App) addOracleSource() {
 
 func (a *App) selectSourceByID(id string) {
 	a.oracle.search, a.oracle.appliedSearch = "", ""
+	a.oracle.selected = -1
 	for i, source := range a.filteredSources() {
 		if source.ID == id {
 			a.oracle.selected = i

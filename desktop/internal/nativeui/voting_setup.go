@@ -166,6 +166,7 @@ func (a *App) registerCandidate() {
 // selectCandidateByID highlights a candidate after registration.
 func (a *App) selectCandidateByID(id string) {
 	a.voting.candSearch, a.voting.candApplied = "", ""
+	a.voting.candChoice = -1
 	for i, candidate := range a.filteredCandidates() {
 		if candidate.ID == id {
 			a.voting.candChoice = i
@@ -221,6 +222,7 @@ func (a *App) applyVoterRegistration(v VoterRow) {
 
 func (a *App) selectVoterByPublicKey(publicKey string) {
 	a.voting.voterSearch, a.voting.voterApplied = "", ""
+	a.voting.voterChoice = -1
 	for i, voter := range a.filteredVoters() {
 		if voter.PublicKey == publicKey {
 			a.voting.voterChoice = i
@@ -383,9 +385,12 @@ func (a *App) createVotingSession() {
 }
 
 // selectSessionByID highlights a session after creation. The search is
-// cleared first so the index is in the list the table actually shows.
+// cleared first so the index is in the list the table actually shows, and the
+// highlight is cleared before the lookup: a session the page does not hold
+// leaves nothing chosen rather than the row the old index named.
 func (a *App) selectSessionByID(id string) {
 	a.voting.sessionSearch, a.voting.sessionApplied = "", ""
+	a.voting.sessionChoice = -1
 	a.clearSessionRoster()
 	for i, session := range a.filteredSessions() {
 		if session.ID == id {
