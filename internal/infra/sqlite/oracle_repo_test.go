@@ -2,6 +2,7 @@ package sqlite
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -257,6 +258,40 @@ func idsOf(data []*oracle.OracleData) []string {
 		ids = append(ids, d.ID)
 	}
 	return ids
+}
+
+// TestOracleRepository_GetDataBySourceWithoutALimit proves a non-positive limit
+// means "all of them", the contract the other repositories implement and the
+// in-memory store follows. This path used to stop at 100 rows, so a caller that
+// asked for everything received a truncated list with nothing saying more
+// existed.
+func TestOracleRepository_GetDataBySourceWithoutALimit(t *testing.T) {
+	repo, cleanup := setupOracleTestDB(t)
+	defer cleanup()
+
+	const rows = 150
+	for i := 0; i < rows; i++ {
+		require.NoError(t, repo.SaveData(&oracle.OracleData{
+			ID:       fmt.Sprintf("data-%03d", i),
+			SourceID: "btc-price",
+			Value:    "1",
+			// Timestamps start at 1: SaveData replaces a zero timestamp with
+			// "now", which would make the first row the newest.
+			Timestamp: int64(i + 1),
+		}))
+	}
+
+	for _, limit := range []int{0, -1} {
+		all, err := repo.GetDataBySource("btc-price", limit)
+		require.NoErrorf(t, err, "limit=%d", limit)
+		require.Lenf(t, all, rows, "limit=%d must read every reading, not a capped page", limit)
+		require.Equal(t, "data-149", all[0].ID, "the page is still newest first")
+	}
+
+	// An explicit limit still bounds the page.
+	page, err := repo.GetDataBySource("btc-price", 10)
+	require.NoError(t, err)
+	require.Len(t, page, 10)
 }
 
 func TestOracleRepository_GetLatestData(t *testing.T) {

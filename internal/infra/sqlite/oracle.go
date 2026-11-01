@@ -141,9 +141,14 @@ func (r *OracleRepository) SaveData(data *oracle.OracleData) error {
 	return err
 }
 
+// GetDataBySource returns one newest-first page of a source's readings. A
+// non-positive limit is unbounded, the same contract the other repositories
+// implement (negate to -1 so SQLite reads it as "no limit"); it used to
+// silently answer 100 rows, so a caller asking for everything got a truncated
+// list with no indication that more existed.
 func (r *OracleRepository) GetDataBySource(sourceID string, limit int) ([]*oracle.OracleData, error) {
 	if limit <= 0 {
-		limit = 100
+		limit = -1
 	}
 	rows, err := r.q().Query(
 		// Same-second readings keep insertion order, so a list stays stable page
