@@ -201,3 +201,60 @@ func TestIsUUID(t *testing.T) {
 	assert.False(t, IsUUID("5c43a418xca80-46ba-af63-cc7893d1a5e3"), "bad separator")
 	assert.False(t, IsUUID("5c43a418-ca80-46ba-af63-cc7893d1a5eg"), "non-hex digit")
 }
+
+// TestParseKeepsControlCharactersOutOfJSONPayloads is the JSON twin of
+// TestReadableFieldsEncodeEveryUnprintableByte. The pipe payloads were always
+// passed through ReadableFields; the JSON ones were not, so a winner renamed to
+// an escape sequence reached the CLI table and the ledger card as a live colour
+// change, and an embedded newline split the row it was supposed to label.
+func TestParseKeepsControlCharactersOutOfJSONPayloads(t *testing.T) {
+	// A draw whose winning name carries a terminal escape and whose seed rings
+	// the bell. Both are valid JSON strings.
+	payload := `{"participants":["alice","bob"],"winners":["evil\u001b[31mRED\u001b[0m"],` +
+		`"seed":"\u0007bell","id":"abc"}`
+
+	record, ok := Parse(payload)
+	require.True(t, ok, "the payload is a lottery record")
+
+	for _, field := range []struct{ name, value string }{
+		{"Subject", record.Subject},
+		{"Winners", factValue(record, "Winners")},
+		{"Seed", factValue(record, "Seed")},
+	} {
+		assert.NotContainsf(t, field.value, "\x1b", "%s must not carry an escape sequence", field.name)
+		assert.NotContainsf(t, field.value, "\x07", "%s must not carry a bell", field.name)
+		assert.Truef(t, isPrintable(field.value), "%s must be printable", field.name)
+	}
+
+	// The rendered sentence is what a table row prints.
+	assert.True(t, isPrintable(record.Text()), "the whole rendered line must be printable")
+
+	// An embedded newline is encoded too: it would otherwise break the row.
+	nl, ok := Parse(`{"participants":["a"],"winners":["line1\nline2"],"seed":"s"}`)
+	require.True(t, ok)
+	assert.NotContains(t, nl.Subject, "\n", "a newline in a name must not reach the table")
+	assert.Equal(t, base64.StdEncoding.EncodeToString([]byte("line1\nline2")), nl.Subject,
+		"the name is preserved exactly, just encoded")
+}
+
+// factValue returns one fact's value, or "" when the record has no such fact.
+func factValue(record Record, label string) string {
+	for _, fact := range record.Facts {
+		if fact.Label == label {
+			return fact.Value
+		}
+	}
+	return ""
+}
+
+// TestParseLeavesOrdinaryJSONTextAlone is the other half: plain names and seeds
+// must not be encoded. A ledger whose winner names were base64 would be
+// unreadable, which is the failure the encoding exists to prevent.
+func TestParseLeavesOrdinaryJSONTextAlone(t *testing.T) {
+	record, ok := Parse(`{"participants":["alice","bob"],"winners":["Alice","Bob"],` +
+		`"seed":"seed-2026","id":"abc"}`)
+	require.True(t, ok)
+	assert.Equal(t, "Alice, Bob", record.Subject)
+	assert.Equal(t, "seed-2026", factValue(record, "Seed"))
+	assert.Equal(t, "Alice, Bob", factValue(record, "Winners"))
+}
