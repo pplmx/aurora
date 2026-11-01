@@ -136,20 +136,30 @@ var historyCmd = &cobra.Command{
 		}
 
 		if len(records) == 0 {
-			if limit > 0 || offset > 0 {
-				fmt.Printf("\n📜 %s\n", i18n.Label(i18n.GetText("lottery.page_total"), i18n.GetTextF("common.page_with_offset", 0, offset)))
+			// The heading comes first in every branch, as it does when there are
+			// records: a bare sentence drops the count that says whether the
+			// store is empty, the page is, or the search found nothing.
+			switch {
+			case limit > 0 || offset > 0:
+				fmt.Printf("\n📜 %s\n", i18n.Label(i18n.GetText("lottery.page_total"),
+					i18n.GetTextF("common.page_with_offset", 0, offset)))
+			case search != "":
+				fmt.Printf("\n📜 %s\n", i18n.Label(i18n.GetText("lottery.matches"), "0\n"))
+			default:
+				fmt.Printf("\n📜 %s\n", i18n.Label(i18n.GetText("lottery.total"), "0\n"))
+			}
+			switch {
+			case search != "" && limit == 0 && offset == 0:
+				fmt.Printf("   "+i18n.GetText("lottery.history_no_match")+"\n", search)
+			case limit > 0 || offset > 0:
 				if search != "" {
 					fmt.Printf("   "+i18n.GetText("lottery.history_no_match")+"\n", search)
-					return nil
+				} else {
+					fmt.Println("   " + i18n.GetText("common.page_empty"))
 				}
-				fmt.Println("   " + i18n.GetText("common.page_empty"))
-				return nil
+			default:
+				fmt.Println("   " + i18n.GetText("lottery.no_records"))
 			}
-			if search != "" {
-				fmt.Printf("   "+i18n.GetText("lottery.history_no_match")+"\n", search)
-				return nil
-			}
-			fmt.Println(i18n.GetText("lottery.no_records"))
 			return nil
 		}
 

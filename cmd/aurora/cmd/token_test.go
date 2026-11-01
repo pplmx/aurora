@@ -401,6 +401,26 @@ func TestTokenInfo_NotFound(t *testing.T) {
 	})
 }
 
+// TestTokenList_EmptyKeepsTheHeading pins the shape the empty list shares with
+// every other list command: the heading with its count, then the empty sentence
+// indented under it. The bare sentence it printed before dropped the total, so
+// a reader could not tell an empty store from an empty page.
+func TestTokenList_EmptyKeepsTheHeading(t *testing.T) {
+	withTempDir(t, func(t *testing.T) {
+		out, err := runCmd(t, "token", "list")
+		require.NoError(t, err)
+		assert.Contains(t, out, "Total: 0")
+		assert.Contains(t, out, "No tokens yet")
+		assert.Less(t, strings.Index(out, "Total: 0"), strings.Index(out, "No tokens yet"),
+			"the heading comes before the empty line")
+
+		out, err = runCmd(t, "token", "list", "--limit", "5")
+		require.NoError(t, err)
+		assert.Contains(t, out, "Tokens on this page: 0 (offset 0)")
+		assert.Contains(t, out, "No tokens yet")
+	})
+}
+
 func TestTokenList_Pages(t *testing.T) {
 	withTempDir(t, func(t *testing.T) {
 		for _, symbol := range []string{"AAA", "BBB", "CCC"} {
