@@ -238,6 +238,12 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **The NFT history names what its number counts**: `nft history --limit 5`
+  printed "Operations: 1 (offset 0)" — the number is the page's rows, but the
+  heading did not say so — while the unpaged run printed "Operations: 1" for the
+  whole history. One label served two different counts. Both modes now name
+  their own: "Total operations: 1" and "Operations on this page: 1 (offset 0)".
+
 - **Every list heading carries the count it describes**: four lists dropped the
   number on the unpaged path — `📋 Candidates:`, `📡 Data Sources:`, the voters
   and sessions headings. A heading with only a colon reads as a section label,
