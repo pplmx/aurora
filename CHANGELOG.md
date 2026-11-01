@@ -246,6 +246,15 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **db-info and doctor name the block count they report**: a ledger with one
+  record answered three ways — `lottery db-info` said "Total blocks: 1",
+  `blockchain blocks` said "Audit records: 1", `blockchain verify` said
+  "Blocks (including genesis): 2". The first two count the same rows
+  (`height > 0`), but only one said so, and "Total blocks" was the phrase verify
+  had just dropped for reading as the chain's length. db-info now says "Audit
+  records" and the doctor says "ledger blocks including genesis", so the two
+  camps are recognisable from the text alone.
+
 - **The verify count says it includes the genesis block**: `blockchain verify`
   printed "Blocks: 2" on a ledger whose `blockchain blocks` printed "Audit
   records: 1". Both were right — verify reports the chain's length, which counts
