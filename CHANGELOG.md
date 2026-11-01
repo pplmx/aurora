@@ -322,6 +322,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **The ordering now has a structural check**: all six lists record the applied
+  query before their empty-list return, and the rule is invisible in normal use,
+  so a repocheck test requires each guard to be preceded by — or contain — that
+  comparison within its own function. It reads the guard's block rather than the
+  whole function, because the fixed code keeps a second comparison on the normal
+  path and a function-wide search accepts the broken version.
+
 - **The token, NFT and oracle lists had the same ordering**: their applied-query
   update also sat after the empty-list return, and all three gate their
   first-record panel on that field, so a query cleared over an empty store showed
