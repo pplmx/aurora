@@ -209,3 +209,58 @@ func TestApiDoesNotKnowAboutTheWindow(t *testing.T) {
 	assert.Contains(t, deskapp, `"github.com/pplmx/aurora/internal/api"`,
 		"the desktop reuses the in-process REST server; update this check with the design")
 }
+
+// TestTheContainerIsTheOnlyAssemblyPoint covers the word "only" in the
+// architecture document: the composition root is the one place that imports the
+// storage and ledger implementations. The rule above skips that directory, which
+// is what makes the exception work — and what would also let a second assem­bly
+// point appear unnoticed, since nothing then checks where infra may be imported.
+//
+// So this walks the same trees without skipping it, and counts the packages that
+// reach infra: exactly one may, and it must be the container.
+func TestTheContainerIsTheOnlyAssemblyPoint(t *testing.T) {
+	repo := repoRoot(t)
+	importers := map[string][]string{} // package dir -> infra imports
+
+	for _, layer := range []string{"internal/app", "internal/api"} {
+		err := filepath.WalkDir(filepath.Join(repo, layer),
+			func(path string, entry fs.DirEntry, err error) error {
+				if err != nil {
+					return walkErrToleratingDisappearance(err)
+				}
+				if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".go") ||
+					strings.HasSuffix(entry.Name(), "_test.go") {
+					return nil
+				}
+				fset := token.NewFileSet()
+				file, err := parser.ParseFile(fset, path, nil, parser.ImportsOnly)
+				if err != nil {
+					return err
+				}
+				dir := filepath.Dir(path)
+				for _, imp := range file.Imports {
+					pathValue, err := strconv.Unquote(imp.Path.Value)
+					if err != nil {
+						continue
+					}
+					if strings.Contains(pathValue, "/internal/infra") {
+						importers[dir] = append(importers[dir], pathValue)
+					}
+				}
+				return nil
+			})
+		require.NoError(t, err)
+	}
+
+	container := filepath.Join(repo, "internal", "app", "container")
+	for dir, imports := range importers {
+		if dir == container {
+			continue
+		}
+		rel, _ := filepath.Rel(repo, dir)
+		t.Errorf("%s imports %s; the container is the only assembly point",
+			rel, strings.Join(imports, ", "))
+	}
+	require.Contains(t, importers, container,
+		"the container must still be the package that wires infra in; update this check with the design")
+}
