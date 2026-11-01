@@ -28,6 +28,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **Both limit-zero exceptions are named**: the entry above called `oracle data`
+  the only command that does not read `-l 0` as "everything". `token history`
+  is the second: it clamps a non-positive limit to its default of 50, for the
+  same reason its flag default differs from the other lists. Both now sit in one
+  table with their fallback and the reason, so a script passing 0 for "no
+  paging" can see which commands ignore it.
+
 - **`oracle data` is documented as the one limit-zero exception**: every other
   list reads `-l 0` as "everything", while `oracle data` clamps to [1,100] and
   falls back to 10 — unbounded would scan the whole readings table. A script
