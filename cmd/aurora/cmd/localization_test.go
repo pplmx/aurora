@@ -527,7 +527,7 @@ func TestNFTResultsLocalizeChinese(t *testing.T) {
 
 		out, err = runCmd(t, "nft", "history", "--nft", nftID)
 		require.NoError(t, err)
-		assert.Contains(t, out, "操作记录：2")
+		assert.Contains(t, out, "操作记录总数：2")
 		assert.Contains(t, out, "铸造 @ 区块 #")
 		assert.Contains(t, out, "转让 @ 区块 #")
 	})
