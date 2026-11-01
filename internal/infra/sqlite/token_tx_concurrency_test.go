@@ -11,10 +11,12 @@ package sqlite
 import (
 	"database/sql"
 	"errors"
+	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/pplmx/aurora/internal/domain/token"
@@ -161,4 +163,81 @@ func TestTokenRepository_SaveToken_SequentialDuplicateRejects(t *testing.T) {
 	got, err := repo.GetToken("DUP")
 	require.NoError(t, err)
 	require.Equal(t, int64(5), got.TotalSupply().Int64(), "original row must be untouched by the rejected duplicate")
+}
+
+// TestTokenRepository_TwoPoolsShareOneFile covers the shape a single-process
+// goroutine test cannot reach: two independent *sql.DB pools over the same
+// database file. Two pools share no Go state — no mutex, no shared connection —
+// and contend only through SQLite's file lock, which is what two CLI processes
+// or a CLI and the API do against one aurora.db. That is a real deployment
+// shape (a cron job and a server), and it is the one where a missing
+// _busy_timeout hurts most: the loser of the lock used to fail instantly rather
+// than wait.
+//
+// The hardening lives in dsn.go, so this test fails if either pool is opened
+// with a bare path.
+func TestTokenRepository_TwoPoolsShareOneFile(t *testing.T) {
+	tmpDir := t.TempDir()
+	dbPath := filepath.Join(tmpDir, "shared.db")
+
+	first, err := NewTokenRepository(dbPath)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = first.Close() })
+
+	owner := token.PublicKey(make([]byte, 32))
+	recipient := token.PublicKey(make([]byte, 32))
+	recipient[0] = 1
+	require.NoError(t, first.SaveToken(
+		token.NewToken(token.TokenID("TWO"), "Two", "TWO", token.NewAmount(1000), owner)))
+	require.NoError(t, first.SetAccountBalance("TWO", owner, token.NewAmount(1000)))
+
+	// The second pool opens the same file after schema setup, the way a second
+	// process would find an existing database.
+	second, err := NewTokenRepository(dbPath)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = second.Close() })
+
+	repos := []*TokenRepository{first, second}
+	const rounds = 20
+	amount := token.NewAmount(1)
+
+	var wg sync.WaitGroup
+	errs := make(chan error, len(repos)*rounds)
+	for i := 0; i < rounds; i++ {
+		for _, repo := range repos {
+			wg.Add(1)
+			go func(r *TokenRepository) {
+				defer wg.Done()
+				mgr := NewTxManager(r.GetDB())
+				errs <- mgr.WithTransaction(func(tx *sql.Tx) error {
+					txRepo := r.WithTx(tx)
+					if _, err := txRepo.TrySubtractBalance("TWO", owner, amount); err != nil {
+						return err
+					}
+					_, err := txRepo.TryAddBalance("TWO", recipient, amount)
+					return err
+				})
+			}(repo)
+		}
+	}
+	wg.Wait()
+	close(errs)
+
+	// No "database is locked": every write either waited for the file lock or
+	// followed a completed one.
+	for err := range errs {
+		require.NoError(t, err, "two pools over one file must not fail on the file lock")
+	}
+
+	// The moves are all-or-nothing, so the totals must still add up: a lost
+	// update would break this even when no error surfaced.
+	sender, err := first.GetAccountBalance("TWO", owner)
+	require.NoError(t, err)
+	receiver, err := second.GetAccountBalance("TWO", recipient)
+	require.NoError(t, err)
+
+	moved := int64(rounds * len(repos))
+	assert.Equal(t, int64(1000)-moved, sender.Int64(), "every debit must have applied exactly once")
+	assert.Equal(t, moved, receiver.Int64(), "every credit must have applied exactly once")
+	assert.Equal(t, int64(1000), sender.Int64()+receiver.Int64(), "no value created or destroyed")
 }
