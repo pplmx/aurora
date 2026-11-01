@@ -152,6 +152,18 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **An empty page printed a zero count and no explanation**:
+  `aurora voting voter list --limit 5` and `aurora lottery history --limit 5`
+  printed their heading — "Voters on this page: 0 (offset 0)" — and nothing
+  else. Candidate, session and oracle-source lists print "(none)", and the
+  ledger already distinguishes three cases; these two did not, so an operator
+  saw a zero with no statement and could not tell a silent failure from a page
+  past the end.
+- **Both print a page-empty line** that names the two ways out (`--offset`, or
+  drop `--limit`). A filtered miss keeps its own sentence, because "No draw
+  matches" and "no rows on this page" are different answers, and a test covers
+  all three states for both commands.
+
 - **Six list commands advertised a token ceiling**: every list command registers
   the same `--limit` flag, and all of them read the token catalog's entry.
   `aurora lottery history --help` said "Maximum tokens to list",
