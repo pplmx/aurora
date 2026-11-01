@@ -189,7 +189,10 @@ func TestChineseTranslationsKeepChromeVocabularyInChinese(t *testing.T) {
 			[]string{"Mint", "Transfer", "Approve", "Burn", "owner"},
 		},
 		{
-			"Keys are never stored. Use generated owner key works only for the token that key created.",
+			// The sentence names the button in quotes, so it reads as a pointer
+			// to that control instead of a claim about the key; the quoted name
+			// must still reach Chinese.
+			"Keys are never stored. “Use generated owner key” only works for the token that key created.",
 			"使用已生成的所有者密钥",
 			[]string{"Use generated owner key"},
 		},

@@ -461,7 +461,7 @@ var desktopMessages = map[string]string{
 	"Select a token in Tokens, or create one. Its owner public key fills the account fields for you.":                                     "在“代币”列表选择或创建一个代币。它的所有者公钥会自动填入账户字段。",
 	"Choose a write in the action tabs: Mint, Transfer, Approve, Transfer From or Burn. A spender's remaining allowance is in Allowance.": "在操作标签页选择写操作：铸造、转账、授权、从授权扣款或销毁。被授权方的剩余额度在“额度”卡片。",
 	"Each write signs with a different key: Mint/Approve/Burn use the owner's, Transfer the sender's, Transfer From the spender's.":       "每种写操作使用不同的密钥：铸造、授权和销毁用所有者私钥，转账用发送方私钥，从授权扣款用被授权方私钥。",
-	"Keys are never stored. Use generated owner key works only for the token that key created.":                                           "私钥不会被保存。“使用已生成的所有者密钥”仅适用于由该密钥创建的代币。",
+	"Keys are never stored. “Use generated owner key” only works for the token that key created.":                                         "私钥不会被保存。“使用已生成的所有者密钥”仅适用于由该密钥创建的代币。",
 
 	// NFT.
 	"Collection":            "收藏",
