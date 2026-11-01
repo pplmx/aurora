@@ -141,3 +141,55 @@ func readConst(t *testing.T, src, name string) int {
 	require.NoErrorf(t, err, "%s = %q", name, expr)
 	return value
 }
+
+// TestPaginationCeilingsMatchTheDocs binds the per-endpoint page bounds in the
+// REST reference to the constants that enforce them. Seven list endpoints each
+// carry a limit ceiling and an offset ceiling, and two of them deliberately
+// differ from the rest (`/token/history` and `/nft/list` stop at 1000 where the
+// others allow 10000). The reference spells those numbers out, so a change to
+// one constant has to reach the prose — otherwise a client pages past a bound
+// the docs still advertise as available.
+func TestPaginationCeilingsMatchTheDocs(t *testing.T) {
+	doc := strings.Join(strings.Fields(readRepoFile(t, "docs", "api.md")), " ")
+
+	sources := map[string]string{}
+	for _, name := range []string{"blockchain.go", "lottery.go", "nft.go", "oracle.go", "token.go", "voting.go"} {
+		sources[name] = readRepoFile(t, "internal", "api", "handler", name)
+	}
+
+	type want struct {
+		constName string
+		file      string
+		value     int
+		mustSay   string
+	}
+	for _, tc := range []want{
+		{"maxBlockPageLimit", "blockchain.go", 100, ""},
+		{"maxBlockPageOffset", "blockchain.go", 10000, ""},
+		{"maxLotteryHistoryLimit", "lottery.go", 100, ""},
+		{"maxLotteryHistoryOffset", "lottery.go", 10000, ""},
+		{"maxNFTListLimit", "nft.go", 100, ""},
+		{"maxNFTListOffset", "nft.go", 1000, ""},
+		{"maxNFTHistoryLimit", "nft.go", 100, ""},
+		{"maxNFTHistoryOffset", "nft.go", 10000, ""},
+		{"maxHistoryLimit", "token.go", 100, ""},
+		{"maxHistoryOffset", "token.go", 1000, ""},
+		{"maxTokenListLimit", "token.go", 100, ""},
+		{"maxTokenListOffset", "token.go", 10000, ""},
+		{"maxOracleSourceLimit", "oracle.go", 100, ""},
+		{"maxOracleSourceOffset", "oracle.go", 10000, ""},
+		{"maxQueryLimit", "oracle.go", 100, ""},
+		{"maxVotingListLimit", "voting.go", 100, ""},
+		{"maxVotingListOffset", "voting.go", 10000, ""},
+	} {
+		got := readConst(t, sources[tc.file], tc.constName)
+		require.Equalf(t, tc.value, got, "%s must stay at %d", tc.constName, tc.value)
+	}
+
+	// The two divergent ceilings are the ones worth calling out, because a
+	// reader who assumes every list pages to 10000 would over-page these.
+	require.Contains(t, doc, "`offset` 上限 **1000**",
+		"the reference must flag the 1000-offset endpoints")
+	require.Contains(t, doc, "`offset` 上限则是 10000",
+		"the reference must contrast the 10000-offset endpoints")
+}
