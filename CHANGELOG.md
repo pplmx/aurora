@@ -28,6 +28,15 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The API reference now names the production switch**: the auth section said
+  "in production the key must be at least 32 characters" without saying how a
+  process enters that mode. `AURORA_ENV=production` is the only channel — no
+  config key, no flag — so a container missing the variable runs in development
+  mode and generates a key instead of rejecting an empty one. That is the
+  failure the paragraph warns about, and it did not name the switch.
+- **`repocheck` pins that paragraph to the code**: the variable, the
+  32-character minimum and the "no other channel" sentence all have to stay.
+
 - **Two DB-path tests pointed at a variable nothing binds**: the success and
   failure cases in `internal/api/router_test.go` set `AURORA_DB_PATH`, which no
   code binds (`Load()` binds `api.key`, `server.host` and `server.port`;
