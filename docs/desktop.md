@@ -540,8 +540,9 @@ just check && just test
   生成，并把 `爲`/`燬`/`啓` 覆盖为现代写法 `為`/`毀`/`啟`；选择 繁體中文 时 MyGo 的
   菜单角色与 Aurora 的文案都是繁体。词句修正改简体表后用
   `just gen-zh-hant <OpenCC 词典目录>` 重新生成（词典取 BYVoid/OpenCC 的
-  `STPhrases.txt` 与 `STCharacters.txt`，不随仓库分发）；生成器支持
-  `-check`，测试另外要求两份表的键集合一致。MyGo 绘制的数字步进按钮（`Increase`/`Decrease`
+  `STPhrases.txt` 与 `STCharacters.txt`，不随仓库分发）；加上 `-check` 只报告是否
+  过期而不写回，手工改过繁体表就会被它发现——生成器以简体表为准，手改在下次
+  重新生成时被覆盖。测试另外要求两份表的键集合一致。MyGo 绘制的数字步进按钮（`Increase`/`Decrease`
   无障碍标签）与 `ui.TimeInput` 的分段词（`hours`/`minutes`/`AM/PM`）都在
   MyGo 内部写死、没有本地化入口，中文界面下屏幕阅读器仍会读到这几个英文词；
   Aurora 侧的补救是给每个控件配自己的可访问名称（时/分控件分别叫“开始时间”
