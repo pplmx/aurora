@@ -318,10 +318,12 @@ var nftHistoryCmd = &cobra.Command{
 		}
 
 		// An offset alone asks for a page too, as it does in the other lists.
+		// Each mode names what its number counts: the page's rows, or the whole
+		// history. "Operations: 1 (offset 0)" said neither.
 		if limit > 0 || offset > 0 {
-			fmt.Printf("\n📜 %s\n", i18n.Label(i18n.GetText("nft.operations_heading"), i18n.GetTextF("common.page_with_offset", len(results), offset)))
+			fmt.Printf("\n📜 %s\n", i18n.Label(i18n.GetText("nft.operations_page"), i18n.GetTextF("common.page_with_offset", len(results), offset)))
 		} else {
-			fmt.Printf("\n📜 %s\n", i18n.Label(i18n.GetText("nft.operations_heading"), len(results)))
+			fmt.Printf("\n📜 %s\n", i18n.Label(i18n.GetText("nft.operations_total"), len(results)))
 		}
 		if len(results) == 0 {
 			// Three different answers: an empty history, a page past the end,

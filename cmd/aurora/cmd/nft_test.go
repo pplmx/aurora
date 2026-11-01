@@ -244,7 +244,7 @@ func TestNFTHistory_Populated(t *testing.T) {
 
 		hout, err := runCmd(t, "nft", "history", "--nft", id)
 		require.NoError(t, err)
-		assert.Contains(t, hout, "Operations:")
+		assert.Contains(t, hout, "Total operations:")
 	})
 }
 
@@ -262,7 +262,7 @@ func TestNFTHistory_ShowsMintOp(t *testing.T) {
 
 		hout, err := runCmd(t, "nft", "history", "--nft", id)
 		require.NoError(t, err)
-		assert.Contains(t, hout, "Operations: 1")
+		assert.Contains(t, hout, "Total operations: 1")
 		assert.Contains(t, hout, "mint")
 	})
 }
@@ -282,7 +282,7 @@ func TestNFTHistory_Pages(t *testing.T) {
 
 		hout, err := runCmd(t, "nft", "history", "--nft", id, "--limit", "1", "--offset", "1")
 		require.NoError(t, err)
-		assert.Contains(t, hout, "Operations: 1 (offset 1)")
+		assert.Contains(t, hout, "Operations on this page: 1 (offset 1)")
 		assert.Equal(t, 1, strings.Count(hout, "   - "), "only the requested page should print")
 
 		_, err = runCmd(t, "nft", "history", "--nft", id, "--limit", "-1")
@@ -310,7 +310,7 @@ func TestNFTHistory_AfterBurn(t *testing.T) {
 
 		hout, err := runCmd(t, "nft", "history", "--nft", id)
 		require.NoError(t, err)
-		assert.Contains(t, hout, "Operations: 2")
+		assert.Contains(t, hout, "Total operations: 2")
 		assert.Contains(t, hout, "mint")
 		assert.Contains(t, hout, "burn")
 	})

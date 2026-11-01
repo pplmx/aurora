@@ -139,15 +139,28 @@ func TestEveryListHeadingCarriesItsCount(t *testing.T) {
 		{"sources", []string{"oracle", "source", "list"}, "Total sources:", "Sources on this page:"},
 		{"tokens", []string{"token", "list"}, "Total:", "Tokens on this page:"},
 		{"lotteries", []string{"lottery", "history"}, "Total lotteries:", "Lotteries on this page:"},
+		{"nft list", []string{"nft", "list"}, "NFTs:", ""},
+		{"nft history", nil, "Total operations:", "Operations on this page:"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			withTempDir(t, func(t *testing.T) {
-				out, err := runCmd(t, c.cmd...)
+				cmd := c.cmd
+				if cmd == nil {
+					// The NFT history needs an asset before it has a heading.
+					pub, _ := nftKeypair(t)
+					minted, err := runCmd(t, "nft", "mint", "-n", "Star", "-c", pub)
+					require.NoError(t, err)
+					cmd = []string{"nft", "history", "--nft", extractField(t, minted, "ID:")}
+				}
+				out, err := runCmd(t, cmd...)
 				require.NoError(t, err)
 				assert.Contains(t, out, c.plain, "the unpaged heading carries the total")
 
-				out, err = runCmd(t, append(append([]string{}, c.cmd...), "--limit", "2")...)
+				if c.paged == "" {
+					return // nft list takes no paging flags
+				}
+				out, err = runCmd(t, append(append([]string{}, cmd...), "--limit", "2")...)
 				require.NoError(t, err)
 				assert.Contains(t, out, c.paged, "the paged heading names the page")
 			})
