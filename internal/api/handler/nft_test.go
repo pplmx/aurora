@@ -300,6 +300,42 @@ func TestNFTHandler_List_WithoutOwnerListsEverything(t *testing.T) {
 		"an empty collection must encode as [], not null and not a 400")
 }
 
+// TestNFTHandler_List_WithoutOwnerReturnsEveryAsset is the non-empty half of
+// the promise above, and the reason the endpoint exists: assets minted by
+// different owners must all appear, newest first, without the caller knowing any
+// owner key. The empty-store test only proved the encoding.
+func TestNFTHandler_List_WithoutOwnerReturnsEveryAsset(t *testing.T) {
+	repo := nft.NewInmemRepo()
+	handler := newTestNFTHandler(repo, nil)
+
+	// Two distinct owners: a version that silently filtered by some owner would
+	// return fewer than two rows.
+	alice := bytes.Repeat([]byte{0x41}, 32)
+	bob := bytes.Repeat([]byte{0x42}, 32)
+	require.NoError(t, repo.SaveNFT(&nft.NFT{ID: "alice-art", Name: "Alice Art", Owner: alice, Creator: alice}))
+	require.NoError(t, repo.SaveNFT(&nft.NFT{ID: "bob-art", Name: "Bob Art", Owner: bob, Creator: bob}))
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/nft/list", nil)
+	rr := httptest.NewRecorder()
+	handler.List(rr, req)
+
+	require.Equal(t, http.StatusOK, rr.Code, "body: %s", rr.Body.String())
+	requireSnakeCaseJSON(t, rr.Body.Bytes())
+
+	var page []struct {
+		ID    string `json:"id"`
+		Name  string `json:"name"`
+		Owner string `json:"owner"`
+	}
+	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &page))
+	require.Len(t, page, 2, "both owners' assets must be listed, got %s", rr.Body.String())
+
+	// Newest first, which for this store is the write order reversed.
+	assert.Equal(t, "bob-art", page[0].ID, "the asset just minted leads the list")
+	assert.Equal(t, "alice-art", page[1].ID)
+	assert.NotEmpty(t, page[0].Owner, "each row carries its owner so a client can tell them apart")
+}
+
 // TestNFTHandler_List_Paged locks the v1.79 bounded-paging fix (TASK-101,
 // ISS-093): GET /nft/list?owner= must honor ?limit/?offset (default 20, cap
 // 100) instead of returning an owner's entire collection unbounded.
