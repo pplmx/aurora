@@ -98,6 +98,18 @@ aurora lottery reset --confirm       # 清空抽奖记录
 确定性匹配的结论），再用 `🔍 校验项:` 列出这一结论依据的检查——`--json` 里对应
 `checks` 数组与 `integrity_ok`/`proof_verified`。
 
+人读输出的字段块按列对齐：同一块内所有值从同一列开始，例如
+
+```text
+   ID:           MTK
+   Name:         MyToken
+   Total Supply: 1000000
+```
+
+中文块同理，宽度按终端显示列计算（一个汉字或全角标点占两列），所以
+`总供应量：` 与 `ID：` 后面的值仍然对齐。这一步只影响空白，标签与值的文本不变；
+脚本应当读 `--json`，不要解析这些空格。
+
 `lottery import` 的文档读取上限为 64 MiB（桌面端的 File → Import 与拖放导入
 走同一个读取函数），超限会在解析前直接报错，而不是先把整个文件读进内存。
 
