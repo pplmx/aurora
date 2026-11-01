@@ -57,17 +57,21 @@ func (a *App) votingVoterListCard(c *ui.Context) {
 }
 
 func (a *App) votingVoterList(c *ui.Context) {
+	// The field's state is recorded before the empty-list return: it is a fact
+	// about the field, not about the rows. Skipping it left a cleared query
+	// looking applied, which kept the first-record guide hidden and announced
+	// the next read as a search result.
+	queryChanged := a.voting.voterSearch != a.voting.voterApplied
+	if queryChanged {
+		a.voting.voterApplied = a.voting.voterSearch
+		a.voting.voterChoice = -1
+	}
 	if len(a.voting.voters) == 0 {
 		if a.voting.loadErr == nil {
 			emptyStateIcon(c, usersIcon, pageAccent(c, pageVoting), "No voters registered yet.",
 				"Register a voter in Register Voter; that issues the signing key the first ballot needs.")
 		}
 		return
-	}
-	queryChanged := a.voting.voterSearch != a.voting.voterApplied
-	if queryChanged {
-		a.voting.voterApplied = a.voting.voterSearch
-		a.voting.voterChoice = -1
 	}
 	previous, next := collectionToolbar(c, &a.voting.voterSearch, "Search voters",
 		"Search narrows the current page; use Previous/Next for older voters.",
@@ -147,6 +151,14 @@ func (a *App) votingSessionListCard(c *ui.Context) {
 }
 
 func (a *App) votingSessionList(c *ui.Context) {
+	// Recorded before the empty-list return for the same reason as the voter
+	// list: a cleared query must not stay applied just because no row survived.
+	queryChanged := a.voting.sessionSearch != a.voting.sessionApplied
+	if queryChanged {
+		a.voting.sessionApplied = a.voting.sessionSearch
+		a.voting.sessionChoice = -1
+		a.clearSessionRoster()
+	}
 	if len(a.voting.sessions) == 0 {
 		// A failed load is reported once, above the cards; with no rows there
 		// is nothing to keep, and "No sessions yet" would claim the store is
@@ -156,12 +168,6 @@ func (a *App) votingSessionList(c *ui.Context) {
 				"Create one in Create Session with a roster and the window during which ballots count.")
 		}
 		return
-	}
-	queryChanged := a.voting.sessionSearch != a.voting.sessionApplied
-	if queryChanged {
-		a.voting.sessionApplied = a.voting.sessionSearch
-		a.voting.sessionChoice = -1
-		a.clearSessionRoster()
 	}
 	previous, next := collectionToolbar(c, &a.voting.sessionSearch, "Search sessions",
 		"Search narrows the current page; use Previous/Next for older sessions.",
@@ -296,17 +302,19 @@ func (a *App) votingCandidateListCard(c *ui.Context) {
 }
 
 func (a *App) votingCandidateList(c *ui.Context) {
+	// Recorded before the empty-list return for the same reason as the other
+	// two lists: the field's state must not depend on whether rows survived.
+	queryChanged := a.voting.candSearch != a.voting.candApplied
+	if queryChanged {
+		a.voting.candApplied = a.voting.candSearch
+		a.voting.candChoice = -1
+	}
 	if len(a.voting.candidates) == 0 {
 		if a.voting.loadErr == nil {
 			emptyStateIcon(c, userCheckIcon, pageAccent(c, pageVoting), "No candidates registered yet.",
 				"Register one in Register Candidate; a ballot names the id it selects.")
 		}
 		return
-	}
-	queryChanged := a.voting.candSearch != a.voting.candApplied
-	if queryChanged {
-		a.voting.candApplied = a.voting.candSearch
-		a.voting.candChoice = -1
 	}
 	previous, next := collectionToolbar(c, &a.voting.candSearch, "Search candidates",
 		"Search narrows the current page; use Previous/Next for older candidates.",
