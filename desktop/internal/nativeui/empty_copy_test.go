@@ -58,6 +58,27 @@ func TestEmptyReadoutCopyDistinguishesLoadedFromNotLoaded(t *testing.T) {
 		require.False(t, tester.HasText("No history loaded yet."))
 	})
 
+	t.Run("oracle readings", func(t *testing.T) {
+		app := New(&fakeServices{sources: []SourceRow{{ID: "s1", Name: "btc"}}})
+		tester := ui.NewTester(app.View, 1280, 5000)
+		app.ShowPage("Oracle")
+		app.oracle.tab = 2
+		app.oracle.queryID = "s1"
+		tester.Frame()
+		// A read that came back empty. The card used to draw no rows at all,
+		// which reads as "this card has no content" rather than "this source has
+		// no readings yet".
+		app.oracle.dataLoadedSource = "s1"
+		app.oracle.dataLoadedLimit = app.oracleQueryLimit()
+		tester.Frame()
+		require.True(t, tester.HasText("No readings recorded for this source yet."))
+
+		app.oracle.data = []DataRow{{Value: "42", BlockHeight: 7}}
+		tester.Frame()
+		require.True(t, tester.HasText("42"))
+		require.False(t, tester.HasText("No readings recorded for this source yet."))
+	})
+
 	t.Run("voting tally", func(t *testing.T) {
 		app := New(&fakeServices{sessions: []SessionRow{{ID: "s0", Title: "Budget", Status: "active"}}})
 		tester := ui.NewTester(app.View, 1280, 5000)

@@ -36,10 +36,19 @@ func (a *App) oracleReadBody(c *ui.Context) {
 		!loadWarning(c, "Couldn't load readings", a.oracle.dataErr, len(a.oracle.data) > 0) {
 		return
 	}
-	if len(a.oracle.data) > 0 {
-		collectionList(c, "Oracle readings",
-			collectionRecords(a.oracle.data, readingCollectionRecord), -1, nil)
+	// A successful empty read used to draw no rows at all, which reads as "this
+	// card has no content" rather than "this source has no readings yet". The
+	// states before it are answered elsewhere: the missing-source prompt sits
+	// beside the field it fills, and a failure returns above — loadWarning has
+	// already reported it and there is no empty answer to add. The card never
+	// sits between typing an id and its own open, because opening the tab reads
+	// the source already selected.
+	if len(a.oracle.data) == 0 {
+		emptyNote(c, "No readings recorded for this source yet.")
+		return
 	}
+	collectionList(c, "Oracle readings",
+		collectionRecords(a.oracle.data, readingCollectionRecord), -1, nil)
 }
 
 // readingCollectionRecord projects one stored observation onto a record. The
