@@ -419,3 +419,26 @@ func TestNFTCollectionPages(t *testing.T) {
 	require.Len(t, app.nft.list, 50)
 	require.True(t, tester.HasText("Entries 101–150"))
 }
+
+// TestMintingHighlightsTheNewAssetByID covers the case the index would get
+// wrong: the new asset does not land first. The collection is newest-first, so
+// this needs a store that returns something else at position 0 — a sort tie, or
+// a page whose order the store decides. Selecting by index would then highlight
+// a different asset, and every write card would act on it.
+func TestMintingHighlightsTheNewAssetByID(t *testing.T) {
+	fake := &fakeServices{nftRows: []NFTRow{
+		{ID: "other", Name: "Older", Owner: "someone", Creator: "someone"},
+		{ID: "n1", Name: "New", Owner: "creator-key", Creator: "creator-key"},
+	}}
+	app := New(fake)
+	app.ShowPage("NFT")
+
+	app.nft.name, app.nft.creator = "New", "creator-key"
+	app.mintNFT()
+
+	require.Equal(t, "n1", app.nft.id)
+	require.Equal(t, 1, app.nft.selected,
+		"the highlight must land on the new asset's own row, not on the first one")
+	require.Equal(t, "n1", app.nft.list[app.nft.selected].ID,
+		"the highlighted row must be the asset every write card acts on")
+}
