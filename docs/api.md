@@ -542,6 +542,9 @@ curl -s -G -H "X-API-Key: $KEY" http://localhost:8080/api/v1/token/balance \
 
 `/oracle/sources` 在存储层按最新优先分页，`limit` 上限 100，`offset` 上限
 10000；调度器仍在内部读取全部数据源，因为它必须检查每一个启用项。
+`/oracle/query` 默认返回该源最新 10 条读数，`limit` 上限 100；它没有 `offset`，
+更早的读数请改用桌面端或直接读库。CLI 的 `oracle data` 用同一组数字（默认 10、
+上限 100），所以同一个 `--limit` 在两种界面上拿到同样长的列表。
 `/oracle/health` 的每项同时带 `source_name`，健康表无需再按当前源码页反查名称。
 Oracle 的读取接口是包装对象：`/oracle/sources` 返回 `{"sources": [...]}`，
 `/oracle/query` 与 `/oracle/latest` 返回 `{"data": ...}`；其它模块的列表是裸数组，
