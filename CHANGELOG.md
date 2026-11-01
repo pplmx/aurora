@@ -10,6 +10,19 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ## [Unreleased]
 
+### Changed
+
+- **A wrapped overflow rejection now keeps its cause translatable in the
+  window**: the repository wraps the domain cause behind a long English
+  sentence, so the catalog holds only the tail. `localizeServiceErrorMessage`
+  tries the head, then the tail, and leaves the sentence before the cause alone.
+- **The pairing only works now that the repository wraps the sentinel**: before
+  `TryAddBalance` and `TryAddToSupply` wrapped `token.ErrAmountTooLarge`, neither
+  `try add balance` nor `balance would exceed maximum` was a key, so the whole
+  line arrived in English in a Chinese window.
+- **The bare form stays verbatim**, so a diagnostic still matches the log line a
+  reader searches for. Removing the tail lookup fails the new test.
+
 ### Fixed
 
 - **A saturated balance answered 500 instead of a client error**:
