@@ -28,6 +28,17 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The i18n tests now check the call, not only the spelling**: the existing
+  test compared the English and Chinese spellings of one key; nothing checked
+  that the call site passes as many values as the message takes. A message with
+  two verbs and one argument prints `%!d(MISSING)` in every language, and no
+  test failed.
+- **The check reads the verbs from `messages_en.go`** and the arguments from
+  every `GetTextF`/`TFormat` call in `cmd/` and `desktop/`. The desktop's
+  dialogs read the same catalog, so one verb table covers both. A guard test
+  compares the argument counter against `fmt` itself, so a wrong counter cannot
+  make the whole check vacuous.
+
 - **The reference says how a client notices a clamped page**: an over-limit page
   request is reduced, not refused — `limit=9999` answers 200 with
   `"limit":100`. That is deliberate, but silent clamping is only safe when the
