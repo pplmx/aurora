@@ -60,3 +60,42 @@ func TestParenMatchesTheLanguage(t *testing.T) {
 	translator.SetLocale("zh-Hant")
 	require.Equal(t, "（80.1 KiB）", Paren("80.1 KiB"))
 }
+
+// TestJoinWordsClosesOnlyTheCJKBoundary covers the label built out of two
+// translated words. The desktop composed "Copy" and "Diagnostics" with a
+// literal space, so a Chinese window showed 复制 诊断信息 beside catalog entries
+// like 复制载荷 that carry no space.
+func TestJoinWordsClosesOnlyTheCJKBoundary(t *testing.T) {
+	tr := GetTranslator()
+	before := tr.GetLocale()
+	t.Cleanup(func() { tr.SetLocale(before) })
+
+	tr.SetLocale("en")
+	require.Equal(t, "Copy Diagnostics", JoinWords("Copy", "Diagnostics"))
+
+	tr.SetLocale("zh")
+	require.Equal(t, "复制诊断信息", JoinWords("复制", "诊断信息"), "two Chinese words need no space")
+	require.Equal(t, "复制 GLD", JoinWords("复制", "GLD"),
+		"a Latin word keeps the space the project's Chinese prose uses")
+	require.Equal(t, "GLD 代币", JoinWords("GLD", "代币"),
+		"the boundary closes only when both sides are Chinese")
+
+	tr.SetLocale("zh-Hant")
+	require.Equal(t, "複製診斷信息", JoinWords("複製", "診斷信息"))
+
+	// A half-built label is a real case: a missing catalog entry falls back to
+	// English, and dropping the space then would glue two Latin words together.
+	require.Equal(t, "複製 Diagnostics", JoinWords("複製", "Diagnostics"))
+	require.Equal(t, "Copy", JoinWords("Copy", ""))
+	require.Equal(t, "Diagnostics", JoinWords("", "Diagnostics"))
+	require.Equal(t, "", JoinWords("", ""))
+}
+
+// TestJoinWordsKeepsTheSeparatorForBytesThatDoNotDecode keeps a corrupt string
+// from being glued together: DecodeLastRuneInString reports RuneError for a
+// broken byte, and reading that as a Chinese character would drop the space
+// between two Latin words.
+func TestJoinWordsKeepsTheSeparatorForBytesThatDoNotDecode(t *testing.T) {
+	require.Equal(t, "Copy \xff", JoinWords("Copy", "\xff"))
+	require.Equal(t, "\xff Diagnostics", JoinWords("\xff", "Diagnostics"))
+}

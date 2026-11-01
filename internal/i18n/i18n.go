@@ -14,6 +14,8 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/spf13/viper"
 )
@@ -180,6 +182,45 @@ func Paren(note string) string {
 // Label formats "name: value" with the separator the language expects.
 func Label(name string, value interface{}) string {
 	return name + GetTranslator().Separator() + fmt.Sprint(value)
+}
+
+// JoinWords joins two words of one phrase — "Copy" and "Diagnostics" — with the
+// space the language puts between them. Chinese does not separate two CJK words
+// with a space, so a caller that concatenated with " " produced 复制 诊断信息
+// beside a catalog full of 复制诊断信息.
+//
+// Only the boundary between two CJK characters is closed up. A Latin word that
+// meets a CJK one keeps the space: the project's Chinese prose spaces the two
+// scripts, and 复制 payload is correct while 复制payload is not.
+func JoinWords(left, right string) string {
+	if left == "" {
+		return right
+	}
+	if right == "" {
+		return left
+	}
+	if touchesAcrossCJK(left, right) {
+		return left + right
+	}
+	return left + " " + right
+}
+
+// touchesAcrossCJK reports whether the last rune of left and the first rune of
+// right are both CJK, which is the only boundary that closes up.
+func touchesAcrossCJK(left, right string) bool {
+	last, _ := utf8.DecodeLastRuneInString(left)
+	first, _ := utf8.DecodeRuneInString(right)
+	return isCJK(last) && isCJK(first)
+}
+
+// isCJK covers the Han characters the Chinese catalogs are written in. Kana and
+// Hangul are not in those catalogs, so they are not needed here; a future table
+// that adds one would extend this rather than silently keep a stray space.
+//
+// utf8.RuneError is excluded: DecodeLastRuneInString returns it for invalid
+// input, and a broken byte should keep the separator rather than guess.
+func isCJK(r rune) bool {
+	return r != utf8.RuneError && unicode.Is(unicode.Han, r)
 }
 
 func (tr *Translator) AvailableLocales() []string {

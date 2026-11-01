@@ -243,7 +243,7 @@ func (a *App) settingsAboutCard(c *ui.Context) {
 		readout(c, a.aboutRows())
 		// Support asks for the build facts; copying the card's own rows keeps the
 		// reply exact instead of a typed paraphrase.
-		if quietButton(c, tr("Copy")+" "+tr("Diagnostics")).Clicked() {
+		if quietButton(c, copyActionLabel("Diagnostics")).Clicked() {
 			a.copyDiagnostics(c)
 		}
 		a.settingsButton(c, "Open About Dialog", "", a.actions.ShowAbout)

@@ -337,7 +337,7 @@ func (a *App) lotteryVerify(c *ui.Context) {
 			}
 			// A support reply pastes the verdict; selecting rendered text out of
 			// a native window is not always possible.
-			if quietButton(c, tr("Copy")+" "+tr("Verdict")).Clicked() {
+			if quietButton(c, copyActionLabel("Verdict")).Clicked() {
 				c.Services().WriteClipboard(lotteryVerdictText(r))
 				c.Toast(tr("Verdict is on the clipboard"))
 			}
