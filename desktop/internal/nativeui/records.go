@@ -48,6 +48,14 @@ func recordModuleName(module string) string {
 	return module
 }
 
+// RecordVocabulary resolves one word a decoded record carries — its module, an
+// action or a fact label — into the language the window is showing. It is
+// exported for the shell's ledger search: a query typed in Chinese has to match
+// the words the reader sees, not only the English ones the chain stores.
+func RecordVocabulary(kind, module, word string) string {
+	return recordVocabulary(kind, module, word)
+}
+
 // recordActionName and recordFactName resolve the other two vocabulary kinds the
 // decoder emits. They try the module-scoped key first, which is what keeps a
 // token transfer (转账) from lending its word to an NFT transfer (转让).

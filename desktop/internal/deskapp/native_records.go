@@ -51,13 +51,23 @@ func decodeBlockRecord(height, timestamp int64, payload string) nativeui.BlockRo
 // recordSearchText is what the adapter's search compares against. It includes
 // the decoded sentences so a query for "transfer" or a winner's name finds the
 // record even though the raw payload spells neither that way.
+//
+// It also includes the words as the window draws them. A Chinese reader sees
+// 抽奖 · A（中奖者：A）and types 中奖者; without this the row would be on screen
+// and the search would answer zero. The English words stay in the text, so the
+// vocabulary in the documentation and in `--json` still matches in every
+// language — the same rule the CLI's `blockchain blocks -s` follows.
 func recordSearchText(row nativeui.BlockRow) string {
 	parts := []string{
 		row.Module, row.Action, row.Subject, row.Summary, row.Payload,
 		strconv.FormatInt(row.Height, 10),
 	}
+	parts = append(parts,
+		nativeui.RecordVocabulary(records.KindModule, row.Module, row.Module),
+		nativeui.RecordVocabulary(records.KindAction, row.Module, row.Action))
 	for _, fact := range row.Facts {
-		parts = append(parts, fact.Label, fact.Value)
+		parts = append(parts, fact.Label, fact.Value,
+			nativeui.RecordVocabulary(records.KindFact, row.Module, fact.Label))
 	}
 	return strings.Join(parts, " ")
 }

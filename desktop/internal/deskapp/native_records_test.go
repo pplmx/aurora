@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/pplmx/aurora/desktop/internal/nativeui"
+	"github.com/pplmx/aurora/internal/i18n"
 	"github.com/pplmx/aurora/internal/records"
 )
 
@@ -211,4 +212,31 @@ func TestDecodeRecordEncodesAnUnprintableUnknownPayload(t *testing.T) {
 	known := decodeBlockRecord(4, 0, "mint|GLD|dXNlcg==")
 	assert.Equal(t, "token", known.Module)
 	assert.NotEmpty(t, known.Summary)
+}
+
+// TestRecordSearchReachesTheTranslatedWords covers the search in a Chinese
+// window. A reader sees 抽奖 · A（中奖者：A）and types 中奖者; the query used to
+// match only the English words the chain stores, so the row was on screen and
+// the search answered zero.
+//
+// The English words stay searchable in every language, which is what keeps the
+// vocabulary in the documentation and in --json usable from the window.
+func TestRecordSearchReachesTheTranslatedWords(t *testing.T) {
+	translator := i18n.GetTranslator()
+	before := translator.GetLocale()
+	t.Cleanup(func() { translator.SetLocale(before) })
+
+	row := decodeBlockRecord(7, 1700000001,
+		`{"participants":["Alice","Bob"],"winners":["Alice"],"seed":"s"}`)
+
+	translator.SetLocale("en")
+	require.True(t, recordSearchMatches(row, "winners"))
+	require.False(t, recordSearchMatches(row, "中奖者"))
+
+	translator.SetLocale("zh")
+	for _, query := range []string{"中奖者", "抽奖", "winners", "draw", "alice"} {
+		require.Truef(t, recordSearchMatches(row, query),
+			"a Chinese window must find the record by %q", query)
+	}
+	require.False(t, recordSearchMatches(row, "没有任何匹配"))
 }
