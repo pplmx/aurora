@@ -230,3 +230,54 @@ func TestBlockMatchesSearchesTheEnglishWords(t *testing.T) {
 		require.Truef(t, blockMatches(entry, query), "an English window must find the record by %q", query)
 	}
 }
+
+// TestJSONListCommandsPrintTheDocumentedOuterShape pins the "list commands print
+// an array" promise in docs/cli.md, and the one exception beside it.
+//
+// The reference used to put `blockchain blocks` in the array row: it prints a
+// {"blocks","total","limit","offset"} page, so a script that indexed the output
+// as a list read null. Both facts are cheap to check and neither is visible from
+// the command running successfully.
+func TestJSONListCommandsPrintTheDocumentedOuterShape(t *testing.T) {
+	withTempDir(t, func(t *testing.T) {
+		setTestLocale(t, "en")
+
+		// token history needs a token that exists; the rest print [] on an
+		// empty database, which is the case a script hits first.
+		_, err := runCmd(t, "token", "create", "-n", "Gold", "-s", "GLD", "--supply", "1000")
+		require.NoError(t, err)
+
+		arrayCommands := [][]string{
+			{"lottery", "history"},
+			{"token", "list"},
+			{"token", "history", "--token", "GLD"},
+			{"nft", "list"},
+			{"voting", "candidate", "list"},
+			{"voting", "voter", "list"},
+			{"voting", "session", "list"},
+			{"oracle", "source", "list"},
+			{"oracle", "template", "list"},
+		}
+		for _, args := range arrayCommands {
+			out, err := runCmd(t, append(append([]string{}, args...), "--json")...)
+			require.NoErrorf(t, err, "%v must succeed on an empty database", args)
+			var probe any
+			require.NoErrorf(t, json.Unmarshal([]byte(out), &probe), "%v must print JSON", args)
+			_, isArray := probe.([]any)
+			assert.Truef(t, isArray, "%v must print an array, got %T (docs/cli.md's list row)", args, probe)
+		}
+
+		out, err := runCmd(t, "blockchain", "blocks", "--json")
+		require.NoError(t, err)
+		var page map[string]any
+		require.NoError(t, json.Unmarshal([]byte(out), &page), "blocks must print one document")
+		for _, key := range []string{"blocks", "total", "limit", "offset"} {
+			assert.Containsf(t, page, key, "the page must carry %q", key)
+		}
+		// The empty ledger is `[]`, never null: a script that ranges over it
+		// would otherwise have to special-case the first run of a fresh install.
+		blocks, ok := page["blocks"].([]any)
+		require.True(t, ok, "blocks must be an array")
+		assert.Empty(t, blocks)
+	})
+}
