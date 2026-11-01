@@ -28,6 +28,15 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The paging invariants are documented, not only the behaviour**: the section
+  said what paging does and left the rules implicit — a query survives a page
+  move, a highlight is restored by id rather than row number, a successful read
+  commits rows and offset together, and the row count comes from the extra-row
+  probe. Each is a decision someone could undo while the prose stayed true, so
+  they are stated as invariants a change has to satisfy, along with why three
+  failed voting reads report one line (`errors.Join` keeps every cause,
+  `dedupeLines` collapses the strip).
+
 - **Every paginated list is checked for its extra-row probe**: six window files
   ask storage for one row beyond the page they show and enable Next only when it
   comes back. Five lists had a boundary test for that behaviour; a change
