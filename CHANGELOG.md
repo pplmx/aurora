@@ -28,6 +28,16 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The Simplified and Traditional catalogs must share one key set**: `T` falls
+  back to English and then to the key itself, so a key added to one catalog and
+  forgotten in another degrades quietly — the window shows English, or a raw
+  identifier, and every test passes because the value exists somewhere. Both
+  catalogs hold 561 core keys and 737 window keys today, and a missing one now
+  fails by name.
+- **The scan has to read raw strings too**: the long help paragraphs are backtick
+  literals, so a double-quote-only pattern reported three keys as Traditional-only
+  when the English catalog has them.
+
 - **The JSON examples in the API reference are parsed by a test now**: eleven
   fenced blocks show the shape of a request or a response, and nothing checked
   that they parse. A trailing comma there teaches the wrong shape and costs the
