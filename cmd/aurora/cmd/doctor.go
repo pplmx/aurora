@@ -61,6 +61,7 @@ var doctorCmd = &cobra.Command{
 		} else {
 			fmt.Printf("\n🩺 %s (%s)\n", i18n.GetText("doctor.title"), Version)
 			fmt.Println("────────────────────────────")
+			rows := make([]markedField, 0, len(checks))
 			for _, check := range checks {
 				mark := "✔"
 				switch check.Status {
@@ -69,8 +70,13 @@ var doctorCmd = &cobra.Command{
 				case doctorFail:
 					mark = "✖"
 				}
-				fmt.Printf("  %s %s\n", mark, i18n.Label(i18n.GetText("doctor.check."+check.Name), check.Detail))
+				rows = append(rows, markedField{
+					mark:  mark,
+					label: i18n.GetText("doctor.check." + check.Name),
+					value: check.Detail,
+				})
 			}
+			printMarkedFields(rows...)
 		}
 
 		if !healthy {

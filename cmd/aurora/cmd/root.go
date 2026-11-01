@@ -275,6 +275,30 @@ func printFields(fields ...field) {
 	}
 }
 
+// markedField is a field whose line opens with a status mark (the doctor's
+// ✔/▲/✖). The mark sits in its own column: a block that mixed marked and
+// unmarked rows would otherwise start its labels one column apart.
+type markedField struct {
+	mark  string
+	label string
+	value string
+}
+
+// printMarkedFields prints markedField rows from one indent, with the labels
+// lined up under each other.
+func printMarkedFields(fields ...markedField) {
+	width := 0
+	for _, f := range fields {
+		if w := i18n.DisplayWidth(f.label); w > width {
+			width = w
+		}
+	}
+	for _, f := range fields {
+		pad := strings.Repeat(" ", width-i18n.DisplayWidth(f.label))
+		fmt.Printf("  %s %s%s %s%s\n", f.mark, f.label, i18n.Colon(), pad, f.value)
+	}
+}
+
 // addField appends one label/value pair for printFields, skipping an optional
 // field that has no value so the block does not print a label with nothing after
 // it (an NFT without a description, an oracle source without a path).

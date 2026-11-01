@@ -6,7 +6,11 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
+	"unicode/utf8"
+
+	"github.com/pplmx/aurora/internal/i18n"
 
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
@@ -218,4 +222,50 @@ func TestDoctorWarnsOnAWorldReadableConfig(t *testing.T) {
 
 	_, readable = configReadableByOthers(filepath.Join(dir, "missing.toml"))
 	assert.False(t, readable, "a missing file is not a permission warning")
+}
+
+// TestDoctorLinesItsChecksUp covers the report's own layout. The five labels
+// differ in length ("Config", "Audit outbox"), and the row that reported a
+// warning carried a different mark, so the block's values started at five
+// different columns and the report — which is read top to bottom when something
+// is wrong — was the hardest block in the CLI to scan.
+func TestDoctorLinesItsChecksUp(t *testing.T) {
+	withTempDir(t, func(t *testing.T) {
+		setTestLocale(t, "en")
+
+		out, err := runCmd(t, "doctor")
+		require.NoError(t, err)
+
+		// Where each value starts, in display columns: everything before it is
+		// the indent, the mark, the label, the separator and the padding.
+		starts := map[string]int{}
+		for _, line := range strings.Split(out, "\n") {
+			trimmed := strings.TrimSpace(line)
+			// The marks are three bytes each, so the first byte cannot tell a
+			// check row from the heading; the first rune can.
+			first, _ := utf8.DecodeRuneInString(trimmed)
+			if trimmed == "" || !strings.ContainsRune("✔▲✖", first) {
+				continue
+			}
+			colon := strings.Index(trimmed, i18n.Colon())
+			require.Greaterf(t, colon, 0, "a check line must carry a label: %q", line)
+			rest := trimmed[colon+len(i18n.Colon()):]
+			value := strings.TrimLeft(rest, " ")
+			require.NotEmptyf(t, value, "a check line must carry a value: %q", line)
+			prefix := trimmed[:len(trimmed)-len(rest)] +
+				strings.Repeat(" ", len(rest)-len(value))
+			starts[strings.TrimSpace(trimmed[:colon])] = i18n.DisplayWidth(prefix)
+		}
+		require.GreaterOrEqual(t, len(starts), 5, "the report lists five checks:\n%s", out)
+
+		want := -1
+		for label, column := range starts {
+			if want < 0 {
+				want = column
+				continue
+			}
+			require.Equalf(t, want, column,
+				"the value after %q starts at column %d, not %d:\n%s", label, column, want, out)
+		}
+	})
 }
