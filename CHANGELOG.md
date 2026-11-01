@@ -131,6 +131,21 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **The CLI's field blocks line up their values**: a result block printed each
+  "Label: value" line at a fixed indent with no column — "ID: MTK" beside
+  "Total Supply: 1000000" beside "Owner: …" — so the eye had to re-find the
+  value on every line. In Chinese it was worse: 所有者 is six terminal columns
+  and nine bytes, so padding by byte length would have left the block less
+  aligned than before.
+- **`printFields` takes the whole block** and pads each label to the widest one
+  in display columns. `i18n.DisplayWidth` counts a Han character and a
+  full-width mark as two columns, which is what the Chinese catalogs print.
+- **The blocks were also split between two- and three-space indents**, one
+  helper here and a hand-written `Printf` there; they share the helper now.
+- **Tests assert against the value rather than the exact spacing**, so a wider
+  label elsewhere in a block does not break an unrelated check, and the
+  alignment has its own test comparing the value's column in both languages.
+
 - **`--interval` advertised its value type as "source add"**: `aurora oracle
   source add --help` printed `-i, --interval source add`. The flag is an int;
   pflag reads a pair of backticks inside a usage string as the type
