@@ -99,14 +99,14 @@ func (a *App) settingsDataCard(c *ui.Context) {
 // and sidebar register. Keys are listed once, on the page a reader visits to
 // learn them.
 func (a *App) settingsShortcutsCard(c *ui.Context) {
-	formCard(c, "Shortcuts", "Navigation and window commands; Reload applies to pages that read stored data.", func() {
+	formCard(c, "Shortcuts", "Navigation and window commands; Refresh applies to pages that read stored data.", func() {
 		ui.Column(c).FillWidth().Gap(space1).Children(func() {
 			for i, shortcut := range []struct {
 				label string
 				chord string
 			}{
 				{"Pages", shortcutChord("1…8")},
-				{"Reload (data pages)", shortcutChord("R")},
+				{"Refresh (data pages)", shortcutChord("R")},
 				{"Back up database", shortcutChord("B")},
 				{"Export lotteries", shortcutChord("E")},
 				{"Import lotteries", shortcutChord("I")},

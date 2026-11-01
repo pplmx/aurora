@@ -634,8 +634,8 @@ func TestSettingsDocumentsTheWindowShortcuts(t *testing.T) {
 	tester.Frame()
 	require.True(t, tester.HasText("Shortcuts"))
 	require.True(t, tester.HasText(
-		"Navigation and window commands; Reload applies to pages that read stored data."))
-	require.True(t, tester.HasText("Reload (data pages)"))
+		"Navigation and window commands; Refresh applies to pages that read stored data."))
+	require.True(t, tester.HasText("Refresh (data pages)"))
 	require.True(t, tester.HasText(shortcutChord("R")))
 	require.True(t, tester.HasText("Back up database"))
 	require.True(t, tester.HasText(shortcutChord("B")))

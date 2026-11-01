@@ -106,7 +106,11 @@ func TestSettingsPageWithoutCallbacksStaysReadable(t *testing.T) {
 
 	require.True(t, tester.HasText("Language"))
 	require.True(t, tester.HasText("Data"))
-	require.False(t, tester.HasText("Refresh"), "Settings reads no database to refresh")
+	// The header's Refresh action is absent on Settings, which reads no
+	// database. The shortcuts card names the label, so the check looks for the
+	// button itself rather than for the word anywhere on the page.
+	_, hasRefreshButton := tester.Find("Refresh")
+	require.False(t, hasRefreshButton, "Settings reads no database to refresh")
 	require.False(t, tester.HasText("English"), "no language buttons without a shell")
 	require.False(t, tester.HasText("Open About Dialog"))
 }

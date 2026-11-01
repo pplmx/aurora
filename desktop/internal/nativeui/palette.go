@@ -126,7 +126,7 @@ func (a *App) paletteMatches() []paletteEntry {
 	if a.busy == "" {
 		if a.page != pageSettings {
 			entries = append(entries, paletteEntry{
-				title: "Refresh current page", detail: "Reload the data shown on this page",
+				title: "Refresh current page", detail: "Refresh the data shown on this page",
 				icon: refreshIcon, action: func(*ui.Context) { a.refresh() },
 			})
 		}
