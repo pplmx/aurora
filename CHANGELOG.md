@@ -28,6 +28,18 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The reference says which write response has no `block_height`**: every token
+  write carries it except `approve`, because `ApproveEvent` has no block height
+  — the domain records the event id, both public keys, the amount and a
+  timestamp. A client that infers success from the field's presence therefore
+  misreads an approval, and the shape table lists all five writes together.
+  The paragraph also says how to find the block an approval landed in.
+- **The desktop guide says Settings has no Refresh**: the page reads no
+  database, so the header button and the palette entry are both absent, and the
+  guide listed Refresh without that qualifier.
+- **Both are pinned to the code**: a RepoCheck test fails if `approve` gains the
+  field or a sibling loses it, and the Settings rule already had a UI test.
+
 - **Three catalog keys for one placeholder are now one**: `voting.none`,
   `migrate.none` and `common.none` all said "(none)" — three keys a translator
   keeps in step for a placeholder with no module meaning, and three places a
