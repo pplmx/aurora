@@ -28,6 +28,20 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The CLI write commands show how their flags fit together**: `aurora token
+  mint --help` said "Mint tokens" and then listed `-t`, `-o`, `-a` and `-k`
+  with nothing to say how the four belong in one line. All of them are
+  required, so a reader learned the shape by failing. `token create` and
+  `nft mint` two commands away each showed two runnable lines, and
+  `docs/cli.md` had the examples — but `--help` is where a reader is when the
+  command fails.
+- **`token mint`, `transfer`, `approve`, `transfer-from`, `burn` and `nft
+  transfer`, `burn` carry one example each**, run against a fresh database
+  before the change landed.
+- **A test requires every write command to carry an example**, that each
+  `--flag` in it exists, and that every required flag appears, so a documented
+  flag that no longer exists cannot send a reader to an error message.
+
 - **The API reference no longer claims the gateway's search follows the reader's
   language**: `docs/api.md` said the blocks `q` filter matches "the same
   sentence the CLI's `-s` and the window's ledger search compare". That stopped
