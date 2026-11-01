@@ -620,3 +620,26 @@ func TestChineseCatalogKeepsThePlaceholders(t *testing.T) {
 			"%s keeps a different number of placeholders\n  en: %q\n  zh: %q", key, english, chinese)
 	}
 }
+
+// TestCloneMessagesGivesTheTranslatorItsOwnMap covers the helper the translator
+// uses to take a copy of each shipped catalog at Init. The copy is what makes a
+// later write safe: a locale file installs into trans.messages[locale], and for a
+// shipped locale that entry is the catalog itself — without the clone the file
+// would rewrite the package table for the rest of the process.
+func TestCloneMessagesGivesTheTranslatorItsOwnMap(t *testing.T) {
+	src := map[string]string{"a": "one", "b": "two"}
+	clone := cloneMessages(src)
+	require.Equal(t, src, clone, "the copy starts equal")
+
+	clone["a"] = "changed"
+	clone["c"] = "added"
+	require.Equal(t, "one", src["a"], "writing the copy must not reach the source")
+	require.NotContains(t, src, "c")
+
+	// A shipped catalog is what the translator copies, so the same property holds
+	// for the real table: a write to the copy leaves it intact.
+	english := cloneMessages(englishMessages)
+	english["common.none"] = "FROM FILE"
+	require.NotEqual(t, "FROM FILE", englishMessages["common.none"],
+		"the English catalog must keep its own text")
+}
