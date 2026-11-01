@@ -377,6 +377,8 @@ curl -s -H "X-API-Key: $KEY" -H 'Content-Type: application/json' \
 
 会期的**请求字段是 `candidate_ids`**（候选人 id 数组），响应里对应字段叫
 `candidates`；两者不是同一个名字，按响应结构回填请求会拿到空名单。
+`voting/session/{id}`、`/start`、`/end` 的响应同样用 `candidates`，所以「读一个
+会期、改一改、再提交」也需要在这两个名字之间做一次转换。
 
 `GET /voting/session/{id}` 与 `POST /voting/session`、`POST /session/{id}/start`、
 `/end` 返回与 `/voting/sessions` 完全相同的字段（snake_case），可以用同一个结构
@@ -412,6 +414,11 @@ curl -s -H "X-API-Key: $KEY" -H 'Content-Type: application/json' \
 签名由服务端用请求里的私钥完成（消息是 `voter_public_key|candidate_id|unix 秒`），
 再用登记在册的公钥复验：私钥与公私钥对不匹配时返回 `401 INVALID_VOTE_SIGNATURE`，
 base64 或长度不合法分别返回 `INVALID_BASE64` / `INVALID_PRIVATE_KEY`（400）。
+
+这里也有一处名字不同：注册选民的响应把公钥放在 **`public_key`**，而投票请求要的是
+**`voter_public_key`**。两个名字指同一个值，把注册响应整个塞回投票请求会得到一个
+空的公钥并返回 400。与 `candidate_ids`/`candidates` 一样，这类差异按字段语义命名
+而不是为了两个方向能直接互相填充。
 
 每个会期对同一选民只接收一票；同一次投票的 claim、选票记录和候选人计数在同一个
 SQLite 事务内提交。上一会期的选票不会阻止该选民参加下一会期。计票只统计每个
