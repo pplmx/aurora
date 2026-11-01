@@ -505,6 +505,11 @@ NFT 写接口的字段：
 创建只登记 `owner` 公钥、不要求签名；之后的每次写都必须由该公钥对应的私钥
 （或 `spender_key`）签名，私钥与登记公钥不匹配时返回 `401 INVALID_SIGNATURE`。
 
+写响应里 `mint`/`transfer`/`transfer_from`/`burn` 都带 `block_height`，**`approve` 不带**：授权事件本身没有区块高度，它只记录事件 id、双方的公钥、金额与时间戳。
+需要定位这次授权落在哪个区块，请用 `/blockchain/blocks?q=<幂等 id>`，或读
+`/token/history` 里对应的转账流水。这是数据模型的差别，不是字段遗漏；按
+`block_height` 是否存在来判断「写是否成功」会在授权上误判。
+
 未知 `token_id` 的读接口返回 `404 TOKEN_NOT_FOUND`，与 `info` 一致——不会用
 `200 {"amount":"0"}` 或 `200 []` 把“代币不存在”伪装成“没有活动”。
 余额、授权和历史中的非空 `owner`/`spender` 必须解码为 32 字节 Ed25519 公钥；
