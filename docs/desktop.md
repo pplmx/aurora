@@ -340,6 +340,10 @@ just check && just test
   在四张卡片里找计票。代币精度、历史 Limit/Offset、NFT 的
   可选元数据、预言机的 Type/Method/Path/Headers/Interval 放在 **Advanced** /
   **Paging** / **Optional details** 折叠区里，首屏只留完成主任务需要的字段；
+  **分页上限桌面比 REST 宽**：`Limit` 输入框接受 1–1000，而 `GET /oracle/query`
+  与 CLI `oracle data` 封顶 100。窗口在进程内读库、靠自己的分页器走长历史，网关
+  要约束的是可以无成本重复请求的网络调用方。关键是「表单接受的值就是实际读的值」
+  ——桌面不会显示 500 却只读 100 条，那样表单就在说谎。
   选择预言机预设会自动展开 Advanced，方便核对预设填入的内容。每页只有一条
   状态行，固定在页头下方、
   不随内容滚动——表单底部的动作失败时也能立刻看到；成功/失败用文字加色块表达，

@@ -262,6 +262,13 @@ func sourceInterval(seconds int) string {
 // the field names a positive number. REST's /oracle/query and the CLI's
 // `oracle data` default to the same page size, so an untouched card asks the
 // store for what the other surfaces ask for.
+//
+// The ceiling differs on purpose. Those two cap at 100 because a network caller
+// can repeat the request at no cost to itself; the window reads in process and
+// its pager has to be able to walk a long history in a few clicks, so it shares
+// maxListLimit with the other collection cards. The number the field accepts
+// and the number the store is asked for are therefore the same here, which is
+// what makes the form honest — a value it shows is never silently cut down.
 func (a *App) oracleQueryLimit() int {
 	limit := int(a.oracle.queryLim)
 	if limit < 1 {
