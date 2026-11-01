@@ -322,6 +322,15 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **A lookup that finds nothing clears the highlight**: five helpers highlight
+  the record the page was just told to show — after a mint, a draw, a source add,
+  a registration, a session create. Each looked the record up by id and, on a
+  miss, returned without touching the highlight, leaving the previous row
+  selected. The write cards read their subject from that highlight, so a miss
+  left the next transfer, burn or ballot naming a record the operator never
+  chose. All five now clear before the lookup, as the four restore helpers
+  already did.
+
 - **A mint's highlight is tested where position and id disagree**: the existing
   mint test had the new asset land at index 0, where selecting by id and
   selecting the first row give the same answer. The collection shows whatever
