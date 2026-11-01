@@ -117,8 +117,11 @@ func attachFieldError(c *ui.Context, field ui.Element, label, message string) {
 // Aurora's own look rather than the toolkit's default: one height, radius and
 // weight across cards, and the hover/press feedback the reference MyGo apps
 // use, so a click is acknowledged before the write finishes.
-// maxListLimit is the largest page size a list form accepts; the REST surface
-// applies the same ceiling to its ?limit.
+// maxListLimit is the largest page size a list form accepts. It is deliberately
+// larger than the REST surface's ?limit cap (100): the window reads the store
+// in process and needs a wider page for its own scrolling, while the gateway
+// bounds a network caller. A form value above the REST cap is clamped again by
+// the handler when the same data is fetched over HTTP.
 const maxListLimit = 1000
 
 // searchField is the one place a page builds its filter control. Every page
