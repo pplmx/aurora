@@ -251,10 +251,16 @@ aurora oracle latest -i <source-id>
 `--limit` 默认 **10**，只读取该源最近的这些读数，上限 100；`oracle latest` 没有
 该选项，固定读最新一条。调度器不受该选项影响，仍会枚举全部数据源。
 
-这是全仓唯一不把 `-l 0` 当作「不限」的列表命令：`--limit 0` 与不传一样回落到
-默认 10，因为「最近的 0 条读数」不是有意义的请求，而无上限会让一次调用扫完整张
-读数表。其余列表（`lottery history`、`token list`、`nft history`、`voting * list`、
-`oracle source list`）的 `-l 0` 仍表示列出全部。
+**`-l 0` 不都是「不限」**，两个历史类命令例外，它们的 `0` 与不传一样回落到默认值：
+
+| 命令            | `-l 0` 的实际行为                     | 为什么                                                      |
+| --------------- | ------------------------------------- | ----------------------------------------------------------- |
+| `oracle data`   | 回落 10（上限 100）                   | 「最近的 0 条读数」不是有意义的请求，无上限会扫完整张读数表 |
+| `token history` | 回落 50（上限 100，offset 上限 1000） | 流水按代币累计，通常越读越多，默认取最近一屏                |
+
+其余列表（`lottery history`、`token list`、`nft history`、`voting * list`、
+`oracle source list`、`blockchain blocks`）的 `-l 0` 表示列出全部。脚本若要「不分页」，
+在这两个历史命令上不能传 0。
 
 源还没有读数时，`oracle data` 打印 `📊 Oracle Data:` 与缩进的 `(none)`，
 `oracle latest` 打印 `📈 Latest Data:` 与一句说明，不会只留一句无标题的
