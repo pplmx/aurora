@@ -28,6 +28,18 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The API reference no longer claims the gateway's search follows the reader's
+  language**: `docs/api.md` said the blocks `q` filter matches "the same
+  sentence the CLI's `-s` and the window's ledger search compare". That stopped
+  being true when those two surfaces started also matching the words their
+  reader sees — a Chinese window finds a record by 中奖者; the gateway does not.
+- **The difference is intended**: a gateway request has to mean the same thing on
+  every process, so `q` matches the English vocabulary the decoder emits. The CLI
+  and the window can add the reader's language because each knows which language
+  its reader sees; for the API that would make one query return different rows on
+  two deployments of the same data. A handler test now proves it, and making the
+  gateway translate fails the test.
+
 - **`blockchain blocks` had the wrong row in the `--json` shape table**: it was
   listed among the commands that print an array. It prints
   `{"blocks","total","limit","offset"}` — the same page envelope as
