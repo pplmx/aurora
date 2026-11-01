@@ -28,6 +28,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The ledger search description names what it matches**: the field said it
+  "matches module, payload or height". The adapter compares the module, the
+  action, the subject, every fact label and value, the summary, the raw payload
+  and the height — and, since the rows are translated, the words as the window
+  draws them. A reader with 抽奖 on screen could not tell the field would find
+  it. `docs/desktop.md` repeated the same short list in two places.
+
 - **The English catalog writes base64 in lowercase**: four flag labels said
   "Public key (Base64)" while every document, both Chinese catalogs and the Go
   package say base64. The house-word check already listed the spelling, but it
