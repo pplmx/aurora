@@ -12,6 +12,21 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The audit outbox retry ladder had no direct assertion**: `backoff` was
+  reachable only through a drain pass, so its rung sequence and ceiling were
+  never checked — the function sat at 62.5% statement coverage with none of its
+  behaviour pinned.
+- **Both directions matter**: a gap that failed to grow would re-attempt a
+  failing destination every pass forever, because the drainer ticks once a
+  second; a gap that grew past the cap would delay an audit record a recovering
+  destination could already accept.
+- **The ladder is spelled out rather than derived**, so it also pins that this
+  implementation still matches the oracle scheduler's, which the code comment
+  claims it mirrors. A small positive ceiling is checked separately to prove the
+  doubling is clipped rather than overshot.
+- **Halting the doubling fails the ladder case**; ignoring the ceiling fails the
+  cap case with `backoff(attempts=10)=8m32s, want the cap 5m0s`.
+
 - **The parent-cancellation shutdown order is covered**: the two existing
   `background.Start` tests cover stop-waits-for-exit and stop-is-idempotent, both
   starting from a live parent context. Production shuts down the other way
