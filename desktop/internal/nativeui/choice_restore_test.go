@@ -21,6 +21,7 @@ func TestRestoredChoicesSurviveAFilter(t *testing.T) {
 		{PublicKey: "pk-2", Name: "Grace"},
 	}
 	app.voting.candidates = []CandidateRow{{ID: "cand-1", Name: "Ada"}, {ID: "cand-2", Name: "Grace"}}
+	app.voting.sessions = []SessionRow{{ID: "s-1", Title: "Budget"}, {ID: "s-2", Title: "Charter"}}
 
 	// With no filter, the id lands on its own index.
 	app.restoreSourceChoice("src-2")
@@ -29,6 +30,8 @@ func TestRestoredChoicesSurviveAFilter(t *testing.T) {
 	require.Equal(t, 1, app.voting.voterChoice)
 	app.restoreCandidateChoice("cand-2")
 	require.Equal(t, 1, app.voting.candChoice)
+	app.restoreSessionChoice("s-2")
+	require.Equal(t, 1, app.voting.sessionChoice)
 
 	// Narrow the lists so the stored records sit at index 0. Restoring the old
 	// index would have pointed at a different record, which is the defect this
@@ -36,6 +39,7 @@ func TestRestoredChoicesSurviveAFilter(t *testing.T) {
 	app.oracle.search = "eth"
 	app.voting.voterSearch = "Grace"
 	app.voting.candSearch = "Grace"
+	app.voting.sessionSearch = "Charter"
 
 	app.restoreSourceChoice("src-2")
 	require.Equal(t, 0, app.oracle.selected, "the source is found at its new position")
@@ -43,6 +47,8 @@ func TestRestoredChoicesSurviveAFilter(t *testing.T) {
 	require.Equal(t, 0, app.voting.voterChoice)
 	app.restoreCandidateChoice("cand-2")
 	require.Equal(t, 0, app.voting.candChoice)
+	app.restoreSessionChoice("s-2")
+	require.Equal(t, 0, app.voting.sessionChoice, "the session is found at its new position")
 }
 
 // TestRestoredChoiceOfAMissingRecordIsNoSelection is the half that protects a
@@ -54,18 +60,22 @@ func TestRestoredChoiceOfAMissingRecordIsNoSelection(t *testing.T) {
 	app.oracle.sources = []SourceRow{{ID: "src-1", Name: "btc-usd"}}
 	app.voting.voters = []VoterRow{{PublicKey: "pk-1", Name: "Ada"}}
 	app.voting.candidates = []CandidateRow{{ID: "cand-1", Name: "Ada"}}
+	app.voting.sessions = []SessionRow{{ID: "s-1", Title: "Budget"}}
 
 	app.oracle.selected = 3
 	app.voting.voterChoice = 3
 	app.voting.candChoice = 3
+	app.voting.sessionChoice = 3
 
 	app.restoreSourceChoice("src-gone")
 	app.restoreVoterChoice("pk-gone")
 	app.restoreCandidateChoice("cand-gone")
+	app.restoreSessionChoice("s-gone")
 
 	require.Equal(t, -1, app.oracle.selected, "no source is highlighted")
 	require.Equal(t, -1, app.voting.voterChoice, "no voter is highlighted")
 	require.Equal(t, -1, app.voting.candChoice, "no candidate is highlighted")
+	require.Equal(t, -1, app.voting.sessionChoice, "no session is highlighted")
 }
 
 // TestRestoringAnEmptyChoiceClearsTheSelection covers the reload path that has
@@ -76,12 +86,15 @@ func TestRestoringAnEmptyChoiceClearsTheSelection(t *testing.T) {
 	app.oracle.selected = 2
 	app.voting.voterChoice = 2
 	app.voting.candChoice = 2
+	app.voting.sessionChoice = 2
 
 	app.restoreSourceChoice("")
 	app.restoreVoterChoice("")
 	app.restoreCandidateChoice("")
+	app.restoreSessionChoice("")
 
 	require.Equal(t, -1, app.oracle.selected)
 	require.Equal(t, -1, app.voting.voterChoice)
 	require.Equal(t, -1, app.voting.candChoice)
+	require.Equal(t, -1, app.voting.sessionChoice)
 }
