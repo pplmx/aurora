@@ -348,6 +348,7 @@ var desktopMessagesHant = map[string]string{
 	"No module records yet; the first write adds one.":          "還沒有模塊記錄；第一次寫入會新增一條。",
 	"No operations recorded for this NFT.":                      "此 NFT 沒有記錄任何操作。",
 	"No poll attempts recorded yet.":                            "還沒有輪詢記錄。",
+	"No readings recorded for this source yet.":                 "此數據源還沒有記錄讀數。",
 	"No sessions match “%s”.":                                   "沒有匹配“%s”的會期。",
 	"No sessions yet.":                                          "還沒有會期。",
 	"No sources match “%s”.":                                    "沒有匹配“%s”的數據源。",
