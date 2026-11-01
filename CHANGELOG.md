@@ -28,6 +28,16 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **A tagged desktop build showed its version as `vv1.1`**: the sidebar footer
+  prepended "v" to the value the shell passed, and the shell passes
+  `git describe`'s output — already prefixed — in every build that carries
+  ldflags. Settings and `--version` both read `v1.1`, so the one place the
+  window's footer disagreed was the one a user glances at. Only an unstamped
+  `go build` left the bare `0.0.1` the prefix was written for.
+- **`versionBadge` adds the prefix only when there is none**, and the test
+  covers both shapes: handling only the tagged case would drop the "v" from the
+  default footer.
+
 - **The desktop's Copy labels put a space between two Chinese words**: the
   labels built at run time were `tr("Copy") + " " + tr(target)`, so a Chinese
   window showed 复制 诊断信息. The catalog's own composed entries — 复制载荷,
