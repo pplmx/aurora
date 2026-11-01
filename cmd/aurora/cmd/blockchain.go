@@ -51,20 +51,22 @@ var blockchainVerifyCmd = &cobra.Command{
 
 		fmt.Printf("\n⛓  %s\n", i18n.GetText("blockchain.verify_title"))
 		fmt.Println("────────────────────────────")
-		fmt.Printf("  %s\n", i18n.Label(i18n.GetText("blockchain.length"), report.Length))
+		fields := []field{{i18n.GetText("blockchain.length"), fmt.Sprint(report.Length)}}
 		if report.Head != "" {
-			fmt.Printf("  %s\n", i18n.Label(i18n.GetText("blockchain.head"), shortHash(report.Head)))
+			fields = append(fields, field{i18n.GetText("blockchain.head"), shortHash(report.Head)})
 		}
 		if report.Valid {
-			fmt.Printf("  %s\n", i18n.Label(i18n.GetText("blockchain.state"), i18n.GetText("blockchain.valid")))
+			fields = append(fields, field{i18n.GetText("blockchain.state"), i18n.GetText("blockchain.valid")})
+			printFields(fields...)
 			return nil
 		}
 		reason := report.FirstBrokenReason
 		if reason == "" {
 			reason = i18n.GetText("blockchain.no_reason")
 		}
-		fmt.Printf("  %s\n", i18n.Label(i18n.GetText("blockchain.state"),
-			i18n.GetTextF("blockchain.broken_at", report.FirstBrokenIndex, reason)))
+		fields = append(fields, field{i18n.GetText("blockchain.state"),
+			i18n.GetTextF("blockchain.broken_at", report.FirstBrokenIndex, reason)})
+		printFields(fields...)
 		// A verification command must fail the process: a script that checks the
 		// exit code cannot read the printed verdict.
 		return newCLIError("blockchain.invalid")

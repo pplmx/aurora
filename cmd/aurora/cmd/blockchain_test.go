@@ -26,10 +26,11 @@ func TestBlockchainVerifyReportsAValidChain(t *testing.T) {
 		out, err := runCmd(t, "blockchain", "verify")
 		require.NoError(t, err)
 		assert.Contains(t, out, "Chain integrity")
-		assert.Contains(t, out, "Blocks: 1")
-		assert.Regexp(t, `Head: [0-9a-f]{12}`, out,
+		// The block is aligned, so the value follows the label after padding.
+		assertFieldValue(t, out, "Blocks:", "1")
+		assert.Regexp(t, `Head: +[0-9a-f]{12}`, out,
 			"the head prefix is what a support thread compares between machines")
-		assert.Contains(t, out, "State: valid")
+		assertFieldValue(t, out, "State:", "valid")
 	})
 }
 
