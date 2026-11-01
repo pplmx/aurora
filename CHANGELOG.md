@@ -12,6 +12,17 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **Three of `DurationSeconds`' five type branches were unreached**: viper's
+  stored type depends on how a value was written — a TOML float arrives as
+  `float64`, an explicit `time.Duration` stays one, a large integer can arrive
+  as `int64` — and the existing test exercised only `string` and `int`.
+- **The failure mode would have been invisible**: a branch that multiplied by
+  the wrong unit turns `checkInterval = 250.0` into a 250-nanosecond ticker that
+  busy-polls, while the integer test stays green.
+- **The new test repeats the positive-only rule for each type**: a zero or
+  negative value of any stored form must fall back, because a zero window or
+  timeout disables the limit it was meant to set.
+
 - **The schedule limits in the CLI reference are tied to the code**: it states a
   data source's interval ceiling (30 days) and the retry backoff (1s, 2s, 4s …
   capped at five minutes). Neither was compared against the constants that
