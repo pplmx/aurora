@@ -28,6 +28,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **Clearing a search brings the whole page back, and now a test says so**: the
+  search tests covered a query narrowing the rows and choosing from what was
+  left; none covered emptying the field. A filter written as a one-way narrowing
+  — "keep the row only when a query is set and it matches" — would leave a list
+  permanently short with no way to widen it, and nothing failed. The four
+  filtered helpers and the two inline filters are covered, and
+  `docs/desktop.md` states the property every future filter must keep.
+
 - **A search hint is now checked against what its search does**: eight lists
   carry a sentence beside the field, and the sentences say two different things
   — six filter the rows already loaded ("Search narrows the current page"), and
