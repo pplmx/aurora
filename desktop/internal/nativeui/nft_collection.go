@@ -126,6 +126,13 @@ func (a *App) nftListBody(c *ui.Context) {
 		return
 	}
 	if len(a.nft.list) == 0 {
+		// Recorded before the return, as on the other lists: a query cleared
+		// while the collection is empty must not stay applied, or the
+		// first-record panel stays hidden behind a work bench over nothing.
+		if a.nft.search != a.nft.appliedSearch {
+			a.nft.appliedSearch = a.nft.search
+			a.nft.selected = -1
+		}
 		if a.nft.filterOwner != "" {
 			emptyNote(c, "No NFTs for this owner. Show All restores the collection.")
 			return

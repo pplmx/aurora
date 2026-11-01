@@ -18,6 +18,13 @@ func (a *App) oracleSourcesBody(c *ui.Context) {
 		return
 	}
 	if len(a.oracle.sources) == 0 {
+		// Recorded before the return, as on the other lists: a query cleared
+		// while no source exists must not stay applied, or the first-record
+		// panel stays hidden behind a work bench over nothing.
+		if a.oracle.search != a.oracle.appliedSearch {
+			a.oracle.appliedSearch = a.oracle.search
+			a.oracle.selected = -1
+		}
 		emptyState(c, pageOracle, "No sources yet", "Add an HTTP feed in Add Source to start reading values.")
 		return
 	}
