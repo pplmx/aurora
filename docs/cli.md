@@ -238,6 +238,11 @@ aurora oracle latest -i <source-id>
 
 `oracle source list` 的 `--limit` 默认 0（列出 offset 之后的全部记录），大于
 0 时只读取该页并打印本页数量与偏移；`--offset` 默认 0。`oracle data` 的
+源还没有读数时，`oracle data` 打印 `📊 Oracle Data:` 与缩进的 `(none)`，
+`oracle latest` 打印 `📈 Latest Data:` 与一句说明（这个选项没有），不会只留一句
+无标题的 `No data found`——空结果是正常状态，不是错误，`--json` 仍是
+`{"data":null}`。
+
 `--limit` 默认 **10**，只读取该源最近的这些读数；`oracle latest` 没有该选项，
 固定读最新一条。调度器不受该选项影响，
 仍会枚举全部数据源。
