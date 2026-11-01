@@ -335,3 +335,46 @@ func TestOutboxDrainer_StartWaitsForInFlightPass(t *testing.T) {
 	}
 	stop()
 }
+
+// TestOutboxBackoffEscalatesAndCaps covers the retry pacing the drainer applies
+// to a stuck audit event. It had no direct assertion: the function was only
+// reached through a drain pass, so its ladder and its ceiling were never
+// checked. The pacing matters in both directions — a gap that failed to grow
+// would re-attempt a failing destination every pass forever, and one that grew
+// past the cap would delay an audit record that a recovering destination could
+// already accept.
+//
+// The expected ladder is spelled out rather than derived, so it also pins that
+// this implementation still matches the oracle scheduler's, which the code
+// comment claims it mirrors.
+func TestOutboxBackoffEscalatesAndCaps(t *testing.T) {
+	for _, tc := range []struct {
+		attempts int
+		want     time.Duration
+	}{
+		{0, time.Second}, // first attempt: the base gap
+		{1, time.Second},
+		{2, 2 * time.Second},
+		{3, 4 * time.Second},
+		{4, 8 * time.Second},
+		{9, 256 * time.Second},
+	} {
+		assert.Equalf(t, tc.want, backoff(outboxBackoffBase, outboxBackoffCap, tc.attempts),
+			"backoff(attempts=%d)", tc.attempts)
+	}
+
+	// Past the ceiling every further attempt waits the same, so a permanently
+	// failing destination settles at the cap instead of escalating without
+	// bound.
+	for attempts := 10; attempts <= 40; attempts++ {
+		got := backoff(outboxBackoffBase, outboxBackoffCap, attempts)
+		if got != outboxBackoffCap {
+			t.Fatalf("backoff(attempts=%d)=%s, want the cap %s", attempts, got, outboxBackoffCap)
+		}
+	}
+
+	// The ceiling wins over the doubling: a small cap is reached by doubling
+	// past it and is then clipped, not overshot.
+	assert.Equal(t, 3*time.Second, backoff(outboxBackoffBase, 3*time.Second, 5),
+		"the gap must be clipped to the cap, not the raw doubled value")
+}
