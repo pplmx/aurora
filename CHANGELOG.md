@@ -10,6 +10,22 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ## [Unreleased]
 
+### Changed
+
+- **The token name and symbol ceilings now reach the places a user reads**:
+  both are enforced — a ten-byte symbol is accepted and an eleven-byte one is
+  rejected with `TOKEN_SYMBOL_TOO_LONG` — but neither appeared in the CLI help
+  or the REST reference. The same command's `-d` flag already said "0-127", so
+  sitting next to a flag that stated its bound, `-n` and `-s` read as unbounded
+  and a client learned the limit only by tripping it.
+- **The flag help names the bound in all three catalogs**, and the create-body
+  row in `docs/api.md` carries it next to the decimals range it already had.
+- **The check reads the specific catalog entry**, not the file. The first
+  version asserted the number appeared somewhere in a 600-line catalog and
+  stayed green after the help text lost its bound, because other entries carry
+  small integers too; the mutation run caught that and the assertion was
+  tightened.
+
 ### Fixed
 
 - **`Amount.Cmp` panicked on an amount whose integer was never set**: `String`,
