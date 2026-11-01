@@ -28,6 +28,16 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The CLI reference says the page envelope's zero limit means two things**:
+  `aurora blockchain blocks -l 0 --json` echoes `"limit": 0` and lists
+  everything, while `GET /blockchain/blocks?limit=0` falls back to the default
+  and echoes `"limit": 20`. A script comparing `len(blocks)` with `limit` to
+  decide whether a page was truncated read the CLI's zero as an empty page — the
+  opposite of what it means.
+- **The paragraph states both behaviours** and how a script should handle the
+  zero, since the two numbers sit under the same key. A `repocheck` test pins
+  the CLI's zero to "no cap" and the gateway's to "use the default".
+
 - **The API reference says which health fields come and go**: `/oracle/health`
   omits `last_success_at` until a fetch has succeeded and `last_error` once a
   fetch recovers, but the endpoint was described without mentioning either. A
