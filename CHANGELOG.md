@@ -28,6 +28,25 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **`genzhhant -check` could never pass**: it compares the checked-in
+  Traditional catalogs with what the generator produces, and three reviewed
+  wordings — 批准額度 and its two neighbours, and 字節 where OpenCC says 位元組 —
+  existed only in the generated file. A correction applied by hand read as
+  permanent drift: the gate failed on every run, and nothing distinguished a
+  reviewed wording from an accident.
+- **The corrections live in the generator now**, in `reviewedWords`, applied
+  after conversion. 上游 is the entry both catalogs needed: OpenCC's character
+  table turns 游 into 遊, and 上遊 means "to go on a trip" rather than an
+  upstream feed. The two byte-size entries settle on 字節, the spelling the core
+  catalog already uses for the same unit.
+- **`-check` names the entries that differ**, not only the file. The old message
+  sent the reader to regenerate everything and commit the result, so a one-word
+  review arrived as a diff of every entry the generator also disagreed about. A
+  key with no counterpart on the other side reports `(missing)`.
+- **The desktop doc described the old workflow**: it told a reader to change the
+  generated file and that `-check` would catch a hand edit, which is precisely
+  what made the gate permanently red. It now points at `reviewedWords`.
+
 - **The Token guide's last step was not a sentence**: it read "Keys are never
   stored. Use generated owner key works only for the token that key created."
   The second sentence ran the button's name into its own predicate, so it stated
