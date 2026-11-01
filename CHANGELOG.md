@@ -12,6 +12,16 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **A test named `TestOracleData_Serialization` asserted nothing**: it built an
+  `OracleData`, then discarded every field with `_ = data.ID` and friends. It
+  called no production function and checked no value — the `_ =` lines exist
+  only to silence the compiler, which is the shape a half-written test takes
+  when it is committed anyway.
+- **It now pins the stored record format**: the struct is marshalled straight
+  onto the chain in `oracleapp/usecase.go`, so its JSON tags are what an auditor
+  reads and a client parses. The test checks all six keys and their values, plus
+  a round trip; renaming or dropping a tag fails it.
+
 - **Three of `DurationSeconds`' five type branches were unreached**: viper's
   stored type depends on how a value was written — a TOML float arrives as
   `float64`, an explicit `time.Duration` stays one, a large integer can arrive
