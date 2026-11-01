@@ -1063,3 +1063,86 @@ func TestRestore_PreRestoreArchiveIsRestorable(t *testing.T) {
 	require.Equal(t, "WRONG", readKV(t, dstDB, "answer"),
 		"restoring the undo copy must bring the previous database back")
 }
+
+// TestRestore_RealArchiveRoundTrip drives Create and Restore together. Every
+// other restore test hand-builds the archive with writeMeta, which writes no
+// per-database checksums — so verifyArchiveContents fills them in from the file
+// it just read and the "archive changed during restore" comparison compares a
+// value with itself. Only an archive produced by Create carries checksums
+// recorded before verification, which is the path an operator actually takes.
+func TestRestore_RealArchiveRoundTrip(t *testing.T) {
+	tmp := t.TempDir()
+	liveDB := filepath.Join(tmp, "live", "blockchain.db")
+	newDB(t, liveDB,
+		"CREATE TABLE kv (k TEXT PRIMARY KEY, v TEXT NOT NULL)",
+		"INSERT INTO kv (k, v) VALUES ('answer', 'ORIGINAL')",
+	)
+
+	svc := NewBackupService(map[string]string{"blockchain": liveDB})
+	backupDir := filepath.Join(tmp, "backup")
+	_, err := svc.Create(context.Background(), backupDir)
+	require.NoError(t, err, "Create")
+
+	// The archive must carry a checksum per database; without one the restore
+	// comparison has nothing recorded to compare against.
+	raw, err := os.ReadFile(filepath.Join(backupDir, "metadata.json"))
+	require.NoError(t, err)
+	var meta BackupMetadata
+	require.NoError(t, json.Unmarshal(raw, &meta))
+	require.Contains(t, meta.DatabaseChecksums, "blockchain",
+		"Create must record the checksum the restore compares against")
+
+	// Change the live data, then restore and confirm the backup's copy won.
+	newDB(t, liveDB,
+		"CREATE TABLE IF NOT EXISTS kv (k TEXT PRIMARY KEY, v TEXT NOT NULL)",
+		"INSERT OR REPLACE INTO kv (k, v) VALUES ('answer', 'CHANGED')",
+	)
+	require.Equal(t, "CHANGED", readKV(t, liveDB, "answer"), "precondition")
+
+	require.NoError(t, svc.Restore(context.Background(), backupDir), "Restore")
+	assert.Equal(t, "ORIGINAL", readKV(t, liveDB, "answer"))
+}
+
+// TestRestore_RefusesArchiveSwappedAfterVerification covers the reason Restore
+// re-verifies instead of trusting an earlier check: an archive that verified a
+// moment ago can be replaced before it is read. Restore runs its own
+// verification first, so the swapped bytes are refused before any live file is
+// touched — the metadata's recorded checksum is what catches them.
+func TestRestore_RefusesArchiveSwappedAfterVerification(t *testing.T) {
+	tmp := t.TempDir()
+	liveDB := filepath.Join(tmp, "live", "blockchain.db")
+	newDB(t, liveDB,
+		"CREATE TABLE kv (k TEXT PRIMARY KEY, v TEXT NOT NULL)",
+		"INSERT INTO kv (k, v) VALUES ('answer', 'GOOD')",
+	)
+
+	svc := NewBackupService(map[string]string{"blockchain": liveDB})
+	backupDir := filepath.Join(tmp, "backup")
+	_, err := svc.Create(context.Background(), backupDir)
+	require.NoError(t, err, "Create")
+
+	// Verify succeeds on the pristine archive.
+	require.NoError(t, svc.Verify(context.Background(), backupDir), "Verify")
+
+	// Swap the archived database for different content, leaving metadata (and
+	// therefore the recorded checksum) untouched. This is the window the guard
+	// closes: a reader that trusted the earlier verification would copy these
+	// bytes over the live database.
+	swapped := filepath.Join(tmp, "swapped.db")
+	newDB(t, swapped,
+		"CREATE TABLE kv (k TEXT PRIMARY KEY, v TEXT NOT NULL)",
+		"INSERT INTO kv (k, v) VALUES ('answer', 'SWAPPED')",
+	)
+	swapBytes, err := os.ReadFile(swapped)
+	require.NoError(t, err)
+	require.NoError(t, os.WriteFile(filepath.Join(backupDir, "blockchain.db"), swapBytes, 0o600))
+
+	err = svc.Restore(context.Background(), backupDir)
+	require.Error(t, err, "a swapped archive must be refused")
+	assert.Contains(t, err.Error(), "checksum mismatch",
+		"the refusal names the check that caught it")
+
+	// The live database still holds the operator's data.
+	assert.Equal(t, "GOOD", readKV(t, liveDB, "answer"),
+		"a refused restore must not touch the live database")
+}
