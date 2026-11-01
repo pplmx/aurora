@@ -84,6 +84,8 @@ func newNativeServices(
 	}
 }
 
+// joinCSV rebuilds the comma-separated participants string the lottery use case
+// accepts from the slice a view keeps.
 func joinCSV(items []string) string {
 	out := ""
 	for i, it := range items {

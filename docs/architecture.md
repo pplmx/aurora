@@ -117,7 +117,7 @@ container、metrics、scheduler 和 handler 集，构造失败不再散落在 `N
 **已做**：`native_services.go` 只保留结构体、构造和接口断言，按领域拆成
 `native_lottery.go`、`native_ledger.go`、`native_voting.go`、`native_keys.go`、
 `native_token.go`、`native_oracle.go`、`native_nft.go`。单文件从 779 行降到
-80 行，领域映射的修改范围可定位。
+98 行（结构体、构造、接口断言与一个 CSV 辅助函数），领域映射的修改范围可定位。
 
 构造参数和字段已改为 `lottery.Repository`、`voting.TransactableRepository`、
 `nft.TransactableRepository`、`oracle.Repository` 等领域端口；NFT 事务管理器
