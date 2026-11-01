@@ -12,6 +12,15 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The two presentation layers depend in one direction, and the reference now
+  says which**: rule 4 said `api` and `desktop` "must not depend on each other",
+  but the desktop imports `internal/api` to start an in-process server and reuse
+  the REST handlers — so the sentence contradicted the code, and the code alone
+  could not say which half was intended. The rule states the direction now: the
+  desktop may reuse the REST surface, the gateway must not know a window exists.
+  A test walks `internal/api` and fails on any desktop import, while asserting
+  the other direction stays.
+
 - **The desktop module keeps its own layering rules, and now a test says so**:
   `TestLayerDependencies` walks `internal/*` only, so the nested window module had
   no import-direction check at all — even though it is a second presentation
