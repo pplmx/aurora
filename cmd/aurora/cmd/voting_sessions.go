@@ -88,12 +88,20 @@ var sessionListCmd = &cobra.Command{
 			return printJSON(list)
 		}
 
-		if limit > 0 {
+		// An offset alone asks for a page too, so it takes the paged heading:
+		// without it, `--offset 9` on a non-empty store read as an empty one.
+		if limit > 0 || offset > 0 {
 			fmt.Printf("\n🗳️ %s\n", i18n.Label(i18n.GetText("voting.sessions"), i18n.GetTextF("common.page_with_offset", len(list), offset)))
 		} else {
 			fmt.Println("\n🗳️ " + i18n.GetText("voting.sessions") + i18n.Colon())
 		}
 		if len(list) == 0 {
+			// Three different answers, as Voters gives them: an empty store, a
+			// page past the end, and a page the offset skipped past.
+			if limit > 0 || offset > 0 {
+				fmt.Println("   " + i18n.GetText("common.page_empty"))
+				return nil
+			}
 			fmt.Println("   " + i18n.GetText("common.none"))
 		}
 		for _, s := range list {

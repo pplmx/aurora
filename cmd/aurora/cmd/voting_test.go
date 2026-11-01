@@ -65,6 +65,35 @@ func TestVotingCandidateList_Empty(t *testing.T) {
 	})
 }
 
+// TestVotingListsPagedEmptyPage covers the answer a page past the end gives.
+// `--offset` alone asks for a page, and the two lists that ignored it printed
+// "(none)" — the empty-store answer — for a store that had records. Voters
+// already got this right, and its three-answer comment is the reason.
+func TestVotingListsPagedEmptyPage(t *testing.T) {
+	cases := []struct {
+		name string
+		args []string
+		head string
+	}{
+		{"candidates", []string{"voting", "candidate", "list", "--offset", "9"}, "Candidates: 0 (offset 9)"},
+		{"sessions", []string{"voting", "session", "list", "--offset", "9"}, "Voting Sessions: 0 (offset 9)"},
+		{"voters", []string{"voting", "voter", "list", "--offset", "9"}, "Voters on this page: 0 (offset 9)"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			withTempDir(t, func(t *testing.T) {
+				runMigrations(t)
+				out, err := runCmd(t, c.args...)
+				require.NoError(t, err)
+				assert.Contains(t, out, c.head, "the paged heading names the offset")
+				assert.Contains(t, out, "No entries on this page")
+				assert.NotContains(t, out, "(none)",
+					"an empty page is not an empty store")
+			})
+		})
+	}
+}
+
 func TestVotingCandidateAdd_MissingName(t *testing.T) {
 	withTempDir(t, func(t *testing.T) {
 		runMigrations(t)
