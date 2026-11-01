@@ -94,6 +94,33 @@ func TestVotingListsPagedEmptyPage(t *testing.T) {
 	}
 }
 
+// TestPagedListsSayThisPageNotTheStore covers one rule across every list that
+// takes paging flags: when a page is asked for, an empty answer describes the
+// page, not the store. Half the commands read only --limit when deciding, so an
+// offset-only request kept the store heading and answered "(none)" — a claim
+// about the store that a non-empty store contradicts.
+func TestPagedListsSayThisPageNotTheStore(t *testing.T) {
+	cases := []struct {
+		name string
+		cmd  []string
+	}{
+		{"token list", []string{"token", "list"}},
+		{"oracle source list", []string{"oracle", "source", "list"}},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			withTempDir(t, func(t *testing.T) {
+				out, err := runCmd(t, append(append([]string{}, c.cmd...), "--offset", "9")...)
+				require.NoError(t, err)
+				assert.Contains(t, out, "offset 9", "the paged heading names the offset")
+				assert.Contains(t, out, "No entries on this page")
+				assert.NotContains(t, out, "(none)")
+				assert.NotContains(t, out, "No tokens yet")
+			})
+		})
+	}
+}
+
 func TestVotingCandidateAdd_MissingName(t *testing.T) {
 	withTempDir(t, func(t *testing.T) {
 		runMigrations(t)
