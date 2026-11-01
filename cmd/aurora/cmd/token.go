@@ -278,7 +278,16 @@ var tokenListCmd = &cobra.Command{
 			return printJSON(tokens)
 		}
 		if len(tokens) == 0 {
-			fmt.Println(i18n.GetText("token.no_tokens"))
+			// The heading and its count come before the empty line, as every
+			// other list does: a bare sentence drops the total that tells a
+			// script and a reader whether the store is empty or the page is.
+			if limit > 0 {
+				fmt.Printf("\n🪙 %s\n", i18n.Label(i18n.GetText("token.list_page"),
+					fmt.Sprintf("%s\n", i18n.GetTextF("common.page_with_offset", 0, offset))))
+			} else {
+				fmt.Printf("\n🪙 %s\n", i18n.Label(i18n.GetText("token.total"), "0\n"))
+			}
+			fmt.Println("   " + i18n.GetText("token.no_tokens"))
 			return nil
 		}
 

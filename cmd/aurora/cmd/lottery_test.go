@@ -72,6 +72,29 @@ func TestLotteryHistory_Empty(t *testing.T) {
 		out, err := runCmd(t, "lottery", "history")
 		require.NoError(t, err)
 		assert.Contains(t, out, "No lottery records found")
+		// The heading carries the count, so a reader and a script can tell an
+		// empty store from an empty page; the sentence alone dropped it.
+		assert.Contains(t, out, "Total lotteries: 0")
+		assert.Less(t, strings.Index(out, "Total lotteries: 0"),
+			strings.Index(out, "No lottery records found"),
+			"the heading comes before the empty line")
+	})
+}
+
+// TestLotteryHistory_EmptyPageAndSearchKeepTheirHeading covers the other two
+// empty answers: a page past the end and a search that matched nothing. Both
+// name what is zero rather than printing a bare sentence.
+func TestLotteryHistory_EmptyPageAndSearchKeepTheirHeading(t *testing.T) {
+	withTempDir(t, func(t *testing.T) {
+		out, err := runCmd(t, "lottery", "history", "--limit", "5")
+		require.NoError(t, err)
+		assert.Contains(t, out, "Lotteries on this page: 0 (offset 0)")
+		assert.Contains(t, out, "No entries on this page")
+
+		out, err = runCmd(t, "lottery", "history", "--search", "zzz")
+		require.NoError(t, err)
+		assert.Contains(t, out, "Matches: 0")
+		assert.Contains(t, out, `No draw matches "zzz".`)
 	})
 }
 
