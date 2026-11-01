@@ -238,6 +238,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **The token history named a missing first step the wrong way**: an empty
+  Token ID printed "No transfers loaded yet.", the same line a chosen but unread
+  token gets. The NFT history and the voting tally already answer the two cases
+  differently, and the difference matters — one asks the reader to pick a
+  subject, the other points at a Load button that is disabled until an ID is
+  typed. A read that returns nothing still says "No transfers found for this
+  query.", so the card now has three answers where it had two.
+
 - **A stage capture photographed the top of the page and passed**: every NFT
   stage and the token Burn stage came out byte-identical to their page captures
   — `nft.png`, `nft-Burn.png` and `nft-History.png` were one file. The capture
