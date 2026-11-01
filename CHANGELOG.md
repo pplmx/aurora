@@ -12,6 +12,18 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The stored VRF key codec has its own tests**: `EncodePublicKey` and
+  `DecodePublicKey` are how a lottery record's key survives a round trip to
+  SQLite and back, and `lottery verify` decides a stored record is tampered by
+  failing to decode it. Only the success path had coverage — reached
+  incidentally through the draw tests — so none of the four rejection branches
+  was exercised.
+- **Each rejection names its reason**: absent, not base64, too short, too long,
+  and correct length but not a curve point. The last one is the interesting
+  case: 32 bytes of `0x7F` pass the length check and are refused only by
+  `SetBytes`, so a change that let the zero point through would have reached
+  verify as a valid-looking key.
+
 - **The audit renderer's terminal guard covers the characters a terminal acts
   on**: `ReadableFields` base64-encodes a field a terminal cannot show, and the
   only test used NUL and high bytes — both of which already fail the UTF-8 check
