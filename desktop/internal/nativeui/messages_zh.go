@@ -784,4 +784,5 @@ var desktopMessages = map[string]string{
 	"Aurora keeps the ledger in one local SQLite database.": "Aurora 把账本保存在一个本地 SQLite 数据库中。",
 	"Choose a token, or enter its ID first.":                "选择代币，或先输入它的 ID。",
 	"No readings recorded for this source yet.":             "此数据源还没有记录读数。",
+	"No reading recorded for this source yet.":              "此数据源还没有记录读数。",
 }

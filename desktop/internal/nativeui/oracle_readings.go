@@ -190,6 +190,14 @@ func (a *App) oracleLatestBody(c *ui.Context) {
 	}
 	if l := a.oracle.latest; l != nil {
 		readout(c, []readoutRow{{"Value", l.Value}, {"Block", strconv.FormatInt(l.BlockHeight, 10)}})
+		return
+	}
+	// An answered read with no value is a normal state, and drawing nothing
+	// leaves the card looking empty rather than answered. latestLoadedSource is
+	// the open marker, so a source that has not been read keeps the field and
+	// its button as the only things on the card.
+	if a.oracle.latestLoadedSource != "" {
+		emptyNote(c, "No reading recorded for this source yet.")
 	}
 }
 

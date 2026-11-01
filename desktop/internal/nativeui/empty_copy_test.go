@@ -79,6 +79,27 @@ func TestEmptyReadoutCopyDistinguishesLoadedFromNotLoaded(t *testing.T) {
 		require.False(t, tester.HasText("No readings recorded for this source yet."))
 	})
 
+	t.Run("oracle latest", func(t *testing.T) {
+		app := New(&fakeServices{sources: []SourceRow{{ID: "s1", Name: "btc"}}})
+		tester := ui.NewTester(app.View, 1280, 5000)
+		app.ShowPage("Oracle")
+		app.oracle.tab = 2
+		app.oracle.latestID = "s1"
+		// Opening the tab reads the selected source, so the card is answered by
+		// the frame below; the "nothing read yet" state is the one before it.
+		require.False(t, tester.HasText("No reading recorded for this source yet."))
+
+		app.oracle.latestLoadedSource = "s1"
+		tester.Frame()
+		require.True(t, tester.HasText("No reading recorded for this source yet."),
+			"an answered read with no value says so")
+
+		app.oracle.latest = &DataRow{Value: "42", BlockHeight: 7}
+		tester.Frame()
+		require.True(t, tester.HasText("42"))
+		require.False(t, tester.HasText("No reading recorded for this source yet."))
+	})
+
 	t.Run("voting tally", func(t *testing.T) {
 		app := New(&fakeServices{sessions: []SessionRow{{ID: "s0", Title: "Budget", Status: "active"}}})
 		tester := ui.NewTester(app.View, 1280, 5000)
