@@ -28,6 +28,16 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The reference names the second request/response spelling difference**:
+  `candidate_ids`/`candidates` was documented; `voter_public_key`/`public_key`
+  was not. The vote sample showed the request key and the prose said "the
+  registration response's key pair", leaving the reader to notice the response
+  calls it `public_key`. Posting a registration response back returns 400 with
+  an empty public key, and the error names neither field.
+- **The session round-trip needs the same translation**, since `/session/{id}`,
+  `/start` and `/end` all answer with `candidates`. A test marshals both DTOs and
+  requires the paragraph, so a rename on either side fails there.
+
 - **The reference says which write response has no `block_height`**: every token
   write carries it except `approve`, because `ApproveEvent` has no block height
   — the domain records the event id, both public keys, the amount and a
