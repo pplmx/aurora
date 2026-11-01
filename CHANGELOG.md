@@ -12,6 +12,15 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The allowance-spending endpoint has a success test now**: `POST
+  /token/transfer_from` had one test, for malformed JSON, so its 200 response,
+  its receipt fields and its status mapping were unobserved. The handler is
+  fully covered; the sentinel behind a refused spend reaches the client as
+  `INSUFFICIENT_ALLOWANCE` (400) rather than a generic 500.
+- **The test fake had to return a real event**: it answered `(nil, nil)`, so a
+  success-path test panicked on the nil dereference — which is why the gap had
+  survived.
+
 - **An oracle reading query without a limit reads every reading**: the SQLite
   repository turned `limit <= 0` into `LIMIT 100` while every other repository
   and the in-memory store treat it as unbounded, so a caller asking for the
