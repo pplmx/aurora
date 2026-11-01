@@ -295,9 +295,11 @@ func TestServer_Router_ReturnsHTTPHandler(t *testing.T) {
 func TestNewServer_SuccessWithTempDB(t *testing.T) {
 	resetForAPITest(t)
 	viper.Set("api.key", "test-key")
-	// Put DB in a writable temp directory so the data path resolves cleanly.
-	tmpDir := t.TempDir()
-	t.Setenv("AURORA_DB_PATH", filepath.Join(tmpDir, "aurora.db"))
+	// Point db.path at a writable temp directory. This used to set
+	// AURORA_DB_PATH, which nothing binds — AutomaticEnv looks for "DB.PATH"
+	// — so the test silently opened the checkout's ./data instead and passed
+	// for the wrong reason.
+	viper.Set("db.path", filepath.Join(t.TempDir(), "aurora.db"))
 
 	srv, err := NewServer()
 	require.NoError(t, err, "NewServer should succeed")
@@ -329,19 +331,16 @@ func TestNewServer_FailsOnInvalidDBPath(t *testing.T) {
 	blockingFile := filepath.Join(tmpDir, "blocking")
 	require.NoError(t, os.WriteFile(blockingFile, []byte("not a dir"), 0o644))
 
-	// Point the DB at a path whose parent is a regular file.
-	t.Setenv("AURORA_DB_PATH", filepath.Join(blockingFile, "data", "aurora.db"))
+	// Point the DB at a path whose parent is a regular file. The assertion is
+	// exact: the open fails, so NewServer reports the error and hands back no
+	// half-built server. The previous form accepted either outcome — and took
+	// the "no error" branch, because AURORA_DB_PATH is not a bound key, so it
+	// never exercised the failure at all.
+	viper.Set("db.path", filepath.Join(blockingFile, "data", "aurora.db"))
 
 	srv, err := NewServer()
-	// Depending on how the repo layer reacts, either NewServer returns an
-	// error or returns a server but with broken DB — we accept either, but
-	// must NOT panic.
-	if err != nil {
-		assert.Nil(t, srv)
-	} else {
-		assert.NotNil(t, srv)
-		t.Cleanup(func() { _ = srv.Close() })
-	}
+	require.Error(t, err, "a database that cannot be opened must fail startup")
+	assert.Nil(t, srv, "a failed startup must not hand back a half-built server")
 }
 
 // =================================================================
