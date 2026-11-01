@@ -483,6 +483,10 @@ for spec in "${pages[@]}"; do
   # otherwise the capture would photograph the top of the page.
   scroll=()
   if [ -n "$size" ] && [ -n "$stage_marker" ]; then
+    # Narrow windows stack the stage body below the left column, so the capture
+    # scrolls it into view first. -scroll-to wheels until the element's box is
+    # inside the content area and fails otherwise; before that it dispatched the
+    # accessibility action, which reported success while the page did not move.
     scroll=(-scroll-to "$stage_marker")
   fi
   if "$shot" -socket "$socket" -press "$press" "${scroll[@]}" -out "$shots/$name.png" -expect "$expect$title"; then

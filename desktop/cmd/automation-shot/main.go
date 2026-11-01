@@ -43,6 +43,17 @@ type windowInfo struct {
 	ID    int    `json:"id"`
 	Title string `json:"title"`
 	Kind  string `json:"kind"`
+	// ContentBounds is the area the view occupies, in window coordinates. A
+	// stage capture compares its target against this to prove the scroll moved
+	// it into the picture rather than only into the tree.
+	ContentBounds rect `json:"contentBounds"`
+}
+
+type rect struct {
+	X      float64 `json:"x"`
+	Y      float64 `json:"y"`
+	Width  float64 `json:"width"`
+	Height float64 `json:"height"`
 }
 
 type treeNode struct {
@@ -55,6 +66,9 @@ type treeNode struct {
 	Value       string   `json:"value"`
 	Description string   `json:"description"`
 	Actions     []string `json:"actions"`
+	// Bounds are the element's box: the tree lists every element whether or not
+	// the viewport shows it, so only the box says what the capture photographs.
+	Bounds rect `json:"bounds"`
 }
 
 func (n treeNode) key() string {
@@ -156,7 +170,7 @@ func run(socket, out, expect, press, scrollTo string, checkLabels bool, index in
 		if want == "" {
 			continue
 		}
-		if err := client.scrollIntoView(win.ID, want); err != nil {
+		if err := client.scrollPointIntoView(win, want); err != nil {
 			return err
 		}
 		fmt.Printf("scrolled to %q\n", want)
@@ -339,26 +353,95 @@ func (p *protocol) waitForWindows(index int, timeout time.Duration) ([]windowInf
 // Error lets callers print the plugin's code beside its message.
 func (e *protocolError) Error() string { return e.Code + ": " + e.Message }
 
-// scrollIntoView brings the first node showing text into the viewport. Stage
-// captures in a stacked (narrow) window otherwise photograph the top of the
-// page while the stage body sits below the left column.
-func (p *protocol) scrollIntoView(window int, text string) error {
+// scrollPointIntoView brings the element showing text into the content area by
+// wheeling over the page. The accessibility action scrolls only as far as the
+// view's own containers allow in that frame; a stage body below a tall card was
+// reported as scrolled while nothing moved, so three different NFT stages
+// photographed the same top-of-page image and every capture still passed.
+//
+// The wheel is what a person does, and the loop is bounded: at most
+// maxWheelSteps notches, each followed by a frame, stopping as soon as the box
+// is inside the view. Requiring the box afterwards is what turns "nothing
+// happened" into a failure.
+func (p *protocol) scrollPointIntoView(win windowInfo, text string) error {
+	const maxWheelSteps = 40
+	const notch = 240.0 // DIPs per step, a few lines of text
+
+	area := win.ContentBounds
+	if area.Width <= 0 || area.Height <= 0 {
+		return fmt.Errorf("window %d reports no content area to scroll %q into", win.ID, text)
+	}
+	// Wheel over the middle of the content, so the pointer is inside the
+	// scroll container rather than over the sidebar.
+	midX := area.X + area.Width/2
+	midY := area.Y + area.Height/2
+
+	for step := 0; step < maxWheelSteps; step++ {
+		node, ok, err := p.findBox(win.ID, text)
+		if err != nil {
+			return err
+		}
+		if !ok {
+			return fmt.Errorf("no element with a box shows %q", text)
+		}
+		if onScreen(node.Bounds, area) {
+			return nil
+		}
+		// Scroll toward the box: down when it sits below the view, up when it
+		// sits above.
+		dy := notch
+		if node.Bounds.Y+node.Bounds.Height <= area.Y {
+			dy = -notch
+		}
+		if err := p.call("input", map[string]any{
+			"window": win.ID,
+			"events": []map[string]any{{"type": "wheel", "x": midX, "y": midY, "dx": 0, "dy": dy}},
+		}, nil); err != nil {
+			return err
+		}
+		if err := p.waitFrame(win.ID); err != nil {
+			return err
+		}
+	}
+	return fmt.Errorf("could not scroll %q into the content area after %d steps", text, maxWheelSteps)
+}
+
+// findBox returns the first node showing text that has a box.
+func (p *protocol) findBox(window int, text string) (treeNode, bool, error) {
 	var tree struct {
 		Nodes []treeNode `json:"nodes"`
 	}
 	if err := p.call("tree", map[string]any{"window": window}, &tree); err != nil {
-		return err
+		return treeNode{}, false, err
 	}
 	lower := strings.ToLower(text)
 	for _, node := range tree.Nodes {
-		label := strings.ToLower(node.Label)
-		value := strings.ToLower(node.Value)
-		if !strings.Contains(label, lower) && !strings.Contains(value, lower) {
+		if !strings.Contains(strings.ToLower(node.Label), lower) &&
+			!strings.Contains(strings.ToLower(node.Value), lower) {
 			continue
 		}
-		return p.call("act", map[string]any{"window": window, "id": node.ID, "action": "scrollIntoView"}, nil)
+		if node.Bounds.Width <= 0 || node.Bounds.Height <= 0 {
+			continue
+		}
+		return node, true, nil
 	}
-	return fmt.Errorf("no element showing %q", text)
+	return treeNode{}, false, nil
+}
+
+// waitFrame lets the view draw the frame the input asked for.
+func (p *protocol) waitFrame(window int) error {
+	err := p.call("idle", map[string]any{"window": window, "timeout": 2000}, nil)
+	var protoErr *protocolError
+	if err != nil && (!errors.As(err, &protoErr) || protoErr.Code != "timeout") {
+		return err
+	}
+	return nil
+}
+
+// onScreen reports whether box is inside area.
+func onScreen(box, area rect) bool {
+	return box.X+box.Width > area.X && box.X < area.X+area.Width &&
+		box.Y+box.Height > area.Y && box.Y < area.Y+area.Height
 }
 
 // interactiveRoles are the nodes a screen reader announces as controls. A

@@ -77,3 +77,30 @@ func TestTheCaptureScriptResolvesItsOutputPath(t *testing.T) {
 	assert.Lessf(t, absAt, buildAt,
 		"the absolute path must be computed before the build, which changes directory")
 }
+
+// TestTheCaptureScrollsByWheelNotByAccessibilityAction covers how a stage
+// capture reaches a body below the fold.
+//
+// The accessibility action (scrollIntoView) reported success and moved nothing
+// for the NFT and Token write tabs: each theme's three stage captures came out
+// byte-identical to the page capture, and every one of them passed. The capture
+// now wheels over the content area and requires the element's box to be inside
+// it, so "the page did not move" is a failure.
+func TestTheCaptureScrollsByWheelNotByAccessibilityAction(t *testing.T) {
+	shot := readRepoFile(t, "desktop", "cmd", "automation-shot", "main.go")
+
+	assert.NotContains(t, shot, `"action": "scrollIntoView"`,
+		"the accessibility action reports success without moving; the capture must wheel instead")
+	require.Contains(t, shot, `"type": "wheel"`,
+		"the capture must scroll the way a person does")
+	require.Contains(t, shot, "func onScreen(",
+		"the capture must decide whether the target is inside the content area")
+
+	// The decision must be reached before the PNG is written, or a capture can
+	// still photograph the wrong part of the page.
+	check := strings.Index(shot, "scrollPointIntoView(win, want)")
+	capture := strings.Index(shot, `client.call("capture"`)
+	require.NotEqual(t, -1, check, "the scroll loop must call the wheel helper")
+	require.NotEqual(t, -1, capture, "the capture call must remain")
+	assert.Less(t, check, capture, "the scroll must be verified before the capture")
+}
