@@ -28,6 +28,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **Both empty oracle answers are shown as examples**: the reference stated in
+  prose that `/oracle/query` sends `{"data":[]}` and `/oracle/latest` sends
+  `{"data":null}`, leaving a reader to reconstruct the bytes. The two are now
+  copyable, with the reason they differ — a collection's empty answer is an
+  empty array, a single record's is null — and a test keeps both documented,
+  because `if (!res.data)` treats an empty page as a missing record while
+  `res.data === null` misses the empty page.
+
 - **Clearing a search brings the whole page back, and now a test says so**: the
   search tests covered a query narrowing the rows and choosing from what was
   left; none covered emptying the field. A filter written as a one-way narrowing
