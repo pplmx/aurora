@@ -3,6 +3,7 @@ package sqlite
 import (
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"math"
 	"os"
 	"path/filepath"
@@ -753,7 +754,12 @@ func TestTokenRepository_TryAddBalance_OverflowRejected(t *testing.T) {
 	tokenID := token.TokenID("BAL")
 	owner := []byte("balance-owner")
 	ownerB64 := base64.StdEncoding.EncodeToString(owner)
-	id := string(tokenID) + ownerB64
+	// The account id must be built exactly as TryAddBalance builds it. The old
+	// fixture concatenated without the separator, so the statement's
+	// ON CONFLICT(id) never matched the seeded row and the insert died on
+	// UNIQUE(token_id, owner) instead. The test asserted only "an error", so the
+	// unique-violation satisfied it and the overflow guard was never exercised.
+	id := fmt.Sprintf("%s-%s", tokenID, ownerB64)
 
 	_, err := repo.db.Exec(`
 		INSERT INTO accounts (id, token_id, owner, balance, updated_at)
@@ -762,7 +768,12 @@ func TestTokenRepository_TryAddBalance_OverflowRejected(t *testing.T) {
 	require.NoError(t, err)
 
 	_, err = repo.TryAddBalance(tokenID, token.PublicKey(owner), token.NewAmount(1))
-	require.Error(t, err, "incrementing a saturated balance must be rejected")
+	// The sentinel, not just "an error": the mint and transfer use cases return
+	// this value unchanged and the API maps ErrAmountTooLarge to 400. The supply
+	// test above asserts the same thing; a bare message here reached clients as
+	// an unclassified 500.
+	require.ErrorIs(t, err, token.ErrAmountTooLarge,
+		"crediting a saturated balance is a client-visible amount problem")
 
 	bal, err := repo.GetAccountBalance(tokenID, token.PublicKey(owner))
 	require.NoError(t, err)

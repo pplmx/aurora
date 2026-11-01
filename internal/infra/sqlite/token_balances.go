@@ -142,7 +142,12 @@ func (r *TokenRepository) TryAddBalance(tokenID token.TokenID, owner token.Publi
 		return nil, fmt.Errorf("try add balance rows: %w", err)
 	}
 	if affected == 0 {
-		return nil, fmt.Errorf("try add balance: balance would exceed maximum")
+		// Wrap the domain sentinel: the mint and transfer use cases return this
+		// error unchanged, and the API classifies ErrAmountTooLarge as a 400.
+		// A bare message here reached clients as an unclassified 500, telling
+		// them to retry a credit that can never succeed at this balance. The
+		// supply path was fixed the same way; this one was missed.
+		return nil, fmt.Errorf("try add balance: balance would exceed maximum: %w", token.ErrAmountTooLarge)
 	}
 
 	return r.GetAccountBalance(tokenID, owner)
