@@ -99,6 +99,10 @@ type nftState struct {
 	limit   float64
 	offset  int
 	hasMore bool
+	// queriedLimit is the page size the loaded rows answer. Without it a new
+	// value in the Show field left the old page on screen until something else
+	// forced a read — the ledger re-read on a size change, this list did not.
+	queriedLimit int
 }
 
 const nftPageSize = 100
@@ -146,6 +150,7 @@ func (a *App) loadNFTPage(offset int) bool {
 		return a.loadNFTPage(0)
 	}
 	a.nft.offset = offset
+	a.nft.queriedLimit = limit
 	a.nft.hasMore = len(rows) > limit
 	if a.nft.hasMore {
 		rows = rows[:limit]

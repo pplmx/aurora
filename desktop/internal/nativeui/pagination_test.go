@@ -786,3 +786,28 @@ func TestBlockchainReturnsToTheFirstPageWhenTheOffsetNoLongerExists(t *testing.T
 	require.Len(t, app.blockchain.rows, 60)
 	require.True(t, tester.HasText("Entries 1–60 of 60"))
 }
+
+// TestChangingTheNFTPageSizeReloads covers the Show field: a new page size is a
+// new query, so the list has to re-read from the newest rows. It used to keep
+// the page it had already loaded, leaving the number in the field contradicting
+// the rows under it until an unrelated reload happened.
+func TestChangingTheNFTPageSizeReloads(t *testing.T) {
+	nfts := make([]NFTRow, 150)
+	for i := range nfts {
+		nfts[i] = NFTRow{ID: "n" + strconv.Itoa(i), Name: "N" + strconv.Itoa(i)}
+	}
+	fake := &fakeServices{nftRows: nfts}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 6000)
+	app.ShowPage("NFT")
+	tester.Frame()
+	require.Len(t, app.nft.list, nftPageSize)
+	require.Equal(t, nftPageSize, app.nft.queriedLimit)
+
+	app.nft.limit = 50
+	tester.Frame()
+	require.Len(t, app.nft.list, 50, "a new page size re-reads instead of keeping the old page")
+	require.Equal(t, 50, app.nft.queriedLimit)
+	require.Zero(t, app.nft.offset, "the new size starts at the newest rows")
+	require.True(t, tester.HasText("Entries 1–50"), "the range describes the rows on screen")
+}
