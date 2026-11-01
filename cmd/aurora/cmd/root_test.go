@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/spf13/pflag"
 	"os"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"sort"
 	"strings"
@@ -511,4 +513,49 @@ func TestLotteryCreateHelpNamesTheConfiguredDefault(t *testing.T) {
 	out := renderCommandHelp(t, createCmd)
 	assert.Contains(t, out, "lottery.defaultCount")
 	assert.NotContains(t, out, "(default 3)")
+}
+
+// TestWriteCommandsShowAnExample covers the commands that change state. Help for
+// a write used to be a bare flag list: `token mint --help` said "Mint tokens"
+// and then listed -t/-o/-a/-k with no indication of how the four fit together,
+// while `token create` and `nft mint` two commands away showed two runnable
+// lines each. The four flags are all required, so a reader had to try and fail
+// to learn the shape.
+//
+// The examples are checked against the real flag set: a documented flag that
+// does not exist sends a reader to an error message, and a missing required flag
+// makes the example unrunnable as printed.
+func TestWriteCommandsShowAnExample(t *testing.T) {
+	writeCommands := []string{
+		"token mint", "token transfer", "token approve", "token transfer-from", "token burn",
+		"nft transfer", "nft burn",
+	}
+
+	for _, path := range writeCommands {
+		cmd, _, err := rootCmd.Find(strings.Fields(path))
+		require.NoErrorf(t, err, "%s must be a registered command", path)
+		require.Equalf(t, path, cmd.CommandPath()[len("aurora "):], "the lookup must reach %s", path)
+
+		require.NotEmptyf(t, cmd.Example, "%s must show an example, not only its flags", path)
+
+		// Every long flag in the example has to exist on the command.
+		for _, m := range regexp.MustCompile(`--[a-z-]+`).FindAllString(cmd.Example, -1) {
+			require.Truef(t, cmd.Flags().Lookup(strings.TrimPrefix(m, "--")) != nil,
+				"%s's example uses %s, which the command does not define:\n%s", path, m, cmd.Example)
+		}
+		// And every required flag has to be in the example, or the line as
+		// printed fails with "required flag(s) not set".
+		cmd.Flags().VisitAll(func(flag *pflag.Flag) {
+			if _, required := flag.Annotations[cobra.BashCompOneRequiredFlag]; !required {
+				return
+			}
+			// The shorthand counts: the flags list one line below the example
+			// spells out "-k, --private-key", and the examples in docs/cli.md
+			// use the short form.
+			shown := strings.Contains(cmd.Example, "--"+flag.Name) ||
+				(flag.Shorthand != "" && strings.Contains(cmd.Example, "-"+flag.Shorthand+" "))
+			require.Truef(t, shown,
+				"%s requires --%s, so its example must show it:\n%s", path, flag.Name, cmd.Example)
+		})
+	}
 }

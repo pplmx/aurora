@@ -9,9 +9,10 @@ import (
 )
 
 var tokenMintCmd = &cobra.Command{
-	Use:   "mint",
-	Args:  cobra.NoArgs,
-	Short: i18n.GetText("token.mint.cmd"),
+	Use:     "mint",
+	Args:    cobra.NoArgs,
+	Short:   i18n.GetText("token.mint.cmd"),
+	Example: `  aurora token mint -t GLD --to <recipient-public-key> --amount 100 -k "<owner-private-key>"`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		service, cleanup, err := newTokenService()
 		if err != nil {
@@ -50,9 +51,10 @@ var tokenMintCmd = &cobra.Command{
 }
 
 var tokenTransferCmd = &cobra.Command{
-	Use:   "transfer",
-	Args:  cobra.NoArgs,
-	Short: i18n.GetText("token.transfer.cmd"),
+	Use:     "transfer",
+	Args:    cobra.NoArgs,
+	Short:   i18n.GetText("token.transfer.cmd"),
+	Example: `  aurora token transfer -t GLD --from <sender-public-key> --to <recipient-public-key> --amount 50 -k "<sender-private-key>"`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		service, cleanup, err := newTokenService()
 		if err != nil {
@@ -94,9 +96,10 @@ var tokenTransferCmd = &cobra.Command{
 }
 
 var tokenApproveCmd = &cobra.Command{
-	Use:   "approve",
-	Args:  cobra.NoArgs,
-	Short: i18n.GetText("token.approve.cmd"),
+	Use:     "approve",
+	Args:    cobra.NoArgs,
+	Short:   i18n.GetText("token.approve.cmd"),
+	Example: `  aurora token approve -t GLD --owner <owner-public-key> --spender <spender-public-key> --amount 200 -k "<owner-private-key>"`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		service, cleanup, err := newTokenService()
 		if err != nil {
@@ -138,9 +141,10 @@ var tokenApproveCmd = &cobra.Command{
 }
 
 var tokenTransferFromCmd = &cobra.Command{
-	Use:   "transfer-from",
-	Args:  cobra.NoArgs,
-	Short: i18n.GetText("token.transfer_from.cmd"),
+	Use:     "transfer-from",
+	Args:    cobra.NoArgs,
+	Short:   i18n.GetText("token.transfer_from.cmd"),
+	Example: `  aurora token transfer-from -t GLD --owner <owner-public-key> --spender <spender-public-key> --to <recipient-public-key> --amount 50 -k "<spender-private-key>"`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		service, cleanup, err := newTokenService()
 		if err != nil {
@@ -185,9 +189,10 @@ var tokenTransferFromCmd = &cobra.Command{
 }
 
 var tokenBurnCmd = &cobra.Command{
-	Use:   "burn",
-	Args:  cobra.NoArgs,
-	Short: i18n.GetText("token.burn.cmd"),
+	Use:     "burn",
+	Args:    cobra.NoArgs,
+	Short:   i18n.GetText("token.burn.cmd"),
+	Example: `  aurora token burn -t GLD --from <owner-public-key> --amount 10 -k "<owner-private-key>" --confirm`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Burn permanently destroys tokens; require -y/--confirm first
 		// (the same gate every destructive command uses).
