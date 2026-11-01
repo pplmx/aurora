@@ -117,7 +117,7 @@ func TestReadableFieldsEncodeEveryUnprintableByte(t *testing.T) {
 			assert.NotEqual(t, tc.in, got[0], "an unprintable field must not be rendered as-is")
 			assert.Equal(t, base64.StdEncoding.EncodeToString([]byte(tc.in)), got[0],
 				"the field is preserved exactly, just encoded")
-			assert.True(t, isPrintable(got[0]), "what reaches the terminal is printable")
+			assert.True(t, IsPrintable(got[0]), "what reaches the terminal is printable")
 		})
 	}
 }
@@ -223,11 +223,11 @@ func TestParseKeepsControlCharactersOutOfJSONPayloads(t *testing.T) {
 	} {
 		assert.NotContainsf(t, field.value, "\x1b", "%s must not carry an escape sequence", field.name)
 		assert.NotContainsf(t, field.value, "\x07", "%s must not carry a bell", field.name)
-		assert.Truef(t, isPrintable(field.value), "%s must be printable", field.name)
+		assert.Truef(t, IsPrintable(field.value), "%s must be printable", field.name)
 	}
 
 	// The rendered sentence is what a table row prints.
-	assert.True(t, isPrintable(record.Text()), "the whole rendered line must be printable")
+	assert.True(t, IsPrintable(record.Text()), "the whole rendered line must be printable")
 
 	// An embedded newline is encoded too: it would otherwise break the row.
 	nl, ok := Parse(`{"participants":["a"],"winners":["line1\nline2"],"seed":"s"}`)
