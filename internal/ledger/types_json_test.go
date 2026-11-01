@@ -9,15 +9,16 @@ import (
 )
 
 // TestIntegrityReportAlwaysCarriesTheBrokenIndex covers the field a caller
-// branches on. It carried `omitempty`, so a break at index 0 — the genesis
-// block, which is where a corrupted or truncated database usually fails first —
-// serialized without the field entirely:
+// branches on. It carried `omitempty`, so a break at index 0 serialized without
+// the field entirely:
 //
 //	{"valid":false,"length":3,"first_broken_reason":"nil block"}
 //
-// A client reading the documented contract ("-1 means intact, otherwise the
-// index of the first break") would decode 0 and conclude the chain was fine, or
-// report "unknown" for the one case it can name.
+// Index 0 is reachable through the nil-chain path, which reports the failure at
+// the chain's first block, and through any future caller that verifies a slice
+// whose head is broken. A client reading the documented contract ("-1 means
+// intact, otherwise the index of the first break") would decode 0 and conclude
+// the chain was fine, which is the state it also uses for "intact".
 func TestIntegrityReportAlwaysCarriesTheBrokenIndex(t *testing.T) {
 	cases := []struct {
 		name   string
@@ -25,8 +26,8 @@ func TestIntegrityReportAlwaysCarriesTheBrokenIndex(t *testing.T) {
 		want   int
 	}{
 		{
-			name:   "break at the genesis block",
-			report: IntegrityReport{Valid: false, Length: 3, FirstBrokenIndex: 0, FirstBrokenReason: "nil block"},
+			name:   "break at the first block",
+			report: IntegrityReport{Valid: false, Length: 3, FirstBrokenIndex: 0, FirstBrokenReason: "nil chain"},
 			want:   0,
 		},
 		{
