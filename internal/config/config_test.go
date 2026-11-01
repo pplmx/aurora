@@ -646,3 +646,47 @@ func TestLoadFile_RejectsPathsViperCannotDescribe(t *testing.T) {
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "has no extension")
 }
+
+// TestDurationSeconds_CoversEveryStoredType covers the three type branches the
+// bare-integer test above never reaches. viper's stored type depends on how the
+// value was written — a TOML float arrives as float64, an explicit
+// time.Duration stays one, and a large integer can arrive as int64 — so a
+// branch that stopped converting would turn `checkInterval = 250.0` into a
+// 250-NANOSECOND ticker while the integer test still passed.
+func TestDurationSeconds_CoversEveryStoredType(t *testing.T) {
+	resetViper()
+
+	// float64: a TOML float, e.g. `timeout = 60.0`.
+	viper.Set("probe.float", 60.0)
+	assert.Equal(t, 60*time.Second, DurationSeconds("probe.float", time.Second),
+		"a float value is a number of seconds, not nanoseconds")
+
+	// int64: a value viper stored as a 64-bit integer.
+	viper.Set("probe.int64", int64(90))
+	assert.Equal(t, 90*time.Second, DurationSeconds("probe.int64", time.Second),
+		"an int64 value is a number of seconds")
+
+	// time.Duration: some callers (and tests) set the value already typed.
+	viper.Set("probe.duration", 45*time.Second)
+	assert.Equal(t, 45*time.Second, DurationSeconds("probe.duration", time.Second),
+		"an already-typed duration passes through unchanged")
+
+	// Each branch keeps the positive-only rule: a non-positive value of any
+	// stored type falls back, because a zero window/timeout disables the limit
+	// it was meant to set.
+	for _, tc := range []struct {
+		key   string
+		value any
+	}{
+		{"probe.neg.float", -1.5},
+		{"probe.zero.float", 0.0},
+		{"probe.neg.int64", int64(-9)},
+		{"probe.zero.int64", int64(0)},
+		{"probe.neg.duration", -3 * time.Second},
+		{"probe.zero.duration", time.Duration(0)},
+	} {
+		viper.Set(tc.key, tc.value)
+		assert.Equalf(t, 7*time.Second, DurationSeconds(tc.key, 7*time.Second),
+			"%s = %v is not a usable duration; the default must win", tc.key, tc.value)
+	}
+}
