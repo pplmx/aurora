@@ -303,6 +303,11 @@ CLI 的 `-l 0` 表示「不限」，因此 `limit` 会是 `0`；REST 的 `limit=
 打印一句 `No tokens yet` 的做法已统一——那句话丢掉了计数，读的人和脚本都看不出
 是库为空还是这一页为空。
 
+同一个列表的标题在两种模式下都带计数：不给分页选项时是 `Total tokens: 3` 这类
+全库计数，给了 `--limit`/`--offset` 时是 `Tokens on this page: 2 (offset 0)` 这类
+本页计数。只有冒号、没有数字的标题（曾经的 `Candidates:`、`Data Sources:`）已全部
+去掉——那种写法读起来像小标题，空库和有记录时长得一样，要读完行数才知道是哪种。
+
 `--offset` 单独出现也算分页：`voting candidate list --offset 9` 在非空库里取不到
 行时给出「这一页为空」，而不是 `(none)`——后者说的是库里没有记录，与事实不符。
 这条规则对每个带分页选项的列表都成立，包括 `token list`、`oracle source list`、
