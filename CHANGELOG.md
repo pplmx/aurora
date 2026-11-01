@@ -28,6 +28,16 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **The Token guide's last step was not a sentence**: it read "Keys are never
+  stored. Use generated owner key works only for the token that key created."
+  The second sentence ran the button's name into its own predicate, so it stated
+  something about the key where the guide meant to point at a control — and it
+  sat under three steps written as sentences.
+- **The control's name is quoted now**, the way the Blockchain guide writes
+  "Payload" and "Show" and the NFT guide writes Collection. The Simplified and
+  Traditional entries carry the quoted name too, so a Chinese window shows the
+  same pointer.
+
 - **A tagged desktop build showed its version as `vv1.1`**: the sidebar footer
   prepended "v" to the value the shell passed, and the shell passes
   `git describe`'s output — already prefixed — in every build that carries
