@@ -127,3 +127,45 @@ func TestTheDesktopLimitCeilingStaysHonest(t *testing.T) {
 	handler := readRepoFile(t, "internal", "api", "handler", "oracle.go")
 	assert.Contains(t, handler, "maxQueryLimit = 100")
 }
+
+// TestEveryPaginatedListProbesOneExtraRow covers the pattern every window list
+// uses to tell a full page from the last page: it asks storage for one row more
+// than it shows, keeps a page's worth, and enables Next only when the extra row
+// came back. Five lists have a boundary test for it; three did not, so a change
+// that dropped the +1 from one read would turn Next on the last page and open an
+// empty one. Each read is checked by the call that makes it, not by the presence
+// of the constant somewhere in the file.
+func TestEveryPaginatedListProbesOneExtraRow(t *testing.T) {
+	reads := []struct {
+		file string
+		call string
+	}{
+		{"lottery.go", "a.services.LotteryHistory(term, lotteryHistoryLimit+1, offset)"},
+		{"nft.go", "a.services.ListNFTsPage(a.nft.filterOwner, requestLimit, offset)"},
+		{"nft.go", "requestLimit := limit + 1"},
+		{"nft_history.go", "a.services.NFTHistory(id, nftHistoryPageSize+1, offset)"},
+		{"oracle.go", "a.services.OracleSources(oraclePageSize+1, offset)"},
+		{"token.go", "a.services.ListTokens(tokenPageSize+1, offset)"},
+		{"voting.go", "a.services.Voters(votingPageSize+1, offset)"},
+		{"voting.go", "a.services.Candidates(votingPageSize+1, offset)"},
+		{"voting.go", "a.services.Sessions(votingPageSize+1, offset)"},
+	}
+	byFile := map[string]string{}
+	for _, r := range reads {
+		if _, ok := byFile[r.file]; !ok {
+			byFile[r.file] = readRepoFile(t, "desktop", "internal", "nativeui", r.file)
+		}
+		if !strings.Contains(byFile[r.file], r.call) {
+			// Name the call, not the file: the assertion message would
+			// otherwise print the whole source.
+			t.Errorf("%s must still call %s", r.file, r.call)
+		}
+	}
+
+	// The read that asks for the extra row must also be the one that trims it,
+	// or the list would draw pageSize+1 records.
+	for file, body := range byFile {
+		assert.Regexpf(t, `[Hh]asMore = len\([^)]*\) > `, body,
+			"%s must derive HasMore from the extra row", file)
+	}
+}
