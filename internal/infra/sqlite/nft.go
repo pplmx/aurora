@@ -256,6 +256,10 @@ func (r *NFTRepository) GetNFT(id string) (*nft.NFT, error) {
 	}, nil
 }
 
+// GetNFTsByOwner returns one newest-first page of an owner's assets. It orders
+// like ListNFTs (rowid DESC) because both feed the same listing: switching the
+// owner filter on must not reverse the page a reader just scrolled, and
+// docs/api.md promises every collection endpoint runs newest first.
 func (r *NFTRepository) GetNFTsByOwner(owner []byte, limit, offset int) ([]*nft.NFT, error) {
 	ownerB64 := base64.StdEncoding.EncodeToString(owner)
 	// SQLite treats a negative LIMIT as unlimited, so 0,0 (the CLI
@@ -270,7 +274,7 @@ func (r *NFTRepository) GetNFTsByOwner(owner []byte, limit, offset int) ([]*nft.
 	rows, err := r.q().Query(`
 		SELECT id, name, description, image_url, token_uri, owner, creator, block_height, timestamp
 		FROM nfts WHERE owner = ?
-		ORDER BY rowid ASC
+		ORDER BY rowid DESC
 		LIMIT ? OFFSET ?
 	`, ownerB64, limit, offset)
 	if err != nil {

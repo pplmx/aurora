@@ -12,6 +12,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **`/nft/list?owner=` runs newest first like the ownerless list**: the filtered
+  path ordered by `rowid ASC` while the whole collection ordered by `rowid DESC`,
+  so turning the owner filter on reversed the page a reader was looking at.
+  `docs/api.md` promises every collection endpoint runs newest first.
+- **The two readings now share one order in a test**: the filtered page must
+  match the ownerless page's order for the assets they share, and a query-plan
+  test keeps the filtered read on `idx_nft_owner` without a temp B-tree.
+
 - **The Ballot tab offers the stored sessions under both of its id fields**:
   Cast Vote and Session Controls each take a session id, and neither offered a
   stored one, so naming a session meant copying an id out of Setup. Both cards

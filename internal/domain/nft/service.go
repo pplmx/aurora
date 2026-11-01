@@ -267,6 +267,8 @@ func (s *NFTService) GetNFTByID(id string) (*NFT, error) {
 	return s.repo.GetNFT(id)
 }
 
+// GetNFTsByOwner returns one newest-first page of an owner's assets, ordered
+// like ListNFTs.
 func (s *NFTService) GetNFTsByOwner(ownerPub []byte, limit, offset int) ([]*NFT, error) {
 	return s.repo.GetNFTsByOwner(ownerPub, limit, offset)
 }
