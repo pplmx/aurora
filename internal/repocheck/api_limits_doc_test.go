@@ -61,6 +61,42 @@ func TestRequestIDAndLogLimitsMatchTheDoc(t *testing.T) {
 		"the log truncation widths the code enforces")
 }
 
+// TestOracleQueryLimitDocMatchesTheCode covers the one collection read whose
+// numbers the reference states in prose rather than in a table. Every other
+// list documents its page size and cap, and `/oracle/query` documents neither,
+// so a caller could not tell that asking for 500 readings yields 100.
+func TestOracleQueryLimitDocMatchesTheCode(t *testing.T) {
+	code := readRepoFile(t, "internal", "api", "handler", "oracle.go")
+	defaultLimit := readConst(t, code, "defaultQueryLimit")
+	maxLimit := readConst(t, code, "maxQueryLimit")
+	require.Greater(t, defaultLimit, 0, "the query endpoint needs a default page")
+	require.Greater(t, maxLimit, defaultLimit, "the cap must allow more than the default")
+
+	// The CLI states the same pair on its own help path; a reader switching
+	// surfaces must not get a different page for the same --limit.
+	cli := readRepoFile(t, "cmd", "aurora", "cmd", "oracle_read.go")
+	require.Equal(t, maxLimit, readConst(t, cli, "maxCLIQueryLimit"),
+		"the CLI cap mirrors the API's")
+	assert.Contains(t, cli, "return 10",
+		"the CLI default matches the API default; the two must move together")
+
+	doc := strings.Join(strings.Fields(readRepoFile(t, "docs", "api.md")), " ")
+	// Read the sentence that starts at the endpoint's name, so the cap asserted
+	// here is the one for /oracle/query and not the eight other endpoints that
+	// also say "`limit` 上限 100".
+	start := strings.Index(doc, "`/oracle/query` 默认返回")
+	require.GreaterOrEqual(t, start, 0,
+		"the reference must carry a sentence about /oracle/query's page size")
+	end := strings.Index(doc[start:], "`/oracle/health` 的每项")
+	require.Greater(t, end, 0, "the query note must end before the health note")
+	note := doc[start : start+end]
+
+	assert.Contains(t, note, strconv.Itoa(defaultLimit)+" 条读数",
+		"the /oracle/query note must state the default page the handler applies")
+	assert.Contains(t, note, "`limit` 上限 "+strconv.Itoa(maxLimit),
+		"the /oracle/query note must state the cap the handler applies")
+}
+
 // TestShutdownTimeoutDocMatchesTheCode covers the one duration the reference
 // states in prose. A server that stops sooner than documented loses in-flight
 // writes, and a reader planning a rollout relies on the number.

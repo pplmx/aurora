@@ -12,6 +12,16 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **`/oracle/query` states its page size in the reference now**: it was the one
+  collection read whose default (10) and cap (100) appeared nowhere, while every
+  other list documents both. A caller asking for 500 readings got 100 with
+  nothing saying so.
+- **A test holds the three places together**: the handler's constants, the
+  CLI's `maxCLIQueryLimit` (which says it mirrors the API) and the sentence in
+  `docs/api.md`. The first draft of that test matched any "`limit` 上限 100" in
+  the document — eight endpoints say it — so it checked the wrong sentence and
+  passed with the real one deleted; it reads the query note's own slice now.
+
 - **The allowance-spending endpoint has a success test now**: `POST
   /token/transfer_from` had one test, for malformed JSON, so its 200 response,
   its receipt fields and its status mapping were unobserved. The handler is
