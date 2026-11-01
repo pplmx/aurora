@@ -6,16 +6,21 @@ var (
 	ErrTokenNotFound         = errors.New("token not found")
 	ErrInsufficientBalance   = errors.New("insufficient balance")
 	ErrInsufficientAllowance = errors.New("insufficient allowance")
-	ErrInvalidSignature      = errors.New("invalid signature")
-	ErrAmountMustBePositive  = errors.New("amount must be positive")
-	ErrNotTokenOwner         = errors.New("not token owner")
-	ErrZeroOwner             = errors.New("token owner must not be the zero address")
-	ErrTokenNotMintable      = errors.New("token not mintable")
-	ErrTokenNotBurnable      = errors.New("token not burnable")
-	ErrUnauthorized          = errors.New("unauthorized")
-	ErrTransferToZero        = errors.New("cannot transfer to zero address")
-	ErrInvalidAmount         = errors.New("invalid amount")
-	ErrDuplicateTransfer     = errors.New("duplicate transfer")
+	// ErrInvalidSignature has no producer: the service reports a bad
+	// signature as a false verification result, not as an error. It stays
+	// classified so a caller can branch on it if that changes.
+	ErrInvalidSignature     = errors.New("invalid signature")
+	ErrAmountMustBePositive = errors.New("amount must be positive")
+	// ErrNotTokenOwner and ErrDuplicateTransfer are reserved: the guards
+	// that would raise them are not wired to a caller yet.
+	ErrNotTokenOwner     = errors.New("not token owner")
+	ErrZeroOwner         = errors.New("token owner must not be the zero address")
+	ErrTokenNotMintable  = errors.New("token not mintable")
+	ErrTokenNotBurnable  = errors.New("token not burnable")
+	ErrUnauthorized      = errors.New("unauthorized")
+	ErrTransferToZero    = errors.New("cannot transfer to zero address")
+	ErrInvalidAmount     = errors.New("invalid amount")
+	ErrDuplicateTransfer = errors.New("duplicate transfer")
 	// ErrTokenExists is returned when a create tries to register a token whose
 	// symbol (which is the token's primary key / ID) is already taken. The
 	// persistence layer uses INSERT OR REPLACE keyed on the symbol, so without
