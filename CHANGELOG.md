@@ -12,6 +12,17 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The README coverage table follows the code again**: three of the seven
+  figures had fallen behind — lottery domain said 91.7% against 94.2%
+  measured, NFT domain 82.0% against 87.5%, oracle domain 87.6% against 92.3% —
+  and the SQLite and oracle app cells were stale too. The paragraph explaining
+  an older drift still ended "stable at 91.7%".
+- **A check holds what a test can see without running the suite**: every module
+  keeps a row, no row records an app figure below the documented floor, the two
+  layer-less rows keep their `-`, and the prose floor still matches the number
+  the recipes pass. Deleting a row or listing one below the floor fails it.
+  Re-measuring stays `just coverage-floor`'s job.
+
 - **Both base-transport branches are covered**: `secureBaseTransport` decides
   which transport carries the fetcher's dial guard — a clone of
   `http.DefaultTransport` normally, explicit `net/http` defaults when an
