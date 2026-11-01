@@ -12,6 +12,23 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **An upstream fetch failure is a 502 now, not a 500**: a feed that answered a
+  non-2xx status, timed out or returned an unreadable body came back as an
+  unclassified error, so `POST /oracle/fetch` answered `500 INTERNAL_ERROR`.
+  That says Aurora is broken and invites a retry of the same doomed request;
+  the far side is what failed. Measured over HTTP, a feed returning 404 gave
+  500.
+- **There is a domain sentinel for it**: `oracle.ErrFetchFailed`, classified as
+  `502 FETCH_FAILED`. It lives in the domain rather than next to `ErrHTTPError`
+  in `infra/http`, because the API must classify it without importing the HTTP
+  client — the layer rule the architecture test enforces.
+- **The conditions the domain already names keep their own codes**: a missing,
+  disabled, rate-limited or SSRF-refused source still maps to 404/400/429/400.
+  Only what nothing else claimed becomes a fetch failure.
+- **The fetch-time SSRF guard was unwrapped too**: a source edited to point at
+  loopback answered 500 on every fetch and never named the URL. It wraps
+  `ErrInvalidSource` (400) now.
+
 - **A supply overflow is a 400 now, not a 500**: `TryAddToSupply` returned a
   bare `fmt.Errorf` when a mint would push `total_supply` past `MaxInt64`. The
   mint use case passes the error through unchanged, the classifier found no
