@@ -56,6 +56,16 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **Translating the row made the ledger filter read one language**: in a Chinese
+  process `aurora blockchain blocks -s Winners` found nothing, although the
+  documentation, the `--json` payload and every log call the fact that. The
+  reader who sees 中奖者 on screen and the reader who arrives from the docs have
+  to match the same records, so `blockMatches` compares both renderings; an
+  English window still does not answer a Chinese query.
+- **The first attempt panicked on the filter path**: it passed a nil lookup to
+  `TextL`. Parsing once and resolving through `recordLookup` removes the
+  possibility instead of guarding it.
+
 - **A Chinese ledger row printed its vocabulary in English**: in a Chinese
   process `aurora blockchain blocks` showed
   `lottery · Draw · C, A   (Winners: C, A; Participants: 3; Seed: seed-abc)`
