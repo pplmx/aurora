@@ -548,7 +548,12 @@ curl -s -G -H "X-API-Key: $KEY" http://localhost:8080/api/v1/token/balance \
 `/oracle/query` 默认返回该源最新 10 条读数，`limit` 上限 100；它没有 `offset`，
 更早的读数请改用桌面端或直接读库。CLI 的 `oracle data` 用同一组数字（默认 10、
 上限 100），所以同一个 `--limit` 在两种界面上拿到同样长的列表。
-`/oracle/health` 的每项同时带 `source_name`，健康表无需再按当前源码页反查名称。
+``/oracle/health` 的每项同时带 `source_name`，健康表无需再按当前源码页反查名称。
+每项的 `last_success_at` 与 `last_error` 在**没有内容时省略**：从未成功抓取过就没有
+`last_success_at`，当前没有未解决的错误就没有 `last_error`（抓取恢复后它会消失，
+累计的 `failures` 仍保留）。两者缺省即表示「从未成功」与「当前无错误」，调用方按
+字段存在与否判断即可，不要指望它们恒为 `0` 或 `""`。`source_id`、`attempts`、
+`successes`、`failures` 恒定存在。
 Oracle 的读取接口是包装对象：`/oracle/sources` 返回 `{"sources": [...]}`，
 `/oracle/query` 与 `/oracle/latest` 返回 `{"data": ...}`；其它模块的列表是裸数组，
 解析时按各接口的示例处理。
