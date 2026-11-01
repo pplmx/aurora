@@ -12,6 +12,18 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The fetch-error scrubber has tests**: `sanitizeFetchError` carries a promise
+  the reference makes in prose — a failed fetch reports the status or the
+  underlying cause, never the source URL, because userinfo, path segments and
+  query parameters can all carry credentials and `last_error` reaches every
+  API-key holder. Nothing tested it.
+- **Six tests, one per shape that reaches it**: a plain `*url.Error`, a nested
+  one from a redirect chain, an empty cause (which would otherwise print
+  `%!w(<nil>)`), an error that is not a `*url.Error` at all, and the
+  `net.OpError` a refused connection produces. Dropping the URL is only half of
+  it: the wrapped cause must survive, or `ErrBlockedDestination` reaches the API
+  as an unclassified 500 instead of the 400 it maps to.
+
 - **`/oracle/query` states its page size in the reference now**: it was the one
   collection read whose default (10) and cap (100) appeared nowhere, while every
   other list documents both. A caller asking for 500 readings got 100 with
