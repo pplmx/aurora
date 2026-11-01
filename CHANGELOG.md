@@ -28,6 +28,19 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The CLI reference says where the `--json` envelope differs from REST**: the
+  page claimed the documents carry fields "consistent with REST". That holds for
+  every list command but one — `oracle source list --json` prints a bare array
+  while `GET /api/v1/oracle/sources` sends `{"sources":[...]}`. A script written
+  from that sentence and pointed at the endpoint reads an array where the API
+  sends an object.
+- **The difference is deliberate**, since the oracle read endpoints wrap their
+  payloads (`/oracle/query` and `/oracle/latest` send `{"data":...}`) and other
+  modules' lists do not, so the reference states it rather than leaving a reader
+  to discover it. The elements are identical; only the outer shape differs.
+- **`repocheck` pins the claim to the code**: the envelope type, the CLI's
+  `printJSON(resp.Sources)` and the paragraph all have to stay.
+
 - **The API reference now names the production switch**: the auth section said
   "in production the key must be at least 32 characters" without saying how a
   process enters that mode. `AURORA_ENV=production` is the only channel — no
