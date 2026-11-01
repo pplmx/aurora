@@ -12,6 +12,20 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **A JSON audit payload can no longer carry a live terminal escape**: the pipe
+  payloads were always rendered through `ReadableFields`, which base64-encodes
+  a field a terminal cannot show, but the JSON ones were not — `jsonString`
+  returned whatever `json.Unmarshal` produced. A draw whose winning name was
+  `\u001b[31mRED\u001b[0m` reached the CLI's `blockchain blocks` table and the
+  window's ledger card as a colour change, and an embedded newline split the row
+  it labelled.
+- **Both stored shapes share one rule now**: `jsonString` and `jsonStringSlice`
+  go through the same `readableField` helper as the pipe path. The unprintable
+  list and the encoding are unchanged; only the JSON route was missing them.
+- **Two tests hold both halves**: control characters are encoded, and ordinary
+  names and seeds pass through untouched — base64-ing a winner's name is the
+  failure the encoding exists to prevent.
+
 - **The backup checksum guard is exercised by a real archive**: every restore
   test built its archive by hand with `writeMeta`, which records no
   per-database checksums. `verifyArchiveContents` then filled the map from the
