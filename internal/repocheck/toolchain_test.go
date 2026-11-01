@@ -80,6 +80,34 @@ func TestGoModVersionIsPinnedEverywhere(t *testing.T) {
 		"the Docker builder must track go.mod's Go major.minor")
 }
 
+// TestDesktopGoModDirectiveMatchesTheDocs pins the nested module's own go
+// directive against the sentence that describes it. The two modules do not move
+// together — MyGo's go directive sets the desktop module's floor — and
+// docs/desktop.md used to claim both were 1.27.2 while desktop/go.mod had
+// already been raised to 1.27.3 by a dependency upgrade.
+func TestDesktopGoModDirectiveMatchesTheDocs(t *testing.T) {
+	pattern := regexp.MustCompile(`(?m)^go (\d+\.\d+\.\d+)$`)
+
+	root := pattern.FindStringSubmatch(readRepoFile(t, "go.mod"))
+	require.NotNil(t, root, "go.mod must declare a pinned go directive")
+	desktop := pattern.FindStringSubmatch(readRepoFile(t, "desktop", "go.mod"))
+	require.NotNil(t, desktop, "desktop/go.mod must declare a pinned go directive")
+
+	// Both stay inside the same major.minor the docs promise covers them.
+	rootMM := strings.Join(strings.Split(root[1], ".")[:2], ".")
+	desktopMM := strings.Join(strings.Split(desktop[1], ".")[:2], ".")
+	assert.Equal(t, rootMM, desktopMM,
+		"both modules must target the same Go major.minor; "+
+			"docs/desktop.md tells a reader they share one 1.27 line")
+
+	// The prose names both directives, so a bump in either has to reach it.
+	doc := readRepoFile(t, "docs", "desktop.md")
+	assert.Containsf(t, doc, "`go "+root[1]+"`",
+		"docs/desktop.md must name go.mod's directive (%s)", root[1])
+	assert.Containsf(t, doc, "`go "+desktop[1]+"`",
+		"docs/desktop.md must name desktop/go.mod's directive (%s)", desktop[1])
+}
+
 // TestDockerBuildStaysPureGo pins the pure-Go image contract: no C
 // toolchain, no external link mode, and a distroless/static runtime.
 func TestDockerBuildStaysPureGo(t *testing.T) {
