@@ -12,6 +12,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **Both base-transport branches are covered**: `secureBaseTransport` decides
+  which transport carries the fetcher's dial guard — a clone of
+  `http.DefaultTransport` normally, explicit `net/http` defaults when an
+  embedding application installed a different `RoundTripper`. Nothing tested
+  either. The fallback is the one that matters: a zero transport there would
+  drop proxy resolution and HTTP/2 tuning while the SSRF check silently applied
+  only to the pre-request URL validation.
+
 - **An unrecognised audit payload no longer prints its raw control
   characters**: both display fallbacks returned the stored bytes unchanged —
   the CLI's `blockLine` and the desktop's `decodePipePayload`. The sanitising
