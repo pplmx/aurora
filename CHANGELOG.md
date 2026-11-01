@@ -162,6 +162,16 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **Four handlers said "required" four different ways**: the message a client
+  meets while wiring its first request was `"token_id required"`,
+  `"token_id is required"`, `"token_id and owner required"` and
+  `"token_id, owner and spender required"`, while the oracle endpoints already
+  said `"source parameter is required"`. A reader comparing two endpoints could
+  not tell whether the missing word meant anything.
+- **All four read "… is required" / "… are required" now.** A `repocheck` test
+  pins the shape rather than the nouns, so an endpoint that gains a field can
+  extend its list without touching the rule.
+
 - **An empty page printed a zero count and no explanation**:
   `aurora voting voter list --limit 5` and `aurora lottery history --limit 5`
   printed their heading — "Voters on this page: 0 (offset 0)" — and nothing
