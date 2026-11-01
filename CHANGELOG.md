@@ -117,6 +117,19 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **A capture could be filed under a size it never had**: `AURORA_E2E_SIZE`
+  accepted any `WIDTHxHEIGHT` and named the output directory after it. The
+  window refuses to open below 900x600, so `AURORA_E2E_SIZE=700x520` opened at
+  900x600 and wrote those PNGs under `700-520` — a reader would take them as
+  evidence of a layout nobody saw. The script refuses such a size now.
+- **`AURORA_E2E_OUT` was resolved after `cd "$root/desktop"`**, so a relative
+  value was relative to the desktop module: `AURORA_E2E_OUT=dist/e2e2` compiled
+  the app into `desktop/dist/e2e2` and then failed to launch
+  `dist/e2e2/automation-shot`. The path is made absolute before the build.
+- **Two repocheck tests keep both rules**: the refused floor must equal
+  `WindowOptions`' `MinWidth`/`MinHeight`, and the normalisation must happen
+  before the build changes directory.
+
 - **The window's ledger search only matched the English words**: in a Chinese
   window the row reads 抽奖 · A（中奖者：A）, and typing 中奖者 answered zero —
   the adapter compared the words the chain stores. The CLI's `-s` had the same
