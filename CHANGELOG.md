@@ -28,6 +28,15 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The page-past-the-end fallback is now tested**: seven window loaders share a
+  path nothing exercised — a read that comes back empty with a positive offset
+  recurses to page zero, because an empty page carrying an offset is not an
+  answer and would leave the list blank at a position that no longer exists. The
+  pager cannot normally ask for that page, which is why it needs a test: the path
+  is reached when the store shrinks between two frames. It is now the fifth
+  documented paging invariant, and each loader asserts both the offset it
+  committed and the rows it read.
+
 - **The paging invariants are documented, not only the behaviour**: the section
   said what paging does and left the rules implicit — a query survives a page
   move, a highlight is restored by id rather than row number, a successful read
