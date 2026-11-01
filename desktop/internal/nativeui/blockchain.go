@@ -64,7 +64,7 @@ func (a *App) blockchainView(c *ui.Context) {
 	a.scrollPage(c, func() {
 		guide(c, &a.guides.blockchain,
 			"Every module appends its records to one hash chain; each block commits to the previous hash.",
-			"The badge verifies the chain. Search matches module, payload or height across the whole chain; Show sets the page size.",
+			"The badge verifies the chain. Search matches the module, action, subject, a fact or the height across the whole chain; Show sets the page size.",
 			"Open Payload to read the exact recorded bytes, then Copy payload to put them on the clipboard.",
 		)
 		// The page header already says what the ledger is, so the card does not
@@ -139,7 +139,7 @@ func (a *App) blockchainBlocks(c *ui.Context) {
 	ui.Row(c).FillWidth().Gap(space4).AlignItems(ui.Center).Children(func() {
 		ui.Row(c).Grow(1).Shrink(1).MinWidth(0).Children(func() {
 			searchField(c, &a.blockchain.search, "Search blocks").
-				Description(tr("Search matches module, payload or height across the whole chain.")).
+				Description(tr("Search matches the module, action, subject, a fact or the height across the whole chain.")).
 				FillWidth()
 		})
 		ui.Row(c).Shrink(0).Children(func() {

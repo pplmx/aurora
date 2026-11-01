@@ -222,7 +222,7 @@ func TestChineseTranslationsKeepChromeVocabularyInChinese(t *testing.T) {
 			[]string{"Setup"},
 		},
 		{
-			"The badge verifies the chain. Search matches module, payload or height across the whole chain; Show sets the page size.",
+			"The badge verifies the chain. Search matches the module, action, subject, a fact or the height across the whole chain; Show sets the page size.",
 			"“显示条数”",
 			[]string{"Show"},
 		},
