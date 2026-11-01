@@ -24,8 +24,11 @@ desktop          ─┘                                              ^
 2. `app` 只依赖 `domain` 的接口和纯工具；不得为了一个错误哨兵 import
    `infra`。
 3. `infra` 实现 `domain` 声明的仓储/事务/网络端口，可以依赖 `domain`。
-4. `api` 和 `desktop` 是表示层；它们可以依赖 `app`，但不得互相依赖，也不得
-   成为数据库的第二个所有者。
+4. `api` 和 `desktop` 是表示层；它们可以依赖 `app`，且依赖方向只有一个：桌面可以
+   在进程内起一个 `api.Server`（不监听端口）来复用 REST 的处理器与中间件，所以
+   `desktop/internal/deskapp` 导入 `internal/api`；反向不允许——`api` 不认识窗口，
+   它既不该导入 `desktop`，也不该知道有窗口存在。两者都不得成为数据库的第二个
+   所有者。
 5. 组合根（打开 SQLite、构造仓储、启动后台循环、关闭句柄）只能有一个明确的
    位置；表示层使用组合根给出的端口，而不是自己再拼一套。
 6. 依赖方向不得成环；`internal/repocheck` 和 `go list` 是最后的机械检查。
