@@ -103,6 +103,3 @@ func (s *nativeServices) NFTHistory(id string, limit, offset int) ([]nativeui.NF
 	}
 	return rows, nil
 }
-
-// joinCSV rebuilds the comma-separated participants string the lottery use case
-// accepts from the slice a view keeps.
