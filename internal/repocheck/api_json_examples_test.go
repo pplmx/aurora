@@ -69,3 +69,34 @@ func TestTheBlockPageExampleIsSelfConsistent(t *testing.T) {
 	}
 	require.GreaterOrEqual(t, found, 1, "the reference must show a block page")
 }
+
+// TestTheOracleEmptyAnswersStayDistinct covers the pair of shapes a client must
+// tell apart. `/oracle/query` answers a collection and sends `{"data":[]}` when
+// it is empty; `/oracle/latest` answers one record and sends `{"data":null}`.
+// Both are documented with an example because a client that tests `if
+// (!res.data)` treats an empty page as a missing record, and a client that
+// tests `res.data === null` misses the empty one.
+func TestTheOracleEmptyAnswersStayDistinct(t *testing.T) {
+	body := readRepoFile(t, "docs", "api.md")
+
+	var emptyList, emptyRecord bool
+	for _, block := range regexp.MustCompile("(?s)```json\n(.*?)```").FindAllStringSubmatch(body, -1) {
+		var doc struct {
+			Data json.RawMessage `json:"data"`
+		}
+		if err := json.Unmarshal([]byte(strings.TrimSpace(block[1])), &doc); err != nil {
+			continue
+		}
+		if doc.Data == nil {
+			continue
+		}
+		switch string(doc.Data) {
+		case "[]":
+			emptyList = true
+		case "null":
+			emptyRecord = true
+		}
+	}
+	assert.True(t, emptyList, `docs/api.md must show {"data":[]} for an empty query`)
+	assert.True(t, emptyRecord, `docs/api.md must show {"data":null} for a missing latest reading`)
+}

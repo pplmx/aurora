@@ -590,7 +590,19 @@ Oracle 的读取接口是包装对象：`/oracle/sources` 返回 `{"sources": [.
 ```
 
 没有读数时 `/oracle/query` 返回 `{"data":[]}`，`/oracle/latest` 返回
-`{"data":null}`。
+`{"data":null}`：
+
+```json
+{"data":[]}
+```
+
+```json
+{"data":null}
+```
+
+两者不同是有意的：`query` 的答案是一个集合，空集合是空数组；`latest` 的答案是
+一条记录，「没有这条记录」只能用 `null`。客户端判断空结果时要分别处理，写成
+`if (!res.data)` 会把空数组也当成没有读数。
 
 数据源写接口的字段：`POST /oracle/sources` 接受 `name`、`url`、`type`、
 `method`、`headers`、`path`、`interval`；`PATCH /oracle/sources/{id}` 只接受
