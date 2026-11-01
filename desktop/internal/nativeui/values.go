@@ -59,7 +59,7 @@ func copyRow(c *ui.Context, label, value string, onCopied func()) ui.Element {
 	var copyButton ui.Element
 	label = tr(label)
 	ui.Row(c).FillWidth().Wrap().Gap(8).AlignItems(ui.Center).Children(func() {
-		ui.Text(c, label).FontSize(textSize(c, 11)).Width(labelColumnWidth(c, label)).
+		ui.Text(c, label).FontSize(textSize(c, labelSize)).Width(labelColumnWidth(c, label)).
 			TextColor(c.Theme().TextMuted).SingleLine()
 		ui.Text(c, abbreviate(value)).FontSize(textSize(c, 12)).TextColor(c.Theme().Text).
 			Grow(1).Shrink(1).MinWidth(0).SingleLine().Ellipsis("…").Tooltip(value)
@@ -81,17 +81,33 @@ func copyRow(c *ui.Context, label, value string, onCopied func()) ui.Element {
 // readoutRow is one label/value pair in a readout.
 type readoutRow struct{ label, value string }
 
+// labelSize is the one size a readout or copy-row label is drawn at. It is a
+// constant rather than a literal at each call site because the column width is
+// derived from it, and a label drawn at a different size than its own column
+// was measured for wraps inside it.
+const labelSize float32 = 11
+
 // readout draws the result of a read as label/value rows on a recessed panel,
 // so an answer is visibly an answer rather than another line of prose that
 // looks like the hint above it.
+//
+// Every row shares one label column, taken as the widest label in the panel.
+// Measuring each row on its own left the values starting at a different x per
+// row — "Version" at one offset, "Database path" at another — so a stack of
+// facts read as a ragged list instead of a table.
 func readout(c *ui.Context, rows []readoutRow) {
+	labels := make([]string, len(rows))
+	for i, r := range rows {
+		labels[i] = tr(r.label)
+	}
+	column := labelColumnWidth(c, labels...)
 	ui.Column(c).FillWidth().Padding(space3).Gap(space1).Radius(radiusSmall).
 		Background(c.Theme().Background.Mix(c.Theme().Surface, 0.5)).
 		BorderWidth(1).BorderColor(c.Theme().Border).Children(func() {
-		for _, r := range rows {
-			label := tr(r.label)
+		for i, r := range rows {
+			label := labels[i]
 			ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Start).Children(func() {
-				ui.Text(c, label).FontSize(textSize(c, 11)).Width(labelColumnWidth(c, label)).
+				ui.Text(c, label).FontSize(textSize(c, labelSize)).Width(column).
 					TextColor(c.Theme().TextMuted).SingleLine().Ellipsis("…").Tooltip(label)
 				value := ui.Text(c, r.value).FontSize(textSize(c, 12)).TextColor(c.Theme().Text).
 					Grow(1).Shrink(1).MinWidth(0)
@@ -103,19 +119,30 @@ func readout(c *ui.Context, rows []readoutRow) {
 	})
 }
 
-// labelColumnWidth keeps a label readable when it is longer than the old fixed
-// 72px, without letting it consume the value column. The estimate follows the
-// 11pt label size and the user's text-size preference.
-func labelColumnWidth(c *ui.Context, label string) float32 {
-	scale := textSize(c, 11) / 11
-	width := float32(len(label)) * 7.5 * scale
-	if width < 72*scale {
+// labelColumnWidth measures the labels it is given and returns the column they
+// share, clamped so a short label still reads as a column and a long one cannot
+// eat the values beside it.
+//
+// It measures instead of counting characters: the old estimate multiplied the
+// byte length by 7.5, which overstates a Chinese label roughly threefold
+// (数据库路径 is 15 bytes and 55px at this size). The Chinese About card then
+// spent half its width on an empty label column and ellipsised the values.
+func labelColumnWidth(c *ui.Context, labels ...string) float32 {
+	scale := textSize(c, labelSize) / labelSize
+	var widest float32
+	for _, label := range labels {
+		if w, _ := c.MeasureText(0, ui.Span{Text: label, Size: textSize(c, labelSize)}); w > widest {
+			widest = w
+		}
+	}
+	switch {
+	case widest < 72*scale:
 		return 72 * scale
-	}
-	if width > 160*scale {
+	case widest > 160*scale:
 		return 160 * scale
+	default:
+		return widest
 	}
-	return width
 }
 
 // abbreviate keeps both ends of a long value so the row shows what it holds
