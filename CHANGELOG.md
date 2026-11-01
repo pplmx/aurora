@@ -238,6 +238,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **The latest reading says which card answered and what to do**: `oracle
+  latest` printed a bare "No data found" for a source with no readings — no
+  heading, no next step. Its sibling `oracle data` prints "📊 Oracle Data:" over
+  an indented "(none)", so the two cards of one module answered an empty read in
+  two different shapes. It now prints "📈 Latest Data:" over a sentence naming
+  the next step; `--json` keeps returning `{"data":null}`.
+
 - **The ledger heading names which count it shows**: `blockchain blocks --limit 2`
   printed "Audit records: 4" above two rows. The number is the total, the rows
   are the page, and the heading said neither — a reader had to count rows to
