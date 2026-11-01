@@ -34,6 +34,16 @@ The milestone notes under `.planning/` are history, not current instructions.
   failed to start because it wanted a display it was never told about. A test
   now holds the two files together.
 
+- **A Simplified character can no longer hide in a Traditional value**: the
+  generator converts character by character, so a value that never went through
+  it keeps its Simplified form and mixes 简体 into a 繁體 page. The 219 characters
+  that the Simplified catalogs use and the Traditional ones never do are listed in
+  the test; a value holding one fails by key and by character.
+- **The list is committed, not derived**: a Simplified character typed into the
+  Traditional table removes itself from a set computed from those same tables, so
+  a derived set would pass on exactly the entry the check exists to catch. That
+  is how the first draft behaved when an injected 创 still came back green.
+
 - **The Simplified and Traditional catalogs must share one key set**: `T` falls
   back to English and then to the key itself, so a key added to one catalog and
   forgotten in another degrades quietly — the window shows English, or a raw
