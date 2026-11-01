@@ -10,6 +10,22 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ## [Unreleased]
 
+### Fixed
+
+- **A transfer of an asset that vanished mid-flight answered 500 instead of
+  404**: `TryTransferOwnership` disambiguates `RowsAffected==0` into "gone" and
+  "ownership moved", and its own comment says the point is letting the caller
+  return the right error code. The gone branch returned
+  `fmt.Errorf("nft %q not found")` — a string no caller can classify — while the
+  sibling `TryDeleteNFTIfOwned` returns `nft.ErrNFTNotFound` for the same
+  situation.
+- **The path is reachable**: `NFTService.Transfer` checks existence and then
+  writes inside a transaction, so a concurrent burn can delete the row in
+  between — exactly the race the `Try*` primitives exist to close.
+- **The old test locked the wording instead of the contract**: it asserted
+  `err.Error()` contains `"not found"`, which the formatted string satisfies. It
+  now uses `require.ErrorIs`, matching the sibling ownership-changed test.
+
 ### Changed
 
 - **A test named `TestOracleData_Serialization` asserted nothing**: it built an
