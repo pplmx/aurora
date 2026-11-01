@@ -1376,7 +1376,13 @@ func TestCastVoteUseCase_TxManagerFailure(t *testing.T) {
 		PrivateKey:     "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQ==",
 		SessionID:      "session1",
 	})
+	// The failure is the manager's, not a rejected ballot: asserting only that
+	// something failed would also pass if the use case reported ALREADY_VOTED
+	// or a session error for what is really a storage failure.
 	require.Error(t, err)
+	require.NotErrorIs(t, err, voting.ErrAlreadyVoted)
+	require.NotErrorIs(t, err, voting.ErrSessionNotFound)
+	require.ErrorContains(t, err, "transaction failed")
 
 	voter, _ := repo.GetVoter("dm90ZXIx")
 	require.False(t, voter.HasVoted, "voter must not be marked when the transaction itself fails")

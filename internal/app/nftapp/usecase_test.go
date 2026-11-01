@@ -474,9 +474,11 @@ func TestMintNFTUseCase_RejectsShortCreatorKey(t *testing.T) {
 	_, err := uc.Execute(&MintNFTRequest{Name: "X", Creator: shortKey})
 	require.ErrorIs(t, err, nft.ErrInvalidPublicKey)
 
-	// A zero-length (empty) key is also rejected, not minted.
+	// A zero-length (empty) key is also rejected, not minted. An empty string
+	// decodes to zero bytes, so it fails the length check like any short key —
+	// the sentinel is what tells the caller which field was wrong.
 	_, err = uc.Execute(&MintNFTRequest{Name: "X", Creator: ""})
-	require.Error(t, err)
+	require.ErrorIs(t, err, nft.ErrInvalidPublicKey)
 }
 
 func TestMintNFTUseCase_RejectsZeroCreator(t *testing.T) {

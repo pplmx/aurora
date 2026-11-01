@@ -12,6 +12,15 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **Four use-case tests asserted only that something failed**: the oracle
+  enabled/disabled lookups, the NFT empty-creator mint and the vote
+  transaction failure each checked `require.Error`. Any error passes those, so
+  a use case that reported the wrong sentinel — or masked a storage failure as
+  a rejected ballot — kept them green. They name the sentinel now.
+- **The oracle pair pins the normalization too**: an unknown id reaches the
+  API as `SOURCE_NOT_FOUND` (404) only because the use case translates the
+  storage sentinel, and nothing tested that translation.
+
 - **The in-memory NFT store lists in the stored order too**: `ListNFTs` sorted
   by id and `GetNFTsByOwner` returned map order, while the SQLite repository
   runs newest first for both. App and transport tests read through this store,
