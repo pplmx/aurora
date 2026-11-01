@@ -322,6 +322,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **A loader commits its offset only after the read, and now a check says so**:
+  the paging invariants state that rows, offset and `HasMore` are committed
+  together once the read succeeded. Every loader does that today and nothing
+  failed when it stopped — a commit moved above the error return leaves the page
+  label describing rows that were never loaded, so a failed refresh's stale note
+  points at the wrong page. The check covers all nine loaders, including the
+  ledger's, which takes its offset from the page document.
+
 - **The ordering now has a structural check**: all six lists record the applied
   query before their empty-list return, and the rule is invisible in normal use,
   so a repocheck test requires each guard to be preceded by — or contain — that
