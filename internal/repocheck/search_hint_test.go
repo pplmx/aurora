@@ -106,3 +106,43 @@ func TestAppliedQueryIsRecordedBeforeTheEmptyReturn(t *testing.T) {
 		}
 	}
 }
+
+// TestLoadersCommitTheirOffsetOnlyAfterTheRead covers the rule the paging
+// invariants state: a loader commits the rows, the offset and HasMore together,
+// and only once the read succeeded. A commit moved above the error return would
+// leave the page label describing rows that were never loaded — the failure the
+// window reports as stale would point at the wrong page.
+//
+// The check is structural because every loader reads correctly today: the order
+// is what a refactor can silently change.
+func TestLoadersCommitTheirOffsetOnlyAfterTheRead(t *testing.T) {
+	cases := []struct {
+		file   string
+		commit string
+	}{
+		{"token.go", "a.token.offset = offset"},
+		{"nft.go", "a.nft.offset = offset"},
+		{"nft_history.go", "a.nft.historyOffset = offset"},
+		{"oracle.go", "a.oracle.offset = offset"},
+		{"lottery.go", "a.lottery.offset = offset"},
+		{"voting.go", "a.voting.voterOffset = offset"},
+		{"voting.go", "a.voting.candOffset = offset"},
+		{"voting.go", "a.voting.sessionOffset = offset"},
+		{"blockchain.go", "a.blockchain.blockOffset = offset"},
+	}
+	for _, c := range cases {
+		body := readRepoFile(t, "desktop", "internal", "nativeui", c.file)
+		commit := strings.Index(body, c.commit)
+		require.NotEqualf(t, -1, commit, "%s must still commit %s", c.file, c.commit)
+
+		// The enclosing function's error return has to come first.
+		start := strings.LastIndex(body[:commit], "\nfunc ")
+		require.NotEqualf(t, -1, start, "%s: the commit must sit inside a function", c.file)
+		before := body[start:commit]
+		if !strings.Contains(before, "if err != nil {") {
+			t.Errorf("%s: %s is committed without an error guard before it; "+
+				"a failed read would leave the offset describing rows that were never loaded",
+				c.file, c.commit)
+		}
+	}
+}
