@@ -12,6 +12,19 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **An unrecognised audit payload no longer prints its raw control
+  characters**: both display fallbacks returned the stored bytes unchanged —
+  the CLI's `blockLine` and the desktop's `decodePipePayload`. The sanitising
+  rule covered the fields it could name, so the one path with no fields to name
+  had no rule at all. A forged record could recolour the ledger table or split
+  the row it sat in.
+- **One helper now covers the whole value**: `records.ReadableText` applies the
+  same encoding `ReadableFields` applies per field, and `records.IsPrintable` is
+  exported so callers can assert the result. `--json` still carries the exact
+  bytes; the decoded sentence is a reading aid, never the only copy.
+- **Three tests, one per layer**: the records helper, the CLI table line and the
+  desktop summary. Reverting any of the three makes its test fail.
+
 - **A JSON audit payload can no longer carry a live terminal escape**: the pipe
   payloads were always rendered through `ReadableFields`, which base64-encodes
   a field a terminal cannot show, but the JSON ones were not — `jsonString`
