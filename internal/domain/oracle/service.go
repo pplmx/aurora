@@ -416,4 +416,17 @@ var (
 	// classify the condition without importing the HTTP client.
 	ErrRateLimited    = errors.New("rate limit exceeded")
 	ErrSourceDisabled = &OracleError{Message: "source is disabled"}
+
+	// ErrFetchFailed reports a fetch that reached the remote feed and was
+	// refused or broke: a non-2xx status, an unreadable body, a redirect loop,
+	// a timeout. The cause is upstream, not in Aurora, so the API answers 502
+	// rather than the 500 an unclassified error produces — a 500 tells the
+	// caller Aurora is broken and invites a retry of the same doomed request,
+	// while 502 names the far side as the failing party.
+	//
+	// It lives here, not next to ErrHTTPError in infra/http, so the API can
+	// classify it without importing the HTTP client (the layer rule the
+	// architecture test enforces). The fetch use case wraps the client's error
+	// in this sentinel.
+	ErrFetchFailed = errors.New("upstream fetch failed")
 )

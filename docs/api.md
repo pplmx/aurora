@@ -205,6 +205,7 @@ AURORA_SERVER_HOST=127.0.0.1 AURORA_SERVER_PORT=9090 ./aurora-api
 | 预言机 | `SOURCE_NOT_FOUND`             | 404  |
 | 预言机 | `SOURCE_DISABLED`              | 400  |
 | 预言机 | `RATE_LIMITED`                 | 429  |
+| 预言机 | `FETCH_FAILED`                 | 502  |
 | 投票   | `SESSION_NOT_FOUND`            | 404  |
 | 投票   | `SESSION_NOT_STARTED`          | 400  |
 | 投票   | `SESSION_ENDED`                | 400  |

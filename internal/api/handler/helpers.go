@@ -105,6 +105,10 @@ var errorClassification = []struct {
 	// a 429 client error with the real cause, not a masked 500 (TASK-240,
 	// ISS-238).
 	{oracle.ErrRateLimited, http.StatusTooManyRequests, "RATE_LIMITED"},
+	// A fetch that reached the remote feed and was refused or broke is the far
+	// side's failure, not Aurora's: 502 names that. The unwrapped client error
+	// answered 500, which blamed this server and invited a retry.
+	{oracle.ErrFetchFailed, http.StatusBadGateway, "FETCH_FAILED"},
 
 	// Voting domain errors
 	{voting.ErrSessionNotFound, http.StatusNotFound, "SESSION_NOT_FOUND"},

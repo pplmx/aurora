@@ -717,6 +717,7 @@ var desktopMessagesHant = map[string]string{
 	"session title is required":                    "會期標題不能為空",
 	"session title is too long":                    "會期標題過長",
 	"source is disabled":                           "數據源已禁用",
+	"upstream fetch failed":                        "上游抓取失敗",
 	"source not found":                             "未找到數據源",
 	"storage not initialized":                      "存儲尚未初始化",
 	"timeout must be greater than 0":               "超時必須大於 0",
