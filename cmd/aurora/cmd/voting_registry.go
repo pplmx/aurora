@@ -85,7 +85,7 @@ var candidateListCmd = &cobra.Command{
 			fmt.Println("\n📋 " + i18n.GetText("voting.candidates") + i18n.Colon())
 		}
 		if len(list) == 0 {
-			fmt.Println("   " + i18n.GetText("voting.none"))
+			fmt.Println("   " + i18n.GetText("common.none"))
 		}
 		for _, c := range list {
 			fmt.Printf("   - %s [%s] - %s\n", c.Name, c.Party, voteCountText(c.VoteCount))
@@ -171,7 +171,7 @@ var voterListCmd = &cobra.Command{
 				fmt.Println("   " + i18n.GetText("common.page_empty"))
 				return nil
 			}
-			fmt.Println("   " + i18n.GetText("voting.none"))
+			fmt.Println("   " + i18n.GetText("common.none"))
 		}
 		for _, v := range list {
 			status := "✅ " + i18n.GetText("voting.voted")

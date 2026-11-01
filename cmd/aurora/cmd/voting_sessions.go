@@ -94,7 +94,7 @@ var sessionListCmd = &cobra.Command{
 			fmt.Println("\n🗳️ " + i18n.GetText("voting.sessions") + i18n.Colon())
 		}
 		if len(list) == 0 {
-			fmt.Println("   " + i18n.GetText("voting.none"))
+			fmt.Println("   " + i18n.GetText("common.none"))
 		}
 		for _, s := range list {
 			fmt.Printf("   - %s [%s]\n", s.Title, localizedVotingStatus(s.Status))
