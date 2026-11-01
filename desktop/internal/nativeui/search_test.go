@@ -519,3 +519,34 @@ func TestEmptyChainHidesItsSearch(t *testing.T) {
 		"a query left from another session keeps the field that explains it")
 	require.True(t, tester.HasText("No blocks match “draw”."))
 }
+
+// TestClearingAQueryWhileTheListIsEmptyIsRecorded covers the voter, candidate
+// and session lists while their store is empty. Their applied-query field was
+// updated after the empty-list return, so a query cleared at that moment kept
+// looking applied: the first-record guide stayed hidden — the page showed a work
+// bench over an empty store — and the next read announced itself as a search
+// result.
+func TestClearingAQueryWhileTheListIsEmptyIsRecorded(t *testing.T) {
+	fake := &fakeServices{voterRows: []VoterRow{{Name: "Ada", PublicKey: "k1"}}}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 4000)
+	app.ShowPage("Voting")
+	tester.Frame()
+	require.False(t, app.votingNeedsFirstRecord())
+
+	app.voting.voterSearch = "ada"
+	tester.Frame()
+	require.Equal(t, "ada", app.voting.voterApplied)
+
+	// The store empties under the still-applied query, then the reader clears it.
+	fake.voterRows = nil
+	app.loadVoting()
+	tester.Frame()
+	app.voting.voterSearch = ""
+	tester.Frame()
+
+	require.Empty(t, app.voting.voterApplied,
+		"a cleared query must be recorded even when no row survived the read")
+	require.True(t, app.votingNeedsFirstRecord(),
+		"an empty store shows the first-record guide, not a work bench")
+}
