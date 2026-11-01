@@ -99,6 +99,7 @@ var traditionalMessages = map[string]string{
 	"common.id":                                 "ID",
 	"common.interval":                           "間隔",
 	"common.json":                               "以 JSON 輸出而不是表格",
+	"common.list_limit":                         "最多列出的條數（0 表示全部）",
 	"common.method":                             "方法",
 	"common.name":                               "名稱",
 	"common.none":                               "（無）",

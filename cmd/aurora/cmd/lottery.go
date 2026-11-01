@@ -311,7 +311,7 @@ func init() {
 	// keeps the zero value so pflag does not print a "(default 3)" that would
 	// contradict a configured value.
 	createCmd.Flags().IntP("count", "c", 0, i18n.GetText("lottery.count"))
-	historyCmd.Flags().IntP("limit", "l", 0, i18n.GetText("token.list_limit"))
+	historyCmd.Flags().IntP("limit", "l", 0, i18n.GetText("common.list_limit"))
 	historyCmd.Flags().IntP("offset", "p", 0, i18n.GetText("token.offset"))
 	historyCmd.Flags().StringP("search", "s", "", i18n.GetText("lottery.history_search"))
 

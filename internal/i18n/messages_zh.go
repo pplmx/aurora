@@ -289,6 +289,7 @@ nft、token）和运维命令（migrate、backup、version）。`,
 	"token.info.cmd":          "查询代币信息",
 	"token.list.cmd":          "列出全部代币",
 	"token.list_limit":        "最多列出的代币数（0 表示全部）",
+	"common.list_limit":       "最多列出的条数（0 表示全部）",
 	"token.list_page":         "本页代币",
 	"token.no_tokens":         "暂无代币",
 
