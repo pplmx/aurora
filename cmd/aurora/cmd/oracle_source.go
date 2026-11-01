@@ -88,9 +88,9 @@ var sourceListCmd = &cobra.Command{
 		// An offset alone asks for a page too: without it, `--offset 9` on a
 		// non-empty store kept the plain heading and answered "(none)".
 		if limit > 0 || offset > 0 {
-			fmt.Printf("\n📡 %s\n", i18n.Label(i18n.GetText("oracle.sources_heading"), i18n.GetTextF("common.page_with_offset", len(resp.Sources), offset)))
+			fmt.Printf("\n📡 %s\n", i18n.Label(i18n.GetText("oracle.sources_page"), i18n.GetTextF("common.page_with_offset", len(resp.Sources), offset)))
 		} else {
-			fmt.Printf("\n📡 %s\n", i18n.GetText("oracle.sources_heading")+i18n.Colon())
+			fmt.Printf("\n📡 %s\n", i18n.Label(i18n.GetText("oracle.sources_total"), len(resp.Sources)))
 		}
 		if len(resp.Sources) == 0 {
 			// Three different answers: an empty store, a page past the end, and

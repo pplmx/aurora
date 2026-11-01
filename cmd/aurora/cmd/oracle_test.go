@@ -128,7 +128,7 @@ func TestOracleSourceList_Pages(t *testing.T) {
 
 		out, err := runCmd(t, "oracle", "source", "list", "--limit", "1", "--offset", "1")
 		require.NoError(t, err)
-		assert.Contains(t, out, "Data Sources: 1 (offset 1)")
+		assert.Contains(t, out, "Sources on this page: 1 (offset 1)")
 		assert.Equal(t, 1, strings.Count(out, "   - "), "only the requested page should print")
 
 		_, err = runCmd(t, "oracle", "source", "list", "--limit", "-1")

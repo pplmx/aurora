@@ -82,9 +82,9 @@ var candidateListCmd = &cobra.Command{
 		// An offset alone asks for a page too, so it takes the paged heading:
 		// without it, `--offset 9` on a non-empty store read as an empty one.
 		if limit > 0 || offset > 0 {
-			fmt.Printf("\n📋 %s\n", i18n.Label(i18n.GetText("voting.candidates"), i18n.GetTextF("common.page_with_offset", len(list), offset)))
+			fmt.Printf("\n📋 %s\n", i18n.Label(i18n.GetText("voting.candidates_page"), i18n.GetTextF("common.page_with_offset", len(list), offset)))
 		} else {
-			fmt.Println("\n📋 " + i18n.GetText("voting.candidates") + i18n.Colon())
+			fmt.Printf("\n📋 %s\n", i18n.Label(i18n.GetText("voting.candidates_total"), len(list)))
 		}
 		if len(list) == 0 {
 			// Three different answers, as Voters gives them: an empty store, a
@@ -168,7 +168,7 @@ var voterListCmd = &cobra.Command{
 		if limit > 0 || offset > 0 {
 			fmt.Printf("\n👥 %s\n", i18n.Label(i18n.GetText("voting.page_total"), i18n.GetTextF("common.page_with_offset", len(list), offset)))
 		} else {
-			fmt.Println("\n👥 " + i18n.GetText("voting.voters") + i18n.Colon())
+			fmt.Printf("\n👥 %s\n", i18n.Label(i18n.GetText("voting.voters_total"), len(list)))
 		}
 		if len(list) == 0 {
 			// Three different answers: an empty store, a page past the end, and
