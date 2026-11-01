@@ -304,3 +304,35 @@ func TestParseRejectsEveryUnrecognisedShape(t *testing.T) {
 		assert.Falsef(t, ok, "%q must not parse as a record", payload)
 	}
 }
+
+// TestTextLResolvesEveryWord covers the localized rendering: each vocabulary
+// word goes through the resolver, the subject and the fact values do not, and an
+// action that resolves to the module's own name is dropped rather than repeated.
+func TestTextLResolvesEveryWord(t *testing.T) {
+	record := Record{
+		Module: "lottery", Action: "Draw", Subject: "Alice",
+		Facts: []Fact{{Label: "Winners", Value: "Alice"}, {Label: "Seed", Value: "s"}},
+	}
+	resolve := func(kind, word string) string {
+		switch kind + ":" + word {
+		case "module:lottery":
+			return "抽奖"
+		case "action:Draw":
+			return "抽奖"
+		case "fact:Winners":
+			return "中奖者"
+		case "fact:Seed":
+			return "种子"
+		}
+		return word
+	}
+	style := Style{Divider: " · ", Label: "：", Fact: "；", Open: "（", Close: "）"}
+
+	require.Equal(t, "抽奖 · Alice（中奖者：Alice；种子：s）", record.TextL(resolve, style))
+
+	// A nil resolver keeps the English rendering, so a caller that has no
+	// catalog yet prints the sentence rather than losing the record.
+	require.Equal(t, record.Text(), record.TextL(nil, DefaultStyle))
+	// The default style is what Text has always written.
+	require.Equal(t, "lottery · Draw · Alice   (Winners: Alice; Seed: s)", record.TextIn(DefaultStyle))
+}
