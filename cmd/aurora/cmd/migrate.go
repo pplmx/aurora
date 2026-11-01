@@ -60,7 +60,7 @@ func newCLIMigrator() (*migrate.Migrator, error) {
 // joinVersions renders a []uint as "1, 2" or the i18n "(none)" placeholder.
 func joinVersions(versions []uint) string {
 	if len(versions) == 0 {
-		return i18n.GetText("migrate.none")
+		return i18n.GetText("common.none")
 	}
 	parts := make([]string, len(versions))
 	for i, v := range versions {
