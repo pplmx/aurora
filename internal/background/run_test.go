@@ -60,3 +60,36 @@ func TestStartStopIsIdempotent(t *testing.T) {
 	}, time.Second, time.Millisecond)
 	stop()
 }
+
+// TestStopReturnsAfterTheParentContextEnds covers the production shutdown
+// order: the API server's root context is cancelled first, the background work
+// observes it and leaves, and only then does the caller reach its deferred
+// stop. stop must return immediately in that case — the work has already
+// finished — instead of waiting for a completion it missed.
+func TestStopReturnsAfterTheParentContextEnds(t *testing.T) {
+	ctx, cancelParent := context.WithCancel(context.Background())
+	exited := make(chan struct{})
+
+	stop := Start(ctx, func(runCtx context.Context) {
+		<-runCtx.Done()
+		close(exited)
+	})
+
+	cancelParent()
+	select {
+	case <-exited:
+	case <-time.After(time.Second):
+		t.Fatal("cancelling the parent context must stop the background work")
+	}
+
+	returned := make(chan struct{})
+	go func() {
+		stop()
+		close(returned)
+	}()
+	select {
+	case <-returned:
+	case <-time.After(time.Second):
+		t.Fatal("stop must return once the work has already exited")
+	}
+}
