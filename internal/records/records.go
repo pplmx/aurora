@@ -307,7 +307,7 @@ func ReadableFields(fields []string) []string {
 // table and the ledger card as a live escape, and an embedded newline split the
 // row.
 func readableField(f string) string {
-	if utf8.ValidString(f) && isPrintable(f) {
+	if utf8.ValidString(f) && IsPrintable(f) {
 		return f
 	}
 	return base64.StdEncoding.EncodeToString([]byte(f))
@@ -333,15 +333,9 @@ func IsUUID(s string) bool {
 	return true
 }
 
-// isPrintable reports whether every rune in s has a visible form.
-func isPrintable(s string) bool {
-	return IsPrintable(s)
-}
-
-// IsPrintable reports whether every rune in s has a visible form. Exported for
-// the display paths that fall back to the stored text when a payload matches no
-// known shape: those callers print the bytes as-is, so they need the same test
-// ReadableFields applies before deciding to encode.
+// IsPrintable reports whether every rune in s has a visible form. The display
+// paths that fall back to the stored text when a payload matches no known shape
+// need the same test ReadableFields applies before deciding to encode.
 func IsPrintable(s string) bool {
 	for _, r := range s {
 		if r < 0x20 || r == 0x7f {
