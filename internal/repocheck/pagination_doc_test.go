@@ -3,6 +3,7 @@ package repocheck
 import (
 	"regexp"
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -89,4 +90,66 @@ func TestTheReferenceStatesThePaginationNumbers(t *testing.T) {
 	assert.Equal(t, 1000, nftListOffset, "/nft/list offset ceiling")
 	assert.Equal(t, 1000, historyOffset, "token history offset ceiling")
 	assert.Contains(t, doc, "**1000**", "the reference must call out the tighter offset ceiling")
+}
+
+// TestPagingCapTableMatchesTheHandlers covers the table of caps in docs/api.md.
+// The old check looked for each number somewhere in the document, which a table
+// makes too easy to satisfy by accident: a row could carry a neighbour's ceiling
+// and the number would still be found. Reading the row per endpoint says which
+// number belongs to which route, and the two tighter ceilings (1000 for the two
+// joins) are the ones a careless edit would flatten.
+func TestPagingCapTableMatchesTheHandlers(t *testing.T) {
+	cases := []struct {
+		path string
+		file string
+		def  string
+		maxL string
+		maxO string
+	}{
+		{"/blockchain/blocks", "blockchain.go", "defaultBlockPageLimit", "maxBlockPageLimit", "maxBlockPageOffset"},
+		{"/lottery/history", "lottery.go", "defaultLotteryHistoryLimit", "maxLotteryHistoryLimit", "maxLotteryHistoryOffset"},
+		{"/voting/candidates", "voting.go", "defaultVotingListLimit", "maxVotingListLimit", "maxVotingListOffset"},
+		{"/nft/list", "nft.go", "defaultNFTListLimit", "maxNFTListLimit", "maxNFTListOffset"},
+		{"/nft/{id}/history", "nft.go", "defaultNFTHistoryLimit", "maxNFTHistoryLimit", "maxNFTHistoryOffset"},
+		{"/token/list", "token.go", "defaultTokenListLimit", "maxTokenListLimit", "maxTokenListOffset"},
+		{"/token/history", "token.go", "defaultHistoryLimit", "maxHistoryLimit", "maxHistoryOffset"},
+		{"/oracle/sources", "oracle.go", "defaultOracleSourceLimit", "maxOracleSourceLimit", "maxOracleSourceOffset"},
+	}
+	// Read a handler's constant block; a renamed constant fails the lookup
+	// rather than being skipped.
+	constant := func(file, name string) int {
+		t.Helper()
+		body := readRepoFile(t, "internal", "api", "handler", file)
+		m := regexp.MustCompile(`(?m)\b` + name + `\s*=\s*(\d+)\b`).FindStringSubmatch(body)
+		require.NotNilf(t, m, "%s must still define %s", file, name)
+		n, err := strconv.Atoi(m[1])
+		require.NoError(t, err)
+		return n
+	}
+
+	doc := readRepoFile(t, "docs", "api.md")
+	for _, c := range cases {
+		// Take the row's cells rather than pattern-matching them: the markdown
+		// table is column-aligned and may mark a ceiling bold, so a pattern with
+		// optional decoration matched the wrong cell instead of failing.
+		line := regexp.MustCompile("(?m)^\\| `" + regexp.QuoteMeta(c.path) + "`[^\n]*").FindString(doc)
+		require.NotEmptyf(t, line, "docs/api.md has no cap row for %s", c.path)
+		cells := strings.Split(line, "|")
+		require.Len(t, cells, 6, "%s: the row must have three cells", c.path)
+		row := make([]string, 4)
+		for i := 0; i < 3; i++ {
+			row[i+1] = strings.Trim(strings.TrimSpace(cells[i+2]), "*")
+		}
+		require.NotNilf(t, row, "docs/api.md has no cap row for %s", c.path)
+		for _, want := range []struct {
+			cell  int
+			label string
+			name  string
+		}{{1, "default limit", c.def}, {2, "limit ceiling", c.maxL}, {3, "offset ceiling", c.maxO}} {
+			got, err := strconv.Atoi(row[want.cell])
+			require.NoErrorf(t, err, "%s: %s is not a number", c.path, want.label)
+			assert.Equalf(t, constant(c.file, want.name), got,
+				"%s: the table's %s must equal the handler's %s", c.path, want.label, want.name)
+		}
+	}
 }
