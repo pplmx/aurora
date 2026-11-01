@@ -28,6 +28,19 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The docs may no longer name a flag a command does not register**: the path
+  check stops at the first word that looks like a value, so it never reaches a
+  flag — a line could say `-x` where the command registers `-s` and nothing
+  failed. The new check maps each command variable to its path and each `Flags()`
+  call to the flags it registers, then holds every documented flag to that.
+- **Two shapes had to be found**: the root command's own `Use` is `aurora`, so
+  adding the prefix again keyed every path as `aurora aurora …`; and `--confirm`
+  is registered through a helper that takes the command as an argument, so the
+  variable appears at the call site rather than before `Flags()`.
+- **Renaming one documented flag fails with the line number**:
+  `docs/cli.md:77 documents "-x" on "aurora lottery create", which does not
+  register it`.
+
 - **Four reserved sentinels say so where they are declared**: `INVALID_SIGNATURE`
   on both token and nft, plus `NOT_TOKEN_OWNER`, `DUPLICATE_TRANSFER` and
   `ErrStorageNotInit`, are classified and never returned. The reference explained
