@@ -40,7 +40,7 @@ var traditionalMessages = map[string]string{
 	"blockchain.error.init":                     "區塊鏈初始化失敗",
 	"blockchain.head":                           "頭區塊",
 	"blockchain.invalid":                        "鏈完整性校驗未通過",
-	"blockchain.length":                         "區塊數",
+	"blockchain.length":                         "區塊數（含創世塊）",
 	"blockchain.long":                           "查看記錄所有模塊寫入的只追加賬本。",
 	"blockchain.no_reason":                      "未記錄原因",
 	"blockchain.state":                          "狀態",

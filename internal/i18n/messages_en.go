@@ -20,7 +20,7 @@ var englishMessages = map[string]string{
 	"blockchain.blocks_search":     "Filter by recorded text or the decoded record (case-insensitive)",
 	"blockchain.blocks_no_match":   "No record matches %q.",
 	"blockchain.blocks_empty_page": "No entries on this page; the ledger has %d in total.",
-	"blockchain.length":            "Blocks",
+	"blockchain.length":            "Blocks (including genesis)",
 	"blockchain.head":              "Head",
 	"blockchain.state":             "State",
 	"blockchain.valid":             "valid",

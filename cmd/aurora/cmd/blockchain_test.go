@@ -27,7 +27,10 @@ func TestBlockchainVerifyReportsAValidChain(t *testing.T) {
 		require.NoError(t, err)
 		assert.Contains(t, out, "Chain integrity")
 		// The block is aligned, so the value follows the label after padding.
-		assertFieldValue(t, out, "Blocks:", "1")
+		// The label says "including genesis" because this count is the chain's
+		// own length, while "blockchain blocks" counts audit records and skips
+		// the genesis block: read side by side, the same ledger reported 1 and 0.
+		assertFieldValue(t, out, "Blocks (including genesis):", "1")
 		assert.Regexp(t, `Head: +[0-9a-f]{12}`, out,
 			"the head prefix is what a support thread compares between machines")
 		assertFieldValue(t, out, "State:", "valid")
