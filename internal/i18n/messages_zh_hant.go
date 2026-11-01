@@ -420,7 +420,7 @@ var traditionalMessages = map[string]string{
 	"oracle.latest_heading":                     "最新數據",
 	"oracle.limit":                              "限制結果數",
 	"oracle.long":                               "HTTP 數據源：登記數據源的方法、JSON 路徑與輪詢間隔，按需抓取，並讀取調度器記錄的數值與抓取健康度。",
-	"oracle.no_data":                            "未找到數據",
+	"oracle.no_reading":                         "此數據源還沒有讀數；Fetch now 會記錄第一條。",
 	"oracle.source.add":                         "添加數據源",
 	"oracle.source.cmd":                         "數據源管理",
 	"oracle.source.delete":                      "刪除數據源",

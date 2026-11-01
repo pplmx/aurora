@@ -232,6 +232,28 @@ func TestOracleFetch_SourceNotFound(t *testing.T) {
 	assert.Contains(t, strings.ToLower(err.Error()), "source not found")
 }
 
+// TestOracleLatest_NamesTheEmptyAnswer: a source with no readings is not an
+// error, and the card still says which card answered and what to do next. The
+// bare "No data found" it printed had neither the heading the data list uses nor
+// the next step, so it read like a stray sentence from a failed command.
+func TestOracleLatest_NamesTheEmptyAnswer(t *testing.T) {
+	withTempDir(t, func(t *testing.T) {
+		setTestLocale(t, "en")
+		out, err := runCmd(t, "oracle", "source", "add",
+			"--name", "btc", "--url", "https://api.example.com/price",
+			"--type", "custom", "--path", "a.b")
+		require.NoError(t, err)
+		ids := extractSourceIDs(t, out)
+		require.Len(t, ids, 1)
+
+		latest, err := runCmd(t, "oracle", "latest", "--id", ids[0])
+		require.NoError(t, err)
+		assert.Contains(t, latest, "Latest Data:", "the heading names the card that answered")
+		assert.Contains(t, latest, "no readings yet", "the line names the next step")
+		assert.NotContains(t, latest, "No data found")
+	})
+}
+
 func TestOracleData_Latest(t *testing.T) {
 	resetCliForTest()
 

@@ -114,7 +114,11 @@ var latestCmd = &cobra.Command{
 			return printJSON(resp)
 		}
 		if resp.Data == nil {
-			fmt.Println(i18n.GetText("oracle.no_data"))
+			// The heading and an indented sentence, as `oracle data` and the
+			// lists do. A bare "No data found" left the reader without the
+			// heading that says which card answered, and without the next step.
+			fmt.Printf("\n📈 %s\n", i18n.GetText("oracle.latest_heading")+i18n.Colon())
+			fmt.Println("   " + i18n.GetText("oracle.no_reading"))
 			return nil
 		}
 
