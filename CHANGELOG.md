@@ -322,6 +322,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **A mint's highlight is tested where position and id disagree**: the existing
+  mint test had the new asset land at index 0, where selecting by id and
+  selecting the first row give the same answer. The collection shows whatever
+  order the store chose, so this test has another asset come first and asserts
+  both the index and the row the highlight lands on — selecting by position there
+  would point every write card at the wrong asset.
+
 - **The session highlight is tested like the other two**: three helpers restore
   a reload's highlight by record id rather than row index, so a filter that
   reorders the list still lands on the same record. Source, voter and candidate
