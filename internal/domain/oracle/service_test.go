@@ -1,6 +1,7 @@
 package oracle
 
 import (
+	"encoding/json"
 	"errors"
 	"strings"
 	"testing"
@@ -9,22 +10,50 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// TestOracleData_Serialization pins the JSON contract of a recorded reading.
+// The fetch use case marshals this struct straight onto the chain
+// (oracleapp/usecase.go), so these key names are what an auditor reading the
+// ledger sees and what a client parses; a renamed tag silently rewrites the
+// stored record format.
+//
+// The test this replaces built the struct and discarded every field with `_ =`,
+// so it asserted nothing while its name promised the opposite.
 func TestOracleData_Serialization(t *testing.T) {
 	data := &OracleData{
 		ID:          "data-1",
 		SourceID:    "source-1",
 		Value:       "123.45",
 		RawResponse: `{"result": 123.45}`,
-		Timestamp:   time.Now().Unix(),
+		Timestamp:   1700000000,
 		BlockHeight: 100,
 	}
 
-	_ = data.ID
-	_ = data.SourceID
-	_ = data.Value
-	_ = data.RawResponse
-	_ = data.Timestamp
-	_ = data.BlockHeight
+	raw, err := json.Marshal(data)
+	require.NoError(t, err)
+
+	// The exact keys, not a substring search: a tag dropped or renamed must fail
+	// here rather than in a ledger written months later.
+	var fields map[string]any
+	require.NoError(t, json.Unmarshal(raw, &fields))
+	require.Len(t, fields, 6, "a reading has exactly six stored fields: %s", raw)
+
+	for key, want := range map[string]any{
+		"id":           "data-1",
+		"source_id":    "source-1",
+		"value":        "123.45",
+		"raw_response": `{"result": 123.45}`,
+		"timestamp":    float64(1700000000),
+		"block_height": float64(100),
+	} {
+		require.Containsf(t, fields, key, "the stored reading must carry %q: %s", key, raw)
+		require.Equalf(t, want, fields[key], "field %q", key)
+	}
+
+	// A round trip must return the same reading: the chain stores JSON and the
+	// verify path reads it back.
+	var back OracleData
+	require.NoError(t, json.Unmarshal(raw, &back))
+	require.Equal(t, *data, back)
 }
 
 func TestDataSource_Validation(t *testing.T) {
