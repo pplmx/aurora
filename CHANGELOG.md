@@ -12,6 +12,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The in-memory NFT store lists in the stored order too**: `ListNFTs` sorted
+  by id and `GetNFTsByOwner` returned map order, while the SQLite repository
+  runs newest first for both. App and transport tests read through this store,
+  so a paging assertion could pass on a sequence the API never serves.
+- **It follows `INSERT OR REPLACE` and `UPDATE`**: a re-saved asset moves to the
+  front, an updated one keeps its place, and a rolled-back save restores the
+  order along with the rows.
+
 - **The in-memory oracle store reads like the SQLite one**: `GetDataBySource`
   walked a Go map, so it returned readings oldest first and `GetLatestData`
   picked the earlier of two same-second rows. Every handler and use-case test

@@ -11,21 +11,31 @@ type inmemRepo struct {
 	mu         sync.RWMutex
 	nfts       map[string]*NFT
 	operations map[string][]*Operation
+	// seq records the write order of NFT rows. The SQLite repo orders its
+	// listings by rowid, so this is what makes the in-memory order match the
+	// store the API serves from; a map has no order of its own.
+	seq  map[string]int
+	next int
 	// snapshot holds the state captured by beginTx so rollbackTx can restore
 	// it. nil when no (mock) transaction is open.
 	snapshot *txSnapshot
 }
 
-// txSnapshot is a deep copy of the repo state taken at beginTx.
+// txSnapshot is a deep copy of the repo state taken at beginTx. The write
+// order is part of that state: a rolled-back save must not leave its row
+// sorting later than it did before the transaction.
 type txSnapshot struct {
 	nfts       map[string]*NFT
 	operations map[string][]*Operation
+	seq        map[string]int
+	next       int
 }
 
 func NewInmemRepo() TransactableRepository {
 	return &inmemRepo{
 		nfts:       make(map[string]*NFT),
 		operations: make(map[string][]*Operation),
+		seq:        make(map[string]int),
 	}
 }
 
@@ -43,6 +53,11 @@ func (r *inmemRepo) beginTx() {
 	r.snapshot = &txSnapshot{
 		nfts:       make(map[string]*NFT, len(r.nfts)),
 		operations: make(map[string][]*Operation, len(r.operations)),
+		seq:        make(map[string]int, len(r.seq)),
+		next:       r.next,
+	}
+	for id, order := range r.seq {
+		r.snapshot.seq[id] = order
 	}
 	for id, n := range r.nfts {
 		clone := *n
@@ -66,6 +81,8 @@ func (r *inmemRepo) rollbackTx() {
 	}
 	r.nfts = r.snapshot.nfts
 	r.operations = r.snapshot.operations
+	r.seq = r.snapshot.seq
+	r.next = r.snapshot.next
 	r.snapshot = nil
 }
 
@@ -78,6 +95,10 @@ func (r *inmemRepo) commitTx() {
 func (r *inmemRepo) SaveNFT(nft *NFT) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	// INSERT OR REPLACE assigns a fresh rowid, so a rewritten row sorts as the
+	// newest one.
+	r.seq[nft.ID] = r.next
+	r.next++
 	r.nfts[nft.ID] = nft
 	return nil
 }
@@ -88,6 +109,10 @@ func (r *inmemRepo) GetNFT(id string) (*NFT, error) {
 	return r.nfts[id], nil
 }
 
+// GetNFTsByOwner returns one newest-first page, ordered like ListNFTs: the
+// write order reversed, which is what the SQLite repo's rowid DESC gives. It
+// used to return map order, so a test could see an owner's assets in any
+// sequence while the API served them newest first.
 func (r *inmemRepo) GetNFTsByOwner(owner []byte, limit, offset int) ([]*NFT, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
@@ -98,11 +123,9 @@ func (r *inmemRepo) GetNFTsByOwner(owner []byte, limit, offset int) ([]*NFT, err
 			result = append(result, nft)
 		}
 	}
-	// Mirror the SQLite LIMIT/OFFSET semantics: 0,0 (limit <= 0) is
-	// unbounded and returns the whole (ordered) collection (TASK-101,
-	// ISS-093). Map iteration order is nondeterministic, so in-memory
-	// paging is best-effort — only the SQLite repo carries a stable
-	// rowid order.
+	sort.Slice(result, func(i, j int) bool {
+		return r.seq[result[i].ID] > r.seq[result[j].ID]
+	})
 	if limit > 0 {
 		if offset < 0 {
 			offset = 0
@@ -119,7 +142,9 @@ func (r *inmemRepo) GetNFTsByOwner(owner []byte, limit, offset int) ([]*NFT, err
 	return result, nil
 }
 
-// ListNFTs returns every NFT, paged like GetNFTsByOwner.
+// ListNFTs returns every NFT, paged like GetNFTsByOwner, newest first. The
+// order is write order (the SQLite repo's rowid), reversed, so a test that
+// lists assets sees the same sequence the API serves.
 func (r *inmemRepo) ListNFTs(limit, offset int) ([]*NFT, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
@@ -128,9 +153,9 @@ func (r *inmemRepo) ListNFTs(limit, offset int) ([]*NFT, error) {
 	for _, n := range r.nfts {
 		result = append(result, n)
 	}
-	// Map iteration order is not stable, so sort by id to make the listing
-	// repeatable; the SQLite repo orders by rowid.
-	sort.Slice(result, func(i, j int) bool { return result[i].ID < result[j].ID })
+	sort.Slice(result, func(i, j int) bool {
+		return r.seq[result[i].ID] > r.seq[result[j].ID]
+	})
 	if limit > 0 {
 		if offset < 0 {
 			offset = 0
@@ -147,9 +172,16 @@ func (r *inmemRepo) ListNFTs(limit, offset int) ([]*NFT, error) {
 	return result, nil
 }
 
+// UpdateNFT replaces the stored fields without moving the row. The SQLite
+// repository's UPDATE keeps the existing rowid, so an updated asset stays where
+// it was in the listing.
 func (r *inmemRepo) UpdateNFT(nft *NFT) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	if _, known := r.seq[nft.ID]; !known {
+		r.seq[nft.ID] = r.next
+		r.next++
+	}
 	r.nfts[nft.ID] = nft
 	return nil
 }
