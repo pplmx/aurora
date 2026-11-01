@@ -12,6 +12,18 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The two modules do not share one patch version**: `docs/desktop.md` said
+  `go.mod` and `desktop/go.mod` were both `go 1.27.2`. The nested module had
+  already been raised to `1.27.3` by the MyGo dependency, whose own `go`
+  directive is 1.27.3. A reader comparing the two files was told the difference
+  was not there.
+- **The prose says why they differ**: `go get` raises a module to its
+  dependency's floor, and CI keeps them apart — the root jobs pin `GO_VERSION`,
+  the desktop jobs read `go-version-file: desktop/go.mod`.
+- **A check holds it**: both modules stay in the same Go major.minor, and the
+  doc must name each module's exact directive. Reverting the doc, or moving the
+  desktop module to another minor, fails it.
+
 - **The README coverage table follows the code again**: three of the seven
   figures had fallen behind — lottery domain said 91.7% against 94.2%
   measured, NFT domain 82.0% against 87.5%, oracle domain 87.6% against 92.3% —
