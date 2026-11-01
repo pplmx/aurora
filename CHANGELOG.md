@@ -12,6 +12,22 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **A saturated balance answered 500 instead of a client error**:
+  `TryAddBalance`'s overflow guard returned a bare `fmt.Errorf`, so a credit that
+  would push a balance past `MaxInt64` reached the client as an unclassified 500
+  `INTERNAL_ERROR`. The supply path was fixed for exactly this reason and says so
+  in a comment — "a plain message reached clients as an unclassified 500, which
+  tells them to retry a mint that can never succeed" — and balances were missed.
+- **The sentinel is the right one**: `token.ErrAmountTooLarge` documents itself
+  as covering an amount the persistence layer cannot store exactly, naming
+  "balances, supply, and allowances" as what would otherwise be corrupted. The
+  API maps it to `400 AMOUNT_TOO_LARGE`.
+- **The existing test could not have caught it**: it built the account id by
+  concatenating token id and owner without the `-` that `TryAddBalance` uses, so
+  `ON CONFLICT(id)` never matched the seeded row and the insert failed on
+  `UNIQUE(token_id, owner)` instead. Asserting only "an error occurred", it
+  accepted the unique violation and never reached the overflow guard.
+
 - **A transfer of an asset that vanished mid-flight answered 500 instead of
   404**: `TryTransferOwnership` disambiguates `RowsAffected==0` into "gone" and
   "ownership moved", and its own comment says the point is letting the caller
