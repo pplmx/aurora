@@ -112,7 +112,21 @@ var blockchainBlocksCmd = &cobra.Command{
 			return printBlocksJSON(entries, total, limit, offset)
 		}
 
-		fmt.Printf("\n🧱 %s\n", i18n.Label(i18n.GetText("blockchain.blocks_title"), total))
+		// Both numbers matter, and only one of them is the rows below: a full
+		// page and a total of 4 with two rows listed read alike when the
+		// heading carries the total alone. It names both whenever they differ,
+		// and stays a plain total when the page is the whole ledger — --limit
+		// defaults to 20 here, so a small ledger is one page without any flag.
+		//
+		// The empty cases are decided below: "0 shown of 0" would replace the
+		// sentence that says whether the ledger is empty, the page is past its
+		// end, or nothing matched.
+		if len(entries) > 0 && len(entries) != total {
+			fmt.Printf("\n🧱 %s\n", i18n.Label(i18n.GetText("blockchain.blocks_page"),
+				i18n.GetTextF("blockchain.blocks_of_total", len(entries), total)))
+		} else {
+			fmt.Printf("\n🧱 %s\n", i18n.Label(i18n.GetText("blockchain.blocks_title"), total))
+		}
 		if len(entries) == 0 {
 			// A filtered miss and an offset past the end are different problems
 			// from an empty ledger; naming the first write would mislead.

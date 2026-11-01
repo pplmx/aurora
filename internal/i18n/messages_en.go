@@ -12,6 +12,8 @@ var englishMessages = map[string]string{
 	"blockchain.verify_title":      "Chain integrity",
 	"blockchain.blocks":            "List the recorded audit payloads",
 	"blockchain.blocks_title":      "Audit records",
+	"blockchain.blocks_page":       "Audit records on this page",
+	"blockchain.blocks_of_total":   "%d shown of %d",
 	"blockchain.blocks_empty":      "No module has written a record yet.",
 	"blockchain.blocks_limit":      "Maximum blocks to list (0 lists all)",
 	"blockchain.blocks_offset":     "Offset in entries",

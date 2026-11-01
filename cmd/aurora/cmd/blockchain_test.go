@@ -118,6 +118,32 @@ func TestBlockchainBlocksListsRecordedPayloads(t *testing.T) {
 	})
 }
 
+// TestBlockchainBlocksHeadingNamesWhichCount covers the two numbers a ledger
+// page has. The heading used to carry the total alone, so a limited page read
+// as "4 records" above two rows. When the page is the whole ledger the plain
+// total is enough; when it is not, both are named.
+func TestBlockchainBlocksHeadingNamesWhichCount(t *testing.T) {
+	withTempDir(t, func(t *testing.T) {
+		setTestLocale(t, "en")
+		for _, seed := range []string{"seed-one", "seed-two", "seed-three"} {
+			_, err := runCmd(t, "lottery", "create",
+				"--participants", "A,B", "--seed", seed, "--count", "1")
+			require.NoError(t, err)
+		}
+
+		out, err := runCmd(t, "blockchain", "blocks")
+		require.NoError(t, err)
+		assert.Contains(t, out, "Audit records: 3",
+			"a ledger that fits one page needs only the total")
+
+		out, err = runCmd(t, "blockchain", "blocks", "--limit", "2")
+		require.NoError(t, err)
+		assert.Contains(t, out, "Audit records on this page: 2 shown of 3",
+			"a partial page names both counts")
+		assert.NotContains(t, out, "Audit records: 3")
+	})
+}
+
 // TestBlockchainJSONMatchesTheAPI turns the two commands into something a script
 // can parse: the verify report and the block page use the REST shapes, and the
 // document starts at the first byte (no banner to strip).
