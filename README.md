@@ -248,14 +248,14 @@ Docker 镜像只包含 CLI，没有 HTTP 监听器；`aurora-api` 只提供 REST
 
 ## 测试覆盖率
 
-`CGO_ENABLED=0 go test ./... -cover -count=1` 实测（2026-11-01）：
+`CGO_ENABLED=0 go test ./... -cover -count=1` 实测（2026-11-02）：
 
 | 模块    | Domain | App   |
 | ------- | ------ | ----- |
 | Lottery | 94.2%  | 87.4% |
 | Voting  | 93.1%  | 84.1% |
 | NFT     | 87.5%  | 81.6% |
-| Token   | 91.6%  | 91.2% |
+| Token   | 91.7%  | 91.2% |
 | Oracle  | 92.3%  | 91.1% |
 | SQLite  | -      | 81.5% |
 | 组合根  | -      | 87.9% |
