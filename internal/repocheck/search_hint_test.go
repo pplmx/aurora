@@ -146,3 +146,51 @@ func TestLoadersCommitTheirOffsetOnlyAfterTheRead(t *testing.T) {
 		}
 	}
 }
+
+// TestHighlightLookupsClearBeforeSearching covers the nine helpers that move a
+// list's highlight to a named record. A lookup that misses must leave nothing
+// highlighted: the write cards read their subject from that highlight, so a
+// miss that keeps the old index points the next transfer, burn or ballot at a
+// record the operator never chose.
+//
+// The check is structural because a miss is not reachable from the suite's
+// happy paths, and because the same shape has been written wrong twice — the
+// select helpers lacked the clear the restore helpers had.
+func TestHighlightLookupsClearBeforeSearching(t *testing.T) {
+	helpers := []struct {
+		file string
+		name string
+	}{
+		{"oracle.go", "restoreSourceChoice"},
+		{"voting.go", "restoreVoterChoice"},
+		{"voting.go", "restoreCandidateChoice"},
+		{"voting.go", "restoreSessionChoice"},
+		{"nft_collection.go", "selectNFTRow"},
+		{"lottery.go", "selectLotteryByID"},
+		{"oracle_add.go", "selectSourceByID"},
+		{"token.go", "selectTokenByID"},
+		{"voting_setup.go", "selectCandidateByID"},
+		{"voting_setup.go", "selectSessionByID"},
+		{"voting_setup.go", "selectVoterByPublicKey"},
+	}
+	for _, h := range helpers {
+		body := readRepoFile(t, "desktop", "internal", "nativeui", h.file)
+		start := strings.Index(body, "func (a *App) "+h.name+"(")
+		require.NotEqualf(t, -1, start, "%s: %s must still exist", h.file, h.name)
+		rest := body[start:]
+		end := strings.Index(rest, "\nfunc ")
+		if end < 0 {
+			end = len(rest)
+		}
+		fn := rest[:end]
+
+		// The clear is the first assignment in the function, before the loop
+		// that may return early on a hit.
+		loop := strings.Index(fn, "\tfor ")
+		require.NotEqualf(t, -1, loop, "%s: %s must still search a list", h.file, h.name)
+		if !strings.Contains(fn[:loop], "= -1") {
+			t.Errorf("%s: %s searches without clearing the highlight first; "+
+				"a miss would leave the previous row selected", h.file, h.name)
+		}
+	}
+}
