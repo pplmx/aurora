@@ -28,14 +28,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
-- **Two DB-path tests pointed at a variable nothing binds**: `TestNewServer_
-  SuccessWithTempDB` and `TestNewServer_FailsOnInvalidDBPath` set
-  `AURORA_DB_PATH`, which no code binds (`Load()` binds `api.key`,
-  `server.host` and `server.port`; `AutomaticEnv` would look for `DB.PATH`), so
-  both ran against the checkout's `./data/aurora.db`. They passed while proving
-  nothing, and the failure case took the "no error" branch it tolerated. A real
-  `aurora-api` run with `AURORA_DB_PATH` set created `./data` instead, which is
-  how this surfaced.
+- **Two DB-path tests pointed at a variable nothing binds**: the success and
+  failure cases in `internal/api/router_test.go` set `AURORA_DB_PATH`, which no
+  code binds (`Load()` binds `api.key`, `server.host` and `server.port`;
+  `AutomaticEnv` would look for `DB.PATH`), so both ran against the checkout's
+  `./data/aurora.db`. They passed while proving nothing, and the failure case
+  took the "no error" branch it tolerated. A real `aurora-api` run with
+  `AURORA_DB_PATH` set created `./data` instead, which is how this surfaced.
 - **The failure case now asserts the error and a nil server**, because
   accepting either outcome is what hid the defect.
 
