@@ -26,6 +26,16 @@ The milestone notes under `.planning/` are history, not current instructions.
   small integers too; the mutation run caught that and the assertion was
   tightened.
 
+### Changed
+
+- **The window calls its one action Refresh everywhere**: the header button, the
+  command palette and the shortcut reference all reach the same method, but the
+  Settings card listed the chord as "Reload (data pages)" and the palette's
+  detail as "Reload the data shown on this page". A reader looking for the
+  Refresh button found a different name for the same key.
+- **The dead `Reload` key left both catalogs**: nothing drew it once the card
+  was renamed, and an unread key reads as coverage the window does not have.
+
 ### Fixed
 
 - **`genzhhant -check` could never pass**: it compares the checked-in
