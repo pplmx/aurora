@@ -248,14 +248,17 @@ aurora oracle latest -i <source-id>
 
 `oracle source list` 的 `--limit` 默认 0（列出 offset 之后的全部记录），大于
 0 时只读取该页并打印本页数量与偏移；`--offset` 默认 0。`oracle data` 的
-源还没有读数时，`oracle data` 打印 `📊 Oracle Data:` 与缩进的 `(none)`，
-`oracle latest` 打印 `📈 Latest Data:` 与一句说明（这个选项没有），不会只留一句
-无标题的 `No data found`——空结果是正常状态，不是错误，`--json` 仍是
-`{"data":null}`。
+`--limit` 默认 **10**，只读取该源最近的这些读数，上限 100；`oracle latest` 没有
+该选项，固定读最新一条。调度器不受该选项影响，仍会枚举全部数据源。
 
-`--limit` 默认 **10**，只读取该源最近的这些读数；`oracle latest` 没有该选项，
-固定读最新一条。调度器不受该选项影响，
-仍会枚举全部数据源。
+这是全仓唯一不把 `-l 0` 当作「不限」的列表命令：`--limit 0` 与不传一样回落到
+默认 10，因为「最近的 0 条读数」不是有意义的请求，而无上限会让一次调用扫完整张
+读数表。其余列表（`lottery history`、`token list`、`nft history`、`voting * list`、
+`oracle source list`）的 `-l 0` 仍表示列出全部。
+
+源还没有读数时，`oracle data` 打印 `📊 Oracle Data:` 与缩进的 `(none)`，
+`oracle latest` 打印 `📈 Latest Data:` 与一句说明，不会只留一句无标题的
+`No data found`——空结果是正常状态，不是错误，`--json` 仍是 `{"data":null}`。
 
 ## 运维命令
 
