@@ -12,6 +12,18 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **Two pools over one file is the shape a goroutine test misses**: the existing
+  concurrency regression exercises one `*sql.DB` with many goroutines. Two pools
+  share no Go state — no mutex, no shared connection — and contend only through
+  SQLite's file lock, which is what two CLI processes, or a CLI and the API, do
+  against one `aurora.db`. That is a real deployment shape (a cron job and a
+  server) and the one where a missing `_busy_timeout` hurts most.
+- **The test moves value between two accounts from both pools at once** and then
+  checks the totals still add up, so a lost update fails it even when no error
+  surfaces.
+- **Dropping the DSN hardening reproduces the failure the suffix prevents**:
+  `try subtract balance: database is locked (5) (SQLITE_BUSY)`.
+
 - **A cmd test that writes into the checkout now fails the suite**: the store
   resolves `db.path` on first open and defaults to `./data`, so a test that
   opens it without first moving to a temp directory writes `aurora.db` into the
