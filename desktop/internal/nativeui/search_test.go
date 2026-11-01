@@ -550,3 +550,74 @@ func TestClearingAQueryWhileTheListIsEmptyIsRecorded(t *testing.T) {
 	require.True(t, app.votingNeedsFirstRecord(),
 		"an empty store shows the first-record guide, not a work bench")
 }
+
+// TestClearingAQueryWhileTheStoreIsEmpty covers the token, NFT and oracle lists,
+// which had the same ordering as the voter list: the applied-query update sat
+// after the empty-list return, so a query cleared at that moment was never
+// recorded. Each of those pages gates its first-record panel on the applied
+// query, so the stale value showed a work bench over an empty store.
+func TestClearingAQueryWhileTheStoreIsEmpty(t *testing.T) {
+	t.Run("tokens", func(t *testing.T) {
+		fake := &fakeServices{tokenRows: []TokenRow{{ID: "GLD", Name: "Gold", Symbol: "GLD"}}}
+		app := New(fake)
+		tester := ui.NewTester(app.View, 1280, 5000)
+		app.ShowPage("Token")
+		tester.Frame()
+		require.False(t, app.tokenNeedsFirstRecord())
+
+		app.token.search = "gold"
+		tester.Frame()
+		require.Equal(t, "gold", app.token.appliedSearch)
+
+		fake.tokenRows = nil
+		app.loadTokenPage(0)
+		tester.Frame()
+		app.token.search = ""
+		tester.Frame()
+		require.Empty(t, app.token.appliedSearch,
+			"a cleared query is recorded even when no token survived the read")
+		require.True(t, app.tokenNeedsFirstRecord())
+	})
+
+	t.Run("nfts", func(t *testing.T) {
+		fake := &fakeServices{nftRows: []NFTRow{{ID: "n1", Name: "Star"}}}
+		app := New(fake)
+		tester := ui.NewTester(app.View, 1280, 5000)
+		app.ShowPage("NFT")
+		tester.Frame()
+		require.False(t, app.nftNeedsFirstRecord())
+
+		app.nft.search = "star"
+		tester.Frame()
+		require.Equal(t, "star", app.nft.appliedSearch)
+
+		fake.nftRows = nil
+		app.loadNFTPage(0)
+		tester.Frame()
+		app.nft.search = ""
+		tester.Frame()
+		require.Empty(t, app.nft.appliedSearch,
+			"a cleared query is recorded even when no asset survived the read")
+		require.True(t, app.nftNeedsFirstRecord())
+	})
+
+	t.Run("oracle sources", func(t *testing.T) {
+		fake := &fakeServices{sources: []SourceRow{{ID: "s1", Name: "btc"}}}
+		app := New(fake)
+		tester := ui.NewTester(app.View, 1280, 5000)
+		app.ShowPage("Oracle")
+		tester.Frame()
+
+		app.oracle.search = "btc"
+		tester.Frame()
+		require.Equal(t, "btc", app.oracle.appliedSearch)
+
+		fake.sources = nil
+		app.loadOracleSourcePage(0)
+		tester.Frame()
+		app.oracle.search = ""
+		tester.Frame()
+		require.Empty(t, app.oracle.appliedSearch,
+			"a cleared query is recorded even when no source survived the read")
+	})
+}

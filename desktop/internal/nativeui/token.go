@@ -236,6 +236,13 @@ func (a *App) tokenList(c *ui.Context) {
 			return
 		}
 		if len(a.token.tokens) == 0 {
+			// The field's state is recorded before this return: a query cleared
+			// while the store is empty must not stay applied, or the first-record
+			// guide stays hidden behind a work bench over nothing.
+			if a.token.search != a.token.appliedSearch {
+				a.token.appliedSearch = a.token.search
+				a.token.chosen = -1
+			}
 			emptyState(c, pageToken, "No tokens yet", "Create the first token below; the list, forms and history follow it.")
 			return
 		}
