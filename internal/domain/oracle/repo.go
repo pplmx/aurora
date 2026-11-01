@@ -36,45 +36,59 @@ type Repository interface {
 type InmemRepo struct {
 	data    map[string]*OracleData
 	sources map[string]*DataSource
+	// seq records the write order of data rows. The SQLite repository breaks
+	// same-second ties with rowid, and INSERT OR REPLACE assigns a fresh rowid,
+	// so a rewritten row sorts last within its second. Reading a Go map instead
+	// returned a different order — and picked a different "latest" — than the
+	// store the API actually serves from.
+	seq  map[string]int
+	next int
 }
 
 func NewInmemRepo() *InmemRepo {
 	return &InmemRepo{
 		data:    make(map[string]*OracleData),
 		sources: make(map[string]*DataSource),
+		seq:     make(map[string]int),
 	}
 }
 
 func (r *InmemRepo) SaveData(data *OracleData) error {
+	r.seq[data.ID] = r.next
+	r.next++
 	r.data[data.ID] = data
 	return nil
 }
 
+// GetDataBySource returns one newest-first page, matching the SQLite
+// repository: timestamp descending, and insertion order for the readings that
+// share a second. limit <= 0 returns everything, as the store's negative LIMIT
+// does.
 func (r *InmemRepo) GetDataBySource(sourceID string, limit int) ([]*OracleData, error) {
-	var result []*OracleData
-	count := 0
+	result := make([]*OracleData, 0, len(r.data))
 	for _, d := range r.data {
 		if d.SourceID == sourceID {
 			result = append(result, d)
-			count++
-			if limit > 0 && count >= limit {
-				break
-			}
 		}
+	}
+	sort.Slice(result, func(i, j int) bool {
+		if result[i].Timestamp == result[j].Timestamp {
+			return r.seq[result[i].ID] < r.seq[result[j].ID]
+		}
+		return result[i].Timestamp > result[j].Timestamp
+	})
+	if limit > 0 && len(result) > limit {
+		result = result[:limit]
 	}
 	return result, nil
 }
 
 func (r *InmemRepo) GetLatestData(sourceID string) (*OracleData, error) {
-	var latest *OracleData
-	for _, d := range r.data {
-		if d.SourceID == sourceID {
-			if latest == nil || d.Timestamp > latest.Timestamp {
-				latest = d
-			}
-		}
+	data, err := r.GetDataBySource(sourceID, 1)
+	if err != nil || len(data) == 0 {
+		return nil, err
 	}
-	return latest, nil
+	return data[0], nil
 }
 
 func (r *InmemRepo) SaveSource(source *DataSource) error {

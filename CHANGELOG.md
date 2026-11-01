@@ -12,6 +12,16 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The in-memory oracle store reads like the SQLite one**: `GetDataBySource`
+  walked a Go map, so it returned readings oldest first and `GetLatestData`
+  picked the earlier of two same-second rows. Every handler and use-case test
+  reads through this store, so the suite was pinning the opposite of what
+  `/oracle/query` and `/oracle/latest` answer in production (timestamp
+  descending, insertion order within a second).
+- **A rewritten reading takes the newest place in its second**, because the
+  store's `INSERT OR REPLACE` assigns a fresh rowid; three tests now hold the
+  order, the tie and that rewrite to the store's behaviour.
+
 - **`/nft/list?owner=` runs newest first like the ownerless list**: the filtered
   path ordered by `rowid ASC` while the whole collection ordered by `rowid DESC`,
   so turning the owner filter on reversed the page a reader was looking at.
