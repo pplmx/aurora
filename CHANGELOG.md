@@ -228,6 +228,20 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **A stage capture photographed the top of the page and passed**: every NFT
+  stage and the token Burn stage came out byte-identical to their page captures
+  — `nft.png`, `nft-Burn.png` and `nft-History.png` were one file. The capture
+  still passed because its assertion looks for text in the accessibility tree,
+  and the tree lists every element whether or not the viewport shows it.
+- **Cause**: `-scroll-to` dispatched the accessibility action
+  `scrollIntoView`, which scrolls only as far as the view's containers allow in
+  that frame. A stage body below a tall card reported success and did not move.
+- **The capture now wheels over the content area**, a notch at a time, until the
+  element's box is inside the window's content area — the protocol reports both,
+  so the check is measured. A target above the fold scrolls the other way, and
+  the loop is bounded. A repocheck test forbids going back to the accessibility
+  action and requires the box check before the capture.
+
 - **Four handlers said "required" four different ways**: the message a client
   meets while wiring its first request was `"token_id required"`,
   `"token_id is required"`, `"token_id and owner required"` and
