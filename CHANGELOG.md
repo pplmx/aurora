@@ -28,6 +28,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The English catalog writes base64 in lowercase**: four flag labels said
+  "Public key (Base64)" while every document, both Chinese catalogs and the Go
+  package say base64. The house-word check already listed the spelling, but it
+  scanned only the Chinese catalogs, so a Latin word could drift in the one
+  table nothing read. The scan now includes `messages_en.go`; the Chinese pairs
+  cannot match English text, so it costs one pass.
+
 - **Four module help pages now explain the module**: `aurora nft --help` opened
   with "NFT system" and then listed its subcommands. Lottery and blockchain
   already had a `Long` sentence; voting, oracle, NFT and token pointed `Long` at
