@@ -142,6 +142,16 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **Six list commands advertised a token ceiling**: every list command registers
+  the same `--limit` flag, and all of them read the token catalog's entry.
+  `aurora lottery history --help` said "Maximum tokens to list",
+  `aurora oracle source list --help` said it too, and a reader checking how many
+  sources they could list was told about tokens.
+- **The token list keeps that wording**, since it is what the command lists; the
+  other six read a new `common.list_limit`, "Maximum records to list". A
+  `repocheck` test maps each paging flag to the key it reads, so a copy-pasted
+  flag line cannot reintroduce the leak.
+
 - **A break at the first block reported no broken index**: `IntegrityReport.
   FirstBrokenIndex` carried `omitempty`. The field is `-1` for an intact chain
   and the break's index otherwise, so `0` is a real answer — the nil-chain path
