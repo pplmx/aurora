@@ -305,6 +305,8 @@ CLI 的 `-l 0` 表示「不限」，因此 `limit` 会是 `0`；REST 的 `limit=
 
 `--offset` 单独出现也算分页：`voting candidate list --offset 9` 在非空库里取不到
 行时给出「这一页为空」，而不是 `(none)`——后者说的是库里没有记录，与事实不符。
+这条规则对每个带分页选项的列表都成立，包括 `token list`、`oracle source list`、
+`nft history`：只要给了 `--limit` 或 `--offset`，空结果描述的是这一页，不是整个库。
 
 ### 备份
 
