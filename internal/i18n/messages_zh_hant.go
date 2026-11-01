@@ -104,6 +104,7 @@ var traditionalMessages = map[string]string{
 	"common.name":                               "名稱",
 	"common.none":                               "（無）",
 	"common.owner":                              "所有者",
+	"common.page_empty":                         "本頁沒有條目；可以用 --offset 往前翻，或去掉 --limit 列出全部。",
 	"common.page_with_offset":                   "%d（偏移 %d）",
 	"common.path":                               "路徑",
 	"common.spender":                            "被授權方",

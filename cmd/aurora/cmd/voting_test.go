@@ -360,3 +360,45 @@ func TestVotingResults_NotFound(t *testing.T) {
 		require.Error(t, err)
 	})
 }
+
+// TestPagedListsSayWhyThePageIsEmpty covers the three empty answers a list
+// command can give, which are not the same thing:
+//
+//   - the store holds nothing ("(none)"),
+//   - the offset skipped past the end of a non-empty store,
+//   - a filter matched nothing ("No draw matches …").
+//
+// The voter list and lottery history printed their page heading and nothing
+// else in the second case, so an operator saw a count of 0 with no statement
+// and could not tell a silent failure from a page past the end.
+func TestPagedListsSayWhyThePageIsEmpty(t *testing.T) {
+	withTempDir(t, func(t *testing.T) {
+		runMigrations(t)
+		setTestLocale(t, "en")
+
+		// An empty store, listed without paging: the "nothing here" answer.
+		out, err := runCmd(t, "voting", "voter", "list")
+		require.NoError(t, err)
+		assert.Contains(t, out, "(none)", "an empty store says so plainly")
+		assert.NotContains(t, out, "No entries on this page",
+			"an empty store is not a page past the end")
+
+		// A page request against that store: the "this page is empty" answer.
+		out, err = runCmd(t, "voting", "voter", "list", "--limit", "5")
+		require.NoError(t, err)
+		assert.Contains(t, out, "No entries on this page", "a page request explains the zero count")
+
+		out, err = runCmd(t, "lottery", "history", "--limit", "5")
+		require.NoError(t, err)
+		assert.Contains(t, out, "No entries on this page")
+
+		// A filter that matches nothing names the filter, not the page.
+		_, err = runCmd(t, "lottery", "create", "--participants", "A,B", "--seed", "seed-abc", "--count", "1")
+		require.NoError(t, err)
+		out, err = runCmd(t, "lottery", "history", "--limit", "5", "--search", "no-such-draw")
+		require.NoError(t, err)
+		assert.Contains(t, out, "No draw matches")
+		assert.NotContains(t, out, "No entries on this page",
+			"a filtered miss is not an empty page")
+	})
+}

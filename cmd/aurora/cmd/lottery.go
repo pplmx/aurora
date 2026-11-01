@@ -138,6 +138,11 @@ var historyCmd = &cobra.Command{
 		if len(records) == 0 {
 			if limit > 0 || offset > 0 {
 				fmt.Printf("\n📜 %s\n", i18n.Label(i18n.GetText("lottery.page_total"), i18n.GetTextF("common.page_with_offset", 0, offset)))
+				if search != "" {
+					fmt.Printf("   "+i18n.GetText("lottery.history_no_match")+"\n", search)
+					return nil
+				}
+				fmt.Println("   " + i18n.GetText("common.page_empty"))
 				return nil
 			}
 			if search != "" {

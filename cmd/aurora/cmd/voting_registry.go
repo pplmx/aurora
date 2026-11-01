@@ -163,7 +163,12 @@ var voterListCmd = &cobra.Command{
 			fmt.Println("\n👥 " + i18n.GetText("voting.voters") + i18n.Colon())
 		}
 		if len(list) == 0 {
+			// Three different answers: an empty store, a page past the end, and
+			// a page the offset skipped past. The paged case used to print its
+			// heading and nothing else, which reads as a command that failed
+			// silently rather than as a page with no rows.
 			if limit > 0 || offset > 0 {
+				fmt.Println("   " + i18n.GetText("common.page_empty"))
 				return nil
 			}
 			fmt.Println("   " + i18n.GetText("voting.none"))
