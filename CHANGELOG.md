@@ -246,6 +246,16 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **`/blockchain/verify` now says what `length` measures**: it counts the chain
+  including genesis, while `/blockchain/blocks` reports `total` without it, so
+  the two endpoints answer 3 and 2 for one ledger. The reference states the
+  difference and ties it to the CLI labels that say the same thing.
+- **The block-page example contradicted itself**: `total: 2` beside one row with
+  `limit: 20`, a limit large enough to hold both. `total` is 1, matching the row.
+  A new check derives the expected row count from `total`, `limit` and `offset`
+  and compares it with `len(blocks)`, because the parse check that already
+  existed only asked whether the JSON was well formed.
+
 - **db-info and doctor name the block count they report**: a ledger with one
   record answered three ways — `lottery db-info` said "Total blocks: 1",
   `blockchain blocks` said "Audit records: 1", `blockchain verify` said
