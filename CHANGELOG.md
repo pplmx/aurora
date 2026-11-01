@@ -28,6 +28,15 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **A test now proves every classified code can be returned**: the HTTP table
+  lists 75 sentinels and nothing checked that a request can produce them. It
+  matches on package plus name, not message text, because token, nft and voting
+  each declare an `ErrInvalidPrivateKey` with identical wording.
+- **The check found two more dead mappings**: `token.ErrInvalidSignature` and
+  `nft.ErrInvalidSignature` are classified as 401 and no code returns either. Both
+  services report a bad signature as a false verification result rather than an
+  error, so `docs/api.md` now lists them with the two older reserved codes.
+
 - **`SignVote` returned an error nobody could classify**: a short private key
   produced an inline `fmt.Errorf("invalid private key size")` while the package
   already declared `ErrInvalidPrivateKey` for exactly that case, and the API maps
