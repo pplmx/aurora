@@ -188,8 +188,11 @@ func (a *App) createLottery() {
 }
 
 // selectLotteryByID highlights the new draw in the history table, so it is
-// visible in the list and not only in the status sentence.
+// visible in the list and not only in the status sentence. The highlight is
+// cleared first: a draw the page does not hold leaves nothing chosen, rather
+// than whatever row the previous highlight pointed at.
 func (a *App) selectLotteryByID(id string) {
+	a.lottery.selected = -1
 	for i, draw := range a.lottery.rows {
 		if draw.ID == id {
 			a.lottery.selected = i
