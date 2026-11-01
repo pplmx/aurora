@@ -8,6 +8,8 @@ import (
 	"net/url"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestFetcherConstructorsInstallDialGuard(t *testing.T) {
@@ -144,4 +146,42 @@ func TestNewSecurityTransportFromTracksConfiguredProxy(t *testing.T) {
 	if err := security.dialer.ControlContext(req.Context(), "tcp", proxyURL.Host, nil); err != nil {
 		t.Fatalf("configured proxy dial = %v, want nil", err)
 	}
+}
+
+// TestSecureBaseTransportKeepsTheDialGuard covers both branches of the base
+// transport choice. The fetcher builds its dial guard into the transport, so a
+// base that dropped that guard would leave the SSRF check applied only to the
+// pre-request URL validation — the gap the dial guard exists to close when DNS
+// changes between validation and connect.
+func TestSecureBaseTransportKeepsTheDialGuard(t *testing.T) {
+	// Standard case: the fetcher owns a clone, so its modifications (the dial
+	// guard and the proxy decision hook) cannot leak into other users of
+	// http.DefaultTransport.
+	cloned := secureBaseTransport()
+	require.NotNil(t, cloned, "a base transport is always returned")
+	require.NotSame(t, http.DefaultTransport, cloned,
+		"the fetcher must own its pool, not share the default one")
+	require.NotNil(t, cloned.Proxy, "proxy resolution stays enabled")
+
+	// Fallback case: an embedding application replaced DefaultTransport with a
+	// non-standard RoundTripper. The function must return explicit net/http
+	// defaults rather than a nil or a type it cannot guard.
+	original := http.DefaultTransport
+	http.DefaultTransport = nonStandardRoundTripper{}
+	t.Cleanup(func() { http.DefaultTransport = original })
+
+	fallback := secureBaseTransport()
+	require.NotNil(t, fallback, "a non-standard default must not yield nil")
+	require.NotNil(t, fallback.Proxy, "proxy resolution stays enabled in the fallback")
+	require.True(t, fallback.ForceAttemptHTTP2, "the fallback keeps HTTP/2")
+	require.Positive(t, fallback.MaxIdleConns)
+	require.Positive(t, fallback.TLSHandshakeTimeout)
+}
+
+// nonStandardRoundTripper stands in for an application that installed its own
+// http.RoundTripper, which the fetcher cannot clone as a *http.Transport.
+type nonStandardRoundTripper struct{}
+
+func (nonStandardRoundTripper) RoundTrip(*http.Request) (*http.Response, error) {
+	return nil, errors.New("not used by this test")
 }
