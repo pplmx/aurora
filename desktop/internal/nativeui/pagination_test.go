@@ -748,3 +748,41 @@ func TestAPagePastTheEndReturnsToTheFirst(t *testing.T) {
 		require.Len(t, app.oracle.sources, rows)
 	})
 }
+
+// TestBlockchainReturnsToTheFirstPageWhenTheOffsetNoLongerExists covers the
+// ledger's own version of the past-the-end fallback. It cannot use the loader's
+// recursion the other lists share: the offset and the rows come from one page
+// document, so the view notices an empty page with a non-zero offset, resets it
+// and re-reads. The situation is a chain that shrank between two frames — a
+// `lottery reset` in another process, or a search that now matches fewer rows
+// than the offset assumed.
+func TestBlockchainReturnsToTheFirstPageWhenTheOffsetNoLongerExists(t *testing.T) {
+	blocks := make([]BlockRow, 150)
+	for i := range blocks {
+		blocks[i] = BlockRow{Height: int64(len(blocks) - i), Module: "lottery", Summary: "row-" + strconv.Itoa(i)}
+	}
+	fake := &fakeServices{blocks: blocks}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 4000)
+	app.ShowPage("Blockchain")
+	app.blockchain.blockLimit = 100
+	tester.Frame()
+	require.Equal(t, 0, app.blockchain.blockOffset)
+
+	// Move to the second page, then take most of the chain away underneath it.
+	require.NoError(t, tester.Click("Next"))
+	tester.Frame()
+	require.Equal(t, 100, app.blockchain.blockOffset)
+	require.True(t, tester.HasText("Entries 101–150 of 150"))
+
+	// Fewer rows than the offset, so the requested page holds nothing at all.
+	// The view re-reads on a changed query or page size, not on its own, so the
+	// shrink reaches the loader the way a Refresh does.
+	fake.blocks = fake.blocks[:60]
+	app.loadBlockchain()
+	tester.Frame()
+	require.Equal(t, 0, app.blockchain.blockOffset,
+		"a page that no longer exists must return to the first")
+	require.Len(t, app.blockchain.rows, 60)
+	require.True(t, tester.HasText("Entries 1–60 of 60"))
+}
