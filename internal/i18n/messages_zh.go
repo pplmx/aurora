@@ -256,8 +256,8 @@ nft、token）和运维命令（migrate、backup、version）。`,
 	"token.no_tokens":         "暂无代币",
 
 	// Flags
-	"token.name":        "代币名称",
-	"token.symbol":      "代币符号",
+	"token.name":        "代币名称，最多 100 字节",
+	"token.symbol":      "代币符号，最多 10 字节",
 	"token.supply":      "总供应量（正数金额）",
 	"token.decimals":    "精度，0-127",
 	"token.owner":       "所有者公钥",

@@ -1,6 +1,7 @@
 package repocheck
 
 import (
+	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
@@ -192,4 +193,46 @@ func TestPaginationCeilingsMatchTheDocs(t *testing.T) {
 		"the reference must flag the 1000-offset endpoints")
 	require.Contains(t, doc, "`offset` 上限则是 10000",
 		"the reference must contrast the 10000-offset endpoints")
+}
+
+// TestTokenFieldLimitsAreDocumented binds the token name and symbol ceilings to
+// the places a user reads them. Both are enforced (symbol 10 accepts ten bytes
+// and rejects eleven), but neither the CLI help nor the REST reference stated
+// them: the same command's -d flag already said "0-127", so the omission read
+// as "no limit" next to a flag that had one. A client learned the bound only by
+// tripping TOKEN_SYMBOL_TOO_LONG after the fact.
+func TestTokenFieldLimitsAreDocumented(t *testing.T) {
+	validator := readRepoFile(t, "internal", "domain", "token", "validator.go")
+	nameLimit := readConst(t, validator, "MaxTokenNameLength")
+	symbolLimit := readConst(t, validator, "MaxTokenSymbolLength")
+	require.Positive(t, nameLimit, "names have a ceiling")
+	require.Positive(t, symbolLimit, "symbols have a ceiling")
+
+	// The REST reference describes the create body field by field.
+	doc := strings.Join(strings.Fields(readRepoFile(t, "docs", "api.md")), " ")
+	assert.Containsf(t, doc, fmt.Sprintf("`name`（≤%d 字节）", nameLimit),
+		"docs/api.md must state the %d-byte name ceiling", nameLimit)
+	assert.Containsf(t, doc, fmt.Sprintf("`symbol`（≤%d 字节）", symbolLimit),
+		"docs/api.md must state the %d-byte symbol ceiling", symbolLimit)
+
+	// The CLI help is where a user meets the bound while typing the flag. The
+	// check reads the specific flag entry rather than the file: a "the number
+	// appears somewhere in a 600-line catalog" assertion stays green after the
+	// help text loses its bound, because other entries carry small integers too.
+	for _, name := range []string{"messages_en.go", "messages_zh.go", "messages_zh_hant.go"} {
+		catalog := readRepoFile(t, "internal", "i18n", name)
+		values := map[string]string{}
+		for _, m := range catalogEntry.FindAllStringSubmatch(catalog, -1) {
+			values[m[1]] = m[2]
+		}
+		for key, limit := range map[string]int{
+			"token.name":   nameLimit,
+			"token.symbol": symbolLimit,
+		} {
+			value, ok := values[key]
+			require.Truef(t, ok, "%s must keep the %q help entry", name, key)
+			assert.Containsf(t, value, strconv.Itoa(limit),
+				"%s: %q must state the %d-byte ceiling, got %q", name, key, limit, value)
+		}
+	}
 }
