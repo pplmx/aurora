@@ -136,7 +136,10 @@ container、metrics、scheduler 和 handler 集，构造失败不再散落在 `N
 
 **已做**：中文现在有简体与繁体两张表。核心与桌面各自维护 `messages_zh.go`，
 繁体表 `messages_zh_hant.go` 由 `tools/genzhhant` 从简体表生成（OpenCC s2t
-词表 + 现代字形覆盖），`zh-Hant`/`zh-TW`/`zh-HK` 选择它；改词句只改简体表。
+词表 + 现代字形覆盖 + 生成器里的 `reviewedWords` 人工订正表），
+`zh-Hant`/`zh-TW`/`zh-HK` 选择它；改词句只改简体表，需要推翻 OpenCC 的措辞
+改 `tools/genzhhant` 的 `reviewedWords`，不要手改生成文件——`-check` 与生成器
+比对，手改会让门槛一直失败。
 
 ### 6. 领域仍然知道账本实现
 
