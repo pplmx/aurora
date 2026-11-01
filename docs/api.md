@@ -97,9 +97,11 @@ AURORA_SERVER_HOST=127.0.0.1 AURORA_SERVER_PORT=9090 ./aurora-api
 ## 鉴权与中间件
 
 - **`X-API-Key`**：密钥来自 `AURORA_API_KEY` 或 `api.key`。开发模式下未设置会
-  生成随机密钥并打印在启动日志；生产环境要求至少 32 个不含空白的可见 ASCII
+  生成随机密钥并打印在启动日志；生产模式要求至少 32 个不含空白的可见 ASCII
   字符，并拒绝已知弱密钥（`ErrInsecureAPIKey`），可用 `openssl rand -hex 32`
-  生成。
+  生成。「生产模式」由 `AURORA_ENV=production` 开启（大小写
+  不敏感），没有对应的配置键或命令行开关：不设它就以开发模式启动，因此容器里
+  漏掉这个变量不会拦下空密钥或弱密钥。
   `/healthz`、`/readyz`、`/health`、`/metrics`、`/metrics/oracle` 不需要 key。
 - **没有 Web 界面**：网关不提供静态文件，也不注入任何脚本；`/` 与任何未注册路径
   都返回 404，并带与其他错误相同的 JSON 信封（`code` 为 `NOT_FOUND`）。界面只有
@@ -491,14 +493,14 @@ NFT 写接口的字段：
 写接口的请求体字段（金额是十进制字符串，公钥/私钥是 base64；签名由服务端用
 请求里的私钥完成，客户端不必自己签名）：
 
-| 端点                  | 字段                                                                  |
-| --------------------- | --------------------------------------------------------------------- |
+| 端点                  | 字段                                                                                           |
+| --------------------- | ---------------------------------------------------------------------------------------------- |
 | `token/create`        | `name`（≤100 字节）、`symbol`（≤10 字节）、`total_supply`、`owner`、`decimals`（0..127，可选） |
-| `token/mint`          | `token_id`、`to`、`amount`、`private_key`                             |
-| `token/transfer`      | `token_id`、`from`、`to`、`amount`、`private_key`                     |
-| `token/approve`       | `token_id`、`owner`、`spender`、`amount`、`private_key`               |
-| `token/transfer_from` | `token_id`、`owner`、`to`、`amount`、`spender`、`spender_key`         |
-| `token/burn`          | `token_id`、`from`、`amount`、`private_key`                           |
+| `token/mint`          | `token_id`、`to`、`amount`、`private_key`                                                      |
+| `token/transfer`      | `token_id`、`from`、`to`、`amount`、`private_key`                                              |
+| `token/approve`       | `token_id`、`owner`、`spender`、`amount`、`private_key`                                        |
+| `token/transfer_from` | `token_id`、`owner`、`to`、`amount`、`spender`、`spender_key`                                  |
+| `token/burn`          | `token_id`、`from`、`amount`、`private_key`                                                    |
 
 创建只登记 `owner` 公钥、不要求签名；之后的每次写都必须由该公钥对应的私钥
 （或 `spender_key`）签名，私钥与登记公钥不匹配时返回 `401 INVALID_SIGNATURE`。
