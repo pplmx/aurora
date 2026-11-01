@@ -238,6 +238,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **An offset alone asks for a page in the voting lists**: `voting candidate
+  list --offset 9` and `voting session list --offset 9` printed `(none)` when
+  the store had records. Both read only `--limit` when deciding whether a
+  request was a page, so an offset-only request fell into the empty-store branch
+  and claimed there was nothing to list. Voters already had the three answers;
+  both lists now take the paged heading and answer "No entries on this page".
+
 - **An empty list dropped the heading that carries its count**: `token list`
   printed a bare "No tokens yet", and `lottery history` did the same for an
   empty store or an empty search, while their non-empty runs start with a
