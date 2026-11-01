@@ -117,6 +117,15 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **`--interval` advertised its value type as "source add"**: `aurora oracle
+  source add --help` printed `-i, --interval source add`. The flag is an int;
+  pflag reads a pair of backticks inside a usage string as the type
+  placeholder, and the English catalog wrote "on `source add` -i is the
+  interval", so those words replaced the type on every help screen that flag
+  appears on.
+- **A repocheck test rejects backticks in any flag usage string**, because the
+  rule is a pflag behaviour no compiler or linter reports.
+
 - **A capture could be filed under a size it never had**: `AURORA_E2E_SIZE`
   accepted any `WIDTHxHEIGHT` and named the output directory after it. The
   window refuses to open below 900x600, so `AURORA_E2E_SIZE=700x520` opened at
