@@ -281,6 +281,11 @@ aurora blockchain blocks -s transfer   # 按记录文本或解码后的记录过
 `blocks` 输出与 `/api/v1/blockchain/blocks` 相同的分页信封，stdout 只有这一个文档，
 可直接交给 jq。
 
+信封里的 `limit` 是**本次请求实际用的上限**，两种界面在取值为 0 时含义不同：
+CLI 的 `-l 0` 表示「不限」，因此 `limit` 会是 `0`；REST 的 `limit=0`（或非法值）
+按默认 20 处理，`limit` 会是 `20`。脚本若要判断「这一页是否被截断」，比较
+`len(blocks)` 与 `limit` 时先排除 `limit == 0`（不限）这一种情况。
+
 「账本还没有记录」「没有匹配」「这一页为空」是三种不同的提示，脚本可以按退出码
 或文本区分。
 
