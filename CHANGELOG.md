@@ -56,6 +56,15 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **The window's ledger search only matched the English words**: in a Chinese
+  window the row reads 抽奖 · A（中奖者：A）, and typing 中奖者 answered zero —
+  the adapter compared the words the chain stores. The CLI's `-s` had the same
+  defect until it started matching both renderings.
+- **`recordSearchText` also carries the words as the window draws them**, while
+  the English ones stay, so the vocabulary in the documentation and in `--json`
+  still matches in every language. `nativeui.RecordVocabulary` is exported for
+  the adapter, so the search and the row resolve a word through one key.
+
 - **An NFT transfer read 转账 in the window — the token word**: the desktop
   resolved a record's action through its label table by the bare English word,
   and `Transfer` is one entry, so the NFT ledger row printed the word the
