@@ -799,3 +799,40 @@ func TestTokenRepository_GetDB(t *testing.T) {
 
 	require.NotNil(t, repo.GetDB(), "GetDB should return non-nil database handle")
 }
+
+// TestTokenRepository_TryAdjustApproval_DecreaseOnFirstTouch covers the INSERT
+// branch the over-decrement test never reaches: it seeds the allowance first,
+// so its clamp runs inside ON CONFLICT. A first-touch decrement instead takes
+// the VALUES clause, where the sign test compared the delta as TEXT — `amount`
+// is a TEXT column and the driver binds the delta as TEXT, and SQLite orders
+// every TEXT value above every INTEGER, so `'-100' >= 0` was TRUE. The row was
+// created as '-100' and TryAdjustApproval returned it, while the interface
+// promises clamping at zero.
+func TestTokenRepository_TryAdjustApproval_DecreaseOnFirstTouch(t *testing.T) {
+	dir := t.TempDir()
+	repo, err := NewTokenRepository(filepath.Join(dir, "tokens.db"))
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = repo.Close() })
+
+	tokenID := token.TokenID("TEST")
+	owner := token.PublicKey([]byte("owner"))
+	spender := token.PublicKey([]byte("spender"))
+
+	// No allowance row exists yet: this decrement creates it.
+	got, err := repo.TryAdjustApproval(tokenID, owner, spender, token.NewAmount(-100))
+	require.NoError(t, err)
+	require.Zero(t, got.Sign(),
+		"a first-touch decrement must clamp at 0, not store and return a negative allowance")
+
+	stored, err := repo.GetApproval(tokenID, owner, spender)
+	require.NoError(t, err)
+	require.NotNil(t, stored, "the row exists after the clamp")
+	require.Zero(t, stored.Amount().Sign(),
+		"the stored amount must be 0, got %s", stored.Amount().String())
+
+	// A later increase adds to the clamped zero, not to the -100 that was
+	// asked for: the caller's decrement was satisfied by "nothing to remove".
+	got, err = repo.TryAdjustApproval(tokenID, owner, spender, token.NewAmount(50))
+	require.NoError(t, err)
+	require.Equal(t, int64(50), got.Int64())
+}
