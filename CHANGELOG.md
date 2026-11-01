@@ -322,6 +322,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **Every highlight lookup now has a structural check**: eleven helpers move a
+  list's highlight to a named record — four after a reload, seven after a create —
+  and a miss must leave nothing highlighted, because the write cards read their
+  subject from it. The same shape was written wrong twice, so the check requires
+  each function's first assignment to clear before the loop: reverting last
+  round's three files fails it five times, the count of helpers that were wrong.
+
 - **A lookup that finds nothing clears the highlight**: five helpers highlight
   the record the page was just told to show — after a mint, a draw, a source add,
   a registration, a session create. Each looked the record up by id and, on a
