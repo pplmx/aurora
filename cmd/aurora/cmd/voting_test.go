@@ -168,6 +168,37 @@ func TestEveryListHeadingCarriesItsCount(t *testing.T) {
 	}
 }
 
+// TestLedgerCountsNameWhatTheyCount covers the four places that report how many
+// blocks a ledger has. Two count audit records (height > 0) and two count the
+// chain's length including genesis, and a reader who compares them without that
+// distinction sees one command miscounting by one.
+func TestLedgerCountsNameWhatTheyCount(t *testing.T) {
+	withTempDir(t, func(t *testing.T) {
+		setTestLocale(t, "en")
+		_, err := runCmd(t, "lottery", "create",
+			"--participants", "A,B", "--seed", "seed-one", "--count", "1")
+		require.NoError(t, err)
+
+		records, err := runCmd(t, "blockchain", "blocks")
+		require.NoError(t, err)
+		assert.Contains(t, records, "Audit records: 1")
+
+		info, err := runCmd(t, "lottery", "db-info")
+		require.NoError(t, err)
+		assert.Contains(t, info, "Audit records:", "db-info counts records, like blocks")
+
+		verify, err := runCmd(t, "blockchain", "verify")
+		require.NoError(t, err)
+		assert.Contains(t, verify, "Blocks (including genesis): 2",
+			"verify counts the chain's length, which includes genesis")
+
+		doctor, err := runCmd(t, "doctor")
+		require.NoError(t, err)
+		assert.Contains(t, doctor, "ledger blocks including genesis: 2",
+			"doctor agrees with verify, and says so")
+	})
+}
+
 func TestVotingCandidateAdd_MissingName(t *testing.T) {
 	withTempDir(t, func(t *testing.T) {
 		runMigrations(t)
