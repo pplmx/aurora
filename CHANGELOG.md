@@ -28,6 +28,17 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The API reference says which health fields come and go**: `/oracle/health`
+  omits `last_success_at` until a fetch has succeeded and `last_error` once a
+  fetch recovers, but the endpoint was described without mentioning either. A
+  client written from that description reads a missing key as zero — "succeeded
+  in 1970" for a source that has never been reachable, or "no error" for a
+  source whose last fetch failed.
+- **The paragraph names both fields**, says a missing key is the answer rather
+  than a zero value, and lists the four keys that are always present. A
+  `repocheck` test marshals the real `SourceStat` in both states so the tags and
+  the reference cannot drift.
+
 - **The CLI write commands show how their flags fit together**: `aurora token
   mint --help` said "Mint tokens" and then listed `-t`, `-o`, `-a` and `-k`
   with nothing to say how the four belong in one line. All of them are
