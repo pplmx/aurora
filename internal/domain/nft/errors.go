@@ -3,12 +3,16 @@ package nft
 import "errors"
 
 var (
-	ErrNameRequired      = errors.New("NFT name is required")
-	ErrOwnerRequired     = errors.New("NFT owner is required")
-	ErrNotOwner          = errors.New("not the owner")
-	ErrNFTNotFound       = errors.New("NFT not found")
-	ErrZeroAddress       = errors.New("zero address is not allowed")
-	ErrStorageNotInit    = errors.New("storage not initialized")
+	ErrNameRequired  = errors.New("NFT name is required")
+	ErrOwnerRequired = errors.New("NFT owner is required")
+	ErrNotOwner      = errors.New("not the owner")
+	ErrNFTNotFound   = errors.New("NFT not found")
+	ErrZeroAddress   = errors.New("zero address is not allowed")
+	// ErrStorageNotInit has no producer: the nil-receiver guard returns
+	// before the service can name it.
+	ErrStorageNotInit = errors.New("storage not initialized")
+	// ErrInvalidSignature has no producer: VerifyTransfer reports a bad
+	// signature as (false, nil).
 	ErrInvalidSignature  = errors.New("invalid signature")
 	ErrInvalidPrivateKey = errors.New("invalid private key length")
 	ErrInvalidPublicKey  = errors.New("invalid public key length")

@@ -28,6 +28,11 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **Four reserved sentinels say so where they are declared**: `INVALID_SIGNATURE`
+  on both token and nft, plus `NOT_TOKEN_OWNER`, `DUPLICATE_TRANSFER` and
+  `ErrStorageNotInit`, are classified and never returned. The reference explained
+  why; a reader in the errors file had to go and find it.
+
 - **The CLI's translation table got the same check**: 82 entries name a sentinel
   and nothing compared them against the code that returns the errors. It found
   `nft.ErrStorageNotInit`, declared and translated and never returned — the fourth
