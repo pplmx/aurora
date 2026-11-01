@@ -387,12 +387,7 @@ func (p *protocol) scrollPointIntoView(win windowInfo, text string) error {
 		if onScreen(node.Bounds, area) {
 			return nil
 		}
-		// Scroll toward the box: down when it sits below the view, up when it
-		// sits above.
-		dy := notch
-		if node.Bounds.Y+node.Bounds.Height <= area.Y {
-			dy = -notch
-		}
+		dy := notch * wheelDirection(node.Bounds, area)
 		if err := p.call("input", map[string]any{
 			"window": win.ID,
 			"events": []map[string]any{{"type": "wheel", "x": midX, "y": midY, "dx": 0, "dy": dy}},
@@ -436,6 +431,16 @@ func (p *protocol) waitFrame(window int) error {
 		return err
 	}
 	return nil
+}
+
+// wheelDirection is which way to scroll to reach box from the current offset:
+// 1 down, -1 up. A box that starts above the content area is reached by
+// scrolling up, which matters when an earlier step went too far.
+func wheelDirection(box, area rect) float64 {
+	if box.Y+box.Height <= area.Y {
+		return -1
+	}
+	return 1
 }
 
 // onScreen reports whether box is inside area.
