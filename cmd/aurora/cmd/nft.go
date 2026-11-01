@@ -108,9 +108,10 @@ var mintCmd = &cobra.Command{
 }
 
 var transferCmd = &cobra.Command{
-	Use:   "transfer",
-	Args:  cobra.NoArgs,
-	Short: i18n.GetText("nft.transfer"),
+	Use:     "transfer",
+	Example: `  aurora nft transfer --nft <nft-id> --from <owner-public-key> --to <new-owner-public-key> -k "<owner-private-key>"`,
+	Args:    cobra.NoArgs,
+	Short:   i18n.GetText("nft.transfer"),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		service, err := nftService()
 		if err != nil {
@@ -152,9 +153,10 @@ var transferCmd = &cobra.Command{
 }
 
 var burnCmd = &cobra.Command{
-	Use:   "burn",
-	Args:  cobra.NoArgs,
-	Short: i18n.GetText("nft.burn"),
+	Use:     "burn",
+	Example: `  aurora nft burn --nft <nft-id> --owner <owner-public-key> -k "<owner-private-key>" --confirm`,
+	Args:    cobra.NoArgs,
+	Short:   i18n.GetText("nft.burn"),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Burning permanently destroys an NFT; require -y/--confirm first
 		// (the same gate every destructive command uses).
