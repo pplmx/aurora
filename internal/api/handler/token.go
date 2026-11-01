@@ -107,7 +107,7 @@ func (h *TokenHandler) Allowance(w http.ResponseWriter, r *http.Request) {
 	spender := r.URL.Query().Get("spender")
 
 	if tokenID == "" || owner == "" || spender == "" {
-		writeBadRequest(w, "token_id, owner and spender required")
+		writeBadRequest(w, "token_id, owner and spender are required")
 		return
 	}
 
@@ -240,7 +240,7 @@ func (h *TokenHandler) Balance(w http.ResponseWriter, r *http.Request) {
 	owner := r.URL.Query().Get("owner")
 
 	if tokenID == "" || owner == "" {
-		writeBadRequest(w, "token_id and owner required")
+		writeBadRequest(w, "token_id and owner are required")
 		return
 	}
 
@@ -294,7 +294,7 @@ func (h *TokenHandler) History(w http.ResponseWriter, r *http.Request) {
 func (h *TokenHandler) Info(w http.ResponseWriter, r *http.Request) {
 	tokenID := r.URL.Query().Get("token_id")
 	if tokenID == "" {
-		writeBadRequest(w, "token_id required")
+		writeBadRequest(w, "token_id is required")
 		return
 	}
 
