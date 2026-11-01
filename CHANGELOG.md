@@ -12,6 +12,17 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **A supply overflow is a 400 now, not a 500**: `TryAddToSupply` returned a
+  bare `fmt.Errorf` when a mint would push `total_supply` past `MaxInt64`. The
+  mint use case passes the error through unchanged, the classifier found no
+  sentinel in it, and the caller got `500 INTERNAL_ERROR` — which invites a
+  retry of a mint that can never succeed. It wraps `token.ErrAmountTooLarge`,
+  which the API already maps to 400 `AMOUNT_TOO_LARGE` and the CLI already
+  translates.
+- **The repository test asserted only `require.Error`**, which is how the gap
+  survived. It names the sentinel now, and a smoke test drives the real server
+  so the status and code are pinned end to end.
+
 - **A first-touch allowance decrease no longer stores a negative amount**:
   `TryAdjustApproval` tested the delta's sign with `? >= 0`, but `amount` is a
   TEXT column and the driver binds the delta as TEXT — and SQLite orders every
