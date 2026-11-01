@@ -260,14 +260,15 @@ func appendFact(facts []Fact, label, value string) []Fact {
 }
 
 // jsonString reads one string field, returning "" when the field is absent or
-// holds another JSON type.
+// holds another JSON type. A value a terminal cannot show is encoded the same
+// way the pipe payloads are, so the two shapes share one rule.
 func jsonString(raw json.RawMessage) string {
 	if len(raw) == 0 {
 		return ""
 	}
 	var value string
 	if json.Unmarshal(raw, &value) == nil {
-		return value
+		return readableField(value)
 	}
 	return ""
 }
@@ -280,24 +281,36 @@ func jsonStringSlice(raw json.RawMessage) []string {
 	}
 	var values []string
 	if json.Unmarshal(raw, &values) == nil {
-		return values
+		return ReadableFields(values)
 	}
 	return nil
 }
 
-// ReadableFields renders each pipe field as text, or as base64 when it carries
-// bytes a terminal cannot show. Display helpers use it too, so a payload never
-// appears as raw control characters.
+// ReadableFields renders each field as text, or as base64 when it carries bytes
+// a terminal cannot show. Both payload shapes go through it — the pipe lines
+// directly, the JSON fields through jsonString/jsonStringSlice — so a record
+// never renders as raw control characters, whichever shape it was stored in.
+// Display helpers use it too.
 func ReadableFields(fields []string) []string {
 	out := make([]string, 0, len(fields))
 	for _, f := range fields {
-		if utf8.ValidString(f) && isPrintable(f) {
-			out = append(out, f)
-			continue
-		}
-		out = append(out, base64.StdEncoding.EncodeToString([]byte(f)))
+		out = append(out, readableField(f))
 	}
 	return out
+}
+
+// readableField renders one value the way ReadableFields does, for the callers
+// that hold a single field rather than a slice.
+//
+// A JSON payload used to bypass this: jsonString returned whatever
+// json.Unmarshal produced, so a winner renamed to "\u001b[31m…" reached the CLI
+// table and the ledger card as a live escape, and an embedded newline split the
+// row.
+func readableField(f string) string {
+	if utf8.ValidString(f) && isPrintable(f) {
+		return f
+	}
+	return base64.StdEncoding.EncodeToString([]byte(f))
 }
 
 // IsUUID reports whether s is a canonical 8-4-4-4-12 UUID.
