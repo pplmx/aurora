@@ -28,6 +28,13 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The JSON examples in the API reference are parsed by a test now**: eleven
+  fenced blocks show the shape of a request or a response, and nothing checked
+  that they parse. A trailing comma there teaches the wrong shape and costs the
+  reader a debugging round before they discover the server is fine. A block
+  tagged `json` that holds nothing fails too, because it reads as an example the
+  writer meant to fill in.
+
 - **The docs may no longer name a flag a command does not register**: the path
   check stops at the first word that looks like a value, so it never reaches a
   flag — a line could say `-x` where the command registers `-s` and nothing
