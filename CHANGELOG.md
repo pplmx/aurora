@@ -12,6 +12,15 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The ownerless NFT list is tested with assets in it**: the only test for
+  `GET /nft/list` without `?owner` used an empty store and asserted `[]`, which
+  proves the encoding and nothing about the endpoint's purpose — listing assets
+  the caller has no owner key for. A version that quietly filtered by some owner
+  would have passed.
+- **The new test uses two owners and asserts the order**: both must appear,
+  newest first, with each row carrying its owner. Retargeting the handler at
+  `ListByOwner` makes it fail with a 400 rather than a short list.
+
 - **The stored VRF key codec has its own tests**: `EncodePublicKey` and
   `DecodePublicKey` are how a lottery record's key survives a round trip to
   SQLite and back, and `lottery verify` decides a stored record is tampered by
