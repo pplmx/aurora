@@ -28,6 +28,16 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **A search hint is now checked against what its search does**: eight lists
+  carry a sentence beside the field, and the sentences say two different things
+  — six filter the rows already loaded ("Search narrows the current page"), and
+  the ledger plus lottery history query storage across the whole set. Swapping
+  them leaves a reader hunting for an old record in a page they cannot see, or
+  trusting a filtered count as the whole store; the words are the only signal.
+- **The check ties each sentence to its code path**: the two adapter methods
+  still take a search term and reach storage, the page-local lists still filter
+  with `containsFold`, and exactly two hints may promise a whole-store search.
+
 - **The i18n tests now check the call, not only the spelling**: the existing
   test compared the English and Chinese spellings of one key; nothing checked
   that the call site passes as many values as the message takes. A message with
