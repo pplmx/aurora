@@ -289,13 +289,19 @@ CLI 的 `-l 0` 表示「不限」，因此 `limit` 会是 `0`；REST 的 `limit=
 「还没有记录」「没有匹配」「这一页为空」是三种不同的提示，脚本可以按退出码
 或文本区分：
 
-- 还没有记录：`No module has written a record yet.` / `(none)` / `No tokens yet`；
+- 还没有记录：`No module has written a record yet.` / `(none)` / `No tokens yet` /
+  `No lottery records found`；
 - 没有匹配：`No record matches "…".` / `No draw matches "…".`；
 - 这一页为空：`No entries on this page; use --offset to reach earlier ones or drop
   --limit to list everything.`（分页命令在 `--limit`/`--offset` 下取不到行时用它，
   包括 `voting voter list` 与 `lottery history`）。
 
 第三种最容易与「命令静默失败」混淆，所以它一定带一句说明而不是只打印计数。
+
+三者都排在标题行下面，缩进一级：标题行给出这一页或全库的记录数（`Total: 0`、
+`Lotteries on this page: 0 (offset 0)`、`Matches: 0`），空提示说明为什么是 0。只
+打印一句 `No tokens yet` 的做法已统一——那句话丢掉了计数，读的人和脚本都看不出
+是库为空还是这一页为空。
 
 ### 备份
 
