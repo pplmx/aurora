@@ -28,6 +28,16 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **`oracle data` is documented as the one limit-zero exception**: every other
+  list reads `-l 0` as "everything", while `oracle data` clamps to [1,100] and
+  falls back to 10 — unbounded would scan the whole readings table. A script
+  that passes 0 for "all" on every list silently got ten rows here. The rule and
+  its reason are now stated, and a test keeps the flag default, the clamp and
+  the sentence in agreement.
+- **The oracle paragraph read as two broken halves**: an earlier edit left
+  "`oracle data` 的" ending a sentence that resumed three lines later, splicing
+  the limit rule into the empty-read rule.
+
 - **Both empty oracle answers are shown as examples**: the reference stated in
   prose that `/oracle/query` sends `{"data":[]}` and `/oracle/latest` sends
   `{"data":null}`, leaving a reader to reconstruct the bytes. The two are now
