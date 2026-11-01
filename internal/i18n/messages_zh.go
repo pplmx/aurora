@@ -19,7 +19,7 @@ var chineseMessages = map[string]string{
 	"blockchain.blocks_search":     "按记录文本或解码后的记录过滤（不区分大小写）",
 	"blockchain.blocks_no_match":   "没有记录匹配 %q。",
 	"blockchain.blocks_empty_page": "这一页没有记录，账本共 %d 条。",
-	"blockchain.length":            "区块数",
+	"blockchain.length":            "区块数（含创世块）",
 	"blockchain.head":              "头区块",
 	"blockchain.state":             "状态",
 	"blockchain.valid":             "有效",
