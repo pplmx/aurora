@@ -238,6 +238,17 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **An empty oracle query drew nothing**: a source that had been read and
+  returned no readings left the Query card blank — no rows, no line, nothing
+  where the list belongs. A blank region reads as "this card has no content",
+  not as "this source has no readings yet".
+- **The other two states already had answers and keep them**: the
+  missing-source prompt sits beside the field it fills, and a failure returns
+  through `loadWarning`, which has already reported it. A "not loaded yet" line
+  was written and removed — opening the Readings tab reads the selected source,
+  so that sentence was unreachable, and only the line that renders was added to
+  the catalogs.
+
 - **The token history named a missing first step the wrong way**: an empty
   Token ID printed "No transfers loaded yet.", the same line a chosen but unread
   token gets. The NFT history and the voting tally already answer the two cases
