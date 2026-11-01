@@ -305,7 +305,9 @@ CLI 的 `-l 0` 表示「不限」，因此 `limit` 会是 `0`；REST 的 `limit=
 
 同一个列表的标题在两种模式下都带计数：不给分页选项时是 `Total tokens: 3` 这类
 全库计数，给了 `--limit`/`--offset` 时是 `Tokens on this page: 2 (offset 0)` 这类
-本页计数。只有冒号、没有数字的标题（曾经的 `Candidates:`、`Data Sources:`）已全部
+本页计数。`blockchain blocks` 的两个数不同时都给：`Audit records on this page:
+2 shown of 3`；一页装得下时只给总数 `Audit records: 3`。它的 `--limit` 默认 20，
+所以小账本不给选项也是一页。只有冒号、没有数字的标题（曾经的 `Candidates:`、`Data Sources:`）已全部
 去掉——那种写法读起来像小标题，空库和有记录时长得一样，要读完行数才知道是哪种。
 
 `--offset` 单独出现也算分页：`voting candidate list --offset 9` 在非空库里取不到
