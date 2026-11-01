@@ -826,10 +826,16 @@ Developer ID、公证或 Authenticode，也不会让未签名包变成可发布�
   （或 `zh-hant`）先在设置里切换语言，然后走同一套页面循环——页面标题、页面标记与
   阶段标记都带该语言的表，所以语言变体同样逐页截图并断言，而不是只证明切换生效。
   变体名可叠加：`light-zh`、`light-zh-900-600` 等都各占一个目录。
-  根目录默认 `dist/e2e`，用 `AURORA_E2E_OUT` 改到别处；`AURORA_E2E_DISPLAY` 指定
+  根目录默认 `dist/e2e`，用 `AURORA_E2E_OUT` 改到别处（相对路径按当前目录解析，
+  脚本先转成绝对路径再进 `desktop/` 编译，所以 `AURORA_E2E_OUT=dist/e2e2` 写进仓库
+  根目录的 `dist/e2e2`）；`AURORA_E2E_DISPLAY` 指定
   一个已有的 X display，不设时脚本自己起 Xvfb——CI 里两者都可能是现成的。
   `AURORA_E2E_SIZE=900x600` 通过预写 `window-state.json` 让窗口以该尺寸打开，
   用来验收窄窗的堆叠布局；输出目录按变体命名（如 `900-600`、`light-900-600`）。
+  尺寸不能小于窗口自己的最小值 `900x600`：更小的值会被窗口钳到最小值，而目录名
+  仍写请求的尺寸，截图就成了「700-520」名下的 900x600 图。脚本因此在启动前拒绝，
+  并在 `internal/repocheck` 里锁定该下限与 `WindowOptions` 的 `MinWidth`/`MinHeight`
+  一致。
   字号不在这里的开关里：`TextScale` 由窗口框架的偏好决定，应用无法预写，所以放大字号
   的验收走离屏 `ui.Tester`（`SetPreferences(ui.Preferences{TextScale: 2})`），不靠
   真实窗口截图。

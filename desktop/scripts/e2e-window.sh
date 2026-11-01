@@ -30,11 +30,24 @@ set -euo pipefail
 
 root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 out=${AURORA_E2E_OUT:-"$root/dist/e2e"}
+# Absolute before anything else reads it. The binaries are built from
+# $root/desktop, so a relative output path was resolved against that directory:
+# AURORA_E2E_OUT=dist/e2e2 compiled the app into desktop/dist/e2e2 and then
+# failed to launch dist/e2e2/automation-shot — a path that never existed.
+case "$out" in
+  /*) ;;
+  *) out="$PWD/$out" ;;
+esac
 app="$out/aurora-desktop-e2e"
 shot="$out/automation-shot"
 socket="$out/automation.sock"
 data_dir="$out/data"
 home_dir="$out/home"
+
+# The window's minimum size, as cmd/aurora-desktop passes it to WindowOptions.
+# A smaller capture request is refused rather than silently clamped.
+min_width=900
+min_height=600
 
 # A fresh profile per run: the window keeps its language and window state under
 # HOME, and a capture that inherited a previous run's locale would press labels
@@ -69,6 +82,16 @@ if [ -n "$size" ]; then
       exit 1
       ;;
   esac
+  # The window refuses to open smaller than its own minimum, so a smaller
+  # request would be clamped and the captures would land in a directory named
+  # after a size they do not have — a reader would take a 900x600 screenshot as
+  # evidence of the layout at 700x520. Refuse instead of mislabelling.
+  size_w=${size%x*}
+  size_h=${size#*x}
+  if [ "$size_w" -lt "$min_width" ] || [ "$size_h" -lt "$min_height" ]; then
+    echo "AURORA_E2E_SIZE must be at least ${min_width}x${min_height} (the window's own minimum), got: $size" >&2
+    exit 1
+  fi
   variant=${variant:+$variant-}$(printf '%s' "$size" | tr 'x' '-')
 fi
 shots=$out
