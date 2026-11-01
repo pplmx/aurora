@@ -34,6 +34,14 @@ The milestone notes under `.planning/` are history, not current instructions.
   failed to start because it wanted a display it was never told about. A test
   now holds the two files together.
 
+- **An unfinished marker cannot reach a release**: the tree carries no `TODO`,
+  `FIXME`, `XXX` or `HACK` in shipped Go today, and a test now keeps it that way.
+  A TODO in shipped code is a promise nobody tracked; a FIXME is a known defect
+  left in place. A line may keep the word when it says the state is intended, so
+  a deliberate exception is documented where a reader finds it.
+- **The guard had to skip itself**: it names the four markers in order to forbid
+  them, so the first run failed on its own source.
+
 - **A Simplified character can no longer hide in a Traditional value**: the
   generator converts character by character, so a value that never went through
   it keeps its Simplified form and mixes 简体 into a 繁體 page. The 219 characters
