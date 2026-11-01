@@ -662,6 +662,10 @@ path 与 query 都可能包含凭据，因此 `/oracle/health` 的 `last_error` 
 {"valid":true,"length":3,"head":"0ab2857b160a…","first_broken_index":-1}
 ```
 
+`length` 是链长，**含创世块**：它与 `/blockchain/blocks` 的 `total` 相差 1，后者
+只数审计记录。同一个库 `verify` 返回 3、`blocks` 返回 2 是正常的，CLI 侧的
+`Blocks (including genesis)` 与 `Audit records` 是同一组区分。
+
 `first_broken_index` 为 `-1` 表示整条链通过；否则指向第一处哈希断开的区块下标，
 `valid` 为 `false`。该字段**总是存在**：`0` 是合法答案（校验一个 nil 链时首块即
 断点），不能省略，否则调用方读到的缺省值 0 与「断在第一块」无法区分。`head` 是头区块哈希（hex），
@@ -679,7 +683,7 @@ path 与 query 都可能包含凭据，因此 `/oracle/health` 的 `last_error` 
 英文词。
 
 ```json
-{"blocks": [{"height": 2, "timestamp": 1793385489, "payload": "b8dfb283-1b87-449e-a0aa-271b441e5d54|Star|AQIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyA="}], "total": 2, "limit": 20, "offset": 0}
+{"blocks": [{"height": 2, "timestamp": 1793385489, "payload": "b8dfb283-1b87-449e-a0aa-271b441e5d54|Star|AQIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyA="}], "total": 1, "limit": 20, "offset": 0}
 ```
 
 ## 生命周期与可观测性
