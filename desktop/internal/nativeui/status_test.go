@@ -45,3 +45,31 @@ func TestServiceMessagesTheWindowCanShowAreTranslated(t *testing.T) {
 		require.Equal(t, want, localizeServiceErrorMessage(message), message)
 	}
 }
+
+// TestWrappedPersistenceErrorsKeepTheirCauseReadable covers the balance and
+// supply overflow rejections. The repository wraps the domain cause after a
+// long English sentence, so only the tail is in the catalog: the localizer
+// tries the head, then the tail, and the sentence before the cause stays as it
+// is. Without the wrapped sentinel the whole line arrived untranslated, because
+// neither "try add balance" nor "balance would exceed maximum" is a key.
+func TestWrappedPersistenceErrorsKeepTheirCauseReadable(t *testing.T) {
+	translator := i18n.GetTranslator()
+	before := translator.GetLocale()
+	t.Cleanup(func() { translator.SetLocale(before) })
+	translator.SetLocale("zh")
+
+	require.Equal(t,
+		"try add to supply: total supply would exceed maximum: 金额过大",
+		localizeServiceErrorMessage("try add to supply: total supply would exceed maximum: amount too large"),
+		"the supply cause is the translatable part")
+	require.Equal(t,
+		"try add balance: balance would exceed maximum: 金额过大",
+		localizeServiceErrorMessage("try add balance: balance would exceed maximum: amount too large"),
+		"the balance cause is the translatable part")
+
+	// The bare form has no key at any level, so it stays verbatim and still
+	// matches the log line a reader would search for.
+	require.Equal(t,
+		"try add balance: balance would exceed maximum",
+		localizeServiceErrorMessage("try add balance: balance would exceed maximum"))
+}
