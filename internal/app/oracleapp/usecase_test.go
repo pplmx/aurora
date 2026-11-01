@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/pplmx/aurora/internal/domain/oracle"
+	"github.com/pplmx/aurora/internal/domain/repoerr"
 	"github.com/stretchr/testify/require"
 )
 
@@ -624,7 +625,20 @@ func TestEnableSourceUseCase_SourceNotFound(t *testing.T) {
 	uc := NewEnableSourceUseCase(repo)
 
 	err := uc.Execute("nonexistent")
-	require.Error(t, err)
+	// The sentinel is what the API layer maps to 404 SOURCE_NOT_FOUND; a bare
+	// "some error" would pass here while the handler answered 500.
+	require.ErrorIs(t, err, oracle.ErrSourceNotFound)
+}
+
+// TestEnableSourceUseCase_NormalizesTheStoreSentinel proves the use case
+// translates the storage layer's own not-found into the domain sentinel. The
+// repoerr sentinel is unclassified by the API, so letting it through turned an
+// unknown id into a 500 instead of a 404.
+func TestEnableSourceUseCase_NormalizesTheStoreSentinel(t *testing.T) {
+	repo := &mockOracleRepo{setSourceEnabledErr: repoerr.ErrNotFound}
+	uc := NewEnableSourceUseCase(repo)
+
+	require.ErrorIs(t, uc.Execute("test-id"), oracle.ErrSourceNotFound)
 }
 
 func TestEnableSourceUseCase_UpdateError(t *testing.T) {
@@ -646,7 +660,18 @@ func TestDisableSourceUseCase_SourceNotFound(t *testing.T) {
 	uc := NewDisableSourceUseCase(repo)
 
 	err := uc.Execute("nonexistent")
-	require.Error(t, err)
+	// The sentinel is what the API layer maps to 404 SOURCE_NOT_FOUND; a bare
+	// "some error" would pass here while the handler answered 500.
+	require.ErrorIs(t, err, oracle.ErrSourceNotFound)
+}
+
+// TestDisableSourceUseCase_NormalizesTheStoreSentinel is the disable-side twin
+// of the enable test: the storage sentinel must not reach the API unclassified.
+func TestDisableSourceUseCase_NormalizesTheStoreSentinel(t *testing.T) {
+	repo := &mockOracleRepo{setSourceEnabledErr: repoerr.ErrNotFound}
+	uc := NewDisableSourceUseCase(repo)
+
+	require.ErrorIs(t, uc.Execute("test-id"), oracle.ErrSourceNotFound)
 }
 
 func TestDisableSourceUseCase_UpdateError(t *testing.T) {
