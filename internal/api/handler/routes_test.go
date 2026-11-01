@@ -428,7 +428,13 @@ func (f fakeTokenServiceFull) Transfer(req *token.TransferRequest) (*token.Trans
 	return nil, nil
 }
 func (f fakeTokenServiceFull) TransferFrom(req *token.TransferFromRequest) (*token.TransferEvent, error) {
-	return nil, nil
+	if f.err != nil {
+		return nil, f.err
+	}
+	// A real event, because the handler dereferences it to build the response:
+	// returning (nil, nil) made a success-path test panic, which is why there
+	// was none.
+	return token.NewTransferEvent(req.TokenID, req.To, req.To, req.Amount, 0, nil), nil
 }
 func (f fakeTokenServiceFull) Approve(req *token.ApproveRequest) (*token.ApproveEvent, error) {
 	if f.err != nil {

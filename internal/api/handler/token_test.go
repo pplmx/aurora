@@ -120,6 +120,63 @@ func TestTokenHandler_TransferFrom_InvalidJSON(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, rr.Code)
 }
 
+// transferFromBody is a well-formed request: real-length keys and a positive
+// amount, so the use case reaches the service rather than failing on its own
+// validation.
+func transferFromBody() []byte {
+	body, _ := json.Marshal(map[string]string{
+		"token_id":    "t1",
+		"owner":       base64.StdEncoding.EncodeToString(bytes.Repeat([]byte{1}, 32)),
+		"to":          base64.StdEncoding.EncodeToString(bytes.Repeat([]byte{2}, 32)),
+		"amount":      "10",
+		"spender":     base64.StdEncoding.EncodeToString(bytes.Repeat([]byte{3}, 32)),
+		"spender_key": base64.StdEncoding.EncodeToString(bytes.Repeat([]byte{4}, 64)),
+	})
+	return body
+}
+
+// TestTokenHandler_TransferFrom_Success covers the only endpoint that spends an
+// allowance. It had one test, for malformed JSON, so a handler that dropped the
+// response or wrote the wrong status was unobserved.
+func TestTokenHandler_TransferFrom_Success(t *testing.T) {
+	handler := NewTokenHandler(fakeTokenServiceFull{})
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/token/transfer_from", bytes.NewBuffer(transferFromBody()))
+	req.Header.Set("Content-Type", "application/json")
+	rr := httptest.NewRecorder()
+
+	handler.TransferFrom(rr, req)
+
+	require.Equal(t, http.StatusOK, rr.Code, "body: %s", rr.Body.String())
+	requireSnakeCaseJSON(t, rr.Body.Bytes())
+	assert.Equal(t, "application/json", rr.Header().Get("Content-Type"))
+	var resp struct {
+		ID     string `json:"id"`
+		Amount string `json:"amount"`
+	}
+	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &resp))
+	assert.NotEmpty(t, resp.ID, "the receipt carries the event id")
+	assert.Equal(t, "10", resp.Amount)
+}
+
+// TestTokenHandler_TransferFrom_ServiceError proves the domain sentinel behind a
+// refused spend reaches the client as its own code rather than a generic 500:
+// INSUFFICIENT_ALLOWANCE is what a caller retries differently.
+func TestTokenHandler_TransferFrom_ServiceError(t *testing.T) {
+	handler := NewTokenHandler(fakeTokenServiceFull{err: token.ErrInsufficientAllowance})
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/token/transfer_from", bytes.NewBuffer(transferFromBody()))
+	req.Header.Set("Content-Type", "application/json")
+	rr := httptest.NewRecorder()
+
+	handler.TransferFrom(rr, req)
+
+	require.Equal(t, http.StatusBadRequest, rr.Code, "body: %s", rr.Body.String())
+	var resp ErrorResponse
+	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &resp))
+	assert.Equal(t, "INSUFFICIENT_ALLOWANCE", resp.Code)
+}
+
 func TestTokenHandler_Mint_EmptyRequest(t *testing.T) {
 	handler := NewTokenHandler(nil)
 
