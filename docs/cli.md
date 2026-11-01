@@ -73,6 +73,10 @@ CLI 侧按上表的「数组」处理；`blockchain blocks` 两侧都是分页�
 `lottery import`、`lottery verify` 与 `blockchain verify` 一样：即使打印了文档，
 只要有被拒或失败的项，退出码仍非 0，脚本先看 `$?` 再看字段。
 
+`blockchain verify` 的 `length` 与 `blockchain blocks` 的 `total` 不是同一个量：
+前者是链长（含创世块），后者是审计记录数（不含创世块）。同一个库 `verify` 报 2、
+`blocks` 报 1 是正常的，标签里写明「包括创世块」就是为了避免把两者当成一处数错。
+
 **没有 JSON 模式的命令**：`token create` 与 `voter register` 会打印一次性私钥，
 `oracle source add`/`enable`/`disable`/`delete` 的响应可能带上游请求头（凭据），
 `oracle fetch` 依赖真实网络、无法在离线测试里固定形状——这几类留在人读输出，
