@@ -84,7 +84,7 @@ var tokenCmd = &cobra.Command{
 	Use:   "token",
 	Args:  cobra.NoArgs,
 	Short: i18n.GetText("token.cmd"),
-	Long:  i18n.GetText("token.cmd"),
+	Long:  i18n.GetText("token.long"),
 }
 
 func init() {

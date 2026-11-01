@@ -117,6 +117,7 @@ nft, token) and operational commands (migrate, backup, version).`,
 	// ===== VOTING =====
 	// Commands
 	"voting.cmd":            "Ed25519 signature based transparent voting system",
+	"voting.long":           "Ed25519-signed transparent voting: register candidates and voters, open a session with a ballot window, cast one signed ballot per voter and read the tally.",
 	"voting.candidate.cmd":  "Candidate management",
 	"voting.voter.cmd":      "Voter management",
 	"voting.session.cmd":    "Voting session management",
@@ -191,6 +192,7 @@ nft, token) and operational commands (migrate, backup, version).`,
 	// ===== NFT =====
 	// Commands
 	"nft.cmd":      "NFT system",
+	"nft.long":     "Ed25519-signed NFTs: mint an asset with a creator key, transfer it to a new owner, burn it, and read its metadata or operation history.",
 	"nft.mint":     "Mint a new NFT",
 	"nft.transfer": "Transfer NFT ownership",
 	"nft.burn":     "Burn an NFT",
@@ -241,6 +243,7 @@ nft, token) and operational commands (migrate, backup, version).`,
 	// ===== TOKEN =====
 	// Commands
 	"token.cmd":               "Fungible Token (FT) system",
+	"token.long":              "ERC-20 style fungible tokens: create a supply, then mint, transfer, approve a spender, spend an allowance or burn; read balances, allowances and transfer history.",
 	"token.create.cmd":        "Create a new token",
 	"token.mint.cmd":          "Mint tokens",
 	"token.transfer.cmd":      "Transfer tokens",
@@ -313,6 +316,7 @@ nft, token) and operational commands (migrate, backup, version).`,
 	// ===== ORACLE =====
 	// Commands
 	"oracle.cmd":            "Oracle data service",
+	"oracle.long":           "HTTP data feeds: register a source with its method, JSON path and polling interval, fetch it on demand, and read the values and poll health the scheduler recorded.",
 	"oracle.source.cmd":     "Data source management",
 	"oracle.template.cmd":   "Data source templates",
 	"oracle.source.list":    "List data sources",

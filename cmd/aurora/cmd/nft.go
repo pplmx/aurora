@@ -17,7 +17,7 @@ var nftCmd = &cobra.Command{
 	Use:   "nft",
 	Args:  cobra.NoArgs,
 	Short: i18n.GetText("nft.cmd"),
-	Long:  i18n.GetText("nft.cmd"),
+	Long:  i18n.GetText("nft.long"),
 }
 
 // Lazy DB initialization.

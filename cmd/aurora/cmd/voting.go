@@ -81,7 +81,7 @@ var votingCmd = &cobra.Command{
 	Use:   "voting",
 	Args:  cobra.NoArgs,
 	Short: i18n.GetText("voting.cmd"),
-	Long:  i18n.GetText("voting.cmd"),
+	Long:  i18n.GetText("voting.long"),
 }
 
 func localizedVotingStatus(status string) string {
