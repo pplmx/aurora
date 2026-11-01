@@ -74,15 +74,18 @@ func recordSearchMatches(row nativeui.BlockRow, query string) bool {
 }
 
 // decodePipePayload turns a `verb|field|field` audit payload into readable
-// text. Fields that are not printable are shown as base64; anything that does
-// not look like that shape is returned unchanged.
+// text. Fields that are not printable are shown as base64; a payload that does
+// not look like that shape is rendered through records.ReadableText, which
+// encodes the whole value rather than handing the window raw control
+// characters. The earlier fallback returned the payload unchanged, so an
+// unrecognised record could still colour the row or split it.
 func decodePipePayload(payload string) string {
 	if !strings.Contains(payload, "|") {
-		return payload
+		return records.ReadableText(payload)
 	}
 	parts := strings.Split(payload, "|")
 	if len(parts) < 2 {
-		return payload
+		return records.ReadableText(payload)
 	}
 	switch parts[0] {
 	case "mint", "transfer", "transfer_from", "transferfrom", "approve", "burn":
@@ -97,5 +100,5 @@ func decodePipePayload(payload string) string {
 	if len(parts) >= 3 && records.IsUUID(parts[0]) {
 		return "nft " + strings.Join(records.ReadableFields(parts), " ")
 	}
-	return payload
+	return records.ReadableText(payload)
 }

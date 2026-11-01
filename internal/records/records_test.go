@@ -258,3 +258,49 @@ func TestParseLeavesOrdinaryJSONTextAlone(t *testing.T) {
 	assert.Equal(t, "seed-2026", factValue(record, "Seed"))
 	assert.Equal(t, "Alice, Bob", factValue(record, "Winners"))
 }
+
+// TestReadableTextEncodesAnUnrecognisedPayload covers the fallback the display
+// paths use. A payload matching no known shape has no fields to inspect, so the
+// whole value has to be tested: returning it unchanged let a forged ledger row
+// carry an escape sequence into the CLI table and the window's ledger card.
+func TestReadableTextEncodesAnUnrecognisedPayload(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		in   string
+	}{
+		{"escape sequence", "raw audit \x1b[31mRED\x1b[0m text"},
+		{"embedded newline", "line1\nline2"},
+		{"bell", "ring\x07"},
+		{"carriage return", "over\rwrite"},
+	} {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			got := ReadableText(tc.in)
+			assert.NotEqual(t, tc.in, got, "an unprintable payload must not print as-is")
+			assert.True(t, IsPrintable(got), "what reaches the terminal is printable")
+			assert.Equal(t, base64.StdEncoding.EncodeToString([]byte(tc.in)), got,
+				"the payload is preserved exactly, just encoded")
+		})
+	}
+
+	// Printable text, including Chinese, passes through untouched: an audit
+	// trail encoded wholesale would be unreadable.
+	for _, plain := range []string{"lottery module block", "价格 100", "a b  c"} {
+		assert.Equal(t, plain, ReadableText(plain), "printable text must not be encoded")
+	}
+}
+
+// TestParseRejectsEveryUnrecognisedShape keeps the fallback reachable for the
+// reason it exists: these payloads match nothing, so Parse must say so rather
+// than inventing a record.
+func TestParseRejectsEveryUnrecognisedShape(t *testing.T) {
+	for _, payload := range []string{
+		"raw audit text with no separators",
+		"unknownverb|a|b",
+		`{"unrelated":true}`,
+		`not json at all`,
+	} {
+		_, ok := Parse(payload)
+		assert.Falsef(t, ok, "%q must not parse as a record", payload)
+	}
+}

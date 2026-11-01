@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/pplmx/aurora/internal/infra/blockchain"
+	"github.com/pplmx/aurora/internal/records"
 )
 
 // TestBlockchainVerifyReportsAValidChain: a fresh database holds only the
@@ -149,4 +150,24 @@ func TestBlockchainJSONMatchesTheAPI(t *testing.T) {
 		assert.Equal(t, int64(1), page.Blocks[0].Height)
 		assert.Contains(t, page.Blocks[0].Payload, "json-seed")
 	})
+}
+
+// TestBlockLineEncodesAnUnrecognisedPayload covers the table's fallback. A
+// ledger payload matching no known shape has no fields to sanitise, so the
+// whole value is what the row prints. Returning it unchanged let a record
+// carrying an escape sequence recolour the table or split it with a newline;
+// --json still carries the exact bytes.
+func TestBlockLineEncodesAnUnrecognisedPayload(t *testing.T) {
+	for _, raw := range []string{
+		"forged \x1b[31mRED\x1b[0m row",
+		"forged\nsecond line",
+	} {
+		got := blockLine(raw)
+		assert.NotEqualf(t, raw, got, "an unprintable payload must not print as-is")
+		assert.Truef(t, records.IsPrintable(got), "the table line must be printable: %q", got)
+	}
+
+	// A recognised payload still renders as its sentence.
+	assert.Equal(t, "token · Mint · GLD   (Token: GLD; To: dXNlcg==)",
+		blockLine("mint|GLD|dXNlcg=="))
 }

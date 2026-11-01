@@ -160,13 +160,15 @@ func blockMatches(entry ledger.BlockEntry, needle string) bool {
 
 // blockLine renders one audit payload for the table with the vocabulary the
 // window's ledger page uses (module · action · subject, then its facts) instead
-// of the stored JSON or pipe line. A payload that matches no known shape prints
-// as-is, and `--json` always carries the exact bytes: the decoded sentence is a
-// reading aid, never the only copy.
+// of the stored JSON or pipe line. A payload that matches no known shape still
+// prints, but through records.ReadableText: the stored bytes can carry control
+// characters, and a ledger row that executes an escape sequence or an embedded
+// newline does not display the audit trail, it forges it. `--json` keeps the
+// exact bytes — the decoded sentence is a reading aid, never the only copy.
 func blockLine(payload string) string {
 	record, ok := records.Parse(payload)
 	if !ok {
-		return payload
+		return records.ReadableText(payload)
 	}
 	return record.Text()
 }
