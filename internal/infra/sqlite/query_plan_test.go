@@ -105,6 +105,23 @@ func TestNFTListingNeedsNoTempBTree(t *testing.T) {
 	requireNoTempBTree(t, details, "nft listing")
 }
 
+// TestNFTOwnerListingNeedsNoTempBTree covers the filtered sibling: it orders by
+// the same rowid key and reaches the rows through idx_nft_owner, so the page
+// is a bounded walk of an index rather than a sort of the owner's whole
+// collection. The filtered list shares ListNFTs' order, and the test keeps both
+// properties from drifting apart.
+func TestNFTOwnerListingNeedsNoTempBTree(t *testing.T) {
+	repo, cleanup := setupNFTTestDB(t)
+	defer cleanup()
+
+	details := queryPlanDetails(t, repo.GetDB(),
+		`SELECT id, name, description, image_url, token_uri, owner, creator, block_height, timestamp
+		 FROM nfts WHERE owner = ? ORDER BY rowid DESC LIMIT ? OFFSET ?`, "owner", 100, 0)
+	requireNoTempBTree(t, details, "nft owner listing")
+	require.Contains(t, strings.Join(details, " "), "idx_nft_owner",
+		"the owner page should read its owner index, got: %v", details)
+}
+
 // TestCollectionListsUseTheirIndexes covers the collection reads the operator
 // sees as lists. Oracle sources and voting voters/candidates/sessions all page
 // with a deterministic tie-breaker. Without the matching indexes every row is

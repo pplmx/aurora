@@ -13,9 +13,11 @@ type TransactionManager = ledger.TransactionManager
 type Repository interface {
 	SaveNFT(nft *NFT) error
 	GetNFT(id string) (*NFT, error)
-	// GetNFTsByOwner returns the NFTs owned by owner, paged with SQL
-	// LIMIT/OFFSET. limit <= 0 means unbounded (0, 0 is the CLI default;
-	// the REST layer always passes a bounded limit, TASK-101, ISS-093).
+	// GetNFTsByOwner returns one newest-first page of the NFTs owned by owner,
+	// paged with SQL LIMIT/OFFSET. The order matches ListNFTs so filtering by
+	// owner does not reverse the collection behind the page. limit <= 0 means
+	// unbounded (0, 0 is the CLI default; the REST layer always passes a
+	// bounded limit, TASK-101, ISS-093).
 	GetNFTsByOwner(owner []byte, limit, offset int) ([]*NFT, error)
 	// ListNFTs returns every NFT, newest first. GetNFTsByOwner needs an owner
 	// key, which is the one thing a caller who did not mint the asset does not

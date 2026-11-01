@@ -443,7 +443,8 @@ SQLite 事务内提交。上一会期的选票不会阻止该选民参加下一�
 
 NFT 操作历史按最新优先从存储层分页，`limit` 上限 100，`offset` 上限 10000。
 `/nft/list` 省略 `owner` 时列出全部 NFT（新资产在前）；强制 owner 会让没有参与
-铸造的调用方只能靠 id 才能读到资产。列表的 `offset` 上限是 1000。
+铸造的调用方只能靠 id 才能读到资产。列表的 `offset` 上限是 1000。带 `owner`
+过滤时同样新资产在前，所以开关过滤不会把读者刚看的那一页倒过来。
 
 ```json
 [{"id":"adcbadaf-a4d8-45dd-98b6-bd421ec6ae18","name":"Star","description":"First asset",

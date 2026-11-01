@@ -162,9 +162,14 @@ func TestNFTRepository_GetNFTsByOwner(t *testing.T) {
 }
 
 // TestNFTRepository_GetNFTsByOwnerPaged locks the v1.79 bounded-paging fix
-// (TASK-101, ISS-093): the SQL layer must honor LIMIT/OFFSET with a stable
-// insertion (rowid) order so pages don't overlap or skip, and 0,0 stays
-// unbounded for the CLI.
+// (TASK-101, ISS-093) together with the ordering fix: the SQL layer must honor
+// LIMIT/OFFSET with a stable order so pages don't overlap or skip, and 0,0
+// stays unbounded for the CLI.
+//
+// The order is newest first, matching ListNFTs and the sentence docs/api.md
+// spends on every collection endpoint. It used to be rowid ASC here while the
+// ownerless list was rowid DESC, so switching the owner filter on reversed the
+// page a reader was looking at.
 func TestNFTRepository_GetNFTsByOwnerPaged(t *testing.T) {
 	repo, cleanup := setupNFTTestDB(t)
 	defer cleanup()
@@ -177,19 +182,19 @@ func TestNFTRepository_GetNFTsByOwnerPaged(t *testing.T) {
 		}
 	}
 
-	// First page of 2 returns the two earliest (insertion-order) NFTs.
+	// First page of 2 returns the two newest NFTs, the latest mint first.
 	page, err := repo.GetNFTsByOwner(owner, 2, 0)
 	require.NoError(t, err)
 	require.Len(t, page, 2)
-	require.Equal(t, "nft-0", page[0].ID)
-	require.Equal(t, "nft-1", page[1].ID)
+	require.Equal(t, "nft-4", page[0].ID)
+	require.Equal(t, "nft-3", page[1].ID)
 
-	// Second page continues without overlap: still 2 rows, but advancing.
+	// Second page continues without overlap: still 2 rows, but older.
 	page, err = repo.GetNFTsByOwner(owner, 2, 2)
 	require.NoError(t, err)
 	require.Len(t, page, 2)
 	require.Equal(t, "nft-2", page[0].ID)
-	require.Equal(t, "nft-3", page[1].ID)
+	require.Equal(t, "nft-1", page[1].ID)
 
 	// Offset past the end -> empty, not an error.
 	page, err = repo.GetNFTsByOwner(owner, 10, 100)
@@ -200,6 +205,23 @@ func TestNFTRepository_GetNFTsByOwnerPaged(t *testing.T) {
 	page, err = repo.GetNFTsByOwner(owner, -1, 0)
 	require.NoError(t, err)
 	require.Len(t, page, 5)
+
+	// The filtered page and the ownerless page must agree on the order of the
+	// assets they share; that agreement is what keeps an owner filter from
+	// reordering the list behind it.
+	all, err := repo.ListNFTs(-1, 0)
+	require.NoError(t, err)
+	require.Equal(t, nftIDs(all), nftIDs(page), "an owner filter must not reorder the listing")
+}
+
+// nftIDs projects a page to its identifiers so two orderings compare in one
+// assertion.
+func nftIDs(page []*nft.NFT) []string {
+	out := make([]string, len(page))
+	for i, n := range page {
+		out[i] = n.ID
+	}
+	return out
 }
 
 func TestNFTRepository_SaveOperation(t *testing.T) {
