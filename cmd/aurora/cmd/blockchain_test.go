@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/pplmx/aurora/internal/i18n"
 	"github.com/pplmx/aurora/internal/infra/blockchain"
 	"github.com/pplmx/aurora/internal/records"
 )
@@ -170,4 +171,29 @@ func TestBlockLineEncodesAnUnrecognisedPayload(t *testing.T) {
 	// A recognised payload still renders as its sentence.
 	assert.Equal(t, "token · Mint · GLD   (Token: GLD; To: dXNlcg==)",
 		blockLine("mint|GLD|dXNlcg=="))
+}
+
+// TestBlockLineTranslatesTheRecordVocabulary covers the ledger table in a
+// Chinese process: the row is a sentence a reader scans, and its module, action
+// and fact labels came out in English while the heading above them was Chinese.
+//
+// The punctuation moves too. A translated row printed 「抽奖 · C, A   (中奖者:
+// C, A)」 — half-width brackets, colon and semicolons inside Chinese copy.
+func TestBlockLineTranslatesTheRecordVocabulary(t *testing.T) {
+	const payload = `{"participants":["A","B"],"seed":"s","winners":["A"]}`
+
+	tr := i18n.GetTranslator()
+	before := tr.GetLocale()
+	t.Cleanup(func() { tr.SetLocale(before) })
+
+	tr.SetLocale("en")
+	require.Equal(t, `lottery · Draw · A   (Winners: A; Participants: 2; Seed: s)`, blockLine(payload))
+
+	tr.SetLocale("zh")
+	require.Equal(t, `抽奖 · A（中奖者：A；参与者：2；种子：s）`, blockLine(payload))
+
+	// A payload the decoder does not understand is still escaped, in either
+	// language: the fallback never renders raw bytes.
+	tr.SetLocale("zh")
+	require.True(t, records.IsPrintable(blockLine("forged \x1b[31mRED\x1b[0m")))
 }

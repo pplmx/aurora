@@ -166,11 +166,28 @@ func blockMatches(entry ledger.BlockEntry, needle string) bool {
 // newline does not display the audit trail, it forges it. `--json` keeps the
 // exact bytes — the decoded sentence is a reading aid, never the only copy.
 func blockLine(payload string) string {
+	return blockLineL(payload, i18n.GetText)
+}
+
+// blockLineL is blockLine with its lookup as a parameter, so a test can render
+// a row in a language other than the process default.
+//
+// The row is a sentence a reader scans, and its words already exist in the
+// catalogs: 抽奖 · 抽奖 would repeat itself the way the window's record does, so
+// the same rule drops the action there. Facts keep their English *values* — those
+// are the recorded data, not vocabulary.
+func blockLineL(payload string, translate func(string) string) string {
 	record, ok := records.Parse(payload)
 	if !ok {
 		return records.ReadableText(payload)
 	}
-	return record.Text()
+	return record.TextL(func(kind, word string) string {
+		key := "record." + kind + "." + strings.ToLower(word)
+		if translated := translate(key); translated != key {
+			return translated
+		}
+		return word
+	}, recordStyle())
 }
 
 // printBlocksJSON writes the audit page in the same shape the REST endpoint
@@ -193,4 +210,15 @@ func printBlocksJSON(entries []ledger.BlockEntry, total, limit, offset int) erro
 		})
 	}
 	return printJSON(page)
+}
+
+// recordStyle is the punctuation a ledger row uses in the process language. The
+// words of a row are translated; its marks were not, so a Chinese row printed
+// 「抽奖 · C, A   (中奖者: C, A; 参与者: 3)」 — half-width brackets, colon and
+// semicolons inside a sentence whose labels were Chinese.
+func recordStyle() records.Style {
+	if i18n.GetTranslator().Separator() == "：" {
+		return records.Style{Divider: " · ", Label: "：", Fact: "；", Open: "（", Close: "）"}
+	}
+	return records.DefaultStyle
 }

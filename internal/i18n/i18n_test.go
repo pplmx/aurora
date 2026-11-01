@@ -537,12 +537,16 @@ func TestDesktopCopyStaysOutOfTheCoreCatalog(t *testing.T) {
 }
 
 // TestEveryCoreKeyIsUsed keeps the catalogue from growing dead weight: a key no
-// caller reads is translated text nobody can ever see. Three families (doctor
-// checks, voting statuses, NFT operations) build their key from a runtime value,
-// so they are exempt by prefix rather than by listing every suffix.
+// caller reads is translated text nobody can ever see. Four families build their
+// key from a runtime value — the doctor checks, the voting statuses, the NFT
+// operations, and the ledger record vocabulary keyed by the word a decoded
+// record carries — so they are exempt by prefix rather than by listing every
+// suffix. The record family is pinned separately: repocheck scans the words the
+// decoder emits and requires a record.* entry for each, so the exemption cannot
+// hide a word nobody translated.
 func TestEveryCoreKeyIsUsed(t *testing.T) {
 	root := filepath.Join("..", "..")
-	dynamicPrefixes := []string{"doctor.check.", "voting.status.", "nft.operation."}
+	dynamicPrefixes := []string{"doctor.check.", "voting.status.", "nft.operation.", "record."}
 
 	var source strings.Builder
 	for _, dir := range []string{"cmd", "internal", "tools", "desktop"} {

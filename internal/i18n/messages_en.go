@@ -114,6 +114,40 @@ nft, token) and operational commands (migrate, backup, version).`,
 	"lottery.error.init_blockchain_after_reset": "failed to initialize blockchain after reset",
 	"lottery.error.count_blocks":                "failed to count blocks",
 
+	// ===== LEDGER RECORD VOCABULARY =====
+	// The keys a decoded ledger record resolves through (see records.Record.TextL).
+	// English keeps the words the decoder emits, so the table documents which
+	// words a translation layer can reach rather than changing the rendering.
+	"record.module.lottery":       "lottery",
+	"record.module.voting":        "voting",
+	"record.module.token":         "token",
+	"record.module.nft":           "nft",
+	"record.module.oracle":        "oracle",
+	"record.action.draw":          "Draw",
+	"record.action.observation":   "Observation",
+	"record.action.ballot":        "Ballot",
+	"record.action.mint":          "Mint",
+	"record.action.transfer":      "Transfer",
+	"record.action.transfer from": "Transfer from",
+	"record.action.burn":          "Burn",
+	"record.action.approve":       "Approve",
+	"record.fact.candidate":       "Candidate",
+	"record.fact.from":            "From",
+	"record.fact.holder":          "Holder",
+	"record.fact.name":            "Name",
+	"record.fact.nft":             "NFT",
+	"record.fact.owner":           "Owner",
+	"record.fact.participants":    "Participants",
+	"record.fact.seed":            "Seed",
+	"record.fact.session":         "Session",
+	"record.fact.source":          "Source",
+	"record.fact.spender":         "Spender",
+	"record.fact.to":              "To",
+	"record.fact.token":           "Token",
+	"record.fact.value":           "Value",
+	"record.fact.voter":           "Voter",
+	"record.fact.winners":         "Winners",
+
 	// ===== VOTING =====
 	// Commands
 	"voting.cmd":            "Ed25519 signature based transparent voting system",

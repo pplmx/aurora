@@ -38,22 +38,87 @@ type Record struct {
 // facts in parentheses. The CLI's audit table prints it and the searches compare
 // it, so what a reader sees and what a query matches are the same sentence.
 func (r Record) Text() string {
+	return r.TextIn(DefaultStyle)
+}
+
+// Style is the punctuation one rendering of a record uses. The words come from
+// the decoder and the translation; the marks belong to the language and are
+// supplied separately, because Chinese sets a full-width colon after a label and
+// a full-width pair around a parenthetical, while the Latin spelling spaces the
+// brackets away from the sentence.
+type Style struct {
+	// Divider stands between the module, the action and the subject.
+	Divider string
+	// Label stands between a fact's label and its value.
+	Label string
+	// Fact stands between two facts of one record.
+	Fact string
+	// Open and Close wrap the facts. Open carries the leading spaces the
+	// English rendering puts before the bracket.
+	Open, Close string
+}
+
+// DefaultStyle is the English punctuation Text has always used.
+var DefaultStyle = Style{Divider: " · ", Label: ": ", Fact: "; ", Open: "   (", Close: ")"}
+
+// TextIn renders the record with the given punctuation.
+func (r Record) TextIn(style Style) string {
 	var line strings.Builder
 	line.WriteString(r.Module)
 	if r.Action != "" {
-		line.WriteString(" · " + r.Action)
+		line.WriteString(style.Divider + r.Action)
 	}
 	if r.Subject != "" {
-		line.WriteString(" · " + r.Subject)
+		line.WriteString(style.Divider + r.Subject)
 	}
 	if len(r.Facts) > 0 {
 		parts := make([]string, 0, len(r.Facts))
 		for _, fact := range r.Facts {
-			parts = append(parts, fact.Label+": "+fact.Value)
+			parts = append(parts, fact.Label+style.Label+fact.Value)
 		}
-		line.WriteString("   (" + strings.Join(parts, "; ") + ")")
+		line.WriteString(style.Open + strings.Join(parts, style.Fact) + style.Close)
 	}
 	return line.String()
+}
+
+// Vocabulary kinds a caller localizes. They are also the namespace of the
+// catalog keys the translation resolves to, so a representation layer needs no
+// table of its own: every word the decoder emits belongs to one of the three.
+const (
+	KindModule = "module"
+	KindAction = "action"
+	KindFact   = "fact"
+)
+
+// TextL renders the same sentence Text does, with each word resolved through
+// localize. A resolver receives the vocabulary kind and the English word the
+// decoder emitted, and returns the text to print; returning the word unchanged
+// keeps the English rendering.
+//
+// The action is dropped when it resolves to the module's own name: in Chinese a
+// lottery draw is 抽奖 · 抽奖, and the window drops the repeat for the same
+// reason (see the desktop's recordSentence).
+func (r Record) TextL(localize func(kind, word string) string, style Style) string {
+	if localize == nil {
+		return r.TextIn(style)
+	}
+	resolved := Record{Module: localize(KindModule, r.Module)}
+	if r.Action != "" {
+		if action := localize(KindAction, r.Action); action != resolved.Module {
+			resolved.Action = action
+		}
+	}
+	resolved.Subject = r.Subject
+	if len(r.Facts) > 0 {
+		resolved.Facts = make([]Fact, 0, len(r.Facts))
+		for _, fact := range r.Facts {
+			resolved.Facts = append(resolved.Facts, Fact{
+				Label: localize(KindFact, fact.Label),
+				Value: fact.Value,
+			})
+		}
+	}
+	return resolved.TextIn(style)
 }
 
 // Parse maps a raw payload to the record's vocabulary. It reports false when
