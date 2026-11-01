@@ -3,6 +3,7 @@ package i18n
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -98,4 +99,33 @@ func TestJoinWordsClosesOnlyTheCJKBoundary(t *testing.T) {
 func TestJoinWordsKeepsTheSeparatorForBytesThatDoNotDecode(t *testing.T) {
 	require.Equal(t, "Copy \xff", JoinWords("Copy", "\xff"))
 	require.Equal(t, "\xff Diagnostics", JoinWords("\xff", "Diagnostics"))
+}
+
+// TestDisplayWidthCountsWhatTheCatalogsPrint covers the column measurement
+// printFields relies on. Byte length would be wrong in the other direction (a
+// Chinese label is three bytes per character), and rune count would treat 名称
+// and "ID" as neighbours when the first is twice as wide on screen.
+func TestDisplayWidthCountsWhatTheCatalogsPrint(t *testing.T) {
+	cases := []struct {
+		text string
+		want int
+	}{
+		{"ID", 2},
+		{"Owner", 5},
+		{"Total Supply", 12},
+		{"名称", 4},
+		{"所有者", 6},
+		// The full-width marks the Chinese catalogs print take two columns each,
+		// which is what makes a padded block line up in a terminal.
+		{"ID：", 4},
+		{"总计：", 6},
+		{"余额：", 6},
+		{"（可选）", 8},
+		{"", 0},
+		// Mixed: a Latin word inside a Han label keeps one column per Latin rune.
+		{"NFT 详情：", 10},
+	}
+	for _, c := range cases {
+		assert.Equalf(t, c.want, DisplayWidth(c.text), "DisplayWidth(%q)", c.text)
+	}
 }

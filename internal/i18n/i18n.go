@@ -223,6 +223,48 @@ func isCJK(r rune) bool {
 	return r != utf8.RuneError && unicode.Is(unicode.Han, r)
 }
 
+// DisplayWidth is how many terminal columns s occupies: a Han character and a
+// full-width mark are two columns wide, everything else one. It is what a caller
+// needs to line up a column of labels, because byte length says nothing about
+// what a reader sees — "所有者" is 9 bytes and 6 columns, "Owner" is 5 bytes and
+// 5 columns.
+//
+// Full-width marks count because the catalogs use them: Chinese prints ：；（）,
+// and a label measured at one column per mark would misalign the very block it
+// was measured for. Emoji and combining marks are not measured; the CLI does not
+// set them in a column, and a wrong guess would be worse than a narrow one.
+func DisplayWidth(s string) int {
+	width := 0
+	for _, r := range s {
+		if isWide(r) {
+			width += 2
+			continue
+		}
+		width++
+	}
+	return width
+}
+
+// isWide reports whether r takes two terminal columns: a Han character or one of
+// the full-width marks the Chinese catalogs print.
+func isWide(r rune) bool {
+	if isCJK(r) {
+		return true
+	}
+	switch {
+	// CJK symbols and punctuation: 、。「」【】etc.
+	case r >= 0x3000 && r <= 0x303E:
+		return true
+	// Halfwidth and fullwidth forms: ！＂＃…：；＜＝＞？ and the full-width
+	// won/yen signs.
+	case r >= 0xFF01 && r <= 0xFF60:
+		return true
+	case r >= 0xFFE0 && r <= 0xFFE6:
+		return true
+	}
+	return false
+}
+
 func (tr *Translator) AvailableLocales() []string {
 	tr.mu.RLock()
 	defer tr.mu.RUnlock()

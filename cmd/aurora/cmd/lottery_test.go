@@ -610,9 +610,10 @@ func TestLotteryStats_AgreesWithHistoryForImportedRecord(t *testing.T) {
 
 		stats, err := runCmd(t, "lottery", "stats")
 		require.NoError(t, err)
-		require.Contains(t, stats, "Total lotteries: 1",
-			"stats must agree with history (persistent lottery_records), not the in-memory chain")
-		require.Contains(t, stats, "Latest block: #5")
+		// The block is aligned, so the value follows the label after padding
+		// rather than immediately.
+		assertFieldValue(t, stats, "Total lotteries:", "1")
+		assertFieldValue(t, stats, "Latest block:", "#5")
 	})
 }
 
@@ -807,8 +808,8 @@ func TestLotteryDBInfo(t *testing.T) {
 		out, err := runCmd(t, "lottery", "db-info")
 		require.NoError(t, err)
 		assert.Contains(t, out, "Database Info")
-		assert.Regexp(t, `Database size: \d+(\.\d+)? (B|KiB|MiB|GiB)`, out)
-		assert.Contains(t, out, "Total blocks: 0")
+		assert.Regexp(t, `Database size: +\d+(\.\d+)? (B|KiB|MiB|GiB)`, out)
+		assertFieldValue(t, out, "Total blocks:", "0")
 	})
 }
 

@@ -426,19 +426,19 @@ func TestTokenResultsLocalizeChinese(t *testing.T) {
 		out, err = runCmd(t, "token", "balance", "--token", "LOCAL", "--owner", owner)
 		require.NoError(t, err)
 		assert.Contains(t, out, "💰 余额：")
-		assert.Contains(t, out, "余额：1000")
+		assertFieldValue(t, out, "余额：", "1000")
 
 		out, err = runCmd(t, "token", "info", "--token", "LOCAL")
 		require.NoError(t, err)
 		assert.Contains(t, out, "代币信息")
-		assert.Contains(t, out, "总供应量：1000")
+		assertFieldValue(t, out, "总供应量：", "1000")
 		assert.Contains(t, out, "可铸造：")
 		assert.Contains(t, out, "可销毁：")
 
 		out, err = runCmd(t, "token", "list", "--limit", "1")
 		require.NoError(t, err)
 		assert.Contains(t, out, "本页代币：1（偏移 0）")
-		assert.Contains(t, out, "名称：本地币")
+		assertFieldValue(t, out, "名称：", "本地币")
 	})
 }
 
@@ -450,7 +450,7 @@ func TestVotingResultsLocalizeChinese(t *testing.T) {
 		out, err := runCmd(t, "voting", "candidate", "add", "--name", "爱丽丝", "--party", "独立")
 		require.NoError(t, err)
 		assert.Contains(t, out, "候选人已注册：爱丽丝")
-		assert.Contains(t, out, "党派：独立")
+		assertFieldValue(t, out, "党派：", "独立")
 		candidateID := extractField(t, out, "ID：")
 		require.NotEmpty(t, candidateID)
 
@@ -459,7 +459,7 @@ func TestVotingResultsLocalizeChinese(t *testing.T) {
 			"--start-time", "1700000000", "--end-time", "9999999999")
 		require.NoError(t, err)
 		assert.Contains(t, out, "投票会期已创建：年度选举")
-		assert.Contains(t, out, "状态：草稿")
+		assertFieldValue(t, out, "状态：", "草稿")
 		sessionID := extractField(t, out, "ID：")
 		require.NotEmpty(t, sessionID)
 
@@ -511,7 +511,7 @@ func TestNFTResultsLocalizeChinese(t *testing.T) {
 		out, err = runCmd(t, "nft", "get", "--nft", nftID)
 		require.NoError(t, err)
 		assert.Contains(t, out, "NFT 详情")
-		assert.Contains(t, out, "描述：稀有")
+		assertFieldValue(t, out, "描述：", "稀有")
 		assert.Contains(t, out, "创建者：")
 
 		out, err = runCmd(t, "nft", "transfer",

@@ -326,14 +326,16 @@ var tokenInfoCmd = &cobra.Command{
 		}
 
 		fmt.Printf("\n🪙 %s\n", i18n.GetText("token.info_heading")+i18n.Colon())
-		printLocalizedField("common.id", resp.ID)
-		printLocalizedField("common.name", resp.Name)
-		printLocalizedField("common.symbol", resp.Symbol)
-		printLocalizedField("common.total_supply", resp.TotalSupply)
-		fmt.Printf("   %s\n", i18n.Label(i18n.GetText("common.decimals"), resp.Decimals))
-		printLocalizedField("common.owner", resp.Owner)
-		fmt.Printf("   %s\n", i18n.Label(i18n.GetText("token.mintable"), localizedBool(resp.Mintable)))
-		fmt.Printf("   %s\n", i18n.Label(i18n.GetText("token.burnable"), localizedBool(resp.Burnable)))
+		printFields(
+			field{i18n.GetText("common.id"), resp.ID},
+			field{i18n.GetText("common.name"), resp.Name},
+			field{i18n.GetText("common.symbol"), resp.Symbol},
+			field{i18n.GetText("common.total_supply"), resp.TotalSupply},
+			field{i18n.GetText("common.decimals"), fmt.Sprint(resp.Decimals)},
+			field{i18n.GetText("common.owner"), resp.Owner},
+			field{i18n.GetText("token.mintable"), localizedBool(resp.Mintable)},
+			field{i18n.GetText("token.burnable"), localizedBool(resp.Burnable)},
+		)
 		return nil
 	},
 }

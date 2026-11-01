@@ -44,8 +44,10 @@ var candidateAddCmd = &cobra.Command{
 		}
 
 		fmt.Printf("✅ "+i18n.GetText("voting.candidate_added")+"\n", cand.Name)
-		printLocalizedField("common.id", cand.ID)
-		printLocalizedField("voting.party_label", cand.Party)
+		printFields(
+			field{i18n.GetText("common.id"), cand.ID},
+			field{i18n.GetText("voting.party_label"), cand.Party},
+		)
 		return nil
 	},
 }
