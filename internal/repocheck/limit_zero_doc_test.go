@@ -38,3 +38,22 @@ func TestThePageEnvelopeDocumentsItsZeroLimit(t *testing.T) {
 	assert.True(t, strings.Contains(doc, "limit == 0"),
 		"docs/cli.md must tell a script how to handle the zero when comparing page sizes")
 }
+
+// TestOracleDataIsTheDocumentedLimitZeroException pins the one list command that
+// does not read `-l 0` as "everything". Every other list defaults the flag to 0
+// and lists the whole remainder; `oracle data` clamps to [1,100] and falls back
+// to 10, because unbounded would scan the whole readings table. The reference
+// has to say so, or a script that passes 0 for "all" silently gets ten rows.
+func TestOracleDataIsTheDocumentedLimitZeroException(t *testing.T) {
+	flag := readRepoFile(t, "cmd", "aurora", "cmd", "oracle.go")
+	require.Contains(t, flag, `dataCmd.Flags().IntP("limit", "l", 10`,
+		"oracle data must keep its non-zero default")
+
+	clamp := readRepoFile(t, "cmd", "aurora", "cmd", "oracle_read.go")
+	require.Contains(t, clamp, "func clampQueryLimit(")
+	require.Contains(t, clamp, "return 10", "the clamp falls back to the default")
+
+	doc := readRepoFile(t, "docs", "cli.md")
+	assert.Contains(t, doc, "--limit 0` 与不传一样回落", "the reference must state the exception")
+	assert.Contains(t, doc, "`-l 0` 仍表示列出全部", "and that the other lists keep the usual reading")
+}
