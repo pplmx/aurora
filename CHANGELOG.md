@@ -28,6 +28,15 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The window's paging ceiling is documented as wider on purpose**: the Query
+  card accepts a limit up to 1000 while `GET /oracle/query` and the CLI's
+  `oracle data` cap the same query at 100. The code comment said the defaults
+  matched but not why the ceilings did not, which read like a missing clamp. The
+  reason is the one the other collection cards follow — the window reads in
+  process and pages a long history, the gateway bounds a caller that can repeat
+  the request for free — and the property that matters is that the value the
+  field accepts is the value the store is asked for.
+
 - **The paging caps are in one table**: the ceilings were stated in five
   separate paragraphs beside their own modules, so a client planning a deep page
   had to read the whole reference to learn that `/nft/list` and `/token/history`
