@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/egoist/mygo/ui"
+
+	"github.com/pplmx/aurora/internal/records"
 )
 
 // The ledger's record view.
@@ -32,10 +34,41 @@ func recordModuleName(module string) string {
 	if module == "" {
 		return "—"
 	}
+	// The core catalog owns the record vocabulary, so the window and the CLI's
+	// `blockchain blocks` print one word for one module. The page title is the
+	// fallback because a module with no page (a synthetic block) still has a
+	// readable name, and the stored value is the last resort: an unfamiliar
+	// module is data, not vocabulary.
+	if translated := tr(records.Key(records.KindModule, module)); translated != records.Key(records.KindModule, module) {
+		return translated
+	}
 	if target, ok := pageForBlockModule(module); ok {
 		return tr(pageTitles[target])
 	}
 	return module
+}
+
+// recordActionName and recordFactName resolve the other two vocabulary kinds the
+// decoder emits. They try the module-scoped key first, which is what keeps a
+// token transfer (转账) from lending its word to an NFT transfer (转让).
+func recordActionName(module, action string) string {
+	return recordVocabulary(records.KindAction, module, action)
+}
+
+func recordFactName(module, label string) string {
+	return recordVocabulary(records.KindFact, module, label)
+}
+
+func recordVocabulary(kind, module, word string) string {
+	if word == "" {
+		return word
+	}
+	for _, key := range []string{records.ScopedKey(kind, module, word), records.Key(kind, word)} {
+		if translated := tr(key); translated != key {
+			return translated
+		}
+	}
+	return tr(word)
 }
 
 // recordModuleTone gives a module its identity colour. It is the same hue the
@@ -116,7 +149,7 @@ func recordSentence(c *ui.Context, entry BlockRow, expanded bool, onToggle func(
 		// module pill beside it (a Chinese "抽奖 抽奖"), one of the two is
 		// dropped: the pill already names the module, and repeating it reads
 		// as a rendering bug rather than as a sentence.
-		if action := tr(entry.Action); entry.Action != "" && action != recordModuleName(entry.Module) {
+		if action := recordActionName(entry.Module, entry.Action); entry.Action != "" && action != recordModuleName(entry.Module) {
 			ui.Text(c, action).FontSize(textSize(c, 12.5)).FontWeight(600).
 				TextColor(c.Theme().Text).Shrink(0)
 		}
@@ -176,19 +209,20 @@ func recordFacts(c *ui.Context, entry BlockRow) {
 	}
 	ui.Row(c).FillWidth().Wrap().Gap(space4).AlignItems(ui.End).Children(func() {
 		for _, fact := range entry.Facts {
-			recordFactView(c, fact)
+			recordFactView(c, entry.Module, fact)
 		}
 	})
 }
 
-// recordFactView draws one decoded fact on a record.
-func recordFactView(c *ui.Context, fact BlockFact) {
+// recordFactView draws one decoded fact on a record. The module is passed in so
+// the fact's label resolves through that module's vocabulary.
+func recordFactView(c *ui.Context, module string, fact BlockFact) {
 	value := fact.Value
 	if value == "" {
 		value = "—"
 	}
 	ui.Column(c).Gap(1).Shrink(0).MaxWidth(textSize(c, 260)).Children(func() {
-		ui.Text(c, tr(fact.Label)).FontSize(textSize(c, 9.5)).FontWeight(600).
+		ui.Text(c, recordFactName(module, fact.Label)).FontSize(textSize(c, 9.5)).FontWeight(600).
 			LetterSpacing(0.4).TextColor(c.Theme().TextMuted).SingleLine()
 		ui.Text(c, value).FontSize(textSize(c, 12)).TextColor(c.Theme().Text).
 			SingleLine().Ellipsis("…").Tooltip(value)
@@ -279,7 +313,7 @@ func blockRecordLabel(entry BlockRow) string {
 		parts = append(parts, recordModuleName(entry.Module))
 	}
 	if entry.Action != "" {
-		parts = append(parts, tr(entry.Action))
+		parts = append(parts, recordActionName(entry.Module, entry.Action))
 	}
 	if entry.Subject != "" {
 		parts = append(parts, entry.Subject)

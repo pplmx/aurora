@@ -90,21 +90,43 @@ const (
 	KindFact   = "fact"
 )
 
-// TextL renders the same sentence Text does, with each word resolved through
-// localize. A resolver receives the vocabulary kind and the English word the
-// decoder emitted, and returns the text to print; returning the word unchanged
+// Key is the bare catalog key a word resolves through: record.<kind>.<word>.
+// The word is lowercased because the catalogs are written that way, so a reader
+// finds an entry without guessing its capitalisation.
+func Key(kind, word string) string {
+	return "record." + kind + "." + strings.ToLower(word)
+}
+
+// ScopedKey is Key narrowed to one module: record.<kind>.<word>@<module>. It is
+// tried before the bare key because the same English word can mean different
+// things per module — a token Transfer moves money (转账) while an NFT Transfer
+// moves an asset (转让) — and one unscoped entry printed the token word on both.
+func ScopedKey(kind, module, word string) string {
+	if module == "" {
+		return Key(kind, word)
+	}
+	return Key(kind, word) + "@" + strings.ToLower(module)
+}
+
+// Resolver translates one vocabulary word of a record. module is the record's
+// own module, so a resolver can prefer a per-module spelling of a word that means
+// different things in two modules (see ScopedKey); returning the word unchanged
 // keeps the English rendering.
+type Resolver func(kind, module, word string) string
+
+// TextL renders the same sentence Text does, with each word resolved through
+// localize.
 //
 // The action is dropped when it resolves to the module's own name: in Chinese a
 // lottery draw is 抽奖 · 抽奖, and the window drops the repeat for the same
 // reason (see the desktop's recordSentence).
-func (r Record) TextL(localize func(kind, word string) string, style Style) string {
+func (r Record) TextL(localize Resolver, style Style) string {
 	if localize == nil {
 		return r.TextIn(style)
 	}
-	resolved := Record{Module: localize(KindModule, r.Module)}
+	resolved := Record{Module: localize(KindModule, r.Module, r.Module)}
 	if r.Action != "" {
-		if action := localize(KindAction, r.Action); action != resolved.Module {
+		if action := localize(KindAction, r.Module, r.Action); action != resolved.Module {
 			resolved.Action = action
 		}
 	}
@@ -113,7 +135,7 @@ func (r Record) TextL(localize func(kind, word string) string, style Style) stri
 		resolved.Facts = make([]Fact, 0, len(r.Facts))
 		for _, fact := range r.Facts {
 			resolved.Facts = append(resolved.Facts, Fact{
-				Label: localize(KindFact, fact.Label),
+				Label: localize(KindFact, r.Module, fact.Label),
 				Value: fact.Value,
 			})
 		}

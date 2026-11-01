@@ -450,6 +450,7 @@ var traditionalMessages = map[string]string{
 	"record.action.observation":                 "觀測",
 	"record.action.transfer":                    "轉賬",
 	"record.action.transfer from":               "從授權扣款",
+	"record.action.transfer@nft":                "轉讓",
 	"record.fact.candidate":                     "候選人",
 	"record.fact.from":                          "轉出方",
 	"record.fact.holder":                        "持有者",

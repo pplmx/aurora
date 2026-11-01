@@ -186,11 +186,21 @@ func blockLine(payload string) string {
 // recordLookup resolves one vocabulary word through the core catalog. The
 // decoder's words are English, and the key is built from the kind and that
 // word, so the table can carry one entry per word the decoder can emit.
-func recordLookup() func(kind, word string) string {
-	return func(kind, word string) string {
-		key := "record." + kind + "." + strings.ToLower(word)
-		if translated := i18n.GetText(key); translated != key {
-			return translated
+func recordLookup() records.Resolver {
+	return recordResolver(i18n.GetText)
+}
+
+// recordResolver is recordLookup with its lookup as a parameter, so a test can
+// render a row in a language other than the process default.
+//
+// A module-scoped entry wins over the bare one, which is how an NFT transfer
+// reads 转让 while a token transfer reads 转账.
+func recordResolver(translate func(string) string) records.Resolver {
+	return func(kind, module, word string) string {
+		for _, key := range []string{records.ScopedKey(kind, module, word), records.Key(kind, word)} {
+			if translated := translate(key); translated != key {
+				return translated
+			}
 		}
 		return word
 	}
