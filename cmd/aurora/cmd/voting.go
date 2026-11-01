@@ -140,12 +140,12 @@ func init() {
 	candidateAddCmd.Flags().StringP("program", "m", "", i18n.GetText("voting.program"))
 	_ = candidateAddCmd.MarkFlagRequired("name")
 	_ = candidateAddCmd.MarkFlagRequired("party")
-	candidateListCmd.Flags().IntP("limit", "l", 0, i18n.GetText("token.list_limit"))
+	candidateListCmd.Flags().IntP("limit", "l", 0, i18n.GetText("common.list_limit"))
 	candidateListCmd.Flags().IntP("offset", "p", 0, i18n.GetText("token.offset"))
 
 	voterRegisterCmd.Flags().StringP("name", "n", "", i18n.GetText("voting.name"))
 	_ = voterRegisterCmd.MarkFlagRequired("name")
-	voterListCmd.Flags().IntP("limit", "l", 0, i18n.GetText("token.list_limit"))
+	voterListCmd.Flags().IntP("limit", "l", 0, i18n.GetText("common.list_limit"))
 	voterListCmd.Flags().IntP("offset", "p", 0, i18n.GetText("token.offset"))
 
 	voteCmd.Flags().StringP("voter", "v", "", i18n.GetText("voting.public_key"))
@@ -163,7 +163,7 @@ func init() {
 	sessionCreateCmd.Flags().StringP("title", "t", "", i18n.GetText("voting.title"))
 	sessionCreateCmd.Flags().StringP("description", "d", "", i18n.GetText("voting.description"))
 	sessionCreateCmd.Flags().StringSliceP("candidates", "c", nil, i18n.GetText("voting.candidate_id"))
-	sessionListCmd.Flags().IntP("limit", "l", 0, i18n.GetText("token.list_limit"))
+	sessionListCmd.Flags().IntP("limit", "l", 0, i18n.GetText("common.list_limit"))
 	sessionListCmd.Flags().IntP("offset", "p", 0, i18n.GetText("token.offset"))
 	sessionCreateCmd.Flags().Int64P("start-time", "", 0, i18n.GetText("voting.session_start_time"))
 	sessionCreateCmd.Flags().Int64P("end-time", "", 0, i18n.GetText("voting.session_end_time"))

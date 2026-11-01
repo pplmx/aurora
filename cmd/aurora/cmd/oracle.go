@@ -65,7 +65,7 @@ func init() {
 	sourceAddCmd.Flags().IntP("interval", "i", 60, i18n.GetText("oracle.source_interval"))
 	_ = sourceAddCmd.MarkFlagRequired("name")
 	_ = sourceAddCmd.MarkFlagRequired("url")
-	sourceListCmd.Flags().IntP("limit", "l", 0, i18n.GetText("token.list_limit"))
+	sourceListCmd.Flags().IntP("limit", "l", 0, i18n.GetText("common.list_limit"))
 	sourceListCmd.Flags().IntP("offset", "p", 0, i18n.GetText("token.offset"))
 
 	sourceDeleteCmd.Flags().StringP("id", "i", "", i18n.GetText("oracle.source_id"))

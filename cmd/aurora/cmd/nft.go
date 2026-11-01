@@ -400,7 +400,7 @@ func init() {
 	listCmd.Flags().StringP("owner", "o", "", i18n.GetText("nft.owner"))
 
 	nftHistoryCmd.Flags().StringP("nft", "i", "", i18n.GetText("nft.nft_id"))
-	nftHistoryCmd.Flags().IntP("limit", "l", 0, i18n.GetText("token.list_limit"))
+	nftHistoryCmd.Flags().IntP("limit", "l", 0, i18n.GetText("common.list_limit"))
 	nftHistoryCmd.Flags().IntP("offset", "p", 0, i18n.GetText("token.offset"))
 	_ = nftHistoryCmd.MarkFlagRequired("nft")
 }

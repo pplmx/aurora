@@ -292,6 +292,7 @@ nft, token) and operational commands (migrate, backup, version).`,
 	"token.info.cmd":          "Query token info",
 	"token.list.cmd":          "List every token",
 	"token.list_limit":        "Maximum tokens to list (0 lists all)",
+	"common.list_limit":       "Maximum records to list (0 lists all)",
 	"token.list_page":         "Tokens on this page",
 	"token.no_tokens":         "No tokens yet",
 
