@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -159,4 +160,52 @@ func TestTheDesktopModuleKeepsItsLayers(t *testing.T) {
 				"%s: the rule must examine the package's files, not pass on an empty walk", rule.dir)
 		})
 	}
+}
+
+// TestApiDoesNotKnowAboutTheWindow covers the one-way rule between the two
+// presentation layers. The desktop starts an in-process api.Server to reuse the
+// REST handlers, so deskapp imports internal/api; the reverse would make the
+// gateway depend on a window that may not exist, and a cycle would follow.
+//
+// The rule is stated in docs/architecture.md, which said "must not depend on
+// each other" until the desktop's use of api made that literally false. What
+// matters is the direction, so this asserts the direction.
+func TestApiDoesNotKnowAboutTheWindow(t *testing.T) {
+	repo := repoRoot(t)
+	checked := 0
+	err := filepath.WalkDir(filepath.Join(repo, "internal", "api"),
+		func(path string, entry fs.DirEntry, err error) error {
+			if err != nil {
+				return walkErrToleratingDisappearance(err)
+			}
+			if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".go") ||
+				strings.HasSuffix(entry.Name(), "_test.go") {
+				return nil
+			}
+			checked++
+			fset := token.NewFileSet()
+			file, err := parser.ParseFile(fset, path, nil, parser.ImportsOnly)
+			if err != nil {
+				return err
+			}
+			rel, _ := filepath.Rel(repo, path)
+			for _, imp := range file.Imports {
+				pathValue, err := strconv.Unquote(imp.Path.Value)
+				if err != nil {
+					continue
+				}
+				if strings.Contains(pathValue, "/desktop") {
+					t.Errorf("%s imports %s; the gateway must not depend on the window", rel, pathValue)
+				}
+			}
+			return nil
+		})
+	require.NoError(t, err)
+	require.Greater(t, checked, 10, "the walk must reach the handler files")
+
+	// The other direction has to stay: the window's adapter is what reuses the
+	// REST surface, and a refactor that dropped it would change the design.
+	deskapp := readRepoFile(t, "desktop", "internal", "deskapp", "deskapp.go")
+	assert.Contains(t, deskapp, `"github.com/pplmx/aurora/internal/api"`,
+		"the desktop reuses the in-process REST server; update this check with the design")
 }
