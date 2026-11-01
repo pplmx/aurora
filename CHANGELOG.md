@@ -12,6 +12,16 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The pagination ceilings are bound to the reference**: seven list endpoints
+  each carry a limit ceiling and an offset ceiling. The behaviour is tested per
+  handler, but nothing compared those numbers with `docs/api.md`, so a tuning
+  change would leave the prose advertising bounds the server no longer honours.
+- **Two endpoints deliberately differ** and are why a blanket check would be
+  wrong: `/token/history` and `/nft/list` stop at 1000 where the other five
+  allow 10000. The check pins every constant and asserts the reference still
+  calls out both divergent cases.
+- **Changing a ceiling or editing the documented bound fails it.**
+
 - **A wrapped overflow rejection now keeps its cause translatable in the
   window**: the repository wraps the domain cause behind a long English
   sentence, so the catalog holds only the tail. `localizeServiceErrorMessage`
