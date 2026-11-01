@@ -28,6 +28,17 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **Four module help pages now explain the module**: `aurora nft --help` opened
+  with "NFT system" and then listed its subcommands. Lottery and blockchain
+  already had a `Long` sentence; voting, oracle, NFT and token pointed `Long` at
+  the same one-line `Short`, so the paragraph a reader lands on repeated the
+  name and added nothing. Each now names the operations and the rule a reader
+  needs before choosing a subcommand — one signed ballot per voter per session,
+  a source's method/JSON path/interval, a creator key for minting, and the
+  ERC-20-style allowance flow.
+- **The check compares `Long` with `Short`** rather than matching words: a module
+  may restate its name, but its help has to add something the summary does not.
+
 - **The window calls its one action Refresh everywhere**: the header button, the
   command palette and the shortcut reference all reach the same method, but the
   Settings card listed the chord as "Reload (data pages)" and the palette's
