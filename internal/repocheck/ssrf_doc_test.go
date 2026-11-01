@@ -65,3 +65,46 @@ func atoiOrZero(s string) int {
 	}
 	return n
 }
+
+// TestFetchLimitsDocMatchesTheCode pins the two bounds a data source fetch
+// runs under. Both are promises an operator relies on: the redirect ceiling
+// caps how far a hostile feed can bounce a request, and the response ceiling
+// caps how much of it is buffered. The response one was undocumented entirely —
+// the section mentioned neither, so a feed that started serving 20 MiB failed
+// with no documented reason.
+func TestFetchLimitsDocMatchesTheCode(t *testing.T) {
+	code := readRepoFile(t, "internal", "infra", "http", "fetcher.go")
+
+	redirects := readConst(t, code, "maxRedirects")
+	require.Positive(t, redirects, "a redirect ceiling is required")
+	responseBytes := readConst(t, code, "maxResponseBytes")
+	require.Positive(t, responseBytes, "a response ceiling is required")
+
+	doc := strings.Join(strings.Fields(readRepoFile(t, "docs", "api.md")), " ")
+
+	assert.Containsf(t, doc, "重定向链最多跟随 "+itoa(redirects)+" 跳",
+		"the reference must state the %d-hop redirect ceiling", redirects)
+
+	// The cap is 10 MiB; the document states it in MiB like the request-body
+	// limit does, so the two sizes read in one unit.
+	mib := responseBytes / (1 << 20)
+	require.Equal(t, 10<<20, responseBytes, "the response ceiling is 10 MiB")
+	assert.Containsf(t, doc, itoa(mib)+" MiB",
+		"the reference must state the %d MiB response ceiling", mib)
+	assert.Contains(t, doc, "502 FETCH_FAILED",
+		"an oversized response is an upstream failure, and the reference must say so")
+}
+
+// itoa formats a non-negative int without importing strconv into this file's
+// existing imports.
+func itoa(n int) string {
+	if n == 0 {
+		return "0"
+	}
+	digits := make([]byte, 0, 8)
+	for n > 0 {
+		digits = append([]byte{byte('0' + n%10)}, digits...)
+		n /= 10
+	}
+	return string(digits)
+}

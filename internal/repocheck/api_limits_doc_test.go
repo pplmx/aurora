@@ -118,8 +118,9 @@ func readConst(t *testing.T, src, name string) int {
 	m := intConstPattern(name).FindStringSubmatch(src)
 	require.NotNilf(t, m, "%s must be declared as an integer constant", name)
 	expr := strings.TrimSpace(m[1])
-	// Forms in use: `4 << 20`, `64 << 10`, `128`. Multiplication is accepted
-	// because a future constant may be written that way.
+	// Forms in use: `4 << 20`, `64 << 10`, `128`, and `10 * 1024 * 1024`.
+	// Multiplication is accepted because several constants are written that
+	// way; it folds left to right so a chain of factors evaluates as Go would.
 	if i := strings.Index(expr, "<<"); i >= 0 {
 		left, err := strconv.Atoi(strings.TrimSpace(expr[:i]))
 		require.NoError(t, err)
@@ -127,12 +128,14 @@ func readConst(t *testing.T, src, name string) int {
 		require.NoError(t, err)
 		return left << right
 	}
-	if i := strings.Index(expr, "*"); i >= 0 {
-		left, err := strconv.Atoi(strings.TrimSpace(expr[:i]))
-		require.NoError(t, err)
-		right, err := strconv.Atoi(strings.TrimSpace(expr[i+1:]))
-		require.NoError(t, err)
-		return left * right
+	if strings.Contains(expr, "*") {
+		value := 1
+		for _, factor := range strings.Split(expr, "*") {
+			n, err := strconv.Atoi(strings.TrimSpace(factor))
+			require.NoErrorf(t, err, "%s = %q", name, expr)
+			value *= n
+		}
+		return value
 	}
 	value, err := strconv.Atoi(expr)
 	require.NoErrorf(t, err, "%s = %q", name, expr)
