@@ -12,6 +12,17 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The translator's catalog copies are tested**: `Init` clones each shipped
+  catalog, and the copy is what makes a locale file safe — `LoadLocaleFile`
+  installs into `messages[locale]`, which for a shipped locale would otherwise be
+  the package table itself. The test asserts the helper's property directly and
+  then on the real English catalog. A first attempt drove it through
+  `LoadLocaleFile` and could not be falsified, because a locale file names its own
+  locale and never writes the shipped maps.
+- **`joinCSV`'s doc comment sits with its function**: it had ended up at the bottom
+  of `native_nft.go` while the function lives in `native_services.go`. The
+  architecture document's line count for that file said 80 and is now 98.
+
 - **The container's uniqueness as the wiring point is now guarded**: the
   architecture document calls the composition root "the only place that imports
   the storage and ledger implementations", and the layering rule skips that
