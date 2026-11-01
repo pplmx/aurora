@@ -28,6 +28,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **Every paginated list is checked for its extra-row probe**: six window files
+  ask storage for one row beyond the page they show and enable Next only when it
+  comes back. Five lists had a boundary test for that behaviour; a change
+  dropping the +1 from one read would turn Next on the last page and open an
+  empty one, and the list it happened to would be the one without a test. The
+  check names each read, because `voting.go` makes three of them and a
+  constant-only check passes while one has lost its probe.
+
 - **The window's paging ceiling is documented as wider on purpose**: the Query
   card accepts a limit up to 1000 while `GET /oracle/query` and the CLI's
   `oracle data` cap the same query at 100. The code comment said the defaults
