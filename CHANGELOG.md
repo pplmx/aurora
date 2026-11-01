@@ -12,6 +12,17 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The audit renderer's terminal guard covers the characters a terminal acts
+  on**: `ReadableFields` base64-encodes a field a terminal cannot show, and the
+  only test used NUL and high bytes — both of which already fail the UTF-8 check
+  on their own. DEL, ESC, BEL, CR, LF, TAB and the unit separator are valid
+  UTF-8 and were held back by `isPrintable` alone, so dropping that half would
+  have let an ESC sequence recolour a ledger row and a CR overwrite a line.
+- **Both halves are now pinned**: one test asserts each unprintable field is
+  encoded and equals its base64, the other asserts printable text — including
+  Chinese and an empty field — passes through untouched, because base64-ing an
+  amount is the failure the encoding exists to prevent.
+
 - **The fetch-error scrubber has tests**: `sanitizeFetchError` carries a promise
   the reference makes in prose — a failed fetch reports the status or the
   underlying cause, never the source URL, because userinfo, path segments and

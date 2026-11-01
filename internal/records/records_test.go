@@ -1,6 +1,7 @@
 package records
 
 import (
+	"encoding/base64"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -89,6 +90,45 @@ func TestReadableFieldsKeepKeyMaterialPrintable(t *testing.T) {
 	assert.Equal(t, "GLD", got[0])
 	assert.NotContains(t, got[1], "\x00")
 	assert.NotEmpty(t, got[1])
+}
+
+// TestReadableFieldsEncodeEveryUnprintableByte covers the characters a
+// terminal interprets rather than shows. The old test had NUL and high bytes,
+// which fail the UTF-8 check on their own; DEL and the ESC sequence are valid
+// UTF-8 and were only caught by isPrintable, so a regression there would have
+// reached the CLI and the ledger card as a colour change or a swallowed line.
+func TestReadableFieldsEncodeEveryUnprintableByte(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		in   string
+	}{
+		{"delete", "abc\x7fdef"},
+		{"escape sequence", "\x1b[31mred\x1b[0m"},
+		{"bell", "ring\x07"},
+		{"carriage return", "over\rwrite"},
+		{"newline", "line1\nline2"},
+		{"tab", "a\tb"},
+		{"unit separator", "a\x1fb"},
+	} {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			got := ReadableFields([]string{tc.in})
+			require.Len(t, got, 1)
+			assert.NotEqual(t, tc.in, got[0], "an unprintable field must not be rendered as-is")
+			assert.Equal(t, base64.StdEncoding.EncodeToString([]byte(tc.in)), got[0],
+				"the field is preserved exactly, just encoded")
+			assert.True(t, isPrintable(got[0]), "what reaches the terminal is printable")
+		})
+	}
+}
+
+// TestReadableFieldsLeaveOrdinaryTextAlone is the other half: printable text,
+// including non-ASCII, must not be encoded. An audit row whose amounts and names
+// were base64 would be unreadable, which is the failure the encoding exists to
+// prevent in the first place.
+func TestReadableFieldsLeaveOrdinaryTextAlone(t *testing.T) {
+	in := []string{"GLD", "价格 100", "0xdeadbeef", "", "  spaced  "}
+	assert.Equal(t, in, ReadableFields(in))
 }
 
 // TestParseReadsModuleNamedBlocks pins the synthetic blocks the API's audit
