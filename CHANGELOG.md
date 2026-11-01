@@ -238,6 +238,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **The desktop latest-value card says when a read came back empty**: a source
+  with no readings drew nothing — no rows, no line — so an answered empty read
+  looked like a card that had never been used. `latestLoadedSource` marks the
+  read, so the line appears only after one; before that the field and its button
+  are the card's content. The value cards keep their rule of never inventing
+  rows, and Latest is documented as the exception, because "the newest row so
+  far" is legitimately absent before the first poll.
+
 - **The latest reading says which card answered and what to do**: `oracle
   latest` printed a bare "No data found" for a source with no readings — no
   heading, no next step. Its sibling `oracle data` prints "📊 Oracle Data:" over
