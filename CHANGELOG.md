@@ -12,6 +12,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The container's uniqueness as the wiring point is now guarded**: the
+  architecture document calls the composition root "the only place that imports
+  the storage and ledger implementations", and the layering rule skips that
+  directory to allow it — which is also what would let a second assembly point
+  appear unseen, since nothing checked where `infra` may be imported. A test walks
+  `internal/app` and `internal/api` without the skip: exactly the container may
+  reach `infra`, and it must still do so.
+
 - **The two presentation layers depend in one direction, and the reference now
   says which**: rule 4 said `api` and `desktop` "must not depend on each other",
   but the desktop imports `internal/api` to start an in-process server and reuse
