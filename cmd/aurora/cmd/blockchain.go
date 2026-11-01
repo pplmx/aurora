@@ -152,7 +152,17 @@ func blockMatches(entry ledger.BlockEntry, needle string) bool {
 	if strings.Contains(strings.ToLower(entry.Data), needle) {
 		return true
 	}
-	if strings.Contains(strings.ToLower(blockLine(entry.Data)), needle) {
+	// Both renderings are searched, not only the one this process prints. Since
+	// a row is translated, a reader in a Chinese window who types "Winners" —
+	// the word the documentation, the JSON and every log calls it — would
+	// otherwise get no match, and a script grepping the English row in one
+	// locale and the Chinese one in another would search two different ledgers.
+	if record, ok := records.Parse(entry.Data); ok {
+		if strings.Contains(strings.ToLower(record.Text()), needle) ||
+			strings.Contains(strings.ToLower(record.TextL(recordLookup(), recordStyle())), needle) {
+			return true
+		}
+	} else if strings.Contains(strings.ToLower(records.ReadableText(entry.Data)), needle) {
 		return true
 	}
 	return strings.Contains(strconv.FormatInt(entry.Height, 10), needle)
@@ -166,28 +176,24 @@ func blockMatches(entry ledger.BlockEntry, needle string) bool {
 // newline does not display the audit trail, it forges it. `--json` keeps the
 // exact bytes — the decoded sentence is a reading aid, never the only copy.
 func blockLine(payload string) string {
-	return blockLineL(payload, i18n.GetText)
-}
-
-// blockLineL is blockLine with its lookup as a parameter, so a test can render
-// a row in a language other than the process default.
-//
-// The row is a sentence a reader scans, and its words already exist in the
-// catalogs: 抽奖 · 抽奖 would repeat itself the way the window's record does, so
-// the same rule drops the action there. Facts keep their English *values* — those
-// are the recorded data, not vocabulary.
-func blockLineL(payload string, translate func(string) string) string {
 	record, ok := records.Parse(payload)
 	if !ok {
 		return records.ReadableText(payload)
 	}
-	return record.TextL(func(kind, word string) string {
+	return record.TextL(recordLookup(), recordStyle())
+}
+
+// recordLookup resolves one vocabulary word through the core catalog. The
+// decoder's words are English, and the key is built from the kind and that
+// word, so the table can carry one entry per word the decoder can emit.
+func recordLookup() func(kind, word string) string {
+	return func(kind, word string) string {
 		key := "record." + kind + "." + strings.ToLower(word)
-		if translated := translate(key); translated != key {
+		if translated := i18n.GetText(key); translated != key {
 			return translated
 		}
 		return word
-	}, recordStyle())
+	}
 }
 
 // printBlocksJSON writes the audit page in the same shape the REST endpoint
