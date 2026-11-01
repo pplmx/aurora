@@ -131,6 +131,16 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **A broken genesis block reported no broken index**: `IntegrityReport.
+  FirstBrokenIndex` carried `omitempty`. The field is `-1` for an intact chain
+  and the break's index otherwise, so `0` is a real answer — and the genesis
+  block is where a truncated or corrupted database usually fails first. That
+  case serialized as `{"valid":false,"length":3,"first_broken_reason":"nil
+  block"}`, so a caller following the documented contract decoded the field's
+  zero value and could not tell "broken at block 0" from "intact".
+- **The field is present in all three cases now**, and both a ledger test and a
+  `repocheck` guard pin it — the defect only appeared in one of them.
+
 - **The doctor report and the chain verdict line up too**: these are the two
   blocks a user reads when something is wrong, and they kept the old shape — a
   two-space indent with a hand-written `Printf` per line. `doctor` printed five
