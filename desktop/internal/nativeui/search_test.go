@@ -222,6 +222,81 @@ func TestOracleSourceSearchAndSelection(t *testing.T) {
 	require.Equal(t, "src-wx", app.oracle.latestID)
 }
 
+// TestClearingTheSearchRestoresTheWholePage covers the other half of a filter:
+// a search narrows the rows already loaded, so emptying the field must bring
+// them all back. Every filter does this through containsFold's empty-query
+// branch, and a filter written as a one-way narrowing would leave the list
+// permanently short with no way to widen it again.
+func TestClearingTheSearchRestoresTheWholePage(t *testing.T) {
+	fake := &fakeServices{
+		sources: []SourceRow{{ID: "s1", Name: "btc"}, {ID: "s2", Name: "weather"}},
+		tokenRows: []TokenRow{
+			{ID: "t1", Name: "Gold", Symbol: "AU"},
+			{ID: "t2", Name: "Silver", Symbol: "AG"},
+		},
+	}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 4000)
+	app.ShowPage("Oracle")
+	tester.Frame()
+
+	app.oracle.search = "weather"
+	tester.Frame()
+	require.Len(t, app.filteredSources(), 1, "the query narrows the page")
+	require.False(t, tester.HasText("btc"))
+
+	app.oracle.search = ""
+	tester.Frame()
+	require.Len(t, app.filteredSources(), 2, "emptying the field restores the page")
+	require.True(t, tester.HasText("btc"))
+	require.True(t, tester.HasText("weather"))
+
+	app.ShowPage("Token")
+	tester.Frame()
+	app.token.search = "gold"
+	tester.Frame()
+	require.False(t, tester.HasText("Silver"))
+
+	app.token.search = ""
+	tester.Frame()
+	require.True(t, tester.HasText("Gold"), "emptying restores the token list too")
+	require.True(t, tester.HasText("Silver"))
+}
+
+// TestClearingTheVotingSearchesRestoresTheirLists covers the three voting
+// lists, whose filters live behind filteredVoters, filteredCandidates and
+// filteredSessions rather than inline in the view.
+func TestClearingTheVotingSearchesRestoresTheirLists(t *testing.T) {
+	app := New(&fakeServices{})
+	app.voting.voters = []VoterRow{
+		{Name: "Ada", PublicKey: "k1"}, {Name: "Bob", PublicKey: "k2"},
+	}
+	app.voting.candidates = []CandidateRow{
+		{ID: "c1", Name: "Ada"}, {ID: "c2", Name: "Bob"},
+	}
+	app.voting.sessions = []SessionRow{
+		{ID: "s1", Title: "Budget"}, {ID: "s2", Title: "Charter"},
+	}
+
+	for _, c := range []struct {
+		name  string
+		set   *string
+		count func() int
+		query string
+	}{
+		{"voters", &app.voting.voterSearch, func() int { return len(app.filteredVoters()) }, "ada"},
+		{"candidates", &app.voting.candSearch, func() int { return len(app.filteredCandidates()) }, "bob"},
+		{"sessions", &app.voting.sessionSearch, func() int { return len(app.filteredSessions()) }, "budget"},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			*c.set = c.query
+			require.Equal(t, 1, c.count(), "the query narrows the page")
+			*c.set = ""
+			require.Equal(t, 2, c.count(), "emptying the field restores the page")
+		})
+	}
+}
+
 // TestSearchingClearsTheRowHighlight pins the selection after a query change.
 // The table's selection is an index into the filtered rows, so keeping an old
 // index after a new query would highlight a different token than the one the
