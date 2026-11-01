@@ -28,6 +28,16 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **Three catalog keys for one placeholder are now one**: `voting.none`,
+  `migrate.none` and `common.none` all said "(none)" — three keys a translator
+  keeps in step for a placeholder with no module meaning, and three places a
+  reviewer checks when the wording changes. The four call sites read
+  `common.none` now.
+- **A test looks for the same text under two keys of one prefix**, which is the
+  shape the duplicate took. It deliberately does not compare across prefixes:
+  `token.owner` and `nft.owner` are both "Owner public key" because both modules
+  have an owner, and collapsing them would name a key after the wrong module.
+
 - **The API reference's pagination numbers are checked against the handlers**:
   nine endpoints state a default page size and a ceiling in prose, and every one
   of those numbers is a constant in a handler file. Nothing compared the two, so
