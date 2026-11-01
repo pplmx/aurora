@@ -28,6 +28,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The paging caps are in one table**: the ceilings were stated in five
+  separate paragraphs beside their own modules, so a client planning a deep page
+  had to read the whole reference to learn that `/nft/list` and `/token/history`
+  stop at 1000 while the rest reach 10000. The table names the reason those two
+  are tighter — their queries join per row — and a test reads each row's three
+  cells against the constant its handler uses, which the previous prose check
+  could not: it only looked for the number somewhere in the document.
+
 - **Both limit-zero exceptions are named**: the entry above called `oracle data`
   the only command that does not read `-l 0` as "everything". `token history`
   is the second: it clamps a non-positive limit to its default of 50, for the
