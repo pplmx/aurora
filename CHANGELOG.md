@@ -238,6 +238,15 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **An empty list dropped the heading that carries its count**: `token list`
+  printed a bare "No tokens yet", and `lottery history` did the same for an
+  empty store or an empty search, while their non-empty runs start with a
+  heading ("Total: 1", "Lotteries on this page: 0 (offset 0)"). The bare
+  sentence dropped the number, so a reader and a script could not tell an empty
+  store from an empty page — which is what the three distinct messages exist for.
+  Every branch now prints the heading first, with the empty sentence indented
+  under it, as `nft list` and the voting lists already did.
+
 - **An empty oracle query drew nothing**: a source that had been read and
   returned no readings left the Query card blank — no rows, no line, nothing
   where the list belongs. A blank region reads as "this card has no content",
