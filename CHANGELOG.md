@@ -131,6 +131,16 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **The doctor report and the chain verdict line up too**: these are the two
+  blocks a user reads when something is wrong, and they kept the old shape — a
+  two-space indent with a hand-written `Printf` per line. `doctor` printed five
+  labels of different lengths at five different value columns, and
+  `blockchain verify` stacked `Blocks` over a padded `Head` over `State`.
+- **`printMarkedFields` puts the status mark in its own column** so the row that
+  warns does not shift its value away from the four that do not.
+- **A test measures where each doctor value starts** in display columns and
+  requires one column, so the padding cannot silently disappear again.
+
 - **The CLI's field blocks line up their values**: a result block printed each
   "Label: value" line at a fixed indent with no column — "ID: MTK" beside
   "Total Supply: 1000000" beside "Owner: …" — so the eye had to re-find the
