@@ -281,17 +281,25 @@ var tokenListCmd = &cobra.Command{
 			// The heading and its count come before the empty line, as every
 			// other list does: a bare sentence drops the total that tells a
 			// script and a reader whether the store is empty or the page is.
-			if limit > 0 {
+			// An offset alone asks for a page too, so it takes the paged
+			// heading — Total: 0 on `--offset 9` claimed an empty store.
+			if limit > 0 || offset > 0 {
 				fmt.Printf("\n🪙 %s\n", i18n.Label(i18n.GetText("token.list_page"),
 					fmt.Sprintf("%s\n", i18n.GetTextF("common.page_with_offset", 0, offset))))
 			} else {
 				fmt.Printf("\n🪙 %s\n", i18n.Label(i18n.GetText("token.total"), "0\n"))
 			}
-			fmt.Println("   " + i18n.GetText("token.no_tokens"))
+			// Paged and empty is "this page", not "the store": the same three
+			// answers `lottery history` and the voting lists give.
+			if limit > 0 || offset > 0 {
+				fmt.Println("   " + i18n.GetText("common.page_empty"))
+			} else {
+				fmt.Println("   " + i18n.GetText("token.no_tokens"))
+			}
 			return nil
 		}
 
-		if limit > 0 {
+		if limit > 0 || offset > 0 {
 			fmt.Printf("\n🪙 %s\n", i18n.Label(i18n.GetText("token.list_page"), fmt.Sprintf("%s\n", i18n.GetTextF("common.page_with_offset", len(tokens), offset))))
 		} else {
 			fmt.Printf("\n🪙 %s\n", i18n.Label(i18n.GetText("token.total"), fmt.Sprintf("%d\n", len(tokens))))

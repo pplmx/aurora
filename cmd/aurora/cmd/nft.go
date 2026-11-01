@@ -317,12 +317,19 @@ var nftHistoryCmd = &cobra.Command{
 			return printJSON(results)
 		}
 
-		if limit > 0 {
+		// An offset alone asks for a page too, as it does in the other lists.
+		if limit > 0 || offset > 0 {
 			fmt.Printf("\n📜 %s\n", i18n.Label(i18n.GetText("nft.operations_heading"), i18n.GetTextF("common.page_with_offset", len(results), offset)))
 		} else {
 			fmt.Printf("\n📜 %s\n", i18n.Label(i18n.GetText("nft.operations_heading"), len(results)))
 		}
 		if len(results) == 0 {
+			// Three different answers: an empty history, a page past the end,
+			// and a page the offset skipped past.
+			if limit > 0 || offset > 0 {
+				fmt.Println("   " + i18n.GetText("common.page_empty"))
+				return nil
+			}
 			fmt.Println("   " + i18n.GetText("common.none"))
 		}
 		for _, op := range results {

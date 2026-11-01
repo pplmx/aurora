@@ -85,12 +85,20 @@ var sourceListCmd = &cobra.Command{
 			return printJSON(resp.Sources)
 		}
 
-		if limit > 0 {
+		// An offset alone asks for a page too: without it, `--offset 9` on a
+		// non-empty store kept the plain heading and answered "(none)".
+		if limit > 0 || offset > 0 {
 			fmt.Printf("\n📡 %s\n", i18n.Label(i18n.GetText("oracle.sources_heading"), i18n.GetTextF("common.page_with_offset", len(resp.Sources), offset)))
 		} else {
 			fmt.Printf("\n📡 %s\n", i18n.GetText("oracle.sources_heading")+i18n.Colon())
 		}
 		if len(resp.Sources) == 0 {
+			// Three different answers: an empty store, a page past the end, and
+			// a page the offset skipped past.
+			if limit > 0 || offset > 0 {
+				fmt.Println("   " + i18n.GetText("common.page_empty"))
+				return nil
+			}
 			fmt.Println("   " + i18n.GetText("common.none"))
 		}
 		for _, ds := range resp.Sources {

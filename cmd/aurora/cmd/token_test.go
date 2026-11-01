@@ -414,10 +414,20 @@ func TestTokenList_EmptyKeepsTheHeading(t *testing.T) {
 		assert.Less(t, strings.Index(out, "Total: 0"), strings.Index(out, "No tokens yet"),
 			"the heading comes before the empty line")
 
+		// Paged and empty is "this page", not "the store" — the answer
+		// `lottery history` and the voting lists already give. An offset alone
+		// asks for a page too, so it must not fall back to the store total.
 		out, err = runCmd(t, "token", "list", "--limit", "5")
 		require.NoError(t, err)
 		assert.Contains(t, out, "Tokens on this page: 0 (offset 0)")
-		assert.Contains(t, out, "No tokens yet")
+		assert.Contains(t, out, "No entries on this page")
+		assert.NotContains(t, out, "No tokens yet")
+
+		out, err = runCmd(t, "token", "list", "--offset", "9")
+		require.NoError(t, err)
+		assert.Contains(t, out, "Tokens on this page: 0 (offset 9)",
+			"an offset alone is a page request, not the store total")
+		assert.Contains(t, out, "No entries on this page")
 	})
 }
 
