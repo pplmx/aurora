@@ -12,6 +12,20 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **A cmd test that writes into the checkout now fails the suite**: the store
+  resolves `db.path` on first open and defaults to `./data`, so a test that
+  opens it without first moving to a temp directory writes `aurora.db` into the
+  checkout. Every test there uses `withTempDir`, but nothing enforced the
+  convention, and the cost of forgetting is not local — an earlier flaky
+  repocheck failure came from a sibling test's `ResetForTest` removing `./data`
+  mid-walk while another binary was still reading it.
+- **`TestMain` records whether `./data` existed before the run** and fails the
+  suite if this run created it. A checkout that already had one is left alone,
+  so a developer who ran the CLI is not the suite's problem.
+- **Verified both directions**: the untouched suite passes and leaves no
+  directory; a probe that opens `store.OpenShared` in the checkout reports the
+  run as failed even though the probe itself passed.
+
 - **The pagination ceilings are bound to the reference**: seven list endpoints
   each carry a limit ceiling and an offset ceiling. The behaviour is tested per
   handler, but nothing compared those numbers with `docs/api.md`, so a tuning
