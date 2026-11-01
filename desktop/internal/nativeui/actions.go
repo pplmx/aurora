@@ -1,9 +1,9 @@
 package nativeui
 
 import (
-	"time"
-
 	"path/filepath"
+	"strings"
+	"time"
 
 	"github.com/egoist/mygo/ui"
 
@@ -120,11 +120,24 @@ func (a *App) sidebarActions(c *ui.Context) {
 				statusDot(c, c.Theme().Success, 5)
 				ui.Text(c, tr("Local ledger")).FontSize(textSize(c, 10)).
 					TextColor(c.Theme().TextMuted).Grow(1).Shrink(1).MinWidth(0).SingleLine()
-				ui.Text(c, "v"+a.actions.Version).FontSize(textSize(c, 10)).
+				ui.Text(c, versionBadge(a.actions.Version)).FontSize(textSize(c, 10)).
 					TextColor(c.Theme().TextMuted).SingleLine()
 			})
 		}
 	})
+}
+
+// versionBadge is the short version the sidebar footer shows. The value comes
+// from the shell, and the two entry points disagree about its shape: a
+// development build links `git describe` ("v1.1-1745-gac0f69b", already
+// prefixed) while an unstamped `go build` keeps the source default ("0.0.1",
+// bare). The footer used to prepend "v" unconditionally, so a tagged build —
+// the only kind a user installs — read vv1.1.
+func versionBadge(version string) string {
+	if strings.HasPrefix(version, "v") {
+		return version
+	}
+	return "v" + version
 }
 
 func (a Actions) empty() bool {

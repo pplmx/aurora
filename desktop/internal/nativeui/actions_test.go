@@ -47,6 +47,30 @@ func TestSidebarFileMenuRunsFileActions(t *testing.T) {
 	require.Equal(t, []string{"backup", "recent:/tmp/draws.json"}, calls)
 }
 
+// TestSidebarFooterShowsOneVersionPrefix covers the footer badge. The version
+// the shell hands over is already prefixed in a build from a tag
+// ("v1.1-1745-gac0f69b") and bare in a plain `go build` ("0.0.1"), and the
+// footer prepended its own "v" to both: an installed build read vv1.1. The
+// tagged case is the one a user sees, so it is the one worth pinning.
+func TestSidebarFooterShowsOneVersionPrefix(t *testing.T) {
+	for _, tc := range []struct{ version, want string }{
+		{"v1.1-1745-gac0f69b", "v1.1-1745-gac0f69b"},
+		{"0.0.1", "v0.0.1"},
+		{"v1.2.3", "v1.2.3"},
+		{"1.2.3", "v1.2.3"},
+	} {
+		app := New(&fakeServices{})
+		app.SetActions(Actions{Version: tc.version, BackUpDatabase: func() {}})
+		tester := ui.NewTester(app.View, 1280, 860)
+		tester.Frame()
+
+		texts := tester.Texts()
+		require.Containsf(t, texts, tc.want, "version %q must render as %q", tc.version, tc.want)
+		require.NotContainsf(t, texts, "v"+tc.want,
+			"version %q must not gain a second prefix", tc.version)
+	}
+}
+
 // TestSidebarActionsMenuDisablesWhatItCannotDo keeps a partially wired window
 // honest: an action with no callback is disabled, not a menu item that appears
 // to work and silently does nothing.
