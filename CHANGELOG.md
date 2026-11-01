@@ -238,6 +238,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **Every paged list answers about the page, not the store**: `token list
+  --offset 9`, `oracle source list --offset 9` and the NFT history read only
+  `--limit` when deciding whether a request was a page, so an offset-only
+  request kept the plain heading and answered "Total: 0" or "(none)" — claims
+  about the store that a non-empty store contradicts. All three now take the
+  paged heading and answer "No entries on this page", as `lottery history` and
+  the voting lists already did.
+
 - **An offset alone asks for a page in the voting lists**: `voting candidate
   list --offset 9` and `voting session list --offset 9` printed `(none)` when
   the store had records. Both read only `--limit` when deciding whether a
