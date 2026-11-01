@@ -28,6 +28,21 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **The desktop's Copy labels put a space between two Chinese words**: the
+  labels built at run time were `tr("Copy") + " " + tr(target)`, so a Chinese
+  window showed 复制 诊断信息. The catalog's own composed entries — 复制载荷,
+  复制代币 ID, 复制诊断信息 — carry no space, because Chinese does not separate
+  two Chinese words; only the one label assembled in code disagreed with the
+  rest of the window.
+- **`i18n.JoinWords` owns the rule now**: two Han characters meet with nothing
+  between them, and a boundary involving Latin keeps the space the project's
+  Chinese prose uses everywhere else, so 复制 token-1 stays spaced. The desktop
+  reaches it through `copyActionLabel`, which the three run-time Copy labels
+  share.
+- **A byte that does not decode keeps the space**: `DecodeLastRuneInString`
+  returns `utf8.RuneError`, and reading that as Han would glue two Latin words
+  together.
+
 - **The desktop's readout label column was estimated from bytes, not
   measured**: `labelColumnWidth` multiplied the byte length of a label by 7.5
   instead of asking the text engine. Every Chinese character is three bytes, so
