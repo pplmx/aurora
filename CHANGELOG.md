@@ -12,6 +12,18 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The parent-cancellation shutdown order is covered**: the two existing
+  `background.Start` tests cover stop-waits-for-exit and stop-is-idempotent, both
+  starting from a live parent context. Production shuts down the other way
+  round — the API server's root context is cancelled first, the work observes it
+  and leaves, and only then does the caller reach its deferred `stop`.
+- **That order reaches a different path**: the completion channel is already
+  closed before `stop` runs, and nothing exercised it. The new test cancels the
+  parent, waits for the work to exit, then requires `stop` to return promptly
+  instead of waiting for a completion it missed.
+- **Ignoring the parent context in `Start` fails it**: "cancelling the parent
+  context must stop the background work".
+
 - **Two pools over one file is the shape a goroutine test misses**: the existing
   concurrency regression exercises one `*sql.DB` with many goroutines. Two pools
   share no Go state — no mutex, no shared connection — and contend only through
