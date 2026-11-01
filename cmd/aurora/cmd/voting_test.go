@@ -75,8 +75,8 @@ func TestVotingListsPagedEmptyPage(t *testing.T) {
 		args []string
 		head string
 	}{
-		{"candidates", []string{"voting", "candidate", "list", "--offset", "9"}, "Candidates: 0 (offset 9)"},
-		{"sessions", []string{"voting", "session", "list", "--offset", "9"}, "Voting Sessions: 0 (offset 9)"},
+		{"candidates", []string{"voting", "candidate", "list", "--offset", "9"}, "Candidates on this page: 0 (offset 9)"},
+		{"sessions", []string{"voting", "session", "list", "--offset", "9"}, "Sessions on this page: 0 (offset 9)"},
 		{"voters", []string{"voting", "voter", "list", "--offset", "9"}, "Voters on this page: 0 (offset 9)"},
 	}
 	for _, c := range cases {
@@ -116,6 +116,40 @@ func TestPagedListsSayThisPageNotTheStore(t *testing.T) {
 				assert.Contains(t, out, "No entries on this page")
 				assert.NotContains(t, out, "(none)")
 				assert.NotContains(t, out, "No tokens yet")
+			})
+		})
+	}
+}
+
+// TestEveryListHeadingCarriesItsCount pins the shape docs/cli.md promises: the
+// heading says how many records it describes, whether or not paging flags are
+// set. Four lists used to drop the count on the unpaged path ("Candidates:"),
+// which read as a section label rather than a count, so an empty store and a
+// populated one looked the same until the rows were read.
+func TestEveryListHeadingCarriesItsCount(t *testing.T) {
+	cases := []struct {
+		name  string
+		cmd   []string
+		plain string
+		paged string
+	}{
+		{"candidates", []string{"voting", "candidate", "list"}, "Total candidates:", "Candidates on this page:"},
+		{"voters", []string{"voting", "voter", "list"}, "Total voters:", "Voters on this page:"},
+		{"sessions", []string{"voting", "session", "list"}, "Total sessions:", "Sessions on this page:"},
+		{"sources", []string{"oracle", "source", "list"}, "Total sources:", "Sources on this page:"},
+		{"tokens", []string{"token", "list"}, "Total:", "Tokens on this page:"},
+		{"lotteries", []string{"lottery", "history"}, "Total lotteries:", "Lotteries on this page:"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			withTempDir(t, func(t *testing.T) {
+				out, err := runCmd(t, c.cmd...)
+				require.NoError(t, err)
+				assert.Contains(t, out, c.plain, "the unpaged heading carries the total")
+
+				out, err = runCmd(t, append(append([]string{}, c.cmd...), "--limit", "2")...)
+				require.NoError(t, err)
+				assert.Contains(t, out, c.paged, "the paged heading names the page")
 			})
 		})
 	}

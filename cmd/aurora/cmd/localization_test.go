@@ -551,7 +551,7 @@ func TestOracleResultsLocalizeChinese(t *testing.T) {
 
 		out, err = runCmd(t, "oracle", "source", "list")
 		require.NoError(t, err)
-		assert.Contains(t, out, "📡 数据源：")
+		assert.Contains(t, out, "📡 数据源总数：1")
 		assert.Contains(t, out, "已启用")
 		assert.Contains(t, out, "方法：GET")
 		assert.Contains(t, out, "路径：")
