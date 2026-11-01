@@ -639,7 +639,13 @@ path 与 query 都可能包含凭据，因此 `/oracle/health` 的 `last_error` 
 `/blockchain/blocks` 按最新在前返回创世块之外的记录，`payload` 是模块写入的原始
 文本；`total` 不含创世块，`offset` 以条目计而不是区块高度。`q` 在原始文本
 **和解码后的记录句子**上做不区分大小写的子串匹配（查 `Draw`、`Winners` 或模块名
-都能命中，与 CLI 的 `-s`、桌面账本搜索一致），此时 `total` 为匹配条数：
+都能命中），此时 `total` 为匹配条数。
+
+`q` 只匹配英文：网关按语言无关的方式工作，同一个请求在任何 locale 下结果相同，
+因此它不会把记录句子翻成中文再匹配。作为对照，CLI 的 `-s` 与桌面账本搜索会**额外**
+匹配界面语言下的词汇（中文界面里输 `中奖者` 也能命中），因为那两个界面知道读者
+看到的是哪种语言。要在中文客户端里按中文词过滤，请在该客户端过滤，或改用 `q` 的
+英文词。
 
 ```json
 {"blocks": [{"height": 2, "timestamp": 1793385489, "payload": "b8dfb283-1b87-449e-a0aa-271b441e5d54|Star|AQIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyA="}], "total": 2, "limit": 20, "offset": 0}
