@@ -573,7 +573,10 @@ func TestEveryCoreKeyIsUsed(t *testing.T) {
 
 	unused := make([]string, 0)
 	for key := range englishMessages {
-		if strings.Contains(text, key) {
+		// The key has to be quoted: a plain substring match let
+		// `voting.candidates` count as used because `voting.candidates_page`
+		// contains it, so three labels with no call site stayed in the catalog.
+		if strings.Contains(text, `"`+key+`"`) {
 			continue
 		}
 		exempt := false
