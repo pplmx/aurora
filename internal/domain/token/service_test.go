@@ -269,8 +269,8 @@ func TestCreateToken_InvalidName(t *testing.T) {
 	}
 
 	_, err := service.CreateToken(req)
-	if err == nil {
-		t.Error("expected error for empty name")
+	if !errors.Is(err, ErrTokenNameRequired) {
+		t.Errorf("expected error for empty name: got %v, want ErrTokenNameRequired", err)
 	}
 }
 
@@ -287,8 +287,8 @@ func TestCreateToken_InvalidSymbol(t *testing.T) {
 	}
 
 	_, err := service.CreateToken(req)
-	if err == nil {
-		t.Error("expected error for empty symbol")
+	if !errors.Is(err, ErrTokenSymbolRequired) {
+		t.Errorf("expected error for empty symbol: got %v, want ErrTokenSymbolRequired", err)
 	}
 }
 
@@ -305,8 +305,8 @@ func TestCreateToken_InvalidTotalSupply(t *testing.T) {
 	}
 
 	_, err := service.CreateToken(req)
-	if err == nil {
-		t.Error("expected error for zero total supply")
+	if !errors.Is(err, ErrAmountMustBePositive) {
+		t.Errorf("expected error for zero total supply: got %v, want ErrAmountMustBePositive", err)
 	}
 }
 
@@ -323,8 +323,8 @@ func TestCreateToken_InvalidOwner(t *testing.T) {
 	}
 
 	_, err := service.CreateToken(req)
-	if err == nil {
-		t.Error("expected error for nil owner")
+	if !errors.Is(err, ErrPublicKeyRequired) {
+		t.Errorf("expected error for nil owner: got %v, want ErrPublicKeyRequired", err)
 	}
 }
 
@@ -554,8 +554,8 @@ func TestMint_InvalidRecipient(t *testing.T) {
 	}
 
 	_, err := service.Mint(mintReq)
-	if err == nil {
-		t.Error("expected error for nil recipient")
+	if !errors.Is(err, ErrPublicKeyRequired) {
+		t.Errorf("expected error for nil recipient: got %v, want ErrPublicKeyRequired", err)
 	}
 }
 
@@ -581,8 +581,8 @@ func TestMint_InvalidAmount(t *testing.T) {
 	}
 
 	_, err := service.Mint(mintReq)
-	if err == nil {
-		t.Error("expected error for zero amount")
+	if !errors.Is(err, ErrAmountMustBePositive) {
+		t.Errorf("expected error for zero amount: got %v, want ErrAmountMustBePositive", err)
 	}
 }
 
@@ -717,8 +717,8 @@ func TestTransfer_InvalidFrom(t *testing.T) {
 	}
 
 	_, err := service.Transfer(transferReq)
-	if err == nil {
-		t.Error("expected error for nil from")
+	if !errors.Is(err, ErrPublicKeyRequired) {
+		t.Errorf("expected error for nil from: got %v, want ErrPublicKeyRequired", err)
 	}
 }
 
@@ -748,8 +748,8 @@ func TestTransfer_InvalidTo(t *testing.T) {
 	}
 
 	_, err := service.Transfer(transferReq)
-	if err == nil {
-		t.Error("expected error for nil to")
+	if !errors.Is(err, ErrPublicKeyRequired) {
+		t.Errorf("expected error for nil to: got %v, want ErrPublicKeyRequired", err)
 	}
 }
 
@@ -872,8 +872,8 @@ func TestTransfer_InvalidAmount(t *testing.T) {
 	}
 
 	_, err := service.Transfer(transferReq)
-	if err == nil {
-		t.Error("expected error for zero amount")
+	if !errors.Is(err, ErrAmountMustBePositive) {
+		t.Errorf("expected error for zero amount: got %v, want ErrAmountMustBePositive", err)
 	}
 }
 
@@ -2071,8 +2071,8 @@ func TestTransferFrom_InvalidOwner(t *testing.T) {
 	}
 
 	_, err := service.TransferFrom(transferFromReq)
-	if err == nil {
-		t.Error("expected error for nil owner")
+	if !errors.Is(err, ErrPublicKeyRequired) {
+		t.Errorf("expected error for nil owner: got %v, want ErrPublicKeyRequired", err)
 	}
 }
 
@@ -2104,8 +2104,8 @@ func TestTransferFrom_InvalidSpender(t *testing.T) {
 	}
 
 	_, err := service.TransferFrom(transferFromReq)
-	if err == nil {
-		t.Error("expected error for nil spender")
+	if !errors.Is(err, ErrPublicKeyRequired) {
+		t.Errorf("expected error for nil spender: got %v, want ErrPublicKeyRequired", err)
 	}
 }
 
@@ -2138,8 +2138,8 @@ func TestTransferFrom_InvalidAmount(t *testing.T) {
 	}
 
 	_, err := service.TransferFrom(transferFromReq)
-	if err == nil {
-		t.Error("expected error for zero amount")
+	if !errors.Is(err, ErrAmountMustBePositive) {
+		t.Errorf("expected error for zero amount: got %v, want ErrAmountMustBePositive", err)
 	}
 }
 
@@ -2276,15 +2276,16 @@ func TestApprove_InvalidOwner(t *testing.T) {
 	})
 
 	approveReq := &ApproveRequest{
-		TokenID: "TEST",
-		Owner:   nil,
-		Spender: pubKey(2),
-		Amount:  NewAmount(500),
+		TokenID:    "TEST",
+		Owner:      nil,
+		Spender:    pubKey(2),
+		Amount:     NewAmount(500),
+		PrivateKey: privKey(1),
 	}
 
 	_, err := service.Approve(approveReq)
-	if err == nil {
-		t.Error("expected error for nil owner")
+	if !errors.Is(err, ErrPublicKeyRequired) {
+		t.Errorf("expected error for nil owner: got %v, want ErrPublicKeyRequired", err)
 	}
 }
 
@@ -2302,15 +2303,16 @@ func TestApprove_InvalidSpender(t *testing.T) {
 	})
 
 	approveReq := &ApproveRequest{
-		TokenID: "TEST",
-		Owner:   owner,
-		Spender: nil,
-		Amount:  NewAmount(500),
+		TokenID:    "TEST",
+		Owner:      owner,
+		Spender:    nil,
+		Amount:     NewAmount(500),
+		PrivateKey: privKey(1),
 	}
 
 	_, err := service.Approve(approveReq)
-	if err == nil {
-		t.Error("expected error for nil spender")
+	if !errors.Is(err, ErrPublicKeyRequired) {
+		t.Errorf("expected error for nil spender: got %v, want ErrPublicKeyRequired", err)
 	}
 }
 
@@ -2328,15 +2330,16 @@ func TestApprove_InvalidAmount(t *testing.T) {
 	})
 
 	approveReq := &ApproveRequest{
-		TokenID: "TEST",
-		Owner:   owner,
-		Spender: pubKey(2),
-		Amount:  NewAmount(0),
+		TokenID:    "TEST",
+		Owner:      owner,
+		Spender:    pubKey(2),
+		Amount:     NewAmount(0),
+		PrivateKey: privKey(1),
 	}
 
 	_, err := service.Approve(approveReq)
-	if err == nil {
-		t.Error("expected error for zero amount")
+	if !errors.Is(err, ErrAmountMustBePositive) {
+		t.Errorf("expected error for zero amount: got %v, want ErrAmountMustBePositive", err)
 	}
 }
 
@@ -2428,8 +2431,8 @@ func TestBurn_InvalidFrom(t *testing.T) {
 		Amount:     NewAmount(400),
 		PrivateKey: privateKey,
 	})
-	if err == nil {
-		t.Error("expected error for nil from")
+	if !errors.Is(err, ErrPublicKeyRequired) {
+		t.Errorf("expected error for nil from: got %v, want ErrPublicKeyRequired", err)
 	}
 }
 
@@ -2453,8 +2456,8 @@ func TestBurn_InvalidAmount(t *testing.T) {
 		Amount:     NewAmount(0),
 		PrivateKey: privateKey,
 	})
-	if err == nil {
-		t.Error("expected error for zero amount")
+	if !errors.Is(err, ErrAmountMustBePositive) {
+		t.Errorf("expected error for zero amount: got %v, want ErrAmountMustBePositive", err)
 	}
 }
 
@@ -3607,8 +3610,8 @@ func TestMint_NilPrivateKey(t *testing.T) {
 	}
 
 	_, err := service.Mint(mintReq)
-	if err == nil {
-		t.Fatal("expected error for nil private key in Mint")
+	if !errors.Is(err, ErrPrivateKeyRequired) {
+		t.Fatalf("Mint(nil key) = %v, want ErrPrivateKeyRequired", err)
 	}
 }
 

@@ -28,6 +28,16 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **Three token tests proved the wrong thing**: `TestApprove_InvalidAmount`,
+  `TestApprove_InvalidOwner` and `TestApprove_InvalidSpender` left `PrivateKey`
+  empty, so the key check failed first and the condition in the test's name never
+  ran. Each asserted only that something failed, which it did.
+- **They set the key and assert the sentinel now**, so the nil amount really
+  reaches `ValidateAmount`. Suppressing that call makes the test report
+  `got <nil>, want ErrAmountMustBePositive` instead of passing.
+- **Eleven more token tests assert `errors.Is`**: the nil key, nil recipient and
+  zero amount cases in Mint, Transfer and Transfer From named no sentinel either.
+
 - **The lottery validators asserted only that something failed**: eleven tests
   checked `err == nil` and never the sentinel, so a validator returning the wrong
   error — or an unrelated one from a bug — passed. They assert `errors.Is` now, and
