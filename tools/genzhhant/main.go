@@ -19,6 +19,7 @@ import (
 	"go/token"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -82,6 +83,7 @@ func main() {
 	}
 	conv := newConverter(phrases, chars)
 
+	var stale []string
 	for _, t := range targets {
 		messages, err := parseStringMap(t.src, t.srcVar)
 		if err != nil {
@@ -97,7 +99,8 @@ func main() {
 				fail(err)
 			}
 			if !bytes.Equal(done, generated) {
-				fail(fmt.Errorf("%s is stale; run genzhhant without -check", targetPath(t)))
+				stale = append(stale, describeStale(t, done, generated))
+				continue
 			}
 			fmt.Println("current:", targetPath(t))
 			continue
@@ -107,6 +110,70 @@ func main() {
 		}
 		fmt.Println("wrote:", targetPath(t))
 	}
+	if len(stale) > 0 {
+		fail(fmt.Errorf("%s", strings.Join(stale, "\n")))
+	}
+}
+
+// describeStale names the entries that differ. A bare "is stale" leaves the
+// reader to regenerate the whole catalog and commit every unrelated difference
+// with it; naming the keys keeps the fix to the entries that moved.
+func describeStale(t target, have, want []byte) string {
+	before, after := mapEntries(have), mapEntries(want)
+	keys := make([]string, 0, len(before)+len(after))
+	for key := range before {
+		keys = append(keys, key)
+	}
+	for key := range after {
+		if _, seen := before[key]; !seen {
+			keys = append(keys, key)
+		}
+	}
+	sort.Strings(keys)
+
+	var b strings.Builder
+	fmt.Fprintf(&b, "%s is stale; run genzhhant without -check", targetPath(t))
+	differs := 0
+	for _, key := range keys {
+		old, had := before[key]
+		new, has := after[key]
+		if had && has && old == new {
+			continue
+		}
+		differs++
+		fmt.Fprintf(&b, "\n  %q: %s -> %s", key, quoteSide(old, had), quoteSide(new, has))
+	}
+	fmt.Fprintf(&b, "\n%d catalog entries differ", differs)
+	return b.String()
+}
+
+// quoteSide renders one side of a differing entry, marking a key that exists
+// only on the other side.
+func quoteSide(value string, present bool) string {
+	if !present {
+		return "(missing)"
+	}
+	return strconv.Quote(value)
+}
+
+// mapEntries reads the entries of a generated catalog. It is deliberately
+// lenient: the file is about to be regenerated, so a strict parse would replace
+// the useful diff with a syntax message about the file being replaced.
+func mapEntries(body []byte) map[string]string {
+	entry := regexp.MustCompile(`(?m)^\t("(?:[^"\\]|\\.)*"):\s*("(?:[^"\\]|\\.)*"),$`)
+	out := make(map[string]string)
+	for _, m := range entry.FindAllStringSubmatch(string(body), -1) {
+		key, err := strconv.Unquote(m[1])
+		if err != nil {
+			continue
+		}
+		value, err := strconv.Unquote(m[2])
+		if err != nil {
+			continue
+		}
+		out[key] = value
+	}
+	return out
 }
 
 func fail(err error) {
@@ -211,7 +278,7 @@ func stringLiteral(expr ast.Expr) (string, error) {
 
 // loadDictionary reads an OpenCC dictionary: each line is
 // "key<TAB>candidate candidate ...". The first candidate is the preferred
-// conversion; a key that would map to itself is dropped.
+// conversion.
 func loadDictionary(path string) (map[string]string, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -228,6 +295,9 @@ func loadDictionary(path string) (map[string]string, error) {
 			continue
 		}
 		first, _, _ := strings.Cut(rest, " ")
+		// A key that maps to itself is a no-op, so it is dropped. opencc_dict
+		// drops them too when it builds the runtime table, which keeps this
+		// generator agreeing with the converter the catalogs came from.
 		if key != first {
 			table[key] = first
 		}
@@ -256,6 +326,19 @@ func newConverter(phrases, chars map[string]string) converter {
 
 var overrides = map[string]string{"爲": "為", "燬": "毀", "啓": "啟"}
 
+// reviewedWords are the corrections a reviewer made to OpenCC's output. They
+// live here rather than only in the generated file because -check compares the
+// checked-in catalog with what the generator produces: a correction applied by
+// hand reads as drift forever, so the gate could never pass and nobody could
+// tell a reviewed wording from an accident. A new correction belongs here.
+//
+// 上游 (upstream) is the word OpenCC gets wrong: its character table maps 游
+// to 遊, and 上遊 means "to go on a trip", so the phrase has to be pinned back
+// after conversion.
+var reviewedWords = map[string]string{
+	"上遊": "上游",
+}
+
 func (c converter) convert(text string) string {
 	runes := []rune(text)
 	var out strings.Builder
@@ -282,6 +365,9 @@ func (c converter) convert(text string) string {
 	}
 	converted := out.String()
 	for old, modern := range overrides {
+		converted = strings.ReplaceAll(converted, old, modern)
+	}
+	for old, modern := range reviewedWords {
 		converted = strings.ReplaceAll(converted, old, modern)
 	}
 	return converted
