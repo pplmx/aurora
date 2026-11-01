@@ -238,6 +238,18 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **Every list heading carries the count it describes**: four lists dropped the
+  number on the unpaged path — `📋 Candidates:`, `📡 Data Sources:`, the voters
+  and sessions headings. A heading with only a colon reads as a section label,
+  so an empty store and a populated one looked the same until the rows were
+  read, and `docs/cli.md` already promised the count. Each list now has two
+  labelled headings: `Total candidates: 3` without paging flags, `Candidates on
+  this page: 2 (offset 0)` with them.
+- **The used-key check matched keys as substrings**: `voting.candidates` counted
+  as read because `voting.candidates_page` contains it, so three labels with no
+  call site stayed in the catalog. Requiring the quotes makes the check what the
+  call sites actually contain, and the three dead labels are gone.
+
 - **Every paged list answers about the page, not the store**: `token list
   --offset 9`, `oracle source list --offset 9` and the NFT history read only
   `--limit` when deciding whether a request was a page, so an offset-only
