@@ -4,6 +4,8 @@ import "sort"
 
 type Repository interface {
 	SaveData(data *OracleData) error
+	// GetDataBySource returns one newest-first page of a source's readings.
+	// limit <= 0 returns them all.
 	GetDataBySource(sourceID string, limit int) ([]*OracleData, error)
 	GetLatestData(sourceID string) (*OracleData, error)
 

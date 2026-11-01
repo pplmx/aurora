@@ -12,6 +12,16 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **An oracle reading query without a limit reads every reading**: the SQLite
+  repository turned `limit <= 0` into `LIMIT 100` while every other repository
+  and the in-memory store treat it as unbounded, so a caller asking for the
+  whole history got a truncated list with nothing saying more existed. Every
+  production caller passes an explicit limit, so the visible behaviour is
+  unchanged; the contract now matches the rest of the store.
+- **The test that pins it starts its timestamps at 1**: `SaveData` replaces a
+  zero timestamp with "now", which silently made the first fixture row the
+  newest one and turned a correct query into a confusing failure.
+
 - **Four use-case tests asserted only that something failed**: the oracle
   enabled/disabled lookups, the NFT empty-creator mint and the vote
   transaction failure each checked `require.Error`. Any error passes those, so
