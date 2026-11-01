@@ -56,7 +56,7 @@ func TestLayerDependencies(t *testing.T) {
 			checked := 0
 			err := filepath.WalkDir(base, func(path string, entry fs.DirEntry, err error) error {
 				if err != nil {
-					return err
+					return walkErrToleratingDisappearance(err)
 				}
 				if entry.IsDir() {
 					if path != base && entry.Name() == "container" && rule.dir == "internal/app" {

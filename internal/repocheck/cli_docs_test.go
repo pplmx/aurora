@@ -283,7 +283,7 @@ func currentCLIDocs(t *testing.T, root string) []string {
 	}
 	err := filepath.WalkDir(filepath.Join(root, "docs"), func(path string, entry fs.DirEntry, err error) error {
 		if err != nil {
-			return err
+			return walkErrToleratingDisappearance(err)
 		}
 		if entry.IsDir() {
 			if entry.Name() == "superpowers" {

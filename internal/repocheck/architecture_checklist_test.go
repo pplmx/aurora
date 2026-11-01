@@ -64,8 +64,11 @@ func findPackageDir(t *testing.T, repo, name string) string {
 	t.Helper()
 	var found string
 	err := filepath.WalkDir(filepath.Join(repo, "internal"), func(path string, entry os.DirEntry, err error) error {
-		if err != nil || !entry.IsDir() {
-			return err
+		if err != nil {
+			return walkErrToleratingDisappearance(err)
+		}
+		if !entry.IsDir() {
+			return nil
 		}
 		if entry.Name() == name {
 			found = path
