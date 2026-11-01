@@ -238,6 +238,15 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **The ledger heading names which count it shows**: `blockchain blocks --limit 2`
+  printed "Audit records: 4" above two rows. The number is the total, the rows
+  are the page, and the heading said neither — a reader had to count rows to
+  tell whether the ledger held four entries or the filter had narrowed it. When
+  the page holds the whole ledger the plain total stands; when it does not, the
+  heading names both: "Audit records on this page: 2 shown of 3". The empty cases
+  keep their own sentences, so "0 shown of 0" never replaces the line that says
+  whether the ledger is empty, the page is past its end, or nothing matched.
+
 - **The NFT history names what its number counts**: `nft history --limit 5`
   printed "Operations: 1 (offset 0)" — the number is the page's rows, but the
   heading did not say so — while the unpaged run printed "Operations: 1" for the
