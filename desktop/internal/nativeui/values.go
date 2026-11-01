@@ -63,7 +63,7 @@ func copyRow(c *ui.Context, label, value string, onCopied func()) ui.Element {
 			TextColor(c.Theme().TextMuted).SingleLine()
 		ui.Text(c, abbreviate(value)).FontSize(textSize(c, 12)).TextColor(c.Theme().Text).
 			Grow(1).Shrink(1).MinWidth(0).SingleLine().Ellipsis("…").Tooltip(value)
-		copyButton = quietButton(c, tr("Copy")+" "+label)
+		copyButton = quietButton(c, copyActionLabel(label))
 		if copyButton.Clicked() {
 			// The whole value is copied, not the shortened cell.
 			c.Services().WriteClipboard(value)

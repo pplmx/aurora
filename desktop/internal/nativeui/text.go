@@ -18,6 +18,17 @@ func labelText(label, value string) string {
 	return label + i18n.GetTranslator().Separator() + value
 }
 
+// copyActionLabel names a Copy button after the thing it copies: "Copy
+// Diagnostics" in English, 复制诊断信息 in Chinese.
+//
+// The two words are joined by i18n.JoinWords rather than a literal space.
+// Chinese does not space two Chinese words apart, so building the label as
+// tr("Copy") + " " + tr("Diagnostics") printed 复制 诊断信息 while the catalog's
+// own composed entries — 复制载荷, 复制代币 ID — had no space at all.
+func copyActionLabel(target string) string {
+	return i18n.JoinWords(tr("Copy"), tr(target))
+}
+
 // colonText is the separator alone, for a heading that names a group of lines
 // rather than a single value.
 func colonText() string {

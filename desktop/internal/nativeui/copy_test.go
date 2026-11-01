@@ -5,6 +5,8 @@ import (
 
 	"github.com/egoist/mygo/ui"
 	"github.com/stretchr/testify/require"
+
+	"github.com/pplmx/aurora/internal/i18n"
 )
 
 // TestCurrentIdentifiersAreCopyable pins one rule across the pages: an id the
@@ -79,4 +81,52 @@ func TestSelectedVotingIDsAreCopyable(t *testing.T) {
 	require.NoError(t, tester.Click("Copy Selected candidate ID"))
 	tester.Frame()
 	require.Equal(t, candidateID, tester.Clipboard())
+}
+
+// TestChineseCopyLabelsHaveNoSpuriousSpace covers the labels built out of two
+// translated words. The desktop joined them with a literal space, so Chinese
+// showed 复制 诊断信息 next to catalog entries such as 复制载荷 that carry none.
+//
+// The Latin case is checked too: a Chinese window still spaces a Latin word,
+// which is the rule the project's Chinese prose follows everywhere else.
+func TestChineseCopyLabelsHaveNoSpuriousSpace(t *testing.T) {
+	translator := i18n.GetTranslator()
+	before := translator.GetLocale()
+	t.Cleanup(func() { translator.SetLocale(before) })
+
+	for _, tc := range []struct {
+		locale string
+		want   []string
+		avoid  []string
+	}{
+		{"zh", []string{"复制诊断信息"}, []string{"复制 诊断信息"}},
+		{"zh-Hant", []string{"複製診斷信息"}, []string{"複製 診斷信息"}},
+	} {
+		translator.SetLocale(tc.locale)
+		app := New(&fakeServices{})
+		app.SetActions(Actions{
+			Version: "v1.2.3", BuildTime: "2026-10-26T09:00:00Z", DBPath: "/tmp/aurora/aurora.db",
+			ShowDataFolder: func() {}, BackUpDatabase: func() {}, ShowAbout: func() {},
+		})
+		tester := ui.NewTester(app.View, 1280, 5000)
+		app.ShowPage("Settings")
+		tester.Frame()
+
+		texts := tester.Texts()
+		for _, want := range tc.want {
+			require.Containsf(t, texts, want, "%s: the Copy action must read %q", tc.locale, want)
+		}
+		for _, avoid := range tc.avoid {
+			require.NotContainsf(t, texts, avoid,
+				"%s: two Chinese words must not be separated by a space", tc.locale)
+		}
+	}
+
+	// A translated word beside a Latin one keeps its space: the value is the
+	// token field, not a second Chinese word.
+	translator.SetLocale("zh")
+	require.Equal(t, "复制 token-1", copyActionLabel("token-1"))
+	// English keeps the plain space between its two words.
+	translator.SetLocale("en")
+	require.Equal(t, "Copy Diagnostics", copyActionLabel("Diagnostics"))
 }
