@@ -643,6 +643,7 @@ var desktopMessages = map[string]string{
 	"invalid source":                                                "数据源无效",
 	"source not found":                                              "未找到数据源",
 	"source is disabled":                                            "数据源已禁用",
+	"upstream fetch failed":                                         "上游抓取失败",
 	"insufficient allowance":                                        "授权额度不足",
 	"insufficient balance":                                          "余额不足",
 	"invalid amount":                                                "金额无效",

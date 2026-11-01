@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/pplmx/aurora/internal/domain/errdetail"
 	"github.com/pplmx/aurora/internal/domain/oracle"
 	"github.com/pplmx/aurora/internal/domain/repoerr"
 	"github.com/pplmx/aurora/internal/ledger"
@@ -67,6 +68,30 @@ func (uc *FetchDataUseCase) fetchData(ctx context.Context, source *oracle.DataSo
 // block_height=0.
 func (uc *FetchDataUseCase) Chain() ChainInterface { return uc.chain }
 
+// wrapFetchError classifies a failed fetch without discarding what the caller
+// can already branch on.
+//
+// The conditions the domain names — a missing source, a disabled source, an
+// over-budget source, a destination the SSRF guard refuses — keep their own
+// sentinels, because each maps to a specific status the caller acts on.
+// Everything else came back from the remote feed: a non-2xx status, a timeout,
+// an unreadable body. Those earn ErrFetchFailed, which the API answers as 502;
+// leaving them unwrapped made every upstream failure a 500 that blamed Aurora
+// and invited a retry of the same doomed request.
+func wrapFetchError(err error) error {
+	for _, known := range []error{
+		oracle.ErrSourceNotFound,
+		oracle.ErrSourceDisabled,
+		oracle.ErrRateLimited,
+		oracle.ErrInvalidSource,
+	} {
+		if errors.Is(err, known) {
+			return fmt.Errorf("failed to fetch data: %w", err)
+		}
+	}
+	return fmt.Errorf("failed to fetch data: %w", errdetail.Wrap(oracle.ErrFetchFailed, err))
+}
+
 func (uc *FetchDataUseCase) Execute(req *FetchDataRequest) (*FetchDataResponse, error) {
 	return uc.executeWithChain(context.Background(), req, uc.chain)
 }
@@ -102,13 +127,18 @@ func (uc *FetchDataUseCase) executeWithChain(ctx context.Context, req *FetchData
 	// SSRF vector and is left to the fetcher's own empty-URL handling.)
 	if source.URL != "" {
 		if err := oracle.ValidateSourceURL(source.URL); err != nil {
-			return nil, fmt.Errorf("blocked source URL: %w", err)
+			// A URL the SSRF policy refuses is the caller's configuration
+			// problem, and ErrInvalidSource is what the API already maps to
+			// 400 INVALID_SOURCE. Wrapping the bare validator error instead
+			// left it unclassified, so a source edited to point at loopback
+			// answered 500 on every fetch instead of naming the bad URL.
+			return nil, fmt.Errorf("blocked source URL: %w", errdetail.Wrap(oracle.ErrInvalidSource, err))
 		}
 	}
 
 	data, err := uc.fetchData(ctx, source)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch data: %w", err)
+		return nil, wrapFetchError(err)
 	}
 	if data == nil {
 		return nil, errors.New("fetcher returned no data")

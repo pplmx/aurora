@@ -215,11 +215,14 @@ func TestOracleHandler_Fetch_Success(t *testing.T) {
 
 	h.Fetch(rr, req)
 
-	// FetchData may fail because URL is fake, but success/error path is exercised.
-	// We accept either 200 (with data) or 500 (data fetch failed) — both are valid
-	// code paths; what matters is the handler didn't crash.
-	assert.True(t, rr.Code == http.StatusOK || rr.Code == http.StatusInternalServerError,
-		"unexpected status: %d", rr.Code)
+	// The fake URL cannot be fetched, so this exercises the failure path. It
+	// must be the classified one: 502 says the remote feed refused or broke,
+	// which is what happened. 500 would blame Aurora for the far side's
+	// problem and invite a retry of the same doomed request.
+	assert.Equal(t, http.StatusBadGateway, rr.Code, "body: %s", rr.Body.String())
+	var resp ErrorResponse
+	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &resp))
+	assert.Equal(t, "FETCH_FAILED", resp.Code)
 }
 
 func TestOracleHandler_Fetch_InvalidJSON_BodyParse(t *testing.T) {

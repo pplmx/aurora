@@ -483,6 +483,39 @@ func TestFetchDataUseCase_FetchError(t *testing.T) {
 	_, err := uc.Execute(&FetchDataRequest{SourceID: "test-id"})
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "failed to fetch data")
+	// The sentinel is what turns this into a 502. Unwrapped, the client's error
+	// reached the API unclassified and answered 500, blaming Aurora for the
+	// remote feed's failure.
+	require.ErrorIs(t, err, oracle.ErrFetchFailed)
+}
+
+// TestFetchDataUseCase_KeepsClassifiedFetchErrors proves wrapFetchError does not
+// flatten the conditions the domain already names: each of these maps to its own
+// status, and answering 502 for them would lose the distinction a caller acts on.
+func TestFetchDataUseCase_KeepsClassifiedFetchErrors(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		err  error
+		want error
+	}{
+		{"disabled", oracle.ErrSourceDisabled, oracle.ErrSourceDisabled},
+		{"rate limited", oracle.ErrRateLimited, oracle.ErrRateLimited},
+		{"missing", oracle.ErrSourceNotFound, oracle.ErrSourceNotFound},
+		{"invalid", oracle.ErrInvalidSource, oracle.ErrInvalidSource},
+	} {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			repo := &mockOracleRepo{
+				sources: []*oracle.DataSource{{ID: "s1", Name: "S", Enabled: true}},
+			}
+			uc := NewFetchDataUseCaseWithDeps(repo, &mockFetcher{err: tc.err})
+
+			_, err := uc.Execute(&FetchDataRequest{SourceID: "s1"})
+			require.ErrorIs(t, err, tc.want)
+			require.NotErrorIs(t, err, oracle.ErrFetchFailed,
+				"a classified condition must not be reclassified as an upstream failure")
+		})
+	}
 }
 
 // TestFetchDataUseCase_SSRFBlockedAtFetch proves the fetch-time SSRF guard:
@@ -510,6 +543,10 @@ func TestFetchDataUseCase_SSRFBlockedAtFetch(t *testing.T) {
 		_, err := uc.Execute(&FetchDataRequest{SourceID: "test-id"})
 		require.Error(t, err, "source URL %q must be refused at fetch time (SSRF)", url)
 		require.Contains(t, err.Error(), "blocked source URL", "err for %q", url)
+		// A URL the guard refuses is the caller's configuration problem: 400
+		// INVALID_SOURCE. Unwrapped, every fetch of a rebound source answered
+		// 500 and never named the URL that caused it.
+		require.ErrorIs(t, err, oracle.ErrInvalidSource, "err for %q", url)
 		// The mock fetcher must never be reached: its data would have been
 		// returned if the guard didn't short-circuit before the dial.
 		require.False(t, repo.saveDataCalled, "no data should be saved for blocked URL %q", url)
