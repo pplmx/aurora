@@ -12,6 +12,17 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The backup checksum guard is exercised by a real archive**: every restore
+  test built its archive by hand with `writeMeta`, which records no
+  per-database checksums. `verifyArchiveContents` then filled the map from the
+  file it had just read, so the comparison at the copy step compared a value
+  with itself and could not fail — the guard those tests seemed to cover was
+  never reached.
+- **A round trip through `Create` and `Restore` covers the operator's path**:
+  `Create` records the checksum before verification, and the restore compares
+  against that recorded value. A second test replaces the archived database
+  after a successful `Verify` and expects the refusal.
+
 - **An upstream fetch failure is a 502 now, not a 500**: a feed that answered a
   non-2xx status, timed out or returned an unreadable body came back as an
   unclassified error, so `POST /oracle/fetch` answered `500 INTERNAL_ERROR`.
