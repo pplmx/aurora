@@ -12,6 +12,26 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **A first-touch allowance decrease no longer stores a negative amount**:
+  `TryAdjustApproval` tested the delta's sign with `? >= 0`, but `amount` is a
+  TEXT column and the driver binds the delta as TEXT — and SQLite orders every
+  TEXT value above every INTEGER, so `'-100' >= 0` was TRUE. A decrement that
+  created the row stored `'-100'` and returned it, while the primitive's
+  contract and `DecreaseAllowance` both promise clamping at zero.
+- **The existing clamp test could not see it**: it seeds the allowance first, so
+  its clamp ran in the `ON CONFLICT` arm, which already cast both operands. A
+  new test covers the `VALUES` arm a first use takes.
+
+- **A repository walk now survives an entry that vanished**: the suite failed
+  intermittently with `open .../cmd/aurora/cmd/data: no such file or directory`.
+  The repocheck package walks the checkout while other packages test, and
+  `cmd/aurora/cmd`'s tests chdir into temp dirs and call `store.ResetForTest`,
+  which removes `./data`. All eight walks share one tolerance helper that treats
+  ENOENT as "nothing left to read" and still propagates every other error.
+- **Two walks had reimplemented the skip list**, and `doc_links_test`'s copy was
+  already missing `.rumdl_cache`, `.planning` and `testdata`; both use the shared
+  rule now.
+
 - **The ownerless NFT list is tested with assets in it**: the only test for
   `GET /nft/list` without `?owner` used an empty store and asserted `[]`, which
   proves the encoding and nothing about the endpoint's purpose — listing assets
