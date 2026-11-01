@@ -28,6 +28,16 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The API reference's pagination numbers are checked against the handlers**:
+  nine endpoints state a default page size and a ceiling in prose, and every one
+  of those numbers is a constant in a handler file. Nothing compared the two, so
+  a changed ceiling left a wrong number in the document that a client plans its
+  paging around.
+- **The tighter offset ceilings are asserted separately**: `/nft/list` and token
+  history stop at 1000 because paging that deep is a scan, while every other
+  list reaches 10000. Flattening the two is the edit most likely to go
+  unnoticed, and it now fails the check twice.
+
 - **The CLI reference says the page envelope's zero limit means two things**:
   `aurora blockchain blocks -l 0 --json` echoes `"limit": 0` and lists
   everything, while `GET /blockchain/blocks?limit=0` falls back to the default
