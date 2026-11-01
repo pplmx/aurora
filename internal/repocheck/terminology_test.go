@@ -59,6 +59,12 @@ func TestTheCatalogsUseOneWordPerConcept(t *testing.T) {
 	}
 
 	catalogs := [][]string{
+		// The English catalog is where a Latin spelling drifts first: four
+		// entries said "Base64" while every document, the Chinese catalogs and
+		// the Go package say base64. The other pairs are Chinese words and
+		// cannot match English text, so scanning it costs one pass and catches
+		// the half of the vocabulary the Chinese-only scan cannot see.
+		{"internal", "i18n", "messages_en.go"},
 		{"internal", "i18n", "messages_zh.go"},
 		{"internal", "i18n", "messages_zh_hant.go"},
 		{"desktop", "internal", "nativeui", "messages_zh.go"},
