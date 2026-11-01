@@ -12,6 +12,17 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The fetch response ceiling is documented now**: a data source that serves
+  more than 10 MiB fails the whole fetch with `502 FETCH_FAILED`, and nothing in
+  the reference said why. The paragraph beside it already documented the 10-hop
+  redirect ceiling, so the omission read as "there is no size limit".
+- **It is stated as a different limit from this server's own**: the cap bounds
+  the *upstream feed*; the 4 MiB figure in the request table bounds incoming
+  calls. An oversized response fails rather than being truncated into a stored
+  reading.
+- **`readConst` folds multi-factor multiplication**: `maxResponseBytes` is
+  written `10 * 1024 * 1024`, which the old two-operand parser rejected.
+
 - **The two modules do not share one patch version**: `docs/desktop.md` said
   `go.mod` and `desktop/go.mod` were both `go 1.27.2`. The nested module had
   already been raised to `1.27.3` by the MyGo dependency, whose own `go`
