@@ -28,6 +28,17 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The reference states that every timestamp is unix seconds**: twenty-two
+  places build timestamps with `time.Now().Unix()` and nothing uses
+  `UnixMilli`/`UnixNano`, but only the voting session fields said so. A client
+  reading `timestamp` or `created_at` had to guess, and the common guess is
+  milliseconds — which renders 1970 instead of failing. The paragraph names the
+  fields it covers, and the CLI's shape table spells the unit beside the one
+  column that mentioned a timestamp.
+- **A test asserts it from both ends**: no builder may call a sub-second
+  constructor, no documented sample may carry a value outside the plausible
+  seconds range, and the paragraph must remain.
+
 - **The reference names the second request/response spelling difference**:
   `candidate_ids`/`candidates` was documented; `voter_public_key`/`public_key`
   was not. The vote sample showed the request key and the prose said "the
