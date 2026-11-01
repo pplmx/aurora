@@ -658,3 +658,93 @@ func TestCreatingDrawReturnsHistoryToFirstPage(t *testing.T) {
 	require.Zero(t, app.lottery.offset, "the new draw is on page zero")
 	require.Zero(t, fake.historyOffset)
 }
+
+// TestAPagePastTheEndReturnsToTheFirst covers the fallback every loader shares:
+// a request for rows beyond the end comes back empty, and an empty page with an
+// offset is not an answer — the list would sit blank at a position that no
+// longer exists. Each loader recurses to page zero instead, and the offset it
+// commits is the one it actually read.
+//
+// Nothing tested this path. The pager cannot normally ask for it, so it is
+// reached by a shrinking store — a row deleted while its page was open, or a
+// filter that matched fewer rows than the offset assumed.
+func TestAPagePastTheEndReturnsToTheFirst(t *testing.T) {
+	rows := 3
+
+	t.Run("tokens", func(t *testing.T) {
+		tokens := make([]TokenRow, rows)
+		for i := range tokens {
+			tokens[i] = TokenRow{ID: "t" + strconv.Itoa(i), Name: "Token", Symbol: "T"}
+		}
+		app := New(&fakeServices{tokenRows: tokens})
+		require.True(t, app.loadTokenPage(999))
+		require.Zero(t, app.token.offset, "a page past the end falls back to the first")
+		require.Len(t, app.token.tokens, rows)
+	})
+
+	t.Run("voters", func(t *testing.T) {
+		voters := make([]VoterRow, rows)
+		for i := range voters {
+			voters[i] = VoterRow{Name: "V" + strconv.Itoa(i), PublicKey: "pk" + strconv.Itoa(i)}
+		}
+		app := New(&fakeServices{voterRows: voters})
+		require.True(t, app.loadVoterPage(999))
+		require.Zero(t, app.voting.voterOffset)
+		require.Len(t, app.voting.voters, rows)
+	})
+
+	t.Run("candidates", func(t *testing.T) {
+		candidates := make([]CandidateRow, rows)
+		for i := range candidates {
+			candidates[i] = CandidateRow{ID: "c" + strconv.Itoa(i), Name: "C" + strconv.Itoa(i)}
+		}
+		app := New(&fakeServices{candidates: candidates})
+		require.True(t, app.loadCandidatePage(999))
+		require.Zero(t, app.voting.candOffset)
+		require.Len(t, app.voting.candidates, rows)
+	})
+
+	t.Run("sessions", func(t *testing.T) {
+		sessions := make([]SessionRow, rows)
+		for i := range sessions {
+			sessions[i] = SessionRow{ID: "s" + strconv.Itoa(i), Title: "S" + strconv.Itoa(i)}
+		}
+		app := New(&fakeServices{sessions: sessions})
+		require.True(t, app.loadSessionPage(999))
+		require.Zero(t, app.voting.sessionOffset)
+		require.Len(t, app.voting.sessions, rows)
+	})
+
+	t.Run("nfts", func(t *testing.T) {
+		nfts := make([]NFTRow, rows)
+		for i := range nfts {
+			nfts[i] = NFTRow{ID: "n" + strconv.Itoa(i), Name: "N" + strconv.Itoa(i)}
+		}
+		app := New(&fakeServices{nftRows: nfts})
+		require.True(t, app.loadNFTPage(999))
+		require.Zero(t, app.nft.offset)
+		require.Len(t, app.nft.list, rows)
+	})
+
+	t.Run("nft history", func(t *testing.T) {
+		ops := make([]NFTOpRow, rows)
+		for i := range ops {
+			ops[i] = NFTOpRow{Type: "transfer", BlockHeight: int64(i + 1)}
+		}
+		app := New(&fakeServices{nftHistoryRows: ops})
+		require.NoError(t, app.loadNFTHistoryPage("n1", 999))
+		require.Zero(t, app.nft.historyOffset)
+		require.Len(t, app.nft.history, rows)
+	})
+
+	t.Run("oracle sources", func(t *testing.T) {
+		sources := make([]SourceRow, rows)
+		for i := range sources {
+			sources[i] = SourceRow{ID: "s" + strconv.Itoa(i), Name: "S" + strconv.Itoa(i)}
+		}
+		app := New(&fakeServices{sources: sources})
+		require.True(t, app.loadOracleSourcePage(999))
+		require.Zero(t, app.oracle.offset)
+		require.Len(t, app.oracle.sources, rows)
+	})
+}
