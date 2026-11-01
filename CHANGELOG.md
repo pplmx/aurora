@@ -28,6 +28,14 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **`SignVote` returned an error nobody could classify**: a short private key
+  produced an inline `fmt.Errorf("invalid private key size")` while the package
+  already declared `ErrInvalidPrivateKey` for exactly that case, and the API maps
+  that sentinel to 400. The mapping had been dead since it was written.
+- **The use case had grown its own length check** to compensate — its test
+  comment said the window between the two was a deep dive finding. Both layers
+  return the sentinel now, so the check holds whichever one catches it first.
+
 - **Three token tests proved the wrong thing**: `TestApprove_InvalidAmount`,
   `TestApprove_InvalidOwner` and `TestApprove_InvalidSpender` left `PrivateKey`
   empty, so the key check failed first and the condition in the test's name never

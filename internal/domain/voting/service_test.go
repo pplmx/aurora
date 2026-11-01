@@ -3,6 +3,7 @@ package voting
 import (
 	"crypto/ed25519"
 	"encoding/base64"
+	"errors"
 	"testing"
 )
 
@@ -29,8 +30,8 @@ func TestEd25519Service_SignVote_InvalidKeySize(t *testing.T) {
 	service := NewEd25519Service()
 
 	_, err := service.SignVote("message", []byte("short-key"))
-	if err == nil {
-		t.Fatal("Expected error for invalid key size")
+	if !errors.Is(err, ErrInvalidPrivateKey) {
+		t.Fatalf("SignVote(short key) = %v, want ErrInvalidPrivateKey", err)
 	}
 }
 

@@ -3,7 +3,6 @@ package voting
 import (
 	"crypto/ed25519"
 	"encoding/base64"
-	"fmt"
 )
 
 type Service interface {
@@ -19,7 +18,7 @@ func NewEd25519Service() *Ed25519Service {
 
 func (s *Ed25519Service) SignVote(message string, privateKey []byte) (string, error) {
 	if len(privateKey) != ed25519.PrivateKeySize {
-		return "", fmt.Errorf("invalid private key size")
+		return "", ErrInvalidPrivateKey
 	}
 
 	signature := ed25519.Sign(privateKey, []byte(message))

@@ -1627,13 +1627,15 @@ func TestGetResultsUseCase_VoteCountErrorNotSwallowed(t *testing.T) {
 	require.Error(t, err, "a real per-session count failure must surface")
 }
 
-// TestCastVoteUseCase_WrongLengthPrivateKey is the regression test for the
-// round-96 deep-dive (ISS-113): a private key that decodes as valid base64 but
-// is not ed25519.PrivateKeySize must surface as a 4xx-class client error
-// (ErrInvalidPrivateKey), not leak through SignVote's plain
-// "invalid private key size" error that the API classifies as 500. The base64
-// decode path already covers malformed base64 (ErrInvalidBase64); this pins the
-// length half.
+// TestCastVoteUseCase_WrongLengthPrivateKey pins the length half of the
+// private-key check: a key that decodes as valid base64 but is not
+// ed25519.PrivateKeySize must surface as a 4xx-class client error
+// (ErrInvalidPrivateKey). The base64 decode path covers malformed base64
+// (ErrInvalidBase64) separately.
+//
+// SignVote returns the same sentinel now, so this holds whichever layer catches
+// the length first; it used to return an inline fmt.Errorf that the API could
+// only classify as 500.
 func TestCastVoteUseCase_WrongLengthPrivateKey(t *testing.T) {
 	now := time.Now().Unix()
 	repo := &mockVotingRepo{
