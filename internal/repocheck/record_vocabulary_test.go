@@ -13,7 +13,7 @@ var (
 	recordModuleWord = regexp.MustCompile(`Record\{Module: "([a-z]+)"`)
 	recordActionWord = regexp.MustCompile(`(?m)^\tcase "[a-z_]+":\n\t\treturn "([A-Za-z ]+)"`)
 	recordFactWord   = regexp.MustCompile(`appendFact\((?:nil|facts), "([A-Za-z ]+)"`)
-	recordCatalogKey = regexp.MustCompile(`(?m)^\t"(record\.[a-z. ]+)":`)
+	recordCatalogKey = regexp.MustCompile(`(?m)^\t"(record\.[a-z. @]+)":`)
 )
 
 // TestTheRecordVocabularyIsTranslated covers the words a decoded ledger record
@@ -53,6 +53,9 @@ func TestTheRecordVocabularyIsTranslated(t *testing.T) {
 			words := append([]string(nil), kinds[kind]...)
 			sort.Strings(words)
 			for _, word := range words {
+				// A module-scoped entry (record.<kind>.<word>@<module>) is an
+				// alternative spelling for one module, not a replacement: the
+				// bare entry stays the fallback every other module uses.
 				key := "record." + kind + "." + lowerASCII(word)
 				assert.Truef(t, present[key],
 					"%s has no %q, so a ledger row prints %q in English", name, key, word)
@@ -73,4 +76,36 @@ func lowerASCII(word string) string {
 		}
 	}
 	return string(out)
+}
+
+// TestTheScopedRecordWordsAreReal covers the module-scoped entries: they are the
+// way one English word gets two translations. An entry whose module or word no
+// decoder path produces is unreachable text — record.action.transfer@nft exists
+// because a token transfer is 转账 and an NFT transfer is 转让, and a typo in
+// either half would silently fall back to the bare entry.
+func TestTheScopedRecordWordsAreReal(t *testing.T) {
+	body := readRepoFile(t, "internal", "records", "records.go")
+
+	modules := map[string]bool{}
+	for _, m := range recordModuleWord.FindAllStringSubmatch(body, -1) {
+		modules[m[1]] = true
+	}
+	require.NotEmpty(t, modules, "the decoder names its modules")
+
+	entries := regexp.MustCompile(`(?m)^\t"record\.([a-z]+)\.([a-z ]+)@([a-z]+)":`)
+	checked := 0
+	for _, name := range []string{"messages_en.go", "messages_zh.go", "messages_zh_hant.go"} {
+		catalog := readRepoFile(t, "internal", "i18n", name)
+		for _, m := range entries.FindAllStringSubmatch(catalog, -1) {
+			kind, word, module := m[1], m[2], m[3]
+			checked++
+			assert.Truef(t, modules[module],
+				"%s scopes %q to module %q, which the decoder never emits", name, word, module)
+			// The bare entry must exist too: every other module falls back to it.
+			bare := "record." + kind + "." + word
+			assert.Containsf(t, catalog, `"`+bare+`":`,
+				"%s scopes %q but has no bare %s for the other modules", name, word, bare)
+		}
+	}
+	require.Greater(t, checked, 0, "the scan must reach a scoped entry")
 }

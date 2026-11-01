@@ -313,7 +313,7 @@ func TestTextLResolvesEveryWord(t *testing.T) {
 		Module: "lottery", Action: "Draw", Subject: "Alice",
 		Facts: []Fact{{Label: "Winners", Value: "Alice"}, {Label: "Seed", Value: "s"}},
 	}
-	resolve := func(kind, word string) string {
+	resolve := func(kind, _ string, word string) string {
 		switch kind + ":" + word {
 		case "module:lottery":
 			return "抽奖"
@@ -335,4 +335,25 @@ func TestTextLResolvesEveryWord(t *testing.T) {
 	require.Equal(t, record.Text(), record.TextL(nil, DefaultStyle))
 	// The default style is what Text has always written.
 	require.Equal(t, "lottery · Draw · Alice   (Winners: Alice; Seed: s)", record.TextIn(DefaultStyle))
+}
+
+// TestTextLUsesTheModuleToChooseAWord covers the reason the resolver sees the
+// module: one English word can mean different things per module. A token
+// Transfer moves money and an NFT Transfer moves an asset, so 转账 and 转让 are
+// different words for the same entry in the decoder.
+func TestTextLUsesTheModuleToChooseAWord(t *testing.T) {
+	resolve := func(kind, module, word string) string {
+		if kind == KindAction && word == "Transfer" && module == "nft" {
+			return "转让"
+		}
+		if kind == KindAction && word == "Transfer" {
+			return "转账"
+		}
+		return word
+	}
+	nftRecord := Record{Module: "nft", Action: "Transfer", Subject: "Star"}
+	tokenRecord := Record{Module: "token", Action: "Transfer", Subject: "GLD"}
+
+	require.Contains(t, nftRecord.TextL(resolve, DefaultStyle), "转让")
+	require.Contains(t, tokenRecord.TextL(resolve, DefaultStyle), "转账")
 }
