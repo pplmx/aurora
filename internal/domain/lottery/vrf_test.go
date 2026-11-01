@@ -1,6 +1,8 @@
 package lottery
 
 import (
+	"encoding/base64"
+	"strings"
 	"testing"
 
 	"filippo.io/edwards25519"
@@ -567,5 +569,84 @@ func TestVRFVerify_RejectsAProofOfADifferentMessage(t *testing.T) {
 func TestVRFVerify_RejectsNilKey(t *testing.T) {
 	if VRFVerify(nil, []byte("m"), make([]byte, 32), make([]byte, vrfProofLen)) {
 		t.Fatal("a nil public key must be rejected")
+	}
+}
+
+// DecodePublicKey is the entry point that turns a stored lottery record's
+// base64 key back into a point. Its success path was covered only incidentally,
+// and its four rejection branches not at all — yet a stored key that fails to
+// decode is how `lottery verify` reports a tampered record.
+
+// TestDecodePublicKeyRoundTrips proves the encoding the records persist is
+// lossless: EncodePublicKey writes 32 bytes, DecodePublicKey reads the same
+// point back, and the two agree byte for byte.
+func TestDecodePublicKeyRoundTrips(t *testing.T) {
+	pk, _, err := GenerateKeyPair()
+	if err != nil {
+		t.Fatalf("GenerateKeyPair() error = %v", err)
+	}
+
+	encoded := EncodePublicKey(pk)
+	decoded, err := DecodePublicKey(encoded)
+	if err != nil {
+		t.Fatalf("DecodePublicKey(%q) error = %v", encoded, err)
+	}
+	if decoded.Equal(pk) != 1 {
+		t.Fatal("a round-tripped public key must be the same point")
+	}
+	if got := EncodePublicKey(decoded); got != encoded {
+		t.Errorf("re-encoding = %q, want %q", got, encoded)
+	}
+}
+
+// TestEncodePublicKeyOfNilIsEmpty covers the absent-key encoding: a pre-v1.31
+// record has no stored key, and the empty string is what tells verify to skip
+// the proof check instead of attempting to decode.
+func TestEncodePublicKeyOfNilIsEmpty(t *testing.T) {
+	if got := EncodePublicKey(nil); got != "" {
+		t.Errorf("EncodePublicKey(nil) = %q, want the empty string", got)
+	}
+}
+
+// TestDecodePublicKeyRejects covers each way a stored key can be unusable. The
+// messages are asserted because they are the difference a reader of
+// `lottery verify` sees between "absent" and "corrupt".
+func TestDecodePublicKeyRejects(t *testing.T) {
+	notAPoint := func() string {
+		// 0x7F repeated is not a field element, so SetBytes refuses it; the
+		// length is correct, which isolates the decode guard.
+		b := make([]byte, 32)
+		for i := range b {
+			b[i] = 0x7F
+		}
+		return base64.StdEncoding.EncodeToString(b)
+	}
+	shortKey := base64.StdEncoding.EncodeToString(make([]byte, 31))
+	longKey := base64.StdEncoding.EncodeToString(make([]byte, 33))
+
+	for _, tc := range []struct {
+		name    string
+		input   string
+		wantMsg string
+	}{
+		{"absent", "", "empty public key"},
+		{"not base64", "!!not-base64!!", "illegal base64 data"},
+		{"too short", shortKey, "invalid public key length"},
+		{"too long", longKey, "invalid public key length"},
+		{"not a point", notAPoint(), "invalid"},
+	} {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			p, err := DecodePublicKey(tc.input)
+			if err == nil {
+				t.Fatalf("DecodePublicKey(%q) = %v, want an error", tc.input, p)
+			}
+			if p != nil {
+				t.Errorf("a rejected key must be nil, got %v", p)
+			}
+			if !strings.Contains(err.Error(), tc.wantMsg) {
+				t.Errorf("error = %q, want it to mention %q", err, tc.wantMsg)
+			}
+		})
 	}
 }
