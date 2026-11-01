@@ -322,6 +322,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **The session highlight is tested like the other two**: three helpers restore
+  a reload's highlight by record id rather than row index, so a filter that
+  reorders the list still lands on the same record. Source, voter and candidate
+  were covered for a reorder, a vanished record and an empty id; the session
+  helper has the same shape and had none of it — and the write path depends on
+  its roster as well. The three tests now cover it.
+
 - **A loader commits its offset only after the read, and now a check says so**:
   the paging invariants state that rows, offset and `HasMore` are committed
   together once the read succeeded. Every loader does that today and nothing
