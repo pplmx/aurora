@@ -28,6 +28,14 @@ The milestone notes under `.planning/` are history, not current instructions.
   now, labelled "Stored sessions", and the empty tally's prompt names that
   picker instead of sending the reader back to Setup.
 
+- **The CLI's translation table got the same check**: 82 entries name a sentinel
+  and nothing compared them against the code that returns the errors. It found
+  `nft.ErrStorageNotInit`, declared and translated and never returned — the fourth
+  such entry across the two tables.
+- **The two tables list different sets for a reason**: six sentinels translate
+  only in the CLI, where lottery import and ledger integrity surface; the HTTP
+  reference lists none that the CLI lacks.
+
 - **A test now proves every classified code can be returned**: the HTTP table
   lists 75 sentinels and nothing checked that a request can produce them. It
   matches on package plus name, not message text, because token, nft and voting
