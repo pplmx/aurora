@@ -56,6 +56,15 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **A single ballot printed as "1 votes"**: `voting results` and
+  `voting candidate list` render every tally through one plural entry, so a
+  candidate with one ballot read "Alice (Greens): 1 votes" — the one place a
+  reader compares candidates by number. `voteCountText` picks a singular key at
+  one; both keys carry the same 票 in Chinese, which has no plural form.
+- **The tests pinned the wrong string**: they asserted "1 votes" and would have
+  defended the defect. They check the singular form now, and the plural case
+  keeps its "0 votes" assertion so both stay covered.
+
 - **`genzhhant -check` could never pass**: it compares the checked-in
   Traditional catalogs with what the generator produces, and three reviewed
   wordings — 批准額度 and its two neighbours, and 字節 where OpenCC says 位元組 —
