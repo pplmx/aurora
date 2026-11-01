@@ -12,6 +12,15 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The desktop module keeps its own layering rules, and now a test says so**:
+  `TestLayerDependencies` walks `internal/*` only, so the nested window module had
+  no import-direction check at all — even though it is a second presentation
+  layer with two packages of its own. `nativeui` (views and view state) must not
+  reach `app`, `infra` or `api`, and `deskapp` (the adapter) must not import
+  `infra`, because the container hands it ports. Both hold today; production
+  imports only, since the deskapp tests build a real store from `infra` the way
+  the root module's tests do.
+
 - **The token name and symbol ceilings now reach the places a user reads**:
   both are enforced — a ten-byte symbol is accepted and an eleven-byte one is
   rejected with `TOKEN_SYMBOL_TOO_LONG` — but neither appeared in the CLI help
