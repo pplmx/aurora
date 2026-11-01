@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/pplmx/aurora/internal/i18n"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -33,6 +34,25 @@ func tokenFixture(t *testing.T, name, symbol, supply string) (tokenID, pub, priv
 }
 
 // extractField pulls the value after "label " on the line containing label.
+// assertFieldValue requires one printed line to carry want under label. It
+// tolerates the padding printFields adds to line the values up in one column, so
+// a test does not have to know how wide the block's longest label is. extractField
+// trims at the first space, which is right for a key but cuts a value like
+// "A rather long NFT name" in half.
+func assertFieldValue(t *testing.T, out, label, want string) {
+	t.Helper()
+	for _, line := range strings.Split(out, "\n") {
+		rest, ok := strings.CutPrefix(strings.TrimSpace(line), label)
+		if !ok {
+			continue
+		}
+		if strings.TrimSpace(rest) == want {
+			return
+		}
+	}
+	assert.Failf(t, "field not found", "no line carries %q under %q in:\n%s", want, label, out)
+}
+
 func extractField(t *testing.T, out, label string) string {
 	t.Helper()
 	for _, line := range strings.Split(out, "\n") {
@@ -99,7 +119,7 @@ func TestTokenCreate_DecimalsHonored(t *testing.T) {
 
 		out, err := runCmd(t, "token", "info", "--token", "GAME")
 		require.NoError(t, err)
-		require.Contains(t, out, "Decimals: 6", "created token must report the honored --decimals value")
+		assertFieldValue(t, out, "Decimals:", "6")
 
 		// Unset flag keeps the documented default of 8.
 		_, err = runCmd(t, "token", "create",
@@ -107,7 +127,7 @@ func TestTokenCreate_DecimalsHonored(t *testing.T) {
 		require.NoError(t, err)
 		out, err = runCmd(t, "token", "info", "--token", "DFLT")
 		require.NoError(t, err)
-		require.Contains(t, out, "Decimals: 8", "unset --decimals must keep the default of 8")
+		assertFieldValue(t, out, "Decimals:", "8")
 	})
 }
 
@@ -417,4 +437,51 @@ func TestNewTokenService_RejectsUnusableDatabasePath(t *testing.T) {
 	require.ErrorContains(t, err, "failed to create repo")
 	assert.Nil(t, service)
 	assert.Nil(t, cleanup)
+}
+
+// TestFieldBlocksLineUpTheirValues covers printFields. A block whose labels
+// differ in length ("ID", "Total Supply", "Owner") printed a ragged left edge,
+// so the eye re-found the value on every line; the same block in Chinese was
+// worse, because 所有者 is six terminal columns and nine bytes.
+//
+// The assertion is on column positions rather than text: the block has to reach
+// the same offset in both languages even though one label is Latin and the other
+// Han.
+func TestFieldBlocksLineUpTheirValues(t *testing.T) {
+	translator := i18n.GetTranslator()
+	before := translator.GetLocale()
+	t.Cleanup(func() { translator.SetLocale(before) })
+
+	for _, locale := range []string{"en", "zh"} {
+		translator.SetLocale(locale)
+		capture := captureStdout(t)
+		printFields(
+			field{i18n.GetText("common.id"), "MTK"},
+			field{i18n.GetText("common.total_supply"), "1000"},
+			field{i18n.GetText("common.owner"), "key"},
+		)
+		out := capture()
+
+		columns := map[string]int{}
+		for _, line := range strings.Split(strings.TrimRight(out, "\n"), "\n") {
+			if strings.TrimSpace(line) == "" {
+				continue
+			}
+			// The value starts after the label, the separator and the padding.
+			_, after, ok := strings.Cut(line, i18n.Colon())
+			require.Truef(t, ok, "%s: %q has no separator", locale, line)
+			columns[line] = i18n.DisplayWidth(line[:len(line)-len(strings.TrimLeft(after, " "))])
+		}
+		require.Len(t, columns, 3, "%s: three fields", locale)
+
+		want := -1
+		for line, column := range columns {
+			if want < 0 {
+				want = column
+				continue
+			}
+			assert.Equalf(t, want, column,
+				"%s: %q starts its value at column %d, not %d:\n%s", locale, line, column, want, out)
+		}
+	}
 }

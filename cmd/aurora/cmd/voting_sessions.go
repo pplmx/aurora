@@ -53,8 +53,10 @@ var sessionCreateCmd = &cobra.Command{
 		}
 
 		fmt.Printf("✅ "+i18n.GetText("voting.session_created")+"\n", session.Title)
-		printLocalizedField("common.id", session.ID)
-		printLocalizedField("common.status", localizedVotingStatus(session.Status))
+		printFields(
+			field{i18n.GetText("common.id"), session.ID},
+			field{i18n.GetText("common.status"), localizedVotingStatus(session.Status)},
+		)
 		return nil
 	},
 }

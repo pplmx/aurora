@@ -54,12 +54,14 @@ var statsCmd = &cobra.Command{
 
 		fmt.Println("\n📊 " + i18n.GetText("lottery.statistics"))
 		fmt.Println("────────────────────────────")
-		fmt.Printf("  %s\n", i18n.Label(i18n.GetText("lottery.total"), len(records)))
-		fmt.Printf("  %s\n", i18n.Label(i18n.GetText("lottery.db_path"), store.Path()))
-
-		if latest >= 0 {
-			fmt.Printf("  %s\n", i18n.Label(i18n.GetText("lottery.latest_block"), fmt.Sprintf("#%d", latest)))
+		fields := []field{
+			{i18n.GetText("lottery.total"), fmt.Sprint(len(records))},
+			{i18n.GetText("lottery.db_path"), store.Path()},
 		}
+		if latest >= 0 {
+			fields = append(fields, field{i18n.GetText("lottery.latest_block"), fmt.Sprintf("#%d", latest)})
+		}
+		printFields(fields...)
 
 		return nil
 	},
@@ -165,9 +167,11 @@ var dbInfoCmd = &cobra.Command{
 
 		fmt.Println("\n📁 " + i18n.GetText("lottery.db_info_title"))
 		fmt.Println("────────────────────────────")
-		fmt.Printf("  %s\n", i18n.Label(i18n.GetText("lottery.db_path"), path))
-		fmt.Printf("  %s\n", i18n.Label(i18n.GetText("lottery.db_size"), utils.FormatBytes(size)))
-		fmt.Printf("  %s\n", i18n.Label(i18n.GetText("lottery.total_blocks"), count))
+		printFields(
+			field{i18n.GetText("lottery.db_path"), path},
+			field{i18n.GetText("lottery.db_size"), utils.FormatBytes(size)},
+			field{i18n.GetText("lottery.total_blocks"), fmt.Sprint(count)},
+		)
 		return nil
 	},
 }

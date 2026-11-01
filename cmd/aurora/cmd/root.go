@@ -244,17 +244,50 @@ func setDefaultConfig() {
 // header. Four modules wrote this line by hand 55 times; the alignment is part
 // of the CLI's output contract, so it lives in one place.
 func printField(label, value string) {
-	fmt.Printf("   %s\n", i18n.Label(label, value))
+	printFields(field{label, value})
 }
 
-// printLocalizedOptionalField skips an optional field that has no value, so the
-// table does not print a label with nothing after it (an NFT without a
-// description, an oracle source without a path).
-func printLocalizedOptionalField(key, value string) {
-	if strings.TrimSpace(value) == "" {
-		return
+// field is one label and its value, for printFields.
+type field struct {
+	label string
+	value string
+}
+
+// printFields prints a block of "Label: value" lines with the values in one
+// column, the way `kubectl describe` sets a field block. A block whose labels
+// differ in length ("ID", "Total Supply", "Owner") printed a ragged left edge
+// and the eye had to re-find the value on every line.
+//
+// The column is measured in display columns, not bytes or runes: a Han label is
+// two columns per character, so padding by byte length would leave the Chinese
+// block worse aligned than doing nothing. The separator is the language's own,
+// so a Chinese block keeps its full-width colon.
+func printFields(fields ...field) {
+	width := 0
+	for _, f := range fields {
+		if w := i18n.DisplayWidth(f.label); w > width {
+			width = w
+		}
 	}
-	printLocalizedField(key, value)
+	for _, f := range fields {
+		pad := strings.Repeat(" ", width-i18n.DisplayWidth(f.label))
+		fmt.Printf("   %s%s %s%s\n", f.label, i18n.Colon(), pad, f.value)
+	}
+}
+
+// addField appends one label/value pair for printFields, skipping an optional
+// field that has no value so the block does not print a label with nothing after
+// it (an NFT without a description, an oracle source without a path).
+func addField(fields []field, label, value string) []field {
+	if strings.TrimSpace(value) == "" {
+		return fields
+	}
+	return append(fields, field{label, value})
+}
+
+// addLocalizedField is addField with the label resolved through the catalog.
+func addLocalizedField(fields []field, key, value string) []field {
+	return addField(fields, i18n.GetText(key), value)
 }
 
 // printLocalizedField resolves result labels at print time so command output

@@ -162,13 +162,15 @@ var historyCmd = &cobra.Command{
 			// field instead of a JSON blob cut at 200 characters. `--json`
 			// carries the whole record for a script.
 			fmt.Printf("%s\n", i18n.GetTextF("lottery.history_item", i+1))
-			fmt.Printf("  %s\n", i18n.Label(i18n.GetText("common.id"), record.ID))
-			fmt.Printf("  %s\n", i18n.Label(i18n.GetText("lottery.seed_label"), record.Seed))
-			fmt.Printf("  %s\n", i18n.Label(i18n.GetText("lottery.winners"), strings.Join(record.Winners, ", ")))
-			fmt.Printf("  %s\n", i18n.Label(i18n.GetText("lottery.participants_label"), len(record.Participants)))
-			fmt.Printf("  %s\n", i18n.Label(i18n.GetText("common.block_height"), record.BlockHeight))
-			fmt.Printf("  %s\n", i18n.Label(i18n.GetText("common.timestamp"),
-				time.Unix(record.Timestamp, 0).Format(blockTimeLayout)))
+			printFields(
+				field{i18n.GetText("common.id"), record.ID},
+				field{i18n.GetText("lottery.seed_label"), record.Seed},
+				field{i18n.GetText("lottery.winners"), strings.Join(record.Winners, ", ")},
+				field{i18n.GetText("lottery.participants_label"), fmt.Sprint(len(record.Participants))},
+				field{i18n.GetText("common.block_height"), fmt.Sprint(record.BlockHeight)},
+				field{i18n.GetText("common.timestamp"),
+					time.Unix(record.Timestamp, 0).Format(blockTimeLayout)},
+			)
 			fmt.Println()
 		}
 		return nil

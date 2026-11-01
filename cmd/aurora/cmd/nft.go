@@ -99,9 +99,11 @@ var mintCmd = &cobra.Command{
 		}
 
 		fmt.Println("✅ " + i18n.GetText("nft.minted"))
-		printLocalizedField("common.id", result.ID)
-		printLocalizedField("common.name", result.Name)
-		printLocalizedField("common.owner", result.Owner)
+		printFields(
+			field{i18n.GetText("common.id"), result.ID},
+			field{i18n.GetText("common.name"), result.Name},
+			field{i18n.GetText("common.owner"), result.Owner},
+		)
 		fmt.Printf("   %s\n", i18n.Label(i18n.GetText("common.block_height"), fmt.Sprintf("#%d", result.BlockHeight)))
 		return nil
 	},
@@ -144,10 +146,12 @@ var transferCmd = &cobra.Command{
 		}
 
 		fmt.Println("✅ " + i18n.GetText("nft.transferred"))
-		printLocalizedField("nft.operation_id", result.ID)
-		printLocalizedField("common.from", truncateBase64(result.From))
-		printLocalizedField("common.to", truncateBase64(result.To))
-		fmt.Printf("   %s\n", i18n.Label(i18n.GetText("common.block_height"), fmt.Sprintf("#%d", result.BlockHeight)))
+		printFields(
+			field{i18n.GetText("nft.operation_id"), result.ID},
+			field{i18n.GetText("common.from"), truncateBase64(result.From)},
+			field{i18n.GetText("common.to"), truncateBase64(result.To)},
+			field{i18n.GetText("common.block_height"), fmt.Sprintf("#%d", result.BlockHeight)},
+		)
 		return nil
 	},
 }
@@ -219,16 +223,18 @@ var getCmd = &cobra.Command{
 		}
 
 		fmt.Printf("\n🎨 %s\n", i18n.GetText("nft.details_heading")+i18n.Colon())
-		printLocalizedField("common.id", result.ID)
-		printLocalizedField("common.name", result.Name)
+		var fields []field
+		fields = addLocalizedField(fields, "common.id", result.ID)
+		fields = addLocalizedField(fields, "common.name", result.Name)
 		// Metadata is optional: an NFT minted without it keeps the fields out of
-		// the table instead of printing empty labels.
-		printLocalizedOptionalField("nft.description_label", result.Description)
-		printLocalizedOptionalField("nft.image_url", result.ImageURL)
-		printLocalizedOptionalField("nft.token_uri", result.TokenURI)
-		printLocalizedField("nft.creator_label", result.Creator)
-		printLocalizedField("common.owner", result.Owner)
-		fmt.Printf("   %s\n", i18n.Label(i18n.GetText("common.block_height"), fmt.Sprintf("#%d", result.BlockHeight)))
+		// the block instead of printing empty labels.
+		fields = addLocalizedField(fields, "nft.description_label", result.Description)
+		fields = addLocalizedField(fields, "nft.image_url", result.ImageURL)
+		fields = addLocalizedField(fields, "nft.token_uri", result.TokenURI)
+		fields = addLocalizedField(fields, "nft.creator_label", result.Creator)
+		fields = addLocalizedField(fields, "common.owner", result.Owner)
+		fields = addField(fields, i18n.GetText("common.block_height"), fmt.Sprintf("#%d", result.BlockHeight))
+		printFields(fields...)
 		return nil
 	},
 }
