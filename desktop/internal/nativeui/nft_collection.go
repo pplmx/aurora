@@ -145,6 +145,14 @@ func (a *App) nftListBody(c *ui.Context) {
 	if limit > maxListLimit {
 		limit = maxListLimit
 	}
+	if limit != a.nft.queriedLimit {
+		// A new page size starts at the newest rows, as the ledger's Show field
+		// does. Without this the list kept the page it had already read and the
+		// number beside the rows contradicted them.
+		if a.loadNFTPage(0) {
+			a.nft.selected = -1
+		}
+	}
 	previous, next := collectionToolbar(c, &a.nft.search, "Search NFTs",
 		"Search narrows the current page; use Previous/Next for older assets.",
 		"NFT collection", a.nft.offset, len(a.nft.list), a.nft.hasMore)
