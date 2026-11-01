@@ -12,6 +12,17 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The schedule limits in the CLI reference are tied to the code**: it states a
+  data source's interval ceiling (30 days) and the retry backoff (1s, 2s, 4s …
+  capped at five minutes). Neither was compared against the constants that
+  enforce them, so a tuning change would have left the prose describing an older
+  schedule.
+- **The interval is read from the domain constant** through the existing
+  `readConst` helper. The two backoff values are `time.Duration` expressions,
+  which that helper does not evaluate, so their declarations are matched as
+  written and the test says why.
+- **Changing either side fails it**: the code constant or the documented number.
+
 - **The fetch response ceiling is documented now**: a data source that serves
   more than 10 MiB fails the whole fetch with `502 FETCH_FAILED`, and nothing in
   the reference said why. The paragraph beside it already documented the 10-hop
