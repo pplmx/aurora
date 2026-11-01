@@ -103,7 +103,7 @@ func TestEveryTranslationKeyExists(t *testing.T) {
 	skipDir := skipWalkDir
 	err := filepath.WalkDir(root, func(path string, entry fs.DirEntry, err error) error {
 		if err != nil {
-			return err
+			return walkErrToleratingDisappearance(err)
 		}
 		if entry.IsDir() {
 			if skipDir(entry.Name()) {

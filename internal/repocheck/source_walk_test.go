@@ -1,6 +1,8 @@
 package repocheck
 
 import (
+	"errors"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -12,18 +14,36 @@ import (
 func walkGoSource(root string, fn func(path, body string)) error {
 	return filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
-			return err
+			return walkErrToleratingDisappearance(err)
 		}
-		if d.IsDir() || !strings.HasSuffix(path, ".go") || strings.HasSuffix(path, "_test.go") {
+		if d.IsDir() {
+			if skipWalkDir(d.Name()) {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		if !strings.HasSuffix(path, ".go") || strings.HasSuffix(path, "_test.go") {
 			return nil
 		}
 		body, readErr := os.ReadFile(path) //nolint:gosec // path comes from the repo walk
 		if readErr != nil {
-			return readErr
+			return walkErrToleratingDisappearance(readErr)
 		}
 		fn(path, string(body))
 		return nil
 	})
+}
+
+// walkErrToleratingDisappearance turns "this entry vanished" into "nothing to
+// read". The repocheck tests walk the checkout while the rest of the suite runs
+// in other packages, and cmd/aurora/cmd's tests chdir into temp dirs and call
+// store.ResetForTest, which removes ./data. A scan that failed on the resulting
+// ENOENT reported a missing repository directory that never existed.
+func walkErrToleratingDisappearance(err error) error {
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil
+	}
+	return err
 }
 
 // skipWalkDir lists the directories a repository walk must not enter. The build

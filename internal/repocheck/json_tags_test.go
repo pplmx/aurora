@@ -30,7 +30,7 @@ func TestJSONTagsAreSnakeCase(t *testing.T) {
 	for _, dir := range []string{"internal/app", "internal/api"} {
 		err := filepath.WalkDir(filepath.Join(root, dir), func(path string, entry os.DirEntry, err error) error {
 			if err != nil {
-				return err
+				return walkErrToleratingDisappearance(err)
 			}
 			if entry.IsDir() || !strings.HasSuffix(path, ".go") || strings.HasSuffix(path, "_test.go") {
 				return nil

@@ -32,10 +32,24 @@ func TestNoUnfinishedMarkersShip(t *testing.T) {
 			continue
 		}
 		require.NoError(t, filepath.WalkDir(base, func(path string, entry fs.DirEntry, walkErr error) error {
+			// A directory can disappear mid-walk: this package's own tests run
+			// alongside cmd/aurora/cmd, whose tests chdir into temp dirs and
+			// call store.ResetForTest (which removes ./data). Treat a vanished
+			// entry as "nothing here" rather than failing the scan, which
+			// reported open .../cmd/aurora/cmd/data: no such file or directory.
 			if walkErr != nil {
-				return walkErr
+				return walkErrToleratingDisappearance(walkErr)
 			}
-			if entry.IsDir() || !strings.HasSuffix(path, ".go") {
+			// Share the package's skip list so the build caches and runtime
+			// directories (data/, logs/) are never entered. This walk predated
+			// that helper and was the one place that reimplemented the rule.
+			if entry.IsDir() {
+				if skipWalkDir(entry.Name()) {
+					return filepath.SkipDir
+				}
+				return nil
+			}
+			if !strings.HasSuffix(path, ".go") {
 				return nil
 			}
 			// This file names the markers in order to forbid them.
@@ -44,7 +58,7 @@ func TestNoUnfinishedMarkersShip(t *testing.T) {
 			}
 			body, readErr := os.ReadFile(path) //nolint:gosec // path comes from the repo walk
 			if readErr != nil {
-				return readErr
+				return walkErrToleratingDisappearance(readErr)
 			}
 			scanned++
 			rel, relErr := filepath.Rel(root, path)

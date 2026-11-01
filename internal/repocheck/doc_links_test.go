@@ -55,14 +55,14 @@ func TestDocumentationAnchorsResolve(t *testing.T) {
 
 	err := filepath.WalkDir(repo, func(path string, entry os.DirEntry, err error) error {
 		if err != nil {
-			return err
+			return walkErrToleratingDisappearance(err)
 		}
 		name := entry.Name()
 		if entry.IsDir() {
-			// Vendored modules, build output and VCS data are not project docs.
-			switch name {
-			case ".git", ".gocache", ".gomodcache", ".gopath", ".gotmp",
-				"node_modules", "dist", ".screens", "logs", "data":
+			// The package's shared list, so this walk cannot drift from the
+			// caches the other checks skip. It used to carry its own copy,
+			// which was already missing .rumdl_cache, .planning and testdata.
+			if skipWalkDir(name) {
 				return filepath.SkipDir
 			}
 			return nil
