@@ -832,7 +832,12 @@ func TestLotteryDBInfo(t *testing.T) {
 		require.NoError(t, err)
 		assert.Contains(t, out, "Database Info")
 		assert.Regexp(t, `Database size: +\d+(\.\d+)? (B|KiB|MiB|GiB)`, out)
-		assertFieldValue(t, out, "Total blocks:", "0")
+		// The count is audit records, not the chain's length: it filters
+		// height > 0, so it agrees with `blockchain blocks` and is one less
+		// than `blockchain verify`, which counts genesis. The label used to say
+		// "Total blocks", the words verify had just stopped using for the same
+		// reason.
+		assertFieldValue(t, out, "Audit records:", "0")
 	})
 }
 
