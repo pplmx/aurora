@@ -729,7 +729,12 @@ func TestTokenRepository_TryAddToSupply_OverflowRejected(t *testing.T) {
 	require.NoError(t, err)
 
 	_, err = repo.TryAddToSupply(tokenID, token.NewAmount(1))
-	require.Error(t, err, "adding to a saturated supply must be rejected")
+	// The sentinel, not just "an error": the mint use case returns this value
+	// unchanged and the API maps ErrAmountTooLarge to 400. A bare message used
+	// to reach clients as an unclassified 500, telling them to retry a mint
+	// that can never succeed at this supply.
+	require.ErrorIs(t, err, token.ErrAmountTooLarge,
+		"adding to a saturated supply is a client-visible amount problem")
 
 	got, err := repo.GetToken(tokenID)
 	require.NoError(t, err)

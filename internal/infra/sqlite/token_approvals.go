@@ -74,7 +74,12 @@ func (r *TokenRepository) TryAddToSupply(id token.TokenID, amount *token.Amount)
 		if existing == nil {
 			return nil, token.ErrTokenNotFound
 		}
-		return nil, fmt.Errorf("try add to supply: total supply would exceed maximum")
+		// Wrap the domain sentinel rather than a bare message: the mint use
+		// case returns this error unchanged, and the API classifies
+		// ErrAmountTooLarge as a 400. A plain fmt.Errorf here reached clients
+		// as an unclassified 500, which tells them to retry a mint that can
+		// never succeed at this supply.
+		return nil, fmt.Errorf("try add to supply: total supply would exceed maximum: %w", token.ErrAmountTooLarge)
 	}
 	updated, err := r.GetToken(id)
 	if err != nil {

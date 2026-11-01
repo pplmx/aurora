@@ -209,3 +209,60 @@ func randomKeyPair() (ed25519.PublicKey, ed25519.PrivateKey, error) {
 func encB64(b []byte) string {
 	return base64.StdEncoding.EncodeToString(b)
 }
+
+// TestTokenMint_Smoke_SupplyOverflowIsAClientError drives the real server so the
+// whole chain is exercised: the repository's conditional UPDATE refuses to grow
+// total_supply past MaxInt64, and the caller must learn that as a 400 with a
+// code it can branch on. The repository used to return a bare message, which the
+// classifier could not match, so a saturated supply answered 500 INTERNAL_ERROR —
+// telling a client to retry a mint that can never succeed.
+func TestTokenMint_Smoke_SupplyOverflowIsAClientError(t *testing.T) {
+	resetForAPITest(t)
+	const apiKey = "smoke-supply-overflow"
+	viper.Set("api.key", apiKey)
+
+	dbPath := store.Path()
+	require.NotEmpty(t, dbPath)
+	migPath, err := realMigrationsDirSmoke()
+	require.NoError(t, err)
+	m, err := migrate.New(dbPath, migPath)
+	require.NoError(t, err, "migrator should init")
+	_, err = m.Up(0)
+	require.NoError(t, err, "applying real migrations must not fail")
+	_ = m.Close()
+
+	srv, err := NewServer()
+	require.NoError(t, err, "NewServer should boot against a temp DB")
+	t.Cleanup(func() { _ = srv.Close() })
+	router := srv.Router()
+
+	request := func(method, path, body string) *httptest.ResponseRecorder {
+		req := httptest.NewRequest(method, path, bytes.NewBufferString(body))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("X-API-Key", apiKey)
+		rr := httptest.NewRecorder()
+		router.ServeHTTP(rr, req)
+		return rr
+	}
+
+	ownerPub, ownerPriv := newKeyPairB64(t)
+
+	// Create the token already at the supply ceiling, so the very next mint
+	// overflows.
+	rr := request(http.MethodPost, "/api/v1/token/create", fmt.Sprintf(
+		`{"name":"Capped","symbol":"CAP","total_supply":"9223372036854775807","owner":"%s"}`, ownerPub))
+	require.Equal(t, http.StatusOK, rr.Code, "create body: %s", rr.Body.String())
+
+	rr = request(http.MethodPost, "/api/v1/token/mint", fmt.Sprintf(
+		`{"token_id":"CAP","to":"%s","amount":"1","private_key":"%s"}`, ownerPub, ownerPriv))
+
+	require.Equal(t, http.StatusBadRequest, rr.Code,
+		"a supply overflow is a client error, not a server fault: %s", rr.Body.String())
+	var resp struct {
+		Error string `json:"error"`
+		Code  string `json:"code"`
+	}
+	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &resp))
+	require.Equal(t, "AMOUNT_TOO_LARGE", resp.Code)
+	require.Contains(t, resp.Error, "maximum", "the message says what refused the mint")
+}
