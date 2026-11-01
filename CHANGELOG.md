@@ -322,6 +322,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **The token, NFT and oracle lists had the same ordering**: their applied-query
+  update also sat after the empty-list return, and all three gate their
+  first-record panel on that field, so a query cleared over an empty store showed
+  a work bench and hid the guide to creating the first record. Six lists in two
+  rounds, all one shape — the field describes the field, not whether rows
+  survived the read.
+
 - **A query cleared while the list is empty is still recorded**: the voter,
   candidate and session lists updated their applied-query field after the
   empty-list return, so a query cleared at that moment kept looking applied. Two
