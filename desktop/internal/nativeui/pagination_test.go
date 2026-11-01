@@ -811,3 +811,26 @@ func TestChangingTheNFTPageSizeReloads(t *testing.T) {
 	require.Zero(t, app.nft.offset, "the new size starts at the newest rows")
 	require.True(t, tester.HasText("Entries 1–50"), "the range describes the rows on screen")
 }
+
+// TestChangingTheOracleLimitReReads covers the Query card's Limit field. Its
+// loader compares the field against the limit the rows answer, so a new value
+// re-reads on the next frame — unlike the History cards, which wait for their
+// button. The card draws its own pager-less list, so the number in the field is
+// the only statement about how many rows it holds, and it must be true.
+func TestChangingTheOracleLimitReReads(t *testing.T) {
+	fake := &fakeServices{sources: []SourceRow{{ID: "s1", Name: "btc"}}}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 5000)
+	app.ShowPage("Oracle")
+	app.oracle.tab = 2
+	app.oracle.queryID = "s1"
+	tester.Frame()
+	require.Equal(t, 10, app.oracle.dataLoadedLimit, "the untouched field uses the shared default")
+	calls := fake.oracleDataCalls
+
+	app.oracle.queryLim = 25
+	tester.Frame()
+	require.Equal(t, 25, app.oracle.dataLoadedLimit,
+		"a new limit re-reads, so the field describes the rows on screen")
+	require.Greater(t, fake.oracleDataCalls, calls, "the read actually happened")
+}
