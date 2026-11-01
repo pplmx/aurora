@@ -226,9 +226,13 @@ AURORA_SERVER_HOST=127.0.0.1 AURORA_SERVER_PORT=9090 ./aurora-api
 | 投票   | `SESSION_TITLE_TOO_LONG`       | 400  |
 | 投票   | `SESSION_DESCRIPTION_TOO_LONG` | 400  |
 
-`NOT_TOKEN_OWNER`（403）与 `DUPLICATE_TRANSFER`（409）在上表中有定义，服务端
-当前不会产生：两个哨兵随 domain 层一起建好，但还没有用例返回它们。列出是为了
+`NOT_TOKEN_OWNER`（403）、`DUPLICATE_TRANSFER`（409）与 `INVALID_SIGNATURE`
+（401）在上表中有定义，服务端当前不会产生：前两个哨兵还没有用例返回它们，
+`INVALID_SIGNATURE` 则因为 token 与 nft 把验签结果表达成布尔值而不是错误
+（`NFTService.VerifyTransfer` 返回 `(false, nil)`），只有投票用它。列出是为了
 让调用方在它们启用时不必改解析逻辑；按「已返回」处理会写出永远不触发的分支。
+`internal/api/handler/classification_test.go` 会检查这一点：表里每一项都必须有
+代码返回其哨兵，或登记在上面的保留名单里。
 
 ## 健康与指标
 
