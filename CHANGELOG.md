@@ -322,6 +322,15 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **A new NFT page size re-reads the collection**: the Show field only changed
+  how the *next* page would be read, so the number in the field contradicted the
+  rows under it until something else forced a load. The ledger's Show field
+  re-reads on a size change; the collection now does too, starting at the newest
+  rows and clearing the highlight. The token History card is deliberately not
+  changed: it is an explicit read with its own button, so a new limit returns it
+  to "not loaded yet" and the reader presses Load History — the collection has no
+  such button, it loads itself.
+
 - **`/blockchain/verify` now says what `length` measures**: it counts the chain
   including genesis, while `/blockchain/blocks` reports `total` without it, so
   the two endpoints answer 3 and 2 for one ledger. The reference states the
