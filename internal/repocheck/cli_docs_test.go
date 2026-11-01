@@ -1,6 +1,7 @@
 package repocheck
 
 import (
+	"fmt"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -364,4 +365,35 @@ func TestCLIDocsNameEveryCompletionShell(t *testing.T) {
 		assert.NotEqualf(t, -1, strings.Index(docs, "`"+shell+"`"),
 			"docs/cli.md must name the %s completion shell", shell)
 	}
+}
+
+// TestSourceScheduleLimitsDocMatchesTheCode pins the two numbers the CLI
+// reference states for a data source's schedule. Both are promises an operator
+// plans around: the interval ceiling says what the add call accepts, and the
+// backoff ceiling says how long a persistently failing feed waits before the
+// next attempt. Neither was checked against the constants that enforce them, so
+// a tuning change would have left the prose behind.
+func TestSourceScheduleLimitsDocMatchesTheCode(t *testing.T) {
+	schedule := readRepoFile(t, "internal", "app", "oracleapp", "scheduler.go")
+
+	// These are time.Duration constants, so they are matched as written rather
+	// than evaluated: readConst handles the integer forms only.
+	require.Contains(t, schedule, "backoffBase = time.Second",
+		"the retry ladder still starts at one second")
+	require.Contains(t, schedule, "maxBackoff = 5 * time.Minute",
+		"the retry ceiling is five minutes")
+
+	service := readRepoFile(t, "internal", "domain", "oracle", "service.go")
+	maxIntervalSeconds := readConst(t, service, "MaxSourceIntervalSeconds")
+	require.Equal(t, 30*24*60*60, maxIntervalSeconds, "the interval ceiling is 30 days")
+
+	doc := strings.Join(strings.Fields(readRepoFile(t, "docs", "cli.md")), " ")
+
+	wantDays := fmt.Sprintf("`interval` 上限 %d 天", maxIntervalSeconds/86400)
+	assert.Contains(t, doc, wantDays,
+		"docs/cli.md must state the interval ceiling the domain enforces")
+	assert.Contains(t, doc, "1s、2s、4s",
+		"docs/cli.md must show the ladder the scheduler walks")
+	assert.Contains(t, doc, "最长 5 分钟",
+		"docs/cli.md must state the backoff ceiling the scheduler applies")
 }
