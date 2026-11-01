@@ -294,7 +294,7 @@ CLI 的 `-l 0` 表示「不限」，因此 `limit` 会是 `0`；REST 的 `limit=
 - 没有匹配：`No record matches "…".` / `No draw matches "…".`；
 - 这一页为空：`No entries on this page; use --offset to reach earlier ones or drop
   --limit to list everything.`（分页命令在 `--limit`/`--offset` 下取不到行时用它，
-  包括 `voting voter list` 与 `lottery history`）。
+  覆盖 `lottery history` 与投票的三个列表）。
 
 第三种最容易与「命令静默失败」混淆，所以它一定带一句说明而不是只打印计数。
 
@@ -302,6 +302,9 @@ CLI 的 `-l 0` 表示「不限」，因此 `limit` 会是 `0`；REST 的 `limit=
 `Lotteries on this page: 0 (offset 0)`、`Matches: 0`），空提示说明为什么是 0。只
 打印一句 `No tokens yet` 的做法已统一——那句话丢掉了计数，读的人和脚本都看不出
 是库为空还是这一页为空。
+
+`--offset` 单独出现也算分页：`voting candidate list --offset 9` 在非空库里取不到
+行时给出「这一页为空」，而不是 `(none)`——后者说的是库里没有记录，与事实不符。
 
 ### 备份
 
