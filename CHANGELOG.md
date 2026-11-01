@@ -10,6 +10,22 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ## [Unreleased]
 
+### Fixed
+
+- **`Amount.Cmp` panicked on an amount whose integer was never set**: `String`,
+  `Sign` and `Int64` all treat a nil embedded `*big.Int` as zero — they check
+  `a.Int == nil` before dereferencing. `Cmp` checked only the receivers, so the
+  same value printed `"0"`, reported `Sign 0`, and then panicked the moment a
+  caller compared it. A money type is the wrong place for three of four methods
+  to agree and the fourth to crash.
+- **The fix is the smallest one that makes the four agree**: a nil integer now
+  counts as absent, exactly as a nil receiver already did, and the existing
+  ordering is preserved for every input that did not panic. No current
+  production path builds a bare `Amount{}` — every repository read goes through
+  `NewAmount` or `NewAmountFromString` — so this is a latent trap rather than an
+  active failure.
+- **Dropping the nil-integer guard reproduces the panic** in the table test.
+
 ### Changed
 
 - **The audit outbox retry ladder had no direct assertion**: `backoff` was
