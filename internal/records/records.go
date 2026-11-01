@@ -335,10 +335,25 @@ func IsUUID(s string) bool {
 
 // isPrintable reports whether every rune in s has a visible form.
 func isPrintable(s string) bool {
+	return IsPrintable(s)
+}
+
+// IsPrintable reports whether every rune in s has a visible form. Exported for
+// the display paths that fall back to the stored text when a payload matches no
+// known shape: those callers print the bytes as-is, so they need the same test
+// ReadableFields applies before deciding to encode.
+func IsPrintable(s string) bool {
 	for _, r := range s {
 		if r < 0x20 || r == 0x7f {
 			return false
 		}
 	}
 	return true
+}
+
+// ReadableText renders text a terminal can show, encoding the whole value the
+// way ReadableFields encodes one field. The fallback display paths use it so an
+// unrecognised payload cannot smuggle an escape sequence into a table row.
+func ReadableText(s string) string {
+	return readableField(s)
 }

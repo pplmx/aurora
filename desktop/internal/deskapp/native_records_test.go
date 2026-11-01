@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/pplmx/aurora/desktop/internal/nativeui"
+	"github.com/pplmx/aurora/internal/records"
 )
 
 // The record decoder is what turns the chain's payload shapes into the ledger's
@@ -188,4 +189,26 @@ func factMap(row nativeui.BlockRow) map[string]string {
 		out[fact.Label] = fact.Value
 	}
 	return out
+}
+
+// TestDecodeRecordEncodesAnUnprintableUnknownPayload extends the readable-
+// fallback contract to the case that matters for a forged record: a payload
+// matching no shape still prints, so it must not carry control characters into
+// the ledger card. The plain-text case above passed even while the fallback
+// returned the bytes unchanged.
+func TestDecodeRecordEncodesAnUnprintableUnknownPayload(t *testing.T) {
+	for _, payload := range []string{
+		"forged \x1b[31mRED\x1b[0m row",
+		"forged\nsecond line",
+	} {
+		row := decodeBlockRecord(3, 0, payload)
+		assert.NotEqualf(t, payload, row.Summary, "an unprintable payload must not render as-is")
+		assert.Truef(t, records.IsPrintable(row.Summary),
+			"the ledger summary must be printable: %q", row.Summary)
+	}
+
+	// A recognised payload still decodes into its record language.
+	known := decodeBlockRecord(4, 0, "mint|GLD|dXNlcg==")
+	assert.Equal(t, "token", known.Module)
+	assert.NotEmpty(t, known.Summary)
 }
