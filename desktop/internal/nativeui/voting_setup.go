@@ -315,7 +315,10 @@ func (a *App) addCandidateToRoster() {
 	ids := splitParticipants(a.voting.sessionIDs)
 	for _, id := range ids {
 		if id == candidate.ID {
-			a.voting.status = okStatus("%s is already in the session roster.", candidate.Name)
+			// Success, not failure: the roster already holds this candidate, which is
+			// the state the click asked for. The sentence says no row was added, because
+			// "already there" beside a green Done otherwise reads as a second add.
+			a.voting.status = okStatus("%s is already in the session roster; nothing was added.", candidate.Name)
 			return
 		}
 	}
