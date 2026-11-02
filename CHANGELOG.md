@@ -12,6 +12,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The burn and the source toggle now have tests**: of seventeen writes, those
+  two had none, and both change something the same page shows — a destroyed asset
+  still listed, or a switch that disagrees with its row. The burn is driven
+  through its confirmation dialog by keyboard, the only path that reaches the
+  service; clicking the button by label hit the tab behind the dialog and never
+  called it. The id is set and settled before the key, because the frame that sees
+  a new id re-derives the holder and clears the previous subject's key.
+
 - **Every failed read is now tested to be visible**: a card that stores its error
   and draws nothing leaves a stale value on screen with no sign of it, which reads
   as a current answer. All thirteen list-level reads are driven to fail with one
