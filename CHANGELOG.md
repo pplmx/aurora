@@ -12,6 +12,12 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The interval ceiling is the domain's constant**: the form's number input stopped
+  at 30 days and the store refused anything above it, as two independent copies of one
+  number. They agree the day they are written and drift the moment one moves, and the
+  symptom is a form offering a value the save button then rejects. The window reads
+  `oracle.MaxSourceIntervalSeconds` now, so a form value is never one the store refuses.
+
 - **The source path field states its syntax**: `extractByPath` walks object keys
   separated by dots and supports nothing else — no array index, no bracket syntax — so
   `a.b[0].c` never resolves, and the fetch fails with an invalid-source verdict that names
