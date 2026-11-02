@@ -12,6 +12,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The pager is tested to stop at both ends**: Previous on the first page and
+  Next on the last change nothing and announce no new range. The offset clamp
+  already keeps the store from being asked for a page before the first or past the
+  end, so those clicks are the observable half; the disabled conditions themselves
+  cannot be observed by clicking, since `Tester.Click` presses coordinates and never
+  reports a disabled control. A structural check pins both, because a dead button
+  that looks live is the failure worth preventing.
+
 - **The search announcement is tested to say the count in the window's
   language**: the structural check counted `announceSearchResults` calls, and
   nothing checked the words. No match is still a result worth speaking, one result
