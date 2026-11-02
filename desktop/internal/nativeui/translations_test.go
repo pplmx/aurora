@@ -227,7 +227,7 @@ func TestChineseTranslationsKeepChromeVocabularyInChinese(t *testing.T) {
 			[]string{"Show"},
 		},
 		{
-			"Applies to Dashboard, Oracle health and open readings; forms keep their text. Saved for the next launch.",
+			"Applies to Dashboard, the Oracle source list, health and open readings; forms keep their text. Saved for the next launch.",
 			"仪表盘",
 			[]string{"Dashboard", "Oracle"},
 		},
