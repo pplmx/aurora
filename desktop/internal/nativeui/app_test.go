@@ -163,6 +163,11 @@ type fakeServices struct {
 	// test can prove what stays on screen after a failed refresh.
 	resultsByID       map[string][]ResultRow
 	sessionResultsErr error
+	// castVoteErr fails the ballot write, so a refused vote can be told from
+	// an accepted one without a real store.
+	castVoteErr error
+	// castVoteCalls counts accepted and refused ballots alike.
+	castVoteCalls int
 
 	// The last list limits the forms sent.
 	tokenHistoryLimit int
@@ -304,7 +309,13 @@ func (f *fakeServices) RegisterCandidate(name, party, program string) (Candidate
 func (f *fakeServices) CreateSession(title, description string, ids []string, start, end int64) (SessionRow, error) {
 	return SessionRow{ID: "s1", Title: title, Status: "pending"}, nil
 }
-func (f *fakeServices) CastVote(sessionID, candidateID, voterPub, voterPriv string) error { return nil }
+func (f *fakeServices) CastVote(sessionID, candidateID, voterPub, voterPriv string) error {
+	f.castVoteCalls++
+	if f.castVoteErr != nil {
+		return f.castVoteErr
+	}
+	return nil
+}
 func (f *fakeServices) SessionResults(sessionID string) ([]ResultRow, error) {
 	f.sessionResultsCalls++
 	f.lastSessionResultsID = sessionID
