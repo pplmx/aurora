@@ -12,6 +12,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **A transfer to oneself is tested to leave the balance alone**: the debit and credit
+  both run, so the net is zero, and the audit record is still written because a transfer did
+  happen. Nothing asserted either half, and the combination is easy to break — a credit that
+  landed twice, or a debit skipped when the keys match, would drift the balance where no
+  other test looks. A check rather than a rejection: a self-transfer is a legal signed
+  operation, and refusing it would be a policy the domain has not adopted.
+
 - **A duplicate roster add says it changed nothing**: the click asks for the candidate
   to be in the roster, it already is, so the outcome is success and the roster is unchanged.
   Beside a green "Done", "Alice is already in the session roster." read as a second
