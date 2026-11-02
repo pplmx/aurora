@@ -1503,9 +1503,11 @@ func (m *mockRepository) TryAddBalance(tokenID TokenID, owner PublicKey, amount 
 		cur = NewAmount(0)
 	}
 	newBal := &Amount{Int: new(big.Int).Add(cur.Int, amount.Int)}
-	// Mirror the SQLite primitive: refuse to push the balance past MaxInt64.
+	// Mirror the SQLite primitive: refuse to push the balance past MaxInt64, and wrap
+	// the same sentinel so the mint and transfer use cases reach the API as a 400 rather
+	// than an unclassified 500.
 	if newBal.BitLen() > 63 {
-		return nil, fmt.Errorf("try add balance: balance would exceed maximum")
+		return nil, fmt.Errorf("try add balance: balance would exceed maximum: %w", ErrAmountTooLarge)
 	}
 	m.balances[key] = newBal
 	return newBal, nil
@@ -4200,5 +4202,50 @@ func TestAnAllowanceSaturatesWhileSupplyRefuses(t *testing.T) {
 	}
 	if got := allowance.Int64(); got != math.MaxInt64 {
 		t.Errorf("the allowance must saturate at MaxInt64, got %d", got)
+	}
+}
+
+// TestAnOverflowingCreditIsClassifiedLikeAnOverflowingSupply pins the second ceiling. Three
+// places can push a number past MaxInt64 — total_supply, one account's balance, and an
+// allowance — and they are not three answers: the two that hold ledger state refuse with
+// ErrAmountTooLarge so the API answers 400, and the permission ceiling saturates.
+//
+// The balance path was the one the SQLite primitive had already fixed while the mock still
+// answered with a bare message, so the suite was the only place an overflowing credit looked
+// like a server fault. Both wrap the sentinel now; this keeps them together.
+func TestAnOverflowingCreditIsClassifiedLikeAnOverflowingSupply(t *testing.T) {
+	repo := NewMockRepository()
+	eventStore := NewMockEventStore()
+	chain := blockchain.New()
+	service := NewService(repo, newMockTxManager(), newMockEventBus(eventStore), eventStore, newMockReplayProtection(), chain)
+
+	owner, other := pubKey(1), pubKey(2)
+	if _, err := service.CreateToken(&CreateTokenRequest{
+		Name: "Big", Symbol: "BIG", TotalSupply: NewAmount(math.MaxInt64), Owner: owner,
+	}); err != nil {
+		t.Fatalf("CreateToken: %v", err)
+	}
+	tokens, err := service.ListTokens(10, 0)
+	if err != nil || len(tokens) != 1 {
+		t.Fatalf("ListTokens: %v, %d", err, len(tokens))
+	}
+	id := tokens[0].ID()
+
+	// Filling an account to the ceiling is allowed; going one past is classified.
+	if _, err := repo.TryAddBalance(id, other, NewAmount(math.MaxInt64)); err != nil {
+		t.Fatalf("crediting MaxInt64 must be allowed: %v", err)
+	}
+	_, err = repo.TryAddBalance(id, other, NewAmount(1))
+	if !errors.Is(err, ErrAmountTooLarge) {
+		t.Fatalf("a credit past MaxInt64 must carry ErrAmountTooLarge, got %v", err)
+	}
+
+	// And the balance it could not grow is still the ceiling, not a wrapped value.
+	balance, err := service.GetBalance(id, other)
+	if err != nil {
+		t.Fatalf("GetBalance: %v", err)
+	}
+	if got := balance.Int64(); got != math.MaxInt64 {
+		t.Errorf("a refused credit must not change the balance, got %d", got)
 	}
 }
