@@ -12,6 +12,12 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **Only the destructive button is tested to fill with the danger colour**:
+  `Danger` is the page's "this will not come back" ink. A primary action filled
+  with it would make an ordinary write look destructive, and a danger fill anywhere
+  else would make that button less of a warning. Text and borders may use it
+  freely, because those report a failure; the check is about the fill.
+
 - **High contrast is tested to be higher contrast**: the contrast test runs both
   preference states against the same 4.5 floor, which says "readable", not "more
   readable" — a high-contrast palette identical to the normal one would have passed
