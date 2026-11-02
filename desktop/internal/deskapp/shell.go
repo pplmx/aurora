@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"github.com/egoist/mygo"
@@ -451,13 +452,26 @@ func (s *Shell) Navigate(in Intent) {
 // imported, anything else is reported as unsupported instead of being
 // silently ignored.
 func (s *Shell) ImportDropped(paths []string) {
+	// A drop can carry several files, and a dialog per file means the reader
+	// closes five boxes to dismiss one drag. The files this shell cannot read are
+	// collected and reported once; each readable one still opens by itself,
+	// because an import's report is about that import.
+	var unsupported []string
 	for _, path := range paths {
 		if !isLotteryDocument(path) {
-			s.reportError(T("desktop.error.unsupported_file_title"),
-				fmt.Errorf(T("desktop.error.unsupported_file_message"), filepath.Base(path)))
+			unsupported = append(unsupported, filepath.Base(path))
 			continue
 		}
 		s.OpenFile(path)
+	}
+	switch len(unsupported) {
+	case 0:
+	case 1:
+		s.reportError(T("desktop.error.unsupported_file_title"),
+			fmt.Errorf(T("desktop.error.unsupported_file_message"), unsupported[0]))
+	default:
+		s.reportError(T("desktop.error.unsupported_file_title"),
+			fmt.Errorf(T("desktop.error.unsupported_files_message"), strings.Join(unsupported, ", ")))
 	}
 }
 

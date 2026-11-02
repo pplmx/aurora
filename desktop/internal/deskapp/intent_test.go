@@ -828,3 +828,36 @@ func TestShellHoldsANavigationForAWindowThatCannotShowIt(t *testing.T) {
 	require.Len(t, navigated, 1, "the replacement window must receive the held page")
 	assert.Equal(t, Intent{Page: "voting", Raw: "aurora://voting"}, navigated[0])
 }
+
+// TestShell_ImportDroppedReportsUnreadableFilesOnce covers a drag that carries
+// several files. Each unreadable one used to raise its own dialog, so dropping five
+// unrelated files meant closing five boxes to dismiss one drag. They are collected
+// and reported together; a single one keeps the sentence it always had.
+func TestShell_ImportDroppedReportsUnreadableFilesOnce(t *testing.T) {
+	shell := NewShell(About{DBPath: filepath.Join(t.TempDir(), "aurora.db")})
+	var reports []string
+	shell.report = func(_ mygo.MessageType, title, message, _ string) {
+		reports = append(reports, title+" | "+message)
+	}
+
+	dir := t.TempDir()
+	var paths []string
+	for _, name := range []string{"a.csv", "b.txt", "c.png"} {
+		path := filepath.Join(dir, name)
+		require.NoError(t, os.WriteFile(path, []byte("x"), 0o644))
+		paths = append(paths, path)
+	}
+	shell.ImportDropped(paths)
+
+	require.Len(t, reports, 1, "one drag must raise one dialog")
+	require.Contains(t, reports[0], "Unsupported file")
+	for _, name := range []string{"a.csv", "b.txt", "c.png"} {
+		require.Containsf(t, reports[0], name, "the report must name every file, including %q", name)
+	}
+
+	// A single file still uses the sentence that names only it.
+	reports = nil
+	shell.ImportDropped(paths[:1])
+	require.Len(t, reports, 1)
+	require.Contains(t, reports[0], "a.csv is not an Aurora lottery export")
+}
