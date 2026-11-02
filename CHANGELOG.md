@@ -12,6 +12,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **A burn is tested to roll back both halves**: a burn subtracts the balance and the
+  total supply in one transaction, so `total_supply == sum of balances` depends on both
+  moving together. A successful burn and a refused one were both covered, never the refused
+  burn's effect on the numbers — a balance that moved without the supply breaks the
+  invariant silently, until someone adds them up. Burning the whole balance is pinned too:
+  both reach zero rather than leaving supply counting tokens nobody holds.
+
 - **A zero allowance is tested to stay on screen**: the card draws its row whenever the
   stored answer is not the empty string, and "0" is not empty — a spender granted nothing,
   or one who spent everything, has an answer of zero, and hiding it would leave that
