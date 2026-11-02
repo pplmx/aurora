@@ -12,6 +12,17 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The lottery accent no longer reads as the warning colour**: `pageAccent`
+  promises a module's identity "can never read as success or failure". The lottery
+  accent was `#9A5C00` and the light warning `#9A5B00` — ΔE 0.6 in CIELAB, one
+  channel value apart — and in the dark palette `#F2C14E` sat ΔE 6.5 from
+  `#F4C15D`. Both inks move to the orange the module's identity actually is, and a
+  new check measures CIELAB distance rather than channel distance. Its floor is 15,
+  the palette's own tolerance: the closest two module accents are ΔE 19.7 apart.
+  Token stays ΔE 10.1 from success and is deliberately not asserted — every teal
+  that clears the floor collides with the oracle or dashboard accent instead, so
+  that range does not exist within this palette.
+
 - **All three catalogs run the large-text boundary check**: it measured what a
   Chinese window at double text does to the layout and ran the two Chinese
   catalogs only. English is not the risky locale, but the assertion is about the
