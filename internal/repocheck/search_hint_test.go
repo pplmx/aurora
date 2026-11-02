@@ -496,3 +496,25 @@ func TestOnlyTheDestructiveButtonFillsWithTheDangerColour(t *testing.T) {
 	require.NotContains(t, functionSource(t, controls, "func quietButton"), "Danger",
 		"a quiet button must not be tinted as destructive")
 }
+
+// TestTheTimelineSpineRunsThroughItsDots covers a geometry the frame cannot show:
+// the dashboard timeline paints its spine with a Painter call, and a Painter call
+// leaves no element for Tester to measure. The numbers are what keep the spine
+// centred under each dot — the dot column is 18 wide, so its centre is 9, and the
+// 1px spine at 8.5 spans 8.5..9.5, whose centre is also 9.
+//
+// Changing either number alone puts the spine beside the dots, which reads as two
+// vertical rules rather than one line through the events.
+func TestTheTimelineSpineRunsThroughItsDots(t *testing.T) {
+	dashboard := readRepoFile(t, "desktop", "internal", "nativeui", "dashboard.go")
+
+	// The dot column's width and the spine's offset, as written.
+	require.Contains(t, dashboard, ".Width(18)",
+		"the timeline's dot column must keep its stated width")
+	require.Contains(t, dashboard, "X: r.X + 8.5",
+		"the spine must stay centred in that column")
+
+	// And the dot that sits in it.
+	require.Contains(t, dashboard, "statusDot(c, tone, 9)",
+		"the timeline node must keep the size the spine is centred for")
+}
