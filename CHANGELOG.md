@@ -12,6 +12,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **High contrast is tested to be higher contrast**: the contrast test runs both
+  preference states against the same 4.5 floor, which says "readable", not "more
+  readable" — a high-contrast palette identical to the normal one would have passed
+  it. The comparison is now per surface and per ink, and the same test pins the
+  documented boundary from both directions: the module accent must not be repainted,
+  because a module's identity may not change with a readability setting, and the
+  border must change, because that is one of the three things the setting affects.
+
 - **The accent is checked against the navigation layer too**: the contrast test
   covered the window background and the card surface. The navigation paints a third
   layer, darker than both in the light palette, and nothing measured it. The lottery
