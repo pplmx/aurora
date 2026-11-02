@@ -12,6 +12,12 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The File menu is tested to stay closed while a write runs**: the busy gate had
+  two halves and only the shortcuts were covered. The menu button is disabled for
+  the same reason — a document dialog raised mid-write would ask the operator to
+  pick a path while the store is mid-transaction — but nothing asserted it. The
+  gate sits on the button, because a disabled `MenuButton` never builds its menu.
+
 - **An import is tested to reload the page only when it stored something**: the
   menu action re-reads the page behind its own report dialog when records were
   stored and leaves it alone when nothing was — the difference between the
