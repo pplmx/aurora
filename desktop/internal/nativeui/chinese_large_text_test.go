@@ -8,15 +8,20 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestChineseAtDoubleTextKeepsContentInsideTheWindow covers the widest
+// TestEveryCatalogAtDoubleTextKeepsContentInsideTheWindow covers the widest
 // combination the window can be asked for: Chinese doubles the width of every
-// character that is not Latin, and the system text scale doubles the size
-// again. Nothing in the suite combined the two, so a label that only fits in
-// English would have been found by a user.
+// character that is not Latin, and the system text scale doubles the size again.
+// Nothing in the suite combined the two, so a label that only fits in English
+// would have been found by a user.
+//
+// All three catalogs run. English is included not because it is the risky one but
+// because the assertion is about the layout, and a layout regression is not
+// locale-specific — running the three together also keeps the margins comparable,
+// since the widest string of each locale has to fit under the same check.
 //
 // Both Chinese catalogs run: they are separate tables, and a line can be short
 // in one and long in the other.
-func TestChineseAtDoubleTextKeepsContentInsideTheWindow(t *testing.T) {
+func TestEveryCatalogAtDoubleTextKeepsContentInsideTheWindow(t *testing.T) {
 	translator := i18n.GetTranslator()
 	before := translator.GetLocale()
 	t.Cleanup(func() { translator.SetLocale(before) })
@@ -24,7 +29,11 @@ func TestChineseAtDoubleTextKeepsContentInsideTheWindow(t *testing.T) {
 	const windowWidth, windowHeight = 1280, 900
 	pages := []string{"Dashboard", "Lottery", "Voting", "Token", "NFT", "Oracle", "Blockchain", "Settings"}
 
-	for _, locale := range []string{"zh", "zh-Hant"} {
+	// English runs too: it is the shortest of the three for most labels, but the
+	// check is the same shape and a regression that pushed content off the window
+	// would show here first — a longer string elsewhere is what makes the margins
+	// tight, and a layout bug is not locale-specific.
+	for _, locale := range []string{"en", "zh", "zh-Hant"} {
 		t.Run(locale, func(t *testing.T) {
 			translator.SetLocale(locale)
 			for _, page := range pages {
