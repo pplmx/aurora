@@ -12,6 +12,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **An empty verifier id is tested never to reach the service**: the reference
+  lists four inputs the window refuses before calling a service — empty
+  participants, a short seed, an over-large winner count and an empty verifier id.
+  The first three asserted the fake's recorded call; the fourth had no test, and
+  the fake did not count `VerifyDraw`, so it could not have had one. The assertion
+  is the counter rather than the message, since a message beside a call that went
+  out anyway still reads as "I was stopped".
+
 - **A result and a busy write are tested to share the frame**: a write usually
   starts right after a result, so both strips are on screen — the previous outcome
   above, the running operation below. Neither may displace the other, and they stay
