@@ -241,6 +241,12 @@ func main() {
 
 	srv, err := api.NewServer()
 	if err != nil {
+		// The logger is up by now, and a start-up failure is exactly the thing an
+		// operator goes looking for in aurora.log afterwards. Writing only to stderr
+		// left a configured log file with no record of why the server never started.
+		// Both lines stay: the log for the record, stderr for the terminal that
+		// launched it.
+		logger.Error().Err(err).Msg("Failed to create server")
 		fmt.Fprintf(os.Stderr, "Failed to create server: %v\n", err)
 		os.Exit(1)
 	}
