@@ -979,3 +979,27 @@ func TestAFailedRegistrationLeaksNoKey(t *testing.T) {
 	require.Empty(t, app.voting.voterPub, "nor its public half")
 	require.True(t, tester.HasText(app.voting.status.text))
 }
+
+// TestTheSourcePathFieldSaysWhatAShapelessPathCannot covers the one field in Add Source
+// whose syntax is not guessable. extractByPath walks object keys separated by dots and
+// supports nothing else — no array index, no bracket syntax — so "a.b[0].c" never
+// resolves and the fetch fails with an invalid-source verdict that names no syntax.
+//
+// The CLI has said so for a while ("dotted, e.g. bitcoin.usd"); the window's field said
+// only "optional JSON field", and it is behind a disclosure that opens by itself only
+// when a preset filled it.
+func TestTheSourcePathFieldSaysWhatAShapelessPathCannot(t *testing.T) {
+	app := New(&fakeServices{})
+	tester := ui.NewTester(app.View, 1400, 4000)
+	app.ShowPage("Oracle")
+	app.oracle.addAdvanced = true
+	tester.Frame()
+
+	const hint = "Dotted object keys only, e.g. bitcoin.usd; no array index."
+	require.True(t, tester.HasText(hint),
+		"the path field must state its syntax where the operator types it")
+
+	// The example is a real one: the resolver walks it.
+	require.True(t, tester.HasText(tr("Path (optional JSON field)")),
+		"and the field itself must still be drawn under that hint")
+}
