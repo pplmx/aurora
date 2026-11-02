@@ -1192,3 +1192,40 @@ func TestTheSnapshotReportSaysItIsASnapshot(t *testing.T) {
 	require.True(t, gone,
 		"if every symbol it names still exists, the note can be dropped rather than kept")
 }
+
+// TestTheDesktopDataDirectoryMatchesItsDoc covers the one path a user is told to look in. The
+// reference says the default is MyGo's PathUserData, spelled $XDG_CONFIG_HOME/Aurora/aurora.db,
+// and adds that SetName runs before Start or a machine ends up with both MyGo/ and Aurora/.
+//
+// Both halves are checkable and both matter: MyGo builds that directory from App.Name(), so the
+// capital A is SetName's doing, and removing the call would move the database without changing a
+// line of the sentence — leaving the doc describing a directory that no longer exists.
+func TestTheDesktopDataDirectoryMatchesItsDoc(t *testing.T) {
+	doc := readRepoFile(t, "docs", "desktop.md")
+	require.Contains(t, doc, "App.Path(PathUserData)",
+		"the reference must name the call that resolves the directory")
+	require.Contains(t, doc, "Aurora/aurora.db",
+		"and spell the result, since App.Name() is what capitalises it")
+	require.Contains(t, doc, "logs/", "the log directory sits beside the database")
+
+	// The call is real: main resolves the default through MyGo, not through the fallback.
+	// Asserted with a short message rather than require.Contains, which would print the whole
+	// file on failure — main.go is long and the missing sentence is one line of it.
+	main := readRepoFile(t, "desktop", "cmd", "aurora-desktop", "main.go")
+	require.True(t, strings.Contains(main, "mygo.App.Path(mygo.PathUserData)"),
+		"the packaged default must come from MyGo's own resolution")
+	require.True(t, strings.Contains(main, "mygo.App.SetName(deskapp.AppName)"),
+		"and the name must be set, because PathUserData joins App.Name()")
+
+	// The name is what makes the capital A in the documented path.
+	shell := readRepoFile(t, "desktop", "internal", "deskapp", "deskapp.go")
+	require.Contains(t, shell, `const AppName = "Aurora"`,
+		"the documented directory name is AppName")
+
+	// SetName must come before Start creates anything.
+	setAt := strings.Index(main, "mygo.App.SetName(deskapp.AppName)")
+	startAt := strings.Index(main, "deskapp.Start(ctx, deskapp.Options{")
+	require.Greater(t, setAt, 0)
+	require.Greater(t, startAt, setAt,
+		"SetName runs first; the other order creates MyGo/ alongside Aurora/")
+}
