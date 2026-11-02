@@ -94,15 +94,16 @@ var rootCmd = &cobra.Command{
 }
 
 // addConfirmFlag registers the standard -y/--confirm guard on a destructive
-// command, mirroring `backup restore` and `lottery reset`. Burn/delete/down
-// permanently destroy
-// value or data, so they must not run without an explicit confirmation —
-// otherwise a typo like a mis-ordered flag silently destroys assets.
+// command. Burn, delete, down and restore permanently destroy value or data, so
+// they must not run without an explicit confirmation — otherwise a typo like a
+// mis-ordered flag silently destroys assets.
 //
-// actionKey names a cli.confirm.* i18n key whose localized value describes
-// what the command destroys; the flag help renders it through the shared
-// cli.confirm.flag template so all six destructive commands speak one
-// localized wording (TASK-186, ISS-182).
+// actionKey names a cli.confirm.* i18n key whose localized value describes what
+// the command destroys; the flag help and the refusal both render it through
+// cli.confirm.flag / cli.confirm.required, so every guarded command reads the
+// same way (TASK-186, ISS-182). The count is not named here on purpose: it has
+// been wrong before, and TestEveryConfirmationGateHasItsWarning is what keeps the
+// list complete.
 func addConfirmFlag(cmd *cobra.Command, actionKey string) {
 	cmd.Flags().BoolP("confirm", "y", false, fmt.Sprintf(i18n.GetText("cli.confirm.flag"), i18n.GetText(actionKey)))
 }
