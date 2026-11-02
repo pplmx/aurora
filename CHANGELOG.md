@@ -12,6 +12,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **An import is tested to reload the page only when it stored something**: the
+  menu action re-reads the page behind its own report dialog when records were
+  stored and leaves it alone when nothing was — the difference between the
+  imported draws appearing once the dialog closes and the operator seeing the
+  history from before the import. The fixture has to be a real draw: `ImportRecords`
+  re-derives integrity with the verifier, which reads the VRF output and proof as
+  hex, so neither a hand-written record nor a base64-encoded one is accepted.
+
 - **Cancel and a failed picker are tested apart for export and import**: each
   action opens a native dialog and then either writes, reports a failure, or does
   nothing. Cancel is "no error, nothing chosen" and must raise nothing; a picker
