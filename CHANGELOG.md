@@ -12,6 +12,12 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **Cancelling the forget-keys confirmation is tested to change nothing**:
+  turning memory off while keys are held opens a confirmation, because those keys
+  may exist only in this process. Cancel means "keep both" — the policy stays on,
+  the keys stay, and the checkbox agrees with the policy again, since otherwise the
+  box reads as unchecked while keys are still held.
+
 - **The generated key is tested to be offered only where it can sign**: the two
   key offers — the token owner key and the NFT creator key — each depend on a second
   condition the tests never moved, so a version that offered them on every tab would
