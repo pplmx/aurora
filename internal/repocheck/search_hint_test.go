@@ -378,3 +378,38 @@ func functionSource(t *testing.T, src, declaration string) string {
 	}
 	return rest
 }
+
+// TestEveryRecordListIsNamed covers the promise that a table or record list says
+// which records it holds before reading the first one. collectionList names its
+// own list from the argument every caller passes; the lists built by hand have to
+// set Role and Label themselves, which is where one was missing — the ledger's
+// records, whose pager was named while the list under it was not.
+func TestEveryRecordListIsNamed(t *testing.T) {
+	// Files that build a list by hand rather than through collectionList.
+	handBuilt := []struct{ file, label string }{
+		{"blockchain.go", `tr("Blockchain ledger")`},
+		{"voting_results.go", `tr("Voting results")`},
+		{"layout.go", `tr("What opens next")`},
+	}
+	for _, want := range handBuilt {
+		body := readRepoFile(t, "desktop", "internal", "nativeui", want.file)
+		assert.Containsf(t, body, "Role(ui.RoleList)", "%s must mark its list as a list", want.file)
+		assert.Containsf(t, body, want.label, "%s must name that list", want.file)
+	}
+
+	// The shared builder names from its argument; a caller passing an empty name
+	// would produce an unnamed list that no assertion above would see.
+	files := []string{
+		"lottery.go", "nft_collection.go", "nft_history.go", "oracle_health.go",
+		"oracle_readings.go", "oracle_sources.go", "token.go", "token_read.go",
+		"voting_lists.go", "voting_results.go",
+	}
+	for _, file := range files {
+		body := readRepoFile(t, "desktop", "internal", "nativeui", file)
+		for _, call := range strings.Split(body, "collectionList(c, ")[1:] {
+			if strings.HasPrefix(call, "\"\"") || strings.HasPrefix(call, "tr(\"\")") {
+				t.Errorf("%s calls collectionList with an empty name", file)
+			}
+		}
+	}
+}

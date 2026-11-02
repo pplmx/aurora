@@ -183,7 +183,10 @@ func (a *App) blockchainBlocks(c *ui.Context) {
 	// A record already wraps its facts and its payload, so the same layout
 	// serves the large-text preference instead of switching to a second
 	// rendering of the same data.
-	ui.Column(c).FillWidth().Gap(10).Children(func() {
+	// The list carries the same name as its pager: a screen reader entering it
+	// must say which records these are before reading the first one, and the
+	// pager above already taught the reader that name.
+	ui.Column(c).FillWidth().Gap(10).Role(ui.RoleList).Label(tr("Blockchain ledger")).Children(func() {
 		for i, entry := range a.blockchain.rows {
 			i, entry := i, entry
 			blockRecord(c, entry, a.blockchain.expanded == i, func() {
