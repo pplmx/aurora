@@ -12,6 +12,12 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **A deep link with only spaces no longer navigates**: `aurora://lottery?id=%20%20`
+  carries an id of two spaces, and the handler tested the raw string — so it navigated
+  to Lottery and then reported "Enter a lottery ID or block height" about a field the
+  reader never touched, on a page they had not asked to open. The id is trimmed before
+  the empty check; a link that names nothing now leaves the window where it was.
+
 - **Switching pages restarts the live-update timer**: it used to carry its due time
   across a switch, so a reader who waited ten seconds and then changed pages made the
   new page's first frame find it already expired — the page's own load ran, then the
