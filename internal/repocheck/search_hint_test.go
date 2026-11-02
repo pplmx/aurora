@@ -716,3 +716,35 @@ func TestEveryCreateReturnsItsListToTheFirstPage(t *testing.T) {
 			"and the new %s must be highlighted in it", want.name)
 	}
 }
+
+// TestTheThreeSurfacesShareOneDrawSearch covers the promise in the reference: a
+// lottery search is one read, whether it comes from the window, the API's `q` or the
+// CLI's `-s`. The three agree because they call the same repository method, and the
+// method matches the same four fields.
+//
+// A surface that filtered in memory instead would answer a different question — it
+// would report "no matches" for a draw on another page — and nothing would look
+// wrong. This pins the shared call rather than the result.
+func TestTheThreeSurfacesShareOneDrawSearch(t *testing.T) {
+	for _, surface := range []struct {
+		name string
+		path []string
+	}{
+		{"the API handler", []string{"internal", "api", "handler", "lottery.go"}},
+		{"the window's adapter", []string{"desktop", "internal", "deskapp", "native_lottery.go"}},
+		{"the CLI", []string{"cmd", "aurora", "cmd", "lottery.go"}},
+	} {
+		body := readRepoFile(t, surface.path...)
+		require.Containsf(t, body, "ListMatching(",
+			"%s must search through the repository, not in memory", surface.name)
+	}
+
+	// And the method itself matches all four fields the reference names.
+	repo := readRepoFile(t, "internal", "infra", "sqlite", "lottery.go")
+	search := functionSource(t, repo, "func (r *LotteryRepository) ListMatching")
+	for _, field := range []string{"l.id", "l.seed", "l.participants", "l.winners"} {
+		require.Containsf(t, search, field, "the search must match %s", field)
+	}
+	// A term carrying LIKE's own wildcards must match literally.
+	require.Contains(t, search, `%`, "and escape the wildcards a seed can contain")
+}
