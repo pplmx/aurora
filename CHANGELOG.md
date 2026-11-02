@@ -12,6 +12,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The desktop data directory is held to the path its doc names**: the reference tells a user
+  their database lives in `$XDG_CONFIG_HOME/Aurora/aurora.db` and adds that `SetName` runs before
+  `Start` or a machine ends up with both `MyGo/` and `Aurora/`. Both halves were checked against
+  the MyGo sources — `PathUserData` joins `App.Name()`, so the capital A is `SetName`'s doing,
+  and the desktop resolves its default through `mygo.App.Path`, not its own fallback. Removing
+  the call would move the database without changing a line of the sentence.
+
 - **The ablation report says its symbols belong to its baseline commit**: it already named
   the date and the commit, but nothing said what that implied for the names it cites. Three are
   gone from the tree — `Token.AddToSupply`, `Migrator.DB`, `LotteryRecord.FromJSON` were deleted
