@@ -77,3 +77,91 @@ func TestTransferRefusesAnIncompleteForm(t *testing.T) {
 	require.True(t, app.token.status.isErr)
 	require.Contains(t, app.token.status.text, "Token ID, sender, recipient, amount, and private key are required.")
 }
+
+// TestEveryTokenWriteRefusesAnIncompleteForm covers the four write forms on the
+// token page. Each has its own fields and its own guard, and the guard is the only
+// thing between an incomplete form and a signed write. The assertion is the call
+// counter: a message drawn beside a call that went out anyway still reads as "I
+// was stopped", so the status text alone cannot show the guard held.
+//
+// Each case fills every field but one, so a guard that checked only some of them
+// still fails here.
+func TestEveryTokenWriteRefusesAnIncompleteForm(t *testing.T) {
+	cases := []struct {
+		name  string
+		calls func(*fakeServices) int
+		fill  func(*App)
+	}{
+		{
+			name: "create", calls: func(f *fakeServices) int { return f.createTokenCalls },
+			fill: func(a *App) {
+				// The owner is left out; the rest of the form is filled. Its guard
+				// reports through the page status, unlike the field-level checks.
+				a.token.name, a.token.symbol, a.token.supply = "Gold", "GLD", "1000"
+				a.token.owner = ""
+				a.createToken()
+			},
+		},
+		{
+			name: "mint", calls: func(f *fakeServices) int { return f.mintTokenCalls },
+			fill: func(a *App) {
+				a.token.tokenID, a.token.mintTo = "t1", "recipient"
+				a.token.mintAmount, a.token.mintPriv = "10", ""
+				a.mintToken()
+			},
+		},
+		{
+			name: "approve", calls: func(f *fakeServices) int { return f.approveTokenCalls },
+			fill: func(a *App) {
+				a.token.tokenID, a.token.approveOwner = "t1", "owner"
+				a.token.approveTo, a.token.approveAmt = "", "5"
+				a.token.approvePriv = "priv"
+				a.approveToken()
+			},
+		},
+		{
+			name: "transfer from", calls: func(f *fakeServices) int { return f.transferFromTokenCalls },
+			fill: func(a *App) {
+				a.token.tokenID, a.token.fromOwner = "t1", "owner"
+				a.token.fromTo, a.token.fromAmount = "recipient", "5"
+				a.token.fromPriv = ""
+				a.transferFromToken()
+			},
+		},
+	}
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			fake := &fakeServices{}
+			app := New(fake)
+			tc.fill(app)
+			require.False(t, app.token.status.empty(), "the form must report what is missing")
+			require.True(t, app.token.status.isErr, "as a failure, not a success")
+			require.Zero(t, tc.calls(fake), "an incomplete form must not reach the service")
+		})
+	}
+}
+
+// TestEveryNFTWriteRefusesAnIncompleteForm is the same contract for the asset
+// page: minting without a creator and transferring without a key are refused
+// before the service is asked.
+func TestEveryNFTWriteRefusesAnIncompleteForm(t *testing.T) {
+	t.Run("mint", func(t *testing.T) {
+		fake := &fakeServices{}
+		app := New(fake)
+		app.nft.name, app.nft.creator = "Star", ""
+		app.mintNFT()
+		require.True(t, app.nft.status.isErr)
+		require.Zero(t, fake.mintNFTCalls)
+	})
+
+	t.Run("transfer", func(t *testing.T) {
+		fake := &fakeServices{}
+		app := New(fake)
+		app.nft.transferID, app.nft.from = "n1", "owner"
+		app.nft.to, app.nft.priv = "recipient", ""
+		app.transferNFT()
+		require.True(t, app.nft.status.isErr)
+		require.Zero(t, fake.transferNFTCalls)
+	})
+}
