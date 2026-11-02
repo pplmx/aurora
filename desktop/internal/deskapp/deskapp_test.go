@@ -571,3 +571,34 @@ func TestRuntimeInfoNamesTheToolchain(t *testing.T) {
 		assert.Contains(t, info, "mygo v", "a module list means the MyGo line too: %q", info)
 	}
 }
+
+// TestClosingTheRuntimeTwiceIsSafe covers the second call the window's failure path can make.
+// The ordinary shutdown closes through a defer, and the branch after App.Run failed closes
+// explicitly before its os.Exit — those two never both run, but a future edit that adds a
+// third stop path will, and "closed twice" must not be a panic or a double close of the
+// SQLite handle.
+//
+// Each layer underneath tolerates a repeat: the worker group returns early once closed, the
+// container's closeOnce runs the closers once, and the scheduler/outbox stops are wrapped in
+// sync.OnceFunc. Runtime.Close composes them without a guard of its own, which is what this
+// check holds — a guard here would turn a real second call into silence.
+//
+// It does not try to prove each layer's mechanism: measured against them one at a time, a
+// deliberate break still passes, because the closer list is emptied on the first run and a
+// sequential repeat therefore does nothing whatever the guard says. The value here is that
+// the composition is safe, not that the internals are pinned.
+func TestClosingTheRuntimeTwiceIsSafe(t *testing.T) {
+	resetState(t)
+	viper.Set("api.key", "desktop-test-key")
+	viper.Set("log.path", filepath.Join(t.TempDir(), "logs"))
+
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+
+	rt, err := Start(ctx, Options{DataDir: t.TempDir()})
+	require.NoError(t, err)
+
+	require.NoError(t, rt.Close())
+	require.NoError(t, rt.Close(), "a second close must not fail the caller")
+	require.NoError(t, rt.Close(), "nor a third")
+}
