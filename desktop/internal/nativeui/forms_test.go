@@ -827,3 +827,85 @@ func TestSessionTimeErrorsShowBelowTheField(t *testing.T) {
 	require.Equal(t, 1, strings.Count(texts, startMsg), "the start message must appear once")
 	require.Equal(t, 1, strings.Count(texts, endMsg), "the end message must appear once")
 }
+
+// TestEveryFieldErrorReachesTheScreen counts rendered copies of each form's
+// error message. A field error that draws nothing is invisible: the write is
+// refused, the button stays disabled-looking, and the reader has no sentence
+// telling them which input to fix. The count is asserted as exactly one so a
+// second call reporting the same message also fails.
+//
+// The setup is per case because a page's cards depend on the store: Setup shows
+// the registration forms over an empty roster and the session card only once a
+// voter exists, and Create Token keeps its decimals input behind a collapsed
+// Advanced section.
+func TestEveryFieldErrorReachesTheScreen(t *testing.T) {
+	cases := []struct {
+		name   string
+		page   string
+		msg    string
+		seed   *fakeServices
+		before func(*App)
+		set    func(*App, string)
+	}{
+		{
+			name: "lottery participants", page: "Lottery", msg: "PARTICIPANTS_BOOM",
+			seed: &fakeServices{},
+			set:  func(a *App, m string) { a.lottery.participantsErr = m },
+		},
+		{
+			name: "lottery seed", page: "Lottery", msg: "SEED_BOOM",
+			seed: &fakeServices{},
+			set:  func(a *App, m string) { a.lottery.seedErr = m },
+		},
+		{
+			name: "lottery count", page: "Lottery", msg: "COUNT_BOOM",
+			seed: &fakeServices{},
+			set:  func(a *App, m string) { a.lottery.countErr = m },
+		},
+		{
+			name: "voter name", page: "Voting", msg: "VOTER_BOOM",
+			seed: &fakeServices{voterRows: []VoterRow{{Name: "Ada", PublicKey: "pk-1"}}},
+			set:  func(a *App, m string) { a.voting.voterNameErr = m },
+		},
+		{
+			name: "candidate name", page: "Voting", msg: "CAND_BOOM",
+			seed: &fakeServices{voterRows: []VoterRow{{Name: "Ada", PublicKey: "pk-1"}}},
+			set:  func(a *App, m string) { a.voting.candNameErr = m },
+		},
+		{
+			name: "session start", page: "Voting", msg: "START_BOOM",
+			seed: &fakeServices{voterRows: []VoterRow{{Name: "Ada", PublicKey: "pk-1"}}},
+			set:  func(a *App, m string) { a.voting.sessionStartErr = m },
+		},
+		{
+			name: "session end", page: "Voting", msg: "END_BOOM",
+			seed: &fakeServices{voterRows: []VoterRow{{Name: "Ada", PublicKey: "pk-1"}}},
+			set:  func(a *App, m string) { a.voting.sessionEndErr = m },
+		},
+		{
+			name: "token decimals", page: "Token", msg: "DECIMALS_BOOM",
+			seed:   &fakeServices{tokenRows: []TokenRow{{ID: "GLD", Name: "Gold"}}},
+			before: func(a *App) { a.token.createAdvanced = true },
+			set:    func(a *App, m string) { a.token.decimalsErr = m },
+		},
+	}
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			app := New(tc.seed)
+			tester := ui.NewTester(app.View, 1400, 8000)
+			app.ShowPage(tc.page)
+			tester.Frame()
+			if tc.before != nil {
+				tc.before(app)
+				tester.Frame()
+			}
+			tc.set(app, tc.msg)
+			tester.Frame()
+
+			texts := strings.Join(tester.Texts(), "\n")
+			require.Equalf(t, 1, strings.Count(texts, tc.msg),
+				"the message must appear exactly once in what the reader sees")
+		})
+	}
+}
