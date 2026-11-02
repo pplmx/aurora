@@ -3902,3 +3902,58 @@ func TestApprove_TokenNotFound(t *testing.T) {
 		t.Error("approval row should not exist for a non-existent token")
 	}
 }
+
+// TestTransferToTheSameOwnerLeavesTheBalanceAlone pins what a self-transfer does. The
+// debit and credit both run, so the net balance is unchanged, and the audit record is
+// still written — the ledger says a transfer happened, because one did, even though the
+// holder at both ends is the same key.
+//
+// This is worth a check rather than a rejection: a transfer to oneself is a legal signed
+// operation, and refusing it would be a policy the domain has not adopted. What must not
+// happen is a balance that drifts, and the two halves being written in one transaction is
+// what prevents it — the same ordering a transfer between two keys relies on.
+func TestTransferToTheSameOwnerLeavesTheBalanceAlone(t *testing.T) {
+	repo := NewMockRepository()
+	eventStore := NewMockEventStore()
+	chain := blockchain.New()
+	service := NewService(repo, newMockTxManager(), newMockEventBus(eventStore), eventStore, newMockReplayProtection(), chain)
+
+	owner := pubKey(1)
+	_, err := service.CreateToken(&CreateTokenRequest{
+		Name: "Gold", Symbol: "GLD", TotalSupply: NewAmount(1000), Owner: owner,
+	})
+	if err != nil {
+		t.Fatalf("create token: %v", err)
+	}
+	tokens, err := service.ListTokens(10, 0)
+	if err != nil || len(tokens) != 1 {
+		t.Fatalf("list tokens: %v, %d", err, len(tokens))
+	}
+	id := tokens[0].ID()
+
+	before, err := service.GetBalance(id, owner)
+	if err != nil {
+		t.Fatalf("balance before: %v", err)
+	}
+	chainBefore := chain.Len()
+
+	_, err = service.Transfer(&TransferRequest{
+		TokenID: id, From: owner, To: owner, Amount: NewAmount(100), PrivateKey: privKey(1),
+	})
+	if err != nil {
+		t.Fatalf("a transfer between one key and itself is a legal signed operation: %v", err)
+	}
+
+	after, err := service.GetBalance(id, owner)
+	if err != nil {
+		t.Fatalf("balance after: %v", err)
+	}
+	if before.Int64() != after.Int64() {
+		t.Errorf("the debit and credit cancel, so the balance must not move: %d -> %d",
+			before.Int64(), after.Int64())
+	}
+	if got := chain.Len(); got != chainBefore+1 {
+		t.Errorf("the audit record must still be written, because a transfer did happen: %d -> %d",
+			chainBefore, got)
+	}
+}
