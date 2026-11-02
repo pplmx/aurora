@@ -12,6 +12,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **A refused voter registration is tested to leak no key**: registration is the one
+  response that carries a private key and the store keeps only the public half, so that
+  value is unrecoverable. The success path was tested; nothing checked that a refusal
+  leaves no key behind. The refusal is decided by the error, not by an empty value — a
+  store can write the row and then fail its bookkeeping — so the window must ignore the
+  returned pair entirely.
+
 - **An accepted ballot is tested to clear its signing key**: the ballot's private key
   is cleared in three places — choosing a different voter, editing the public key, and
   accepting a ballot — and the first two had a test. The third matters most, because
