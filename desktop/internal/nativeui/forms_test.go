@@ -940,3 +940,42 @@ func TestTheSessionCardDropsItsChooseHintOnceAnIDIsTyped(t *testing.T) {
 	tester.Frame()
 	require.True(t, tester.HasText(hint), "a cleared field needs the first step again")
 }
+
+// failingVoterRegistration refuses every registration while still returning a key
+// pair in the value, which is what a store that wrote the row and then failed its
+// bookkeeping could hand back. The window must ignore the row entirely.
+type failingVoterRegistration struct {
+	*fakeServices
+}
+
+func (f *failingVoterRegistration) RegisterVoter(name string) (VoterRow, error) {
+	return VoterRow{PublicKey: "pk-" + name, Name: name, PrivateKey: "sk-" + name},
+		errors.New("voter name already registered")
+}
+
+// TestAFailedRegistrationLeaksNoKey covers the path a duplicate name takes. The
+// success path is tested — the private key is the one thing only this response
+// carries — but nothing checked that a refused registration leaves no key behind.
+// The value can carry one even on failure (a store may write the row and then fail
+// its bookkeeping), so the guard is the error, not the empty struct.
+func TestAFailedRegistrationLeaksNoKey(t *testing.T) {
+	app := New(&failingVoterRegistration{fakeServices: &fakeServices{}})
+	tester := ui.NewTester(app.View, 1280, 3000)
+	app.ShowPage("Voting")
+	tester.Frame()
+
+	app.voting.voterName = "Alice"
+	app.registerVoter()
+	// The status line is drawn by the view, so the frame has to run before the
+	// sentence can be found on screen.
+	tester.Frame()
+
+	require.True(t, app.voting.status.isErr)
+	require.Contains(t, app.voting.status.text, "already registered")
+	require.Empty(t, app.voting.voterPriv,
+		"a refused registration must not fill the ballot form's key")
+	require.NotEqual(t, "sk-Alice", app.voting.votePriv,
+		"and the refused key must never reach the ballot's signing field")
+	require.Empty(t, app.voting.voterPub, "nor its public half")
+	require.True(t, tester.HasText(app.voting.status.text))
+}
