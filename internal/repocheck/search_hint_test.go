@@ -770,3 +770,22 @@ func TestTheExportPathChecksBothHalvesOfARecord(t *testing.T) {
 		"len(record.Winners) != len(record.WinnerAddresses)",
 		"the address count is compared where the derivation lives")
 }
+
+// TestTheIntervalCeilingIsTheDomainConstant covers a number that has to agree across
+// two layers. The form's number input stops at the domain's ceiling; the store refuses
+// anything above it. Two copies of "30 days" agree the day they are written and drift
+// the moment one moves — and the drift's symptom is a form that offers a value the save
+// button then rejects, which reads as a bug in neither place.
+//
+// The check is that the window reads the constant rather than restating it.
+func TestTheIntervalCeilingIsTheDomainConstant(t *testing.T) {
+	desktop := readRepoFile(t, "desktop", "internal", "nativeui", "oracle.go")
+	require.Contains(t, desktop, "const maxOracleIntervalSeconds = oracle.MaxSourceIntervalSeconds",
+		"the form's ceiling must be the domain's ceiling, not a second copy of the number")
+	require.NotContains(t, desktop, "const maxOracleIntervalSeconds = 30 * 24 * 60 * 60",
+		"a restated number is what drifts")
+
+	domain := readRepoFile(t, "internal", "domain", "oracle", "service.go")
+	require.Contains(t, domain, "MaxSourceIntervalSeconds = 30 * 24 * 60 * 60",
+		"and the domain keeps the one definition")
+}

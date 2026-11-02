@@ -5,12 +5,15 @@ import (
 	"strings"
 
 	"github.com/egoist/mygo/ui"
+
+	"github.com/pplmx/aurora/internal/domain/oracle"
 )
 
-// maxOracleIntervalSeconds is the longest polling interval the form accepts,
-// matching the domain's 30-day ceiling: a larger value overflows the
-// scheduler's due-time arithmetic into "always due".
-const maxOracleIntervalSeconds = 30 * 24 * 60 * 60
+// maxOracleIntervalSeconds is the longest polling interval the form accepts. It is
+// the domain's own ceiling rather than a second copy of the number: a larger value
+// overflows the scheduler's due-time arithmetic into "always due", and the form must
+// not offer a value the store would refuse.
+const maxOracleIntervalSeconds = oracle.MaxSourceIntervalSeconds
 
 // oracleState is the Oracle page's state.
 type oracleState struct {
