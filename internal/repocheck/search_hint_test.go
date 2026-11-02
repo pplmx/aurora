@@ -1229,3 +1229,48 @@ func TestTheDesktopDataDirectoryMatchesItsDoc(t *testing.T) {
 	require.Greater(t, startAt, setAt,
 		"SetName runs first; the other order creates MyGo/ alongside Aurora/")
 }
+
+// TestTheBuildTimeChainIsWhole holds the three links the packaging section promises. A packaged
+// binary cannot take main.BuildTime from the justfile — `mygo build` supplies its own -ldflags —
+// so the timestamp travels through a file: a buildCommand writes it under resources/, MyGo ships
+// that directory with the app, and the binary reads it back from PathResources.
+//
+// Any link breaking leaves `Build Time: unknown`, which the same section says CI refuses. That
+// promise is only worth something if all three exist, so the check reads each one.
+func TestTheBuildTimeChainIsWhole(t *testing.T) {
+	// Link 1: the config runs the stamping script.
+	config := readRepoFile(t, "desktop", "mygo.config.ts")
+	require.Contains(t, config, "node scripts/stamp-build-time.mjs",
+		"mygo build must run the stamping script")
+	require.Contains(t, config, "buildCommand",
+		"and it must be the build command, which runs before resources are copied")
+
+	// Link 2: the script writes inside resources/, the directory the config ships.
+	script := readRepoFile(t, "desktop", "scripts", "stamp-build-time.mjs")
+	require.Contains(t, script, `"resources/build-time.txt"`,
+		"the stamp must land in the directory the packaging copies")
+	require.Contains(t, script, "new Date().toISOString()",
+		"and carry a real timestamp rather than a placeholder")
+
+	// Link 3: the binary reads it back from PathResources, which is that same directory.
+	main := readRepoFile(t, "desktop", "cmd", "aurora-desktop", "main.go")
+	require.True(t, strings.Contains(main, "mygo.App.Path(mygo.PathResources)"),
+		"the runtime must ask MyGo where the shipped resources are")
+	require.True(t, strings.Contains(main, `"build-time.txt"`),
+		"and read the file the script wrote")
+
+	// The consequence the section promises: CI refuses a package that lost the stamp.
+	found := false
+	for _, workflow := range []string{"ci.yml", "desktop-build.yml", "release.yml"} {
+		body := readRepoFile(t, ".github", "workflows", workflow)
+		if strings.Contains(body, "Build Time: unknown") || strings.Contains(body, "unknown\"") {
+			found = true
+		}
+	}
+	require.True(t, found,
+		"the reference says CI rejects Build Time: unknown, so some workflow must check it")
+
+	doc := readRepoFile(t, "docs", "desktop.md")
+	require.Contains(t, doc, "resources/build-time.txt",
+		"and the packaging section must describe this chain")
+}
