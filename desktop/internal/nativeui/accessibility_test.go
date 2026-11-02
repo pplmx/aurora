@@ -831,3 +831,45 @@ func TestThePagerStopsAtBothEnds(t *testing.T) {
 	require.Empty(t, tester.Announcements(),
 		"a move that did not happen must not announce a new range")
 }
+
+// TestTimeSegmentsInheritTheFieldsLabel pins what makes the two time controls
+// distinguishable. MyGo names each spin button after the TimeInput's Label plus
+// the segment word, so "Start time" produces "Start time hours", "Start time
+// minutes" and "Start time AM/PM" while End produces its own. Drop the Label and
+// both controls announce the same three generic words; give them the same one and
+// they still do.
+//
+// So the assertion is on the pair of names being distinct, not on each control
+// carrying a name and the segment words — a single control cannot tell "Start
+// time" from "End time", and a check that looks at one at a time passes when both
+// are mislabelled the same way.
+func TestTimeSegmentsInheritTheFieldsLabel(t *testing.T) {
+	names := map[string]string{}
+	for _, name := range []string{"Start time", "End time"} {
+		var when time.Time
+		tester := ui.NewTester(func(c *ui.Context) {
+			ui.TimeInput(c, &when).Label(tr(name))
+		}, 900, 300)
+		tester.Frame()
+		_, named := tester.Find(tr(name))
+		require.Truef(t, named, "%s must be the field's own name", name)
+		for _, segment := range []string{"hours", "minutes", "AM/PM"} {
+			require.Truef(t, tester.HasText(tr(segment)),
+				"%s must show the %s segment inside the named field", name, segment)
+		}
+		names[name] = tr(name)
+	}
+	require.NotEqual(t, names["Start time"], names["End time"],
+		"the two controls must not carry the same name, or a reader cannot tell them apart")
+
+	// And the real form must use both, one per TimeInput.
+	app := New(&fakeServices{voterRows: []VoterRow{{PublicKey: "voter-pk-1", Name: "Ada"}}})
+	app.ShowPage(pageIDs[pageVoting])
+	form := ui.NewTester(app.View, 1400, 2200)
+	form.SetLocale("en")
+	form.Frame()
+	for _, name := range []string{"Start time", "End time"} {
+		_, ok := form.Find(tr(name))
+		require.Truef(t, ok, "the session form must name a control %q", name)
+	}
+}
