@@ -300,3 +300,24 @@ func TestCrossFieldErrorsNameTheFieldTheyBlame(t *testing.T) {
 	assert.NotContainsf(t, fn, `a.voting.sessionStartErr = "End time must`,
 		"the reversed-window error must blame End, not Start")
 }
+
+// TestEverySettingsWriteReportsItsFailure covers the three Settings choices that
+// persist to desktop-settings.json: language, theme mode and live updates. Each
+// applies in the window first and then reports a failed write, because a silent
+// failure looks like success until the next launch reverts it — and the operator
+// has no way to tell that from having misremembered.
+func TestEverySettingsWriteReportsItsFailure(t *testing.T) {
+	settings := readRepoFile(t, "desktop", "internal", "nativeui", "settings.go")
+	for _, want := range []struct{ what, code string }{
+		{"the language chooser reports through a handler", "reportLanguageSaveError(a)"},
+		{"a failed theme write reports", "a.actions.SetThemeMode(mode); err != nil {"},
+		{"a failed live-updates write reports", "a.actions.SetLiveUpdates(a.liveUpdates); err != nil {"},
+	} {
+		assert.Containsf(t, settings, want.code, "settings.go must keep the failure path: %s", want.what)
+	}
+
+	// The message has to name the write, not the value: "Couldn't save settings"
+	// is what tells the reader the choice will not survive a restart.
+	assert.Contains(t, settings, `tr("Couldn't save settings")`,
+		"the failure line must say the settings could not be saved")
+}
