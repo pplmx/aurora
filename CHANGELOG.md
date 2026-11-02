@@ -12,6 +12,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The CLI reference scopes `--json` to the success path**: it said the switch prints one
+  document on stdout, which holds when the command succeeds. A failure prints the human line on
+  stderr and leaves stdout empty, so there is no error document — and a script treating
+  unparseable stdout as "empty result" reads a failure as success. The section now says what a
+  caller sees instead and that the exit code is the verdict; a structural check ties it to the
+  code, where `jsonRequested` gates printing and `formatCLIError` knows nothing about the flag.
+
 - **The failed-server start branch is reachable from a test**: it has to write to the log
   before returning, and nothing could exercise it — the real `NewServer` needs a working
   database — so the lines were unreachable and the coverage floor paid for them. `newAPIServer`
