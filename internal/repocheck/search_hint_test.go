@@ -948,3 +948,35 @@ func TestEveryExitPathStopsTheRuntime(t *testing.T) {
 	require.Contains(t, desktop, "defer func() { _ = rt.Close() }()",
 		"the ordinary shutdown must stay deferred")
 }
+
+// TestTheReferenceSaysJSONIsForSuccessOnly covers the half of the --json contract a script
+// depends on and the reference did not state. The switch changes what a command prints when
+// it succeeds; a failure still prints the human line on stderr and leaves stdout empty, so
+// there is no error document to parse.
+//
+// Measured: `lottery verify --json` with no argument exits 1, writes nothing to stdout, and
+// puts "❌ Error: accepts 1 arg(s), received 0" on stderr. A script treating unparseable
+// stdout as "empty result" would read a failure as success.
+func TestTheReferenceSaysJSONIsForSuccessOnly(t *testing.T) {
+	doc := readRepoFile(t, "docs", "cli.md")
+	require.Contains(t, doc, "`--json` 只改变**成功**时的输出",
+		"the reference must scope the switch to the success path")
+	require.Contains(t, doc, "失败时 stdout 为空",
+		"and say what a caller sees instead")
+	require.Contains(t, doc, "不要用「stdout 能否解析成 JSON」判断成败",
+		"which is the mistake the sentence exists to prevent")
+
+	// The code agrees: the switch is read on the printing path, and the failure path is
+	// formatCLIError, which knows nothing about --json.
+	jsonHelper := readRepoFile(t, "cmd", "aurora", "cmd", "json.go")
+	require.Contains(t, jsonHelper, "func jsonRequested(",
+		"the switch is a query a command makes when it prints")
+	require.Contains(t, jsonHelper, "func printJSON(",
+		"and printing is what it gates")
+
+	root := readRepoFile(t, "cmd", "aurora", "cmd", "root.go")
+	require.Contains(t, root, "func formatCLIError(",
+		"failures have one formatter")
+	require.NotContains(t, functionSource(t, root, "func formatCLIError("), "jsonRequested",
+		"and it does not branch on --json, which is why stdout stays empty")
+}
