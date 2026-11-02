@@ -12,6 +12,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The generated key is tested to be offered only where it can sign**: the two
+  key offers — the token owner key and the NFT creator key — each depend on a second
+  condition the tests never moved, so a version that offered them on every tab would
+  have passed. Transfer and Approve now assert both directions; Mint keeps the case
+  with no account field; Burn reads its own id and holder, so the creator-key test
+  covers it separately, including another asset with a matching holder.
+
 - **An incomplete write form is tested never to reach the service**: six writes
   had no call counter in the fake — create token, mint, approve, transfer from,
   mint NFT, transfer NFT — so a test could only see the message, not whether the
