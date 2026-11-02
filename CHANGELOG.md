@@ -12,6 +12,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **A copy is tested to take the whole value, not the shortened cell**: the id
+  copy test uses short identifiers, and a copy of a short value is also a copy of the
+  cell that shows it. A long value is where the two differ. `actionSubject` is
+  deliberately outside this — it draws the whole id and lets the layout ellipsise it,
+  so its text node and its clipboard value are the same string, and asserting on its
+  rendered text would say nothing about the copy.
+
 - **The session card is tested to drop its choose hint once an id is typed**:
   three cards tell the operator to choose a record and then swap the sentence for a
   plain field once one is chosen. Readings had a test for both halves; Session
