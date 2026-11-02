@@ -12,6 +12,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The three surfaces are tested to share one draw search**: the reference says a
+  lottery search is one read whether it comes from the window, the API's `q` or the
+  CLI's `-s`. All three call the same repository method, which matches the same four
+  fields, so the check pins the shared call rather than a result — a surface filtering in
+  memory would answer a different question for a draw on another page and look perfectly
+  fine.
+
 - **The paging sentence is tested to be spoken, not drawn**: each paged collection
   used to stack a search field, a visible sentence about paging, a full-width pager and
   then the rows, so the first row started 247px down. The sentence is the field's
