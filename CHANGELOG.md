@@ -12,6 +12,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **Both modules' tests run in shuffled order in CI**: order independence is a property no
+  fixed-order run can check — a test that only passes because another one ran first looks healthy
+  until that other one is renamed. The local suite has a `just test-shuffle` recipe that nothing
+  ran, and `just verify` does not include it either. Both modules were measured green under
+  `-shuffle=on` before the step was added, so a failure there is a real dependency. The desktop job
+  gets its own step because the two modules build in different working directories.
+
 - **The CI-only gates are held in place**: `just verify` runs what a laptop can run, while the
   race detector needs cgo and packaging needs a toolchain — so both live in CI. `AGENTS.md`
   describes that split, and the table stays true only while CI keeps running them: if either
