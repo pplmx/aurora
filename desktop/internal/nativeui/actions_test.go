@@ -248,3 +248,38 @@ func TestPageTitleFollowsNavigation(t *testing.T) {
 	app.ShowPage("Oracle")
 	require.Equal(t, []string{"Dashboard", "Token", "Oracle"}, titles)
 }
+
+// TestTheFileMenuCannotBeOpenedWhileAWriteRuns closes the gap between the two
+// halves of the busy gate. The shortcuts already refuse to run (the header returns
+// early), and the File menu button is disabled for the same reason: a document
+// dialog raised in the middle of a write would ask the operator to pick a path
+// while the store is mid-transaction.
+//
+// The gate is on the button, not on the items inside it — a disabled MenuButton
+// never builds its menu — so that is what this asserts.
+func TestTheFileMenuCannotBeOpenedWhileAWriteRuns(t *testing.T) {
+	app := New(&fakeServices{})
+	opened := 0
+	app.SetActions(Actions{BackUpDatabase: func() { opened++ }})
+	tester := ui.NewTester(app.View, 1280, 860)
+	tester.Frame()
+
+	fileLabel := i18n.GetText("desktop.menu.file")
+	require.True(t, tester.HasText(fileLabel))
+
+	app.busy = "Minting…"
+	tester.Frame()
+
+	// A click on a disabled control must not open anything.
+	_ = tester.Click(fileLabel)
+	tester.Frame()
+	require.NotContains(t, tester.Menu(), i18n.GetText("desktop.menu.backup"),
+		"a write in flight must not open the File menu")
+	require.Zero(t, opened, "and nothing inside it may run")
+
+	app.busy = ""
+	tester.Frame()
+	require.NoError(t, tester.Click(fileLabel))
+	require.Contains(t, tester.Menu(), i18n.GetText("desktop.menu.backup"),
+		"the menu returns once the write finishes")
+}
