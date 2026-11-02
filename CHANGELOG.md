@@ -12,6 +12,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **`lottery reset` joins the commands with no JSON mode**: the list is where a script
+  learns that passing `--json` to a command fails before the command does anything, and it was
+  missing from it. Measured: `lottery reset --confirm` prints one line; `lottery reset --json
+  --confirm` exits 1 with `unknown flag: --json`. The entry says why there are no fields to
+  give and what to read instead. The structural check behind the list now scans every command
+  file instead of a hand-kept shortlist — a flag registered from one file for a command
+  declared in another went unnoticed until it was widened.
+
 - **The CLI reference scopes `--json` to the success path**: it said the switch prints one
   document on stdout, which holds when the command succeeds. A failure prints the human line on
   stderr and leaves stdout empty, so there is no error document — and a script treating
