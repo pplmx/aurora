@@ -911,3 +911,40 @@ func TestADesktopStartFailureReachesTheLog(t *testing.T) {
 	require.Contains(t, privBlock[:closeAt], "logger.Error()",
 		"the failure must be written before the handle it writes through is closed")
 }
+
+// TestEveryExitPathStopsTheRuntime covers the resource the deferred Close cannot reach.
+// os.Exit does not run defers, so a process that exits from inside a failure path leaves
+// the SQLite handle, the oracle scheduler and the audit outbox to be torn down by process
+// teardown instead of being stopped in order — the WAL is left as it was and whatever the
+// outbox had not drained is lost.
+//
+// Both mains have such a path and both now close first. The check reads each exit for the
+// stop that has to come before it, which is the part a later edit removes without noticing.
+func TestEveryExitPathStopsTheRuntime(t *testing.T) {
+	api := readRepoFile(t, "cmd", "api", "main.go")
+	// The listener goroutine cannot use a deferred close, and says so.
+	fatalAt := strings.Index(api, "logger.Fatal()")
+	require.Greater(t, fatalAt, 0)
+	require.Contains(t, api[:fatalAt], "srv.Close()",
+		"the API must stop the server before the Fatal that skips defers")
+
+	desktop := readRepoFile(t, "desktop", "cmd", "aurora-desktop", "main.go")
+	// The stderr sentence appears in three branches, so the anchor is the branch itself:
+	// everything up to the closing of that block is what the check reads.
+	// The indentation is the discriminator: main's call is at one tab, the generation
+	// branch's is nested one level deeper and has no runtime to close.
+	branchStart := strings.Index(desktop, "\n\tif err := mygo.App.Run(); err != nil {")
+	require.Greater(t, branchStart, 0, "the window loop's failure branch must exist")
+	branch := desktop[branchStart:]
+	if end := strings.Index(branch, "\n\t}\n"); end > 0 {
+		branch = branch[:end]
+	}
+	require.Contains(t, branch, "rt.Close()",
+		"the window must stop its runtime before exiting, since the defer is skipped")
+	require.Contains(t, branch, "os.Exit(1)",
+		"and the branch is the one that exits")
+
+	// And the normal path still defers its close, so the added call is the exception.
+	require.Contains(t, desktop, "defer func() { _ = rt.Close() }()",
+		"the ordinary shutdown must stay deferred")
+}
