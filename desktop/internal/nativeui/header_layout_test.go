@@ -180,3 +180,56 @@ func TestTabRowWrapsAgreesWithTheLayout(t *testing.T) {
 		})
 	}
 }
+
+// TestEveryPageHeaderStaysInsideTheWindowAtItsTightest covers the other seven
+// pages. The existing check exercises Token, whose purpose sentence is one of the
+// shortest, at the widths where the arrangement changes. Settings has no action at
+// all and the longest purpose line, so it takes the other branch of header() and
+// was never measured at any size.
+//
+// Every page is checked at the smallest window and the largest text the window
+// offers, which is where a header runs out of room first.
+func TestEveryPageHeaderStaysInsideTheWindowAtItsTightest(t *testing.T) {
+	const width, scale = 900, float32(2)
+
+	for _, target := range pageOrder {
+		target := target
+		t.Run(pageTitles[target], func(t *testing.T) {
+			app := New(workbenchFakes())
+			tester := ui.NewTester(app.View, width, 900)
+			tester.SetPreferences(ui.Preferences{TextScale: scale})
+			app.ShowPage(pageTitles[target])
+			tester.Frame()
+
+			title, ok := tester.Find(pageTitles[target])
+			require.True(t, ok, "the page title must be drawn")
+			purpose, ok := tester.Find(pagePurpose[target])
+			require.True(t, ok, "the page purpose must be drawn")
+			for _, rect := range []struct {
+				what string
+				r    ui.Rect
+			}{{"title", title}, {"purpose", purpose}} {
+				require.GreaterOrEqualf(t, rect.r.X, float32(0),
+					"%s: the %s must not start left of the window", pageTitles[target], rect.what)
+				require.LessOrEqualf(t, rect.r.X+rect.r.W, float32(width)+1,
+					"%s: the %s must not run past the window", pageTitles[target], rect.what)
+			}
+
+			// A page with an action keeps its chord whole; Settings has none.
+			// Its Shortcuts card prints the same chord as documentation, so the
+			// absence is checked on the header's own button, not on the text.
+			if target == pageSettings {
+				_, hasRefresh := tester.Find("Refresh")
+				require.False(t, hasRefresh,
+					"Settings has no stored data to refresh")
+				return
+			}
+			button, ok := tester.Find("Refresh")
+			require.True(t, ok, "%s must offer Refresh", pageTitles[target])
+			require.LessOrEqualf(t, button.X+button.W, float32(width)+1,
+				"%s: the action must stay inside the window", pageTitles[target])
+			require.Greaterf(t, button.W, float32(80),
+				"%s: the action must keep a usable measure", pageTitles[target])
+		})
+	}
+}
