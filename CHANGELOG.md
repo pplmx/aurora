@@ -12,6 +12,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **Re-importing a stored export no longer says "partially failed"**: opening an
+  export whose records are all already stored rejects every one of them, and the
+  partial wording read "Import partially failed. Imported 0 of 3 lottery records" — a
+  heading contradicting its own sentence, on the most common way to reach it. A refusal
+  that stored nothing now has its own title and sentence, keeping the detail (indices,
+  reasons, file) and the warning severity. The existing re-import test asserted the old
+  wording and now asserts the refusal it was describing.
+
 - **A drop of several unreadable files reports them once**: each file the shell
   could not read raised its own dialog, so dropping five unrelated files meant closing
   five boxes to dismiss one drag. They are now collected and reported together, naming
