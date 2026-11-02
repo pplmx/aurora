@@ -283,3 +283,42 @@ func TestTheFileMenuCannotBeOpenedWhileAWriteRuns(t *testing.T) {
 	require.Contains(t, tester.Menu(), i18n.GetText("desktop.menu.backup"),
 		"the menu returns once the write finishes")
 }
+
+// TestThePaletteMatchesAndRanksWhatTheWindowShows covers search in a Chinese
+// window. The rows render translated titles, so a query copied from the screen has
+// to match that text and be ranked by it — otherwise typing part of a visible
+// label finds nothing, or finds the right row below an unrelated one.
+//
+// The two halves are separate: matches come from containsFold over both spellings,
+// ranking from paletteRank over both, so a change to one does not carry the other.
+func TestThePaletteMatchesAndRanksWhatTheWindowShows(t *testing.T) {
+	tr := i18n.GetTranslator()
+	before := tr.GetLocale()
+	t.Cleanup(func() { tr.SetLocale(before) })
+	tr.SetLocale("zh")
+
+	app := New(&fakeServices{})
+	app.SetActions(Actions{
+		BackUpDatabase:  func() {},
+		ExportLotteries: func() {},
+		ImportLotteries: func() {},
+	})
+
+	app.paletteQuery = "备"
+	matches := app.paletteMatches()
+	require.Len(t, matches, 1, "a query typed from the visible label must find its row")
+	require.Equal(t, "Back up database…", matches[0].title)
+	require.Zero(t, paletteRank(matches[0], "备"), "and it starts with the query, so it ranks first")
+
+	// A query that hits a title ranks above one that only hits a description.
+	app.paletteQuery = "数据"
+	matches = app.paletteMatches()
+	require.NotEmpty(t, matches)
+	first := paletteRank(matches[0], "数据")
+	for _, entry := range matches[1:] {
+		require.LessOrEqual(t, first, paletteRank(entry, "数据"),
+			"a title hit must not sort below a description hit")
+	}
+	require.Equal(t, 1, first,
+		"the backup command's title contains the query without starting with it")
+}
