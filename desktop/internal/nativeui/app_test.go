@@ -100,6 +100,8 @@ type fakeServices struct {
 	sessionListCalls       int
 	lastSessionLimit       int
 	lastSessionOffset      int
+	verifyDrawCalls        int
+	lastVerifyID           string
 	startSessionCalls      int
 	endSessionCalls        int
 	sourceListCalls        int
@@ -233,6 +235,8 @@ func (f *fakeServices) CreateDraw(participants []string, seed string, winners in
 }
 
 func (f *fakeServices) VerifyDraw(id string) (VerifyResult, error) {
+	f.verifyDrawCalls++
+	f.lastVerifyID = id
 	return f.verifyResult, f.verifyErr
 }
 
@@ -679,6 +683,30 @@ func TestLotteryValidationStopsBadInput(t *testing.T) {
 	require.Empty(t, app.lottery.countErr)
 	require.NotNil(t, fake.created)
 	require.Equal(t, 2, fake.created.winners)
+}
+
+// TestEmptyVerifyIDStopsBeforeTheService is the fourth of the rejections the
+// reference lists: an empty verifier field is refused locally and never sent. The
+// check is the call counter, not the message — a message beside a call that went
+// out anyway would still read as "I was stopped".
+func TestEmptyVerifyIDStopsBeforeTheService(t *testing.T) {
+	fake := &fakeServices{}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 860)
+	app.ShowPage("Lottery")
+	tester.Frame()
+
+	app.lottery.verifyID = "   "
+	app.verifyLottery()
+	require.NotEmpty(t, app.lottery.verifyErr)
+	require.Zero(t, fake.verifyDrawCalls, "an empty id must not reach the service")
+	require.Nil(t, app.lottery.verifyResult)
+
+	app.lottery.verifyID = "draw-1"
+	app.verifyLottery()
+	require.Zero(t, fake.verifyErr)
+	require.Equal(t, 1, fake.verifyDrawCalls, "a real id is what reaches the service")
+	require.Equal(t, "draw-1", fake.lastVerifyID, "and it is the id that was typed")
 }
 
 // TestDeepLinkVerifiesTheDraw covers the aurora://lottery?id= promise: the link
