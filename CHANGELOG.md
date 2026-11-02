@@ -12,6 +12,12 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The confirmation guard's comment stops naming a count**: it said "all six destructive
+  commands" and there are seven — `lottery reset` joined after the sentence was written. The
+  count is not the fact a reader needs, and a number in a comment goes stale the moment the list
+  grows; the comment points at the check that keeps the list complete instead. The wrapping was
+  off there too, splitting one sentence into two fragments.
+
 - **Every confirmation gate is tested to have its warning in all three catalogs**:
   `addConfirmFlag` takes its key as a literal, but the sentence a user reads is assembled at run
   time — `cli.confirm.required` formats "⚠️ this %s; pass --confirm to proceed" around the action
