@@ -12,6 +12,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **An overflowing credit is tested to be classified like an overflowing supply**: three
+  places can push a number past `MaxInt64` — `total_supply`, one account's balance, and an
+  allowance — and there are not three answers. The two that hold ledger state refuse with
+  `ErrAmountTooLarge` so the API answers 400; the permission ceiling saturates. The balance
+  path was the one the SQLite primitive had already fixed while the mock answered with a
+  bare message, so the suite was the only place an overflowing credit looked like a server
+  fault; both wrap the sentinel now.
+
 - **An allowance saturates where the supply refuses**: both ceilings sit at `MaxInt64`
   and both are guarded by the same style of atomic primitive, but they answer differently —
   a mint past the limit is refused with `ErrAmountTooLarge`, because `total_supply` is part
