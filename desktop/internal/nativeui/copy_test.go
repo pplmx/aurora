@@ -130,3 +130,27 @@ func TestChineseCopyLabelsHaveNoSpuriousSpace(t *testing.T) {
 	translator.SetLocale("en")
 	require.Equal(t, "Copy Diagnostics", copyActionLabel("Diagnostics"))
 }
+
+// TestCopiedValuesAreTheWholeValueNotTheShortenedCell covers the half the id test
+// above cannot see. That one copies short identifiers, and a copy of a short value
+// is also a copy of its shortened cell, so it cannot tell the two apart. A long
+// value is where copying the cell would differ from copying the value, and the
+// reference promises the whole value: the abbreviation exists to keep the row narrow,
+// not to be what the operator pastes.
+func TestCopiedValuesAreTheWholeValueNotTheShortenedCell(t *testing.T) {
+	const longID = "9f2c1d4e-6a7b-8c9d-0e1f-2a3b4c5d6e7f-extra-tail"
+	require.NotEqual(t, abbreviate(longID), longID,
+		"the fixture must be long enough to be shortened, or this proves nothing")
+
+	fake := &fakeServices{sources: []SourceRow{{ID: longID, Name: "btc"}}}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 5000)
+	app.ShowPage("Oracle")
+	app.oracle.fetchID = longID
+	tester.Frame()
+
+	require.NoError(t, tester.Click(copyActionLabel("Source ID")))
+	tester.Frame()
+	require.Equal(t, longID, tester.Clipboard(),
+		"the button copies the value, not the shortened cell")
+}
