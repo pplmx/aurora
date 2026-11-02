@@ -1144,3 +1144,39 @@ func TestTheShortcutsCardListsEveryRegisteredChord(t *testing.T) {
 	require.Len(t, pageOrder, 8,
 		"the card's 1…8 must describe the sidebar's pages")
 }
+
+// TestThePagingSentenceIsSpokenNotDrawn keeps the collection toolbar's second line
+// from coming back. Each paged collection used to stack a search field, a visible
+// sentence about paging, a full-width pager and then the rows, so the first row
+// started 247px down. The sentence is now the field's accessible description: still
+// read out, no longer a line on every frame.
+//
+// A hint that became visible again would be invisible to a behavioural test — the
+// page would simply be taller — so the assertion is on what the frame does and does
+// not draw.
+func TestThePagingSentenceIsSpokenNotDrawn(t *testing.T) {
+	cases := []struct {
+		page  string
+		field string
+		hint  string
+	}{
+		{"Token", "Search tokens", "Search narrows the current page; use Previous/Next for older tokens."},
+		{"Oracle", "Search sources", "Search narrows the current page; use Previous/Next for older sources."},
+		{"NFT", "Search NFTs", "Search narrows the current page; use Previous/Next for older assets."},
+	}
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.page, func(t *testing.T) {
+			app := New(workbenchFakes())
+			tester := ui.NewTester(app.View, 1400, 3600)
+			app.ShowPage(tc.page)
+			tester.Frame()
+
+			require.Falsef(t, tester.HasText(tr(tc.hint)),
+				"%s: the paging sentence must not occupy a visible line", tc.page)
+			// The field itself is still there and still named.
+			require.Truef(t, tester.HasText(tr(tc.field)),
+				"%s: the search field must still be drawn", tc.page)
+		})
+	}
+}
