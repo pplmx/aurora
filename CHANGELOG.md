@@ -12,6 +12,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The live-updates copy names the source list it also refreshes**: the Settings
+  description said the timer applies to "Dashboard, Oracle health and open readings",
+  while the Oracle reload also refreshes the source list and the preset picker. A
+  reader who turned it on to watch the counters had no way to learn that their source
+  list updates too. The behaviour was right — the source page keeps its offset and
+  restores the selected row — so only the sentence changed, in all three catalogs.
+
 - **A refresh is tested to re-read only the read cards that are open**: all four
   tabbed pages reload their lists on a refresh and re-read a detail card only when
   that card has something on screen. An unopened card has no rows to keep in step, and
