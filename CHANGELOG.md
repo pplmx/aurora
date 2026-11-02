@@ -12,6 +12,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **A field error is tested to reach the control, not just the space below it**:
+  MyGo's `Field.Error` draws the message, marks the control invalid so its border
+  turns red and assistive technology reports `AccessInvalid`, and prepends the
+  message to the control's description. Only the first is visible to `Tester`,
+  which exposes text and not the invalid state, so the call that asks for all three
+  is pinned where it is made — together with a refusal to draw the message twice.
+
 - **Every choice group is tested to carry its name**: radio groups, tab rows and
   checkboxes each render a set of controls that are indistinguishable without the
   group's name — three radios reading "Follow System", "Light", "Dark" say nothing
