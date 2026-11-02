@@ -12,6 +12,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **Larger text is tested to move the breakpoint up and widen the sidebar**: both
+  layout decisions multiply by the text scale, and neither interaction was tested —
+  every existing layout test runs at the default scale, so dropping either multiplier
+  left them passing. The breakpoint is now measured at one fixed width across four
+  scales, and the sidebar by where the content area starts, bounded by its stated
+  fraction of the window.
+
 - **The two-column breakpoint is tested at its stated width**: the layout tests
   compare 1280 against 900, so a breakpoint nudged by a few pixels — or compared
   with `>` instead of `>=` — would leave both passing while the documented width
