@@ -636,3 +636,33 @@ func TestStartLogsAFailedServerCreation(t *testing.T) {
 	require.Contains(t, string(data), "cannot open the database",
 		"and the record must carry the reason, not only the fact")
 }
+
+// TestTheDefaultLogDirectorySitsBesideTheDatabase pins where a packaged window writes its log.
+// The default log.path is the CWD-relative ./logs, which a bundled app must not use: the launch
+// directory is the install directory for a desktop entry and the file manager's for a
+// double-click. Start therefore rewrites the default to the database's own directory, and that is
+// also what the reference promises ("日志写在同目录 logs/").
+//
+// The placement is a privacy decision as much as a tidiness one: aurora.log records Oracle request
+// details, and MyGo's own PathLogs would put it under a per-user log tree this app does not use.
+func TestTheDefaultLogDirectorySitsBesideTheDatabase(t *testing.T) {
+	resetState(t)
+	dataDir := t.TempDir()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	rt, err := Start(ctx, Options{DataDir: dataDir})
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		cancel()
+		require.NoError(t, rt.Close())
+		logger.Close()
+	})
+
+	want := filepath.Join(filepath.Dir(rt.DBPath()), "logs")
+	require.Equal(t, want, viper.GetString("log.path"),
+		"the default log path must be rewritten to sit beside the database")
+	require.FileExists(t, filepath.Join(want, "aurora.log"),
+		"and the log must actually be written there")
+	require.NotEqual(t, "./logs", viper.GetString("log.path"),
+		"the launch directory's ./logs must never be the answer")
+}
