@@ -12,6 +12,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **Cancel and a failed picker are tested apart for export and import**: each
+  action opens a native dialog and then either writes, reports a failure, or does
+  nothing. Cancel is "no error, nothing chosen" and must raise nothing; a picker
+  that failed must say so. Collapsing the two into one `err != nil || empty` test
+  erases the difference — which is what had happened to backup before it was
+  fixed, and the boundary was unpinned for the other two.
+
 - **A failed settings save now has a documented contract and a check**: three
   Settings choices persist to `desktop-settings.json` — language, theme mode and
   live updates — and each applies in the window first, then reports a failed write.
