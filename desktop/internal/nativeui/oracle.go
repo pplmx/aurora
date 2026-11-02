@@ -79,8 +79,8 @@ type oracleState struct {
 	deleteName string
 
 	// tab is the right-hand section: 0 sources (list/actions), 1 feed health,
-	// 2 readings (query/latest). Stacking all four made the page a long column
-	// where the read cards were usually below the fold.
+	// 2 readings (query/latest). Showing all three at once made the page a long
+	// column where the read cards were usually below the fold.
 	tab int
 
 	status statusLine
@@ -194,7 +194,7 @@ func (a *App) oracleView(c *ui.Context) {
 		)
 		// The add form is the tallest card on the page, so it gets a column of
 		// its own; the right column shows one of sources, health or readings at
-		// a time instead of stacking all four sections.
+		// a time instead of stacking all three sections.
 		left := func() {
 			a.oracleAdd(c)
 			a.oracleSourceActions(c)
