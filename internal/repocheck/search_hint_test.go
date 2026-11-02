@@ -654,3 +654,33 @@ func TestEveryCopyConfirmsItselfNearby(t *testing.T) {
 		"the window's copy buttons: the generic row, the acting-on strip, the payload, "+
 			"the verdict and the diagnostics")
 }
+
+// TestTheTwoSurfacesDriveSessionStatusTheSameWay covers a rule stated in one file
+// and implemented in two: the window's session controls "mirror the REST handler's
+// two steps". Two implementations of one rule drift, and the drift is invisible —
+// both surfaces keep working, they just stop agreeing about what a missing session
+// does or whether the read happens before the write.
+//
+// The check holds the shape both need: read first so a missing id is a not-found
+// rather than a write of nothing, then persist the new status.
+func TestTheTwoSurfacesDriveSessionStatusTheSameWay(t *testing.T) {
+	rest := readRepoFile(t, "internal", "api", "handler", "voting.go")
+	restBody := functionSource(t, rest, "func (h *VotingHandler) updateSessionStatus")
+	require.Contains(t, restBody, "NewGetSessionUseCase(h.repo)",
+		"the REST handler must read the session before writing its status")
+	require.Contains(t, restBody, "h.repo.UpdateSession(session)",
+		"and then persist it")
+	// Both transitions go through this one helper, so neither can grow a second
+	// path with different rules.
+	require.Contains(t, functionSource(t, rest, "func (h *VotingHandler) StartSession"),
+		"updateSessionStatus(w, r, voting.SessionStatusActive)", "Start is a status write")
+	require.Contains(t, functionSource(t, rest, "func (h *VotingHandler) EndSession"),
+		"updateSessionStatus(w, r, voting.SessionStatusEnded)", "End is the same write")
+
+	desktop := readRepoFile(t, "desktop", "internal", "deskapp", "native_voting.go")
+	desktopBody := functionSource(t, desktop, "func (s *nativeServices) setSessionStatus")
+	require.Contains(t, desktopBody, "NewGetSessionUseCase(s.votingRepo)",
+		"the window must read the session before writing its status")
+	require.Contains(t, desktopBody, "s.votingRepo.UpdateSession(session)",
+		"and then persist it")
+}
