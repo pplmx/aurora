@@ -687,3 +687,40 @@ func TestEnablingASourceRefreshesTheList(t *testing.T) {
 	require.Greater(t, fake.sourceListCalls, before,
 		"the source list must show the new state")
 }
+
+// TestRefreshOnlyReReadsTheReadCardsThatAreOpen covers a rule all four tabbed
+// pages follow: a page refresh reloads its lists, and re-reads a detail card only
+// when that card has something on screen. An unopened card has no rows to keep in
+// step, so reading it would spend a query on a result nobody is looking at — and on
+// the Oracle page it would be two queries, since Readings has a query and a latest
+// card.
+//
+// The check runs the page twice: once with no card open, where the detail reads must
+// stay at zero, and once with the cards marked open, where they must run.
+func TestRefreshOnlyReReadsTheReadCardsThatAreOpen(t *testing.T) {
+	fake := &fakeServices{
+		sources: []SourceRow{{ID: "s1", Name: "btc", URL: "https://example.com", Type: "http", Enabled: true}},
+	}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1400, 6000)
+	app.ShowPage("Oracle")
+	app.oracle.queryID = "s1"
+	tester.Frame()
+
+	fake.oracleDataCalls, fake.oracleLatestCalls = 0, 0
+	app.refresh()
+	tester.Frame()
+	require.Zero(t, fake.oracleDataCalls,
+		"a refresh must not read values for a card that was never opened")
+	require.Zero(t, fake.oracleLatestCalls,
+		"a refresh must not read a latest value for a card that was never opened")
+
+	// Open the cards the way the page does, then refresh again.
+	app.oracle.dataLoadedSource = "s1"
+	app.oracle.latestLoadedSource = "s1"
+	fake.oracleDataCalls, fake.oracleLatestCalls = 0, 0
+	app.refresh()
+	tester.Frame()
+	require.Positive(t, fake.oracleDataCalls, "an open readings card must be re-read")
+	require.Positive(t, fake.oracleLatestCalls, "an open latest card must be re-read")
+}
