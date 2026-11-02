@@ -14,6 +14,17 @@ import (
 // The floor is WCAG AA for normal text: body and muted text, the module accent
 // (tab labels and small headings use it), the status inks and the ink on a
 // filled accent button all stay at 4.5:1 or better.
+// sidebarSurface is the colour the navigation layer paints in this state. It is
+// read here rather than through sidebarTone because that takes a Context and the
+// palette is decided by the same three inputs a theme is.
+func sidebarSurface(mode ThemeMode, systemDark bool, p page) ui.Color {
+	pal := lightPalette
+	if themeModeDark(mode, systemDark) {
+		pal = darkPalette
+	}
+	return ui.Hex(pal.sidebar)
+}
+
 func TestPaletteTextMeetsTheContrastFloor(t *testing.T) {
 	const floor = 4.5
 	pages := []page{
@@ -40,6 +51,11 @@ func TestPaletteTextMeetsTheContrastFloor(t *testing.T) {
 				}{
 					{"background", theme.Background},
 					{"surface", theme.Surface},
+					// The navigation draws its own layer, darker than the window
+					// behind it. An accent is not used there as text, but the
+					// sidebar's selected mark is, and the layer is the darkest
+					// surface in the light palette — the case that tightens first.
+					{"sidebar", sidebarSurface(mode.mode, mode.system, p)},
 				} {
 					require.GreaterOrEqualf(t, contrastRatio(theme.Text, surface.bg), floor,
 						"text on %s (%s)", surface.name, label)
