@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"reflect"
 	"strconv"
 	"strings"
 	"testing"
@@ -1178,5 +1179,40 @@ func TestThePagingSentenceIsSpokenNotDrawn(t *testing.T) {
 			require.Truef(t, tester.HasText(tr(tc.field)),
 				"%s: the search field must still be drawn", tc.page)
 		})
+	}
+}
+
+// TestASourceRowCarriesNoHeaderValue keeps a credential out of the layer that draws
+// it. A list row is read by a shoulder-surfer, a screenshot and the copied diagnostics
+// block, and a source's headers are usually an Authorization bearer token or an API key.
+//
+// The guarantee is in the type rather than in a runtime check: SourceRow has HasHeaders
+// and no field for the values, so the value cannot reach a view. The row still says the
+// headers are configured, because whether a source sends them is the fact an operator
+// scans for.
+//
+// The assertion reads the struct's own fields, so adding a value field later fails here
+// instead of quietly widening what a row exposes.
+func TestASourceRowCarriesNoHeaderValue(t *testing.T) {
+	fake := &fakeServices{sources: []SourceRow{{
+		ID: "s1", Name: "priced feed", URL: "https://example.com/price",
+		Type: "http", Enabled: true, Interval: 60, HasHeaders: true,
+	}}}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1400, 3000)
+	app.ShowPage("Oracle")
+	tester.Frame()
+	require.True(t, tester.HasText("configured"),
+		"the row must say the source has headers")
+
+	// The type is the guarantee: the only field about headers is the boolean.
+	rowType := reflect.TypeOf(SourceRow{})
+	for i := 0; i < rowType.NumField(); i++ {
+		field := rowType.Field(i)
+		if !strings.Contains(strings.ToLower(field.Name), "header") {
+			continue
+		}
+		require.Equalf(t, "bool", field.Type.Kind().String(),
+			"SourceRow's header field must stay a flag, or a row could draw a credential: %s", field.Name)
 	}
 }
