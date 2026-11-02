@@ -12,6 +12,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The preset says it fills once and then lets go**: choosing a preset fills every
+  field it defines and opens the disclosure that hides them, and the box then keeps its
+  name while Add Source submits the fields rather than the preset. An edited form and a
+  named preset disagreed and nothing said which would be saved. The form says the fill is
+  one-time; the docs had it in prose, but the question arrives while the form is being
+  filled, which is when the docs are not open.
+
 - **The interval ceiling is the domain's constant**: the form's number input stopped
   at 30 days and the store refused anything above it, as two independent copies of one
   number. They agree the day they are written and drift the moment one moves, and the
