@@ -143,7 +143,7 @@ func Start(ctx context.Context, opts Options) (*Runtime, error) {
 	}
 	logger.Init()
 
-	srv, err := api.NewServer()
+	srv, err := newAPIServer()
 	if err != nil {
 		// The logger is up by now, and the window that would have shown this error
 		// never opens: the dialog on stderr is the user's only view, and it is gone
@@ -258,6 +258,11 @@ func keepApplicationFilesPrivate(dbPath, logPath string) error {
 
 // userDataDir is overridable in tests.
 var userDataDir = platformUserDataDir
+
+// newAPIServer is a seam for the start-up tests: opening a real server needs a
+// database, and the failure branch this lets a test reach is the one that has to
+// write to the log before returning.
+var newAPIServer = api.NewServer
 
 // platformUserDataDir follows the OS convention (XDG on Linux,
 // ~/Library/Application Support on macOS, %AppData% on Windows).

@@ -892,7 +892,7 @@ func TestADesktopStartFailureReachesTheLog(t *testing.T) {
 	initAt := strings.Index(body, "logger.Init()")
 	require.GreaterOrEqual(t, initAt, 0, "the window must initialise the logger")
 
-	createAt := strings.Index(body, "srv, err := api.NewServer()")
+	createAt := strings.Index(body, "srv, err := newAPIServer()")
 	require.Greater(t, createAt, initAt, "the server is created after the logger is up")
 
 	// The server-creation failure must be logged before it is returned.
