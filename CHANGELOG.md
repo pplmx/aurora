@@ -12,6 +12,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **A value card is tested to draw no row for a value it has not read**: the
+  empty-read contract has two halves, and only the list half had a test. The value
+  cards read something that exists by definition — a token's supply, an account's
+  balance, an asset's holder — so a blank means "not read yet", and a row whose
+  label sits beside an empty value would claim the value is empty. `readout` draws
+  each row as two text nodes, so the check looks for that pair; a joined-string
+  check cannot see it, because there is no "Balance:" anywhere.
+
 - **The four NFT cards are tested to keep their own ids**: Inspect, Transfer,
   Burn and History each hold an id; a selection fills all four on purpose, but a
   typed id is a local edit, so retargeting a transfer must not quietly aim the
