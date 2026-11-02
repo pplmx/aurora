@@ -12,6 +12,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **Closing the runtime twice is tested to be safe**: the window now closes on two paths —
+  the deferred call on a normal shutdown, and the explicit call before the failure exit that
+  skips defers. They never both run today, but a third stop path would make them overlap, and
+  "closed twice" must not be a panic or a second close of the SQLite handle. Each layer
+  underneath tolerates a repeat, and `Runtime.Close` composes them without a guard of its own;
+  the check holds that composition, and its comment says so rather than claiming the internals
+  are pinned.
+
 - **The window stops its runtime before the loop's failure exit**: `os.Exit` does not run
   defers, so the branch after `App.Run` failed left the SQLite handle, the oracle scheduler
   and the audit outbox to be torn down by process teardown instead of being stopped in order —
