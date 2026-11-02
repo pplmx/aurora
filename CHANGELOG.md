@@ -12,6 +12,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **An error with no message is tested to still say so**: the status line decides whether
+  it is worth drawing by looking at its text, so an error whose message was empty was not
+  drawn at all — a click failed and left the page exactly as it was, with no word, no tint and
+  no announcement. Every signal at once, from a value one branch away. The line now falls back
+  to the window's own sentence, translated like every other label. No production path builds
+  such an error today, so this is a guard: one branch against the reader's every signal.
+
 - **The ownership-changed sentinel is held to one value**: `ErrOwnershipChanged` is a
   pointer and its callers classify it with `errors.Is`. The type has no `Is` or `Unwrap`
   method, so that comparison is pointer identity — returning a fresh
