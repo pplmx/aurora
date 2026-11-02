@@ -644,3 +644,27 @@ func TestHeadingsCarrySemanticRanks(t *testing.T) {
 	require.NoError(t, err)
 	require.Contains(t, string(app), "heading(c, tr(pageTitles[a.page]), pageTitleSize, 1)")
 }
+
+// TestCardsCarryAGroupName pins where the card's group name comes from. MyGo's
+// default role inference treats a labelled container as a group, so a card is a
+// named group as soon as formCard sets Label — which is why it does not also set
+// Role(ui.RoleGroup). ui.Tester renders frames but exposes no accessibility tree,
+// so the label cannot be observed by rendering; what can be checked is that the
+// helper which builds the cards keeps setting it.
+func TestCardsCarryAGroupName(t *testing.T) {
+	source, err := os.ReadFile("layout.go")
+	require.NoError(t, err)
+	layout := string(source)
+
+	start := strings.Index(layout, "func formCard(")
+	require.NotEqual(t, -1, start, "formCard must still exist")
+	body := layout[start:]
+	if end := strings.Index(body, "\nfunc "); end >= 0 {
+		body = body[:end]
+	}
+
+	require.Contains(t, body, "panel.Label(tr(title))",
+		"formCard must name the card it builds, or the fields inside it are spoken without a section")
+	require.NotContains(t, body, "Role(ui.RoleGroup)",
+		"formCard must not also set RoleGroup: a labelled container already resolves to one")
+}
