@@ -321,3 +321,32 @@ func TestEverySettingsWriteReportsItsFailure(t *testing.T) {
 	assert.Contains(t, settings, `tr("Couldn't save settings")`,
 		"the failure line must say the settings could not be saved")
 }
+
+// TestTheBusyGateCoversEveryEntryPoint covers the four places a repository
+// operation can be started from. Each checks the same `busy` flag, and each does
+// it differently — the File menu button is disabled, the shortcuts return early,
+// the palette omits the entries, the Refresh button is disabled — so a refactor
+// that keeps three and drops one leaves a way to start a second operation against
+// the same store.
+func TestTheBusyGateCoversEveryEntryPoint(t *testing.T) {
+	actions := readRepoFile(t, "desktop", "internal", "nativeui", "actions.go")
+	for _, want := range []struct{ what, code string }{
+		{"the File menu button is disabled", "Disabled(a.busy != \"\")"},
+		{"the file shortcuts return before reading them", "func (a *App) actionShortcuts(c *ui.Context) {\n\tif a.busy != \"\" {"},
+	} {
+		assert.Containsf(t, actions, want.code, "actions.go must keep the gate: %s", want.what)
+	}
+
+	palette := readRepoFile(t, "desktop", "internal", "nativeui", "palette.go")
+	assert.Contains(t, palette, "if a.busy == \"\" {",
+		"palette.go must keep the reload and file entries out while a write runs")
+
+	chrome := readRepoFile(t, "desktop", "internal", "nativeui", "chrome.go")
+	assert.Contains(t, chrome, "refreshButton(c).Disabled(a.busy != \"\")",
+		"chrome.go must disable Refresh while a write runs")
+
+	// Navigation is deliberately outside the gate: a page switch does not touch
+	// the store, and the palette test asserts the page entries survive.
+	assert.Contains(t, palette, "for _, p := range pageOrder {",
+		"the palette must keep listing pages regardless of the gate")
+}
