@@ -684,3 +684,35 @@ func TestTheTwoSurfacesDriveSessionStatusTheSameWay(t *testing.T) {
 	require.Contains(t, desktopBody, "s.votingRepo.UpdateSession(session)",
 		"and then persist it")
 }
+
+// TestEveryCreateReturnsItsListToTheFirstPage covers the four create paths — a voter,
+// a candidate, a session, a token, an NFT — and the one step they share that a test
+// cannot see: after a create the list is read from page zero.
+//
+// Without it the new record is somewhere the reader is not looking. If they had paged
+// back before creating, the highlight lands on nothing and the page reads as a create
+// that stored nothing; the row exists one page up.
+//
+// The check reads each create path for the reload, the highlight and the field clear,
+// which are one habit written five times.
+func TestEveryCreateReturnsItsListToTheFirstPage(t *testing.T) {
+	cases := []struct {
+		name    string
+		file    string
+		reload  string
+		select_ string
+	}{
+		{"voter", "voting_setup.go", "a.loadVoterPage(0)", "a.selectVoterByPublicKey("},
+		{"candidate", "voting_setup.go", "a.loadCandidatePage(0)", "a.selectCandidateByID("},
+		{"session", "voting_setup.go", "a.loadSessionPage(0)", "a.selectSessionByID("},
+		{"token", "token.go", "a.refreshTokenAt(0)", "a.selectTokenByID("},
+		{"nft", "nft_mint.go", "a.loadNFTPage(0)", "a.selectNFTRow("},
+	}
+	for _, want := range cases {
+		body := readRepoFile(t, "desktop", "internal", "nativeui", want.file)
+		require.Containsf(t, body, want.reload,
+			"a new %s must be shown from the first page", want.name)
+		require.Containsf(t, body, want.select_,
+			"and the new %s must be highlighted in it", want.name)
+	}
+}
