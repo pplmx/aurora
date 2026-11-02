@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/egoist/mygo/ui"
+	"github.com/pplmx/aurora/internal/i18n"
 	"github.com/stretchr/testify/require"
 )
 
@@ -757,4 +758,50 @@ func TestAResultAndABusyWriteShareTheFrame(t *testing.T) {
 	close(release)
 	tester.Advance(60 * time.Millisecond)
 	tester.Frame()
+}
+
+// TestSearchResultCountsAreSpokenInTheLanguageOfTheWindow covers the text the
+// search fields announce, which the structural check above only counts. Three
+// cases matter: no match is still a result worth speaking, one result uses the
+// singular, and everything else uses the count. A query that did not change must
+// stay silent, or every repaint repeats the sentence.
+func TestSearchResultCountsAreSpokenInTheLanguageOfTheWindow(t *testing.T) {
+	tr := i18n.GetTranslator()
+	before := tr.GetLocale()
+	t.Cleanup(func() { tr.SetLocale(before) })
+
+	spoken := func(t *testing.T, count int, changed bool) []string {
+		t.Helper()
+		tester := ui.NewTester(func(c *ui.Context) {
+			announceSearchResults(c, changed, count)
+		}, 480, 120)
+		tester.Frame()
+		return tester.Announcements()
+	}
+
+	for _, tc := range []struct {
+		count int
+		en    string
+		zh    string
+	}{
+		{0, "0 results.", "0 条结果。"},
+		{1, "1 result.", "1 条结果。"},
+		{7, "7 results.", "7 条结果。"},
+	} {
+		// A minimal view records an announcement per element that carries it, so
+		// the count of copies is not the contract; the words are.
+		tr.SetLocale("en")
+		require.Contains(t, spoken(t, tc.count, true), tc.en,
+			"English must say %q for %d results", tc.en, tc.count)
+		tr.SetLocale("zh")
+		require.Contains(t, spoken(t, tc.count, true), tc.zh,
+			"Chinese must say %q for %d results", tc.zh, tc.count)
+	}
+
+	// The same query rebuilt is not a new result set. A minimal view repeats an
+	// announcement within one frame, so this asserts absence rather than equality.
+	for _, count := range []int{0, 1, 7} {
+		require.Empty(t, spoken(t, count, false),
+			"an unchanged query must stay silent, whatever the count")
+	}
 }
