@@ -1003,3 +1003,47 @@ func TestTheSourcePathFieldSaysWhatAShapelessPathCannot(t *testing.T) {
 	require.True(t, tester.HasText(tr("Path (optional JSON field)")),
 		"and the field itself must still be drawn under that hint")
 }
+
+// TestAPresetIsAFillNotAMode covers what the preset box does after the reader edits a
+// field it filled. The box keeps its name — the toolkit's value is the page's own
+// string — while Add Source submits the fields, not the preset, so an edited form and a
+// named preset disagree and nothing said which would be saved.
+//
+// The sentence has to be on screen, not only in the docs: the question arises at the
+// moment of filling the form, which is exactly when the docs are not open.
+func TestAPresetIsAFillNotAMode(t *testing.T) {
+	app := New(&fakeServices{templates: []TemplateRow{{
+		ID: "bitcoin", Name: "Bitcoin", URL: "https://api.example.com/btc",
+		Method: "GET", Path: "bitcoin.usd", Interval: 60,
+	}}})
+	tester := ui.NewTester(app.View, 1400, 4000)
+	app.ShowPage("Oracle")
+	tester.Frame()
+
+	// The box's change callback is what fills the form, so the choice and the fill
+	// are made together, as the frame does when the box changes.
+	app.oracle.template = "bitcoin — Bitcoin"
+	app.applyTemplate("bitcoin")
+	tester.Frame()
+	require.Equal(t, "https://api.example.com/btc", app.oracle.addURL,
+		"choosing a preset fills the fields")
+	require.True(t, app.oracle.addAdvanced, "and opens the disclosure that hides them")
+
+	// The reader replaces the endpoint. The form is now what gets saved.
+	app.oracle.addURL = "https://internal.example.com/price"
+	tester.Frame()
+	require.True(t, tester.HasText(tr("A preset fills the fields once; edit them freely afterwards.")),
+		"the form must say the preset does not keep overwriting what was typed")
+
+	// What is submitted is the edited form, never the preset.
+	var submitted SourceInput
+	fake := &fakeServices{addSource: func(in SourceInput) (SourceRow, error) {
+		submitted = in
+		return SourceRow{ID: "src", Name: in.Name, URL: in.URL}, nil
+	}}
+	app.services = fake
+	app.oracle.addName, app.oracle.addType = "priced", "bitcoin"
+	app.addOracleSource()
+	require.Equal(t, "https://internal.example.com/price", submitted.URL,
+		"the edited URL is what reaches the store")
+}
