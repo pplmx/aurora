@@ -1146,3 +1146,49 @@ func TestCommentsNameFunctionsThatExist(t *testing.T) {
 	}
 	require.Greaterf(t, checked, 0, "the scan must find at least one comment reference")
 }
+
+// TestTheSnapshotReportSaysItIsASnapshot keeps a dated report from reading as current fact.
+// ablation.md names symbols that existed at its baseline commit and do not exist now
+// (Token.AddToSupply, Migrator.DB, LotteryRecord.FromJSON), which is fine for a snapshot and
+// misleading for anything else — a reader who finds a name there and greps for it today gets
+// nothing, with no clue that the document was describing a different tree.
+func TestTheSnapshotReportSaysItIsASnapshot(t *testing.T) {
+	doc := readRepoFile(t, "docs", "ablation.md")
+
+	require.Contains(t, doc, "基线：",
+		"the report must keep naming the commit it analysed")
+	require.Contains(t, doc, "这是一份带基线的快照报告",
+		"and say that its symbol references belong to that commit")
+	require.Contains(t, doc, "不是指它们现在还存在",
+		"the consequence a reader needs")
+	require.Contains(t, doc, "docs/architecture.md",
+		"and where the current facts live")
+
+	// The claim is true: at least one symbol it names is gone from the tree, which is why the
+	// note is needed rather than optional.
+	gone := false
+	for _, member := range []string{"AddToSupply", "FromJSON", "DB"} {
+		found := false
+		for _, tree := range []string{"internal/domain", "internal/app", "internal/infra"} {
+			walkErr := filepath.WalkDir(filepath.Join(repoRoot(t), tree), func(path string, entry fs.DirEntry, err error) error {
+				if err != nil || entry.IsDir() || !strings.HasSuffix(path, ".go") || strings.HasSuffix(path, "_test.go") {
+					return err
+				}
+				body, readErr := os.ReadFile(path) //nolint:gosec // path comes from the repo walk
+				if readErr != nil {
+					return readErr
+				}
+				if strings.Contains(string(body), ") "+member+"(") {
+					found = true
+				}
+				return nil
+			})
+			require.NoError(t, walkErr)
+		}
+		if !found {
+			gone = true
+		}
+	}
+	require.True(t, gone,
+		"if every symbol it names still exists, the note can be dropped rather than kept")
+}

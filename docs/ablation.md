@@ -4,6 +4,11 @@
 **基线：** `3c6a700`（`main`）  
 **范围：** 生产入口、SQLite 存储、事件系统，以及五个业务模块的可达性。
 
+> 这是一份带基线的快照报告。文中的符号（例如 `Token.AddToSupply`、`Migrator.DB`）
+> 描述的是 `3c6a700` 那个时点的代码，其中一些此后已被删除；引用它们是为了说明当时
+> 的判断依据，不是指它们现在还存在。现行事实以代码与
+> [docs/architecture.md](architecture.md) 为准。
+
 ## 结论
 
 1. **生产代码已经不需要 cgo。** SQLite 使用 `modernc.org/sqlite`，CLI、API、
