@@ -12,6 +12,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **A failed desktop start is recorded in the log, not only in a dialog**: the window
+  initialises the logger and then opens the server; when that call — or the private
+  data-directory check after it — fails, the window never opens, so the dialog is the user's
+  only view and is gone once dismissed, and a desktop app has no terminal to scroll back to.
+  The log is what remains, and it said nothing. Both failures now write a line first; the
+  second one closes the logger on its way out, so the ordering matters as much as the line.
+
 - **A start-up failure is recorded in the log, not only on the terminal**: the API
   initialises the logger and then creates the server; when that failed the only trace was a
   line on stderr, so a deployment with `log.path` set had an `aurora.log` with nothing in it
