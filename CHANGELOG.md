@@ -12,6 +12,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **A source row is tested to carry no header value**: a list row is read by a
+  shoulder-surfer, a screenshot and the copied diagnostics block, and a source's headers
+  are usually an Authorization bearer token or an API key. The guarantee is in the type —
+  `SourceRow` has `HasHeaders` and no field for the values — so the check reads the
+  struct's own fields. The row still says "configured", because whether a source sends
+  headers is the fact an operator scans for.
+
 - **`Validate` says which half of a record it answers**: it checks a record's own
   shape and deliberately leaves `WinnerAddresses` alone. That reads as a gap until the
   layering is seen — comparing the address list to the winners needs the derivation,
