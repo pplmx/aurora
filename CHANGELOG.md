@@ -12,6 +12,12 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **Every confirmation gate is tested to have its warning in all three catalogs**:
+  `addConfirmFlag` takes its key as a literal, but the sentence a user reads is assembled at run
+  time — `cli.confirm.required` formats "⚠️ this %s; pass --confirm to proceed" around the action
+  phrase — so the scan for literal keys sees only the wrapper. A new gate with no entry would
+  print the key itself on the line explaining what is about to be destroyed.
+
 - **`lottery reset` joins the commands with no JSON mode**: the list is where a script
   learns that passing `--json` to a command fails before the command does anything, and it was
   missing from it. Measured: `lottery reset --confirm` prints one line; `lottery reset --json
