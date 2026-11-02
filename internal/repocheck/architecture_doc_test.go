@@ -352,3 +352,41 @@ func expandShorthand(name string) []string {
 	}
 	return out
 }
+
+// TestArchitectureStructureListsEveryDirectory covers the tree in
+// docs/architecture.md's "目标结构" section. It describes the same package set the
+// README does, and only the README's copy was checked: a directory added to the
+// module would make one tree stale and the other not, with the reference the
+// place a reader goes for the layering.
+//
+// The section's tree names internal/ children one level deep, so that is what is
+// compared. Sub-packages are listed on a continuation line (domain/errdetail and
+// domain/repoerr), which this check reads through their parent.
+func TestArchitectureStructureListsEveryDirectory(t *testing.T) {
+	doc := readRepoFile(t, "docs", "architecture.md")
+	start := strings.Index(doc, "## 目标结构")
+	require.NotEqual(t, -1, start, "the document must keep its structure section")
+	section := doc[start:]
+	if end := strings.Index(section, "\n## "); end > 0 {
+		section = section[:end]
+	}
+
+	entries, err := os.ReadDir(filepath.Join(repoRoot(t), "internal"))
+	require.NoError(t, err)
+	checked := 0
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			continue
+		}
+		checked++
+		name := entry.Name()
+		assert.Truef(t, strings.Contains(section, "├── "+name+"/") || strings.Contains(section, "└── "+name+"/"),
+			"docs/architecture.md must list internal/%s in its structure tree", name)
+	}
+	require.GreaterOrEqual(t, checked, 10, "the tree check must see the package set")
+
+	// The command and desktop roots are listed too, beside internal/.
+	for _, root := range []string{"cmd/", "desktop/", "tools/"} {
+		assert.Containsf(t, section, root, "the structure tree must name %s", root)
+	}
+}
