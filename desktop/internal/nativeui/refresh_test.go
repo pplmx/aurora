@@ -628,3 +628,62 @@ func TestEveryLoadFailureIsVisible(t *testing.T) {
 		})
 	}
 }
+
+// TestBurningAnAssetRefreshesTheCollectionAndHistory covers the two writes that
+// had no test of their own. A burn removes the asset, so the collection must
+// re-read or the destroyed row stays on screen; an open history for that asset
+// must re-read so it ends with the burn rather than at the mint.
+//
+// The order matters: the id has to be set and settled first, because the frame
+// that sees a new id re-derives the holder from the collection row and clears the
+// key that belonged to the previous subject.
+func TestBurningAnAssetRefreshesTheCollectionAndHistory(t *testing.T) {
+	const id = "n1"
+	fake := &fakeServices{nftRows: []NFTRow{{ID: id, Name: "Star", Owner: "owner-a"}}}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 5000)
+	app.ShowPage("NFT")
+	tester.Frame()
+
+	app.nft.burnID = id
+	app.nft.historyID = id
+	app.nft.history = []NFTOpRow{{Type: "mint"}}
+	app.nft.historyLoadedID = id
+	tester.Frame()
+	require.Equal(t, "owner-a", app.nft.burnOwner, "the holder comes from the collection row")
+
+	app.nft.burnPriv = "owner-sk"
+	app.nft.askBurn = true
+	tester.Frame()
+	require.Equal(t, "owner-sk", app.nft.burnPriv, "the key must survive to the confirmation")
+
+	collectionBefore, historyBefore := fake.listAllNFTsCalls, fake.nftHistoryCalls
+	tester.Key(0, ui.KeyTab)
+	tester.Frame()
+	tester.Key(0, ui.KeyEnter)
+	tester.Frame()
+
+	require.Equal(t, 1, fake.burnNFTCalls, "confirming must burn the asset")
+	require.False(t, app.nft.status.isErr, "the burn must have succeeded")
+	require.Greater(t, fake.listAllNFTsCalls, collectionBefore,
+		"the destroyed row must leave the collection")
+	require.Greater(t, fake.nftHistoryCalls, historyBefore,
+		"an open history must end with the burn")
+	require.Empty(t, app.nft.burnPriv, "a used signing key must not stay on screen")
+}
+
+// TestEnablingASourceRefreshesTheList covers the other: the enabled state is a
+// row of the source list, so toggling it must re-read that list or the switch
+// contradicts itself.
+func TestEnablingASourceRefreshesTheList(t *testing.T) {
+	fake := &fakeServices{sources: []SourceRow{{ID: "s1", Name: "btc"}}}
+	app := New(fake)
+	app.oracle.fetchID = "s1"
+
+	before := fake.sourceListCalls
+	app.setOracleEnabled(false)
+
+	require.False(t, app.oracle.status.isErr)
+	require.Greater(t, fake.sourceListCalls, before,
+		"the source list must show the new state")
+}
