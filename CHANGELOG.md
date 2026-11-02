@@ -12,6 +12,12 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **An accepted ballot is tested to clear its signing key**: the ballot's private key
+  is cleared in three places — choosing a different voter, editing the public key, and
+  accepting a ballot — and the first two had a test. The third matters most, because
+  the key has just been used and there is no further reason to keep it on screen. A
+  refused ballot keeps it, so the reader can act on the error and retry.
+
 - **Both surfaces are tested to drive session status the same way**: the window's
   controls say they "mirror the REST handler's two steps", and nothing checked that the
   two stayed mirrored — two implementations of one rule drift quietly, both working
