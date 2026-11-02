@@ -12,6 +12,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The ablation report says its symbols belong to its baseline commit**: it already named
+  the date and the commit, but nothing said what that implied for the names it cites. Three are
+  gone from the tree — `Token.AddToSupply`, `Migrator.DB`, `LotteryRecord.FromJSON` were deleted
+  by the ablation the report describes — so a reader finding one and grepping for it today gets
+  nothing, with no clue the document described a different tree. A check holds both halves: the
+  note stays, and at least one cited name really is gone.
+
 - **Comments name functions that exist**: two pointed at functions nobody wrote —
   `statusLine`'s said views build it "through `ok()`/`fail()`" when the constructors are
   `okStatus` / `errStatus` / `errorStatus`, and the outbox's backoff note said a failing
