@@ -12,6 +12,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **Many copies are tested not to pile up toasts**: the copy buttons are six
+  independent sites and a fast operator can reach three of them before the first
+  expires. MyGo shows the newest three toasts and keys a toast by its message, so
+  repeating one confirmation refreshes it rather than adding a second. Aurora relies on
+  both properties; the check now runs them apart — five messages leave the newest
+  three on screen, and a repeat costs one slot instead of two.
+
 - **Every copy is tested to confirm itself with a toast**: the reference says a copy
   button writes the clipboard and also raises a toast, because the status line is
   pinned to the page header and can be a card away from the value just copied. Four of
