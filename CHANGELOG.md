@@ -12,6 +12,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **Both surfaces are tested to drive session status the same way**: the window's
+  controls say they "mirror the REST handler's two steps", and nothing checked that the
+  two stayed mirrored — two implementations of one rule drift quietly, both working
+  while disagreeing about whether a missing session writes nothing. The check holds the
+  shape both need (read, then persist) and that the REST handler's two transitions
+  share one helper, so neither can grow a second path with different rules.
+
 - **Ending a session is tested to be reversible, which is why it asks nothing**:
   the window confirms four destructive actions; End Session is not one of them, and
   that looked like a gap until the transition was read — the status has no state
