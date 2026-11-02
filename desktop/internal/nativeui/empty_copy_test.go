@@ -142,3 +142,64 @@ func TestEmptyHealthNamesTheMissingFeed(t *testing.T) {
 		require.False(t, tester.HasText("No feeds yet. Add a source to start polling."))
 	})
 }
+
+// TestValueCardsDrawNoValueRowWithoutAValue covers the other half of the empty-read
+// contract. The list cards say "this subject has no records yet"; the value cards
+// must not, because they read something that exists by definition — a token's
+// supply, an account's balance, an asset's holder — so a blank means "not read
+// yet", and a row whose label is followed by an empty value claims the value is
+// empty.
+//
+// readout draws each row as two text nodes, the label and the value, so the check
+// is on pairs rather than on a joined string.
+func TestValueCardsDrawNoValueRowWithoutAValue(t *testing.T) {
+	emptyValueRows := func(tester *ui.Tester) []string {
+		texts := tester.Texts()
+		var found []string
+		for i := 0; i+1 < len(texts); i++ {
+			if texts[i+1] == "" {
+				found = append(found, texts[i])
+			}
+		}
+		return found
+	}
+
+	t.Run("token", func(t *testing.T) {
+		app := New(workbenchFakes())
+		tester := ui.NewTester(app.View, 1400, 6000)
+		app.ShowPage("Token")
+		tester.Frame()
+		app.token.tokenID = "t1"
+		tester.Frame()
+		// Inputs filled and the read answered, but no value came back.
+		app.token.balanceAccount = "account-a"
+		app.token.balanceLoadedToken, app.token.balanceLoadedOwner = "t1", "account-a"
+		app.token.allowanceOwner, app.token.allowanceTo = "account-a", "spender-a"
+		app.token.allowanceLoadedToken = "t1"
+		app.token.allowanceLoadedOwner = "account-a"
+		app.token.allowanceLoadedTo = "spender-a"
+		tester.Frame()
+
+		rows := emptyValueRows(tester)
+		require.NotContains(t, rows, "Balance",
+			"a balance that was not read must not draw an empty row")
+		require.NotContains(t, rows, "Allowance",
+			"an allowance that was not read must not draw an empty row")
+	})
+
+	t.Run("nft", func(t *testing.T) {
+		app := New(&fakeServices{})
+		tester := ui.NewTester(app.View, 1400, 6000)
+		app.ShowPage("NFT")
+		tester.Frame()
+		app.nft.id = "n1"
+		app.nft.nftLoadedID = "n1"
+		tester.Frame()
+
+		rows := emptyValueRows(tester)
+		for _, label := range []string{"Holder", "Creator", "Block"} {
+			require.NotContains(t, rows, label,
+				"an asset that was not read must not draw empty rows")
+		}
+	})
+}
