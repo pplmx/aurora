@@ -454,3 +454,22 @@ func TestEveryChoiceGroupIsNamed(t *testing.T) {
 			"%s must pass a group name before the tab labels", file)
 	}
 }
+
+// TestFieldErrorsMarkTheControlInvalid covers the line that makes an error part of
+// the field rather than a red sentence near it. MyGo's Error does three things:
+// draws the message below the control, marks the control invalid so its border
+// turns red and assistive technology reports AccessInvalid, and prepends the
+// message to the control's description.
+//
+// Only the first is visible to Tester: the frame exposes text, not the invalid
+// state, so the other two can only be pinned where they are asked for.
+func TestFieldErrorsMarkTheControlInvalid(t *testing.T) {
+	controls := readRepoFile(t, "desktop", "internal", "nativeui", "controls.go")
+	body := functionSource(t, controls, "func attachFieldError")
+
+	assert.Contains(t, body, "field.Error(localized)",
+		"the message must reach the field, or the control is never marked invalid")
+	// The text is drawn by Error, so drawing it again here would print it twice.
+	assert.NotContains(t, body, "ui.Text(c, localized)",
+		"the message is drawn by Field.Error, not by a second text element")
+}
