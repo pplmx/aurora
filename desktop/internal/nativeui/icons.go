@@ -135,9 +135,14 @@ var (
 	folderIcon = ui.MustParseSVG([]byte(svgOpen +
 		`<path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>` +
 		`</svg>`))
-	// warningIcon marks a confirmation whose action cannot be undone, and a
-	// load that kept stale rows. The triangle with an exclamation is the
-	// shape readers already know from every desktop alert.
+	// warningIcon marks a confirmation whose action cannot be undone. The
+	// triangle with an exclamation is the shape readers already know from
+	// every desktop alert.
+	//
+	// A failed load does not use it: that strip is the same shape as the
+	// success and busy strips, with a dot and the word "Failed", so the
+	// three read as one family. Using this triangle there too would have made
+	// the dialog's mark less specific.
 	warningIcon = ui.MustParseSVG([]byte(svgOpen +
 		`<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>` +
 		`<path d="M12 9v4"/>` +
