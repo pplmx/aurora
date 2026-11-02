@@ -123,6 +123,12 @@ type fakeServices struct {
 	tokenBalanceCalls      int
 	tokenHistoryCalls      int
 	tokenAllowanceCalls    int
+	mintNFTCalls           int
+	transferNFTCalls       int
+	mintTokenCalls         int
+	approveTokenCalls      int
+	createTokenCalls       int
+	transferFromTokenCalls int
 	burnTokenCalls         int
 	burnNFTCalls           int
 	getNFTCalls            int
@@ -393,6 +399,7 @@ func (f *fakeServices) GenerateKeyPair() (string, string, error) {
 }
 
 func (f *fakeServices) CreateToken(name, symbol, supply, owner string, decimals int) (TokenRow, error) {
+	f.createTokenCalls++
 	return TokenRow{ID: "t1", Name: name, Symbol: symbol, TotalSupply: supply, Decimals: decimals, Owner: owner}, nil
 }
 func (f *fakeServices) TokenInfo(id string) (TokenRow, error) {
@@ -434,14 +441,21 @@ func (f *fakeServices) TokenBalance(tokenID, owner string) (string, error) {
 	}
 	return "42", nil
 }
-func (f *fakeServices) MintToken(tokenID, to, amount, priv string) error { return nil }
+func (f *fakeServices) MintToken(tokenID, to, amount, priv string) error {
+	f.mintTokenCalls++
+	return nil
+}
 func (f *fakeServices) TransferToken(tokenID, from, to, amount, priv string) error {
 	f.transferTokenCalls++
 	f.lastTransfer = [5]string{tokenID, from, to, amount, priv}
 	return f.transferErr
 }
-func (f *fakeServices) ApproveToken(tokenID, owner, spender, amount, priv string) error { return nil }
+func (f *fakeServices) ApproveToken(tokenID, owner, spender, amount, priv string) error {
+	f.approveTokenCalls++
+	return nil
+}
 func (f *fakeServices) TransferFromToken(tokenID, owner, to, amount, spenderPriv string) error {
+	f.transferFromTokenCalls++
 	return nil
 }
 func (f *fakeServices) BurnToken(tokenID, from, amount, priv string) error {
@@ -554,6 +568,7 @@ func (f *fakeServices) OracleHealth() ([]HealthRow, error) {
 }
 
 func (f *fakeServices) MintNFT(name, description, imageURL, tokenURI, creator string) (NFTRow, error) {
+	f.mintNFTCalls++
 	return NFTRow{ID: "n1", Name: name, Owner: creator}, nil
 }
 func (f *fakeServices) GetNFT(id string) (NFTRow, error) {
@@ -603,7 +618,10 @@ func (f *fakeServices) ListAllNFTs() ([]NFTRow, error) {
 	}
 	return f.nftRows, nil
 }
-func (f *fakeServices) TransferNFT(id, from, to, priv string) error { return nil }
+func (f *fakeServices) TransferNFT(id, from, to, priv string) error {
+	f.transferNFTCalls++
+	return nil
+}
 func (f *fakeServices) BurnNFT(id, owner, priv string) error {
 	f.burnNFTCalls++
 	return nil
