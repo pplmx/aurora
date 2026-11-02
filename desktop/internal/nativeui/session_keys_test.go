@@ -222,3 +222,32 @@ func TestSessionKeyMemoryUsesTheDerivedPublicKey(t *testing.T) {
 	app.rememberSuccessfulKey("", sk)
 	require.Equal(t, sk, app.savedKeyValue(t, pk))
 }
+
+// TestCancellingTheForgetKeepsThePolicyOn covers the way out of the confirmation:
+// the checkbox asked to turn memory off, the dialog asked whether to discard keys
+// that may exist only in this process, and Cancel means "keep both". The policy
+// has to stay on, the keys have to stay, and the checkbox has to agree with the
+// policy again — otherwise the box reads as unchecked while keys are still held.
+func TestCancellingTheForgetKeepsThePolicyOn(t *testing.T) {
+	pk, sk := testKeyPair(t, 8)
+	app := New(&fakeServices{})
+	app.rememberKeys = true
+	app.rememberSuccessfulKey(pk, sk)
+	tester := ui.NewTester(app.View, 1280, 4000)
+	app.ShowPage("Settings")
+	tester.Frame()
+	require.Equal(t, 1, app.rememberedKeyCount())
+
+	require.NoError(t, tester.Click("Remember private keys for this session"))
+	tester.Frame()
+	require.True(t, app.confirmForgetKeys, "held keys must be confirmed away, not dropped silently")
+	require.True(t, app.rememberKeys, "the policy stands until the dialog is answered")
+
+	require.NoError(t, tester.Click("Cancel"))
+	tester.Frame()
+
+	require.False(t, app.confirmForgetKeys)
+	require.True(t, app.rememberKeys, "Cancel keeps the policy on")
+	require.Equal(t, 1, app.rememberedKeyCount(), "and keeps the keys")
+	require.Equal(t, sk, app.savedKeyValue(t, pk))
+}
