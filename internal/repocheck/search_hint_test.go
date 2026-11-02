@@ -194,3 +194,40 @@ func TestHighlightLookupsClearBeforeSearching(t *testing.T) {
 		}
 	}
 }
+
+// TestEveryDestructiveActionAsksFirst covers the rule that a write which cannot
+// be undone goes through a confirmation. Three of them exist — burning tokens,
+// burning an asset, deleting a source — and the settings page's "forget keys" is
+// the fourth. Each pairs a danger button with destructiveConfirm, and the pairing
+// is what a refactor can drop: the button alone still works.
+//
+// The check is structural because a missing dialog is only visible by clicking,
+// and because the confirmation is the one gate these actions have.
+func TestEveryDestructiveActionAsksFirst(t *testing.T) {
+	type pair struct {
+		file   string
+		button string
+		ask    string
+	}
+	pairs := []pair{
+		{"nft_write.go", `dangerButton(c, "Burn NFT…"`, "&a.nft.askBurn"},
+		{"token_write.go", `dangerButton(c, "Burn…"`, "&a.token.askBurn"},
+		{"oracle_sources.go", `dangerButton(c, "Delete"`, "&a.oracle.askDelete"},
+		{"settings.go", `dangerButton(c, "Forget session keys"`, "&a.confirmForgetKeys"},
+	}
+	for _, p := range pairs {
+		body := readRepoFile(t, "desktop", "internal", "nativeui", p.file)
+		assert.Containsf(t, body, p.button, "%s must still offer the action", p.file)
+		assert.Containsf(t, body, p.ask,
+			"%s must open a confirmation for %s", p.file, p.button)
+		assert.Containsf(t, body, "destructiveConfirm(c, "+p.ask,
+			"%s must route that confirmation through destructiveConfirm", p.file)
+	}
+
+	// The dialog itself has to carry the question for assistive technology: a
+	// modal that draws a title but exposes no role is silent to a screen reader.
+	confirm := readRepoFile(t, "desktop", "internal", "nativeui", "confirmation.go")
+	for _, want := range []string{"ui.RoleAlertDialog", ".Label(label)", ".Description(detail)"} {
+		assert.Containsf(t, confirm, want, "the confirmation must expose %s", want)
+	}
+}
