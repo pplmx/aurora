@@ -12,6 +12,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The window stops its runtime before the loop's failure exit**: `os.Exit` does not run
+  defers, so the branch after `App.Run` failed left the SQLite handle, the oracle scheduler
+  and the audit outbox to be torn down by process teardown instead of being stopped in order —
+  the WAL is left as it was and whatever the outbox had not drained is lost. `cmd/api` closes
+  the server before its `Fatal` for exactly this reason; the window was missing the
+  equivalent. The ordinary shutdown still defers its close.
+
 - **A failed desktop start is recorded in the log, not only in a dialog**: the window
   initialises the logger and then opens the server; when that call — or the private
   data-directory check after it — fails, the window never opens, so the dialog is the user's
