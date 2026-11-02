@@ -57,3 +57,28 @@ func TestSessionStatusOfAMissingSessionFails(t *testing.T) {
 	require.Error(t, services.EndSession("nope"))
 	require.Empty(t, repo.updated, "nothing may be written for a session that was not found")
 }
+
+// TestEndingASessionIsReversible records why the window does not ask before ending
+// one. The status transition has no state machine: reading and writing the row is
+// the whole operation, so an ended session can be started again and the ballots
+// already cast are still there.
+//
+// That is what makes End Session an ordinary action while burning a token or
+// deleting a source asks first — those destroy data and this does not. The CLI draws
+// the same line, requiring --confirm for the destructive five and not for this one.
+// If the domain ever gains a one-way transition, this fails rather than silently
+// turning an unguarded button into a data-losing one.
+func TestEndingASessionIsReversible(t *testing.T) {
+	repo := &sessionStatusRepo{sessions: map[string]*voting.Session{
+		"s1": {ID: "s1", Title: "Budget", Status: voting.SessionStatusActive},
+	}}
+	services := &nativeServices{votingRepo: repo}
+
+	require.NoError(t, services.EndSession("s1"))
+	require.NoError(t, services.StartSession("s1"),
+		"an ended session must be startable again; ending it destroys nothing")
+	require.Equal(t, []string{
+		"s1=" + voting.SessionStatusEnded,
+		"s1=" + voting.SessionStatusActive,
+	}, repo.updated, "the status goes back to active without any refusal")
+}
