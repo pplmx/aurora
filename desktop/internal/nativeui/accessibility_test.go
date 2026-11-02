@@ -805,3 +805,29 @@ func TestSearchResultCountsAreSpokenInTheLanguageOfTheWindow(t *testing.T) {
 			"an unchanged query must stay silent, whatever the count")
 	}
 }
+
+// TestThePagerStopsAtBothEnds covers the two boundaries the range test does not
+// reach. Previous is disabled on the first page and Next on the last, and a click
+// on either must change nothing: a disabled pager that still moved would ask the
+// store for a page before the first or past the end, and the range label would
+// then describe rows that are not there.
+func TestThePagerStopsAtBothEnds(t *testing.T) {
+	// One row, so the store has a single page and both ends are the same page.
+	fake := &fakeServices{tokenRows: []TokenRow{{ID: "t1", Name: "Gold"}}}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1400, 7000)
+	app.ShowPage("Token")
+	tester.Frame()
+	tester.Announcements()
+	require.Zero(t, app.token.offset)
+
+	require.NoError(t, tester.Click("Next"))
+	tester.Frame()
+	require.Zero(t, app.token.offset, "Next must not move past the only page")
+
+	require.NoError(t, tester.Click("Previous"))
+	tester.Frame()
+	require.Zero(t, app.token.offset, "Previous must not move before the first page")
+	require.Empty(t, tester.Announcements(),
+		"a move that did not happen must not announce a new range")
+}
