@@ -12,6 +12,12 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **Exporting onto a hard link of the database is tested to be refused**: the
+  reference promises the export guard covers both symlink and hard-link aliases. The
+  symlink half had tests, including the sidecars beside a symlinked database; the hard
+  link had none, and it is the case the symlink tests cannot reach — a hard link has no
+  target to resolve, so the guard only catches it by comparing the files themselves.
+
 - **Re-importing a stored export no longer says "partially failed"**: opening an
   export whose records are all already stored rejects every one of them, and the
   partial wording read "Import partially failed. Imported 0 of 3 lottery records" — a
