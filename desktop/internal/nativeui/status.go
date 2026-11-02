@@ -63,6 +63,18 @@ func errStatus(err error) statusLine {
 	if err == nil {
 		return statusLine{}
 	}
+	// An error with an empty message would render as nothing at all: the line's
+	// empty() test looks at the text, and a blank line is not drawn. A click that
+	// fails silently is worse than one that fails oddly, so the sentence falls back
+	// to a generic one — the only case where the message is not the error's own.
+	if strings.TrimSpace(err.Error()) == "" {
+		return statusLine{
+			text:     tr("The operation failed without a message."),
+			isErr:    true,
+			revision: nextStatusRevision(),
+			raw:      "The operation failed without a message.",
+		}
+	}
 	return statusLine{
 		text:     localizeServiceError(err),
 		isErr:    true,
