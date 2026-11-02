@@ -12,6 +12,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The session time fields report their error once**: both controls called
+  `Error` twice with the same message — `attachFieldError` on the wrapping Field,
+  then `Error` on the inner `TimeInput`. Only the first draws anything, since the
+  inner element carries no field of its own, so the second call was a no-op that
+  read as if it were doing something. Measured before removing: the first renders
+  the message once, the second renders it zero times. A test now asserts both
+  messages appear exactly once.
+
 - **The reference documents only name paths that exist**: a citation that drifts
   is worse than none, since the reader follows it to a path that is not there. The
   three reference documents now have their `internal/` and `desktop/` citations
