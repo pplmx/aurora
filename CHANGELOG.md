@@ -12,6 +12,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **An empty roster is tested to submit every registered candidate**: the roster field
+  says "Leave empty to include every registered candidate", the candidate list on screen
+  is one page, and the store refuses an empty roster outright — so the window reads the
+  whole set for that one write. Submitting only the visible page would create a session
+  that silently omits the candidates past the boundary. A typed roster is asserted to be
+  sent exactly as typed, neither widened nor reordered.
+
 - **The candidate card names the lengths the store enforces**: the name, party and
   program are all bounded, and every surface reports a refusal as "is too long" — no
   number, in the CLI, the REST error code and the window alike. The card now says the
