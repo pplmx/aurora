@@ -1161,3 +1161,24 @@ func TestClearPageStatusEmptiesOnlyTheOpenPage(t *testing.T) {
 		})
 	}
 }
+
+// TestAWhitespaceDrawLinkLeavesTheWindowWhereItWas covers the deep link that names
+// nothing. `aurora://lottery?id=%20%20` carries an id of two spaces; the page used
+// to navigate to Lottery and then report "Enter a lottery ID or block height" about a
+// field the reader never touched. A link with no draw has nothing to apply, so the
+// window stays where it is.
+func TestAWhitespaceDrawLinkLeavesTheWindowWhereItWas(t *testing.T) {
+	app := New(&fakeServices{})
+	app.ShowPage("Settings")
+
+	for _, id := range []string{"", " ", "   ", "\t\n"} {
+		app.ShowIntent("", id)
+		require.Equalf(t, pageSettings, app.page, "a link whose id is %q must not navigate", id)
+		require.Emptyf(t, app.lottery.verifyErr, "a link whose id is %q must not report an error", id)
+	}
+
+	// A real id still navigates and verifies, and the field holds the trimmed value.
+	app.ShowIntent("", "  draw-3  ")
+	require.Equal(t, pageLottery, app.page)
+	require.Equal(t, "draw-3", app.lottery.verifyID, "the field must hold the id without its padding")
+}

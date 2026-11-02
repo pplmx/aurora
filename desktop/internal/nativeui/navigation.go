@@ -89,6 +89,10 @@ func (a *App) ShowIntent(page, lotteryID string) {
 // ShowLotteryDraw opens the Lottery page focused on one draw and verifies it
 // immediately, which is what `aurora://lottery?id=<draw>` promises.
 func (a *App) ShowLotteryDraw(id string) {
+	// A link with only spaces names no draw. Navigating for it would move the
+	// reader off the page they were on and then show "enter a lottery ID" — an
+	// error about a field they never touched.
+	id = strings.TrimSpace(id)
 	if id == "" {
 		return
 	}
