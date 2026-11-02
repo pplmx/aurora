@@ -12,6 +12,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **Every rail and every voting metric is tested to open its own page**: the
+  composition card has four module rails and three voting metrics, each a button
+  with its destination baked in at compile time, and only the first rail had a
+  test. Each case now starts from the dashboard and asserts the page it lands on,
+  so a rail wired to the wrong module — or to the dashboard itself, which would
+  look like a click that did nothing — fails instead of passing.
+
 - **Every module that writes a record is tested to have a page to open**: the
   dashboard timeline takes a reader to the module that wrote a record through
   `pageForBlockModule`. A module the mapping does not know leaves the row as a
