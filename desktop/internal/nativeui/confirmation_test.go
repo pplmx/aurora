@@ -469,3 +469,51 @@ func TestDestructiveDialogSpeaksChinese(t *testing.T) {
 	require.True(t, tester.HasText("销毁"), "the confirm label follows the window language")
 	require.True(t, tester.HasText("取消"), "the cancel label follows the window language")
 }
+
+// TestManyCopiesDoNotPileUpToasts covers what a reader sees after copying several
+// values in a row. MyGo shows the newest three toasts, hiding older ones while their
+// time still runs, and it keys a toast by its message — so repeating the same
+// confirmation refreshes that one rather than adding a second.
+//
+// Aurora relies on both: the copy buttons are six independent sites and a fast
+// operator can reach three of them before the first expires. If the keying changed,
+// a repeated copy would spend a slot on a duplicate and push a different
+// confirmation out of sight.
+func TestManyCopiesDoNotPileUpToasts(t *testing.T) {
+	render := func(t *testing.T, messages ...string) *ui.Tester {
+		t.Helper()
+		next := 0
+		tester := ui.NewTester(func(c *ui.Context) {
+			if next < len(messages) {
+				c.Toast(messages[next])
+				next++
+			}
+		}, 900, 600)
+		for range messages {
+			tester.Frame()
+		}
+		tester.Frame()
+		return tester
+	}
+
+	// The newest three show; the two before them do not.
+	shown := render(t, "one copied", "two copied", "three copied", "four copied", "five copied")
+	for _, hidden := range []string{"one copied", "two copied"} {
+		require.Falsef(t, shown.HasText(hidden), "%q must have scrolled out of the three on screen", hidden)
+	}
+	for _, visible := range []string{"three copied", "four copied", "five copied"} {
+		require.Truef(t, shown.HasText(visible), "%q is among the newest three", visible)
+	}
+
+	// The same message twice is one toast, so it costs one slot rather than two.
+	repeated := render(t, "id copied", "id copied", "other copied")
+	require.True(t, repeated.HasText("id copied"))
+	require.True(t, repeated.HasText("other copied"))
+
+	// And the repeat does not push the third newest out: with the duplicate
+	// collapsed there are only two toasts, so both keep their place.
+	three := render(t, "a copied", "a copied", "b copied", "c copied")
+	require.True(t, three.HasText("a copied"))
+	require.True(t, three.HasText("b copied"))
+	require.True(t, three.HasText("c copied"))
+}
