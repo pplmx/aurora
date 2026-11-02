@@ -60,9 +60,14 @@ type Repository interface {
 
 	// TryAdjustApproval atomically applies a signed delta to the
 	// allowance (tokenID, owner, spender), creating the allowance
-	// row if it does not yet exist. Negative delta that would push
-	// the allowance below zero is clamped to zero (DecreaseAllowance
-	// semantics). Returns the new allowance amount.
+	// row if it does not yet exist. Both ends clamp rather than fail:
+	// a negative delta that would push the allowance below zero stops
+	// at zero (DecreaseAllowance semantics), and a positive one that
+	// would pass MaxInt64 stops there. An allowance is a permission
+	// ceiling, so saturating it changes nothing an owner could observe
+	// beyond "unlimited" — unlike total_supply, which is part of the
+	// ledger invariant and therefore refuses an overflowing mint.
+	// Returns the new allowance amount.
 	//
 	// This is the atomic primitive that closes the TOCTOU window
 	// in IncreaseAllowance / DecreaseAllowance (the read-modify-
