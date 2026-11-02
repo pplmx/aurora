@@ -12,6 +12,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The candidate card names the lengths the store enforces**: the name, party and
+  program are all bounded, and every surface reports a refusal as "is too long" — no
+  number, in the CLI, the REST error code and the window alike. The card now says the
+  bounds beside the fields, quoting the domain constants the store checks so the
+  sentence cannot describe a different rule than the one applied. The desktop gained a
+  `domain/voting` import for it, which the architecture dependency table had to record.
+
 - **A refused voter registration is tested to leak no key**: registration is the one
   response that carries a private key and the store keeps only the public half, so that
   value is unrecoverable. The success path was tested; nothing checked that a refusal
