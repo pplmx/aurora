@@ -789,3 +789,38 @@ func TestTheIntervalCeilingIsTheDomainConstant(t *testing.T) {
 	require.Contains(t, domain, "MaxSourceIntervalSeconds = 30 * 24 * 60 * 60",
 		"and the domain keeps the one definition")
 }
+
+// TestOwnershipChangedStaysASingleton covers a sentinel that is a pointer, not a value.
+// ErrOwnershipChanged is &OwnershipChangedError{}, and its callers classify it with
+// errors.Is — which, for a type with no Is or Unwrap method, compares pointers. Returning
+// a fresh &OwnershipChangedError{} from either repository would therefore still print the
+// same sentence and stop matching the sentinel, so a concurrent-transfer rejection would
+// surface as an unclassified 500.
+//
+// Two things keep it safe: the var stays a package-level value, and both repositories
+// return that value rather than building one.
+func TestOwnershipChangedStaysASingleton(t *testing.T) {
+	repo := readRepoFile(t, "internal", "domain", "nft", "repo.go")
+	require.Contains(t, repo, "var ErrOwnershipChanged = &OwnershipChangedError{}",
+		"the sentinel must stay one package-level value")
+
+	// No method-based matching exists, so pointer identity is the only thing errors.Is can
+	// use; if that changes, this check should be replaced rather than deleted.
+	require.NotContains(t, repo, "func (*OwnershipChangedError) Is(",
+		"if the type gains an Is method, errors.Is no longer depends on the singleton")
+
+	for _, surface := range []struct {
+		name string
+		path []string
+		ctor string
+	}{
+		{"the SQLite repository", []string{"internal", "infra", "sqlite", "nft.go"}, "OwnershipChangedError{}"},
+		{"the in-memory repository", []string{"internal", "domain", "nft", "inmem_repo.go"}, "OwnershipChangedError{}"},
+	} {
+		body := readRepoFile(t, surface.path...)
+		require.NotContainsf(t, body, surface.ctor,
+			"%s must return the sentinel, not build a new one", surface.name)
+		require.Containsf(t, body, "ErrOwnershipChanged",
+			"%s must classify the rejection with the sentinel", surface.name)
+	}
+}
