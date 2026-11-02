@@ -1057,3 +1057,37 @@ func TestVotingDetailMetricsOpenTheVotingPage(t *testing.T) {
 		})
 	}
 }
+
+// TestTheDashboardLeadsWithTheFirstMoveOnAFreshStore pins the one layout
+// difference the empty state makes. A fresh store has no composition to explain
+// and no history to read, so the first move comes first; once anything is
+// recorded the page reads as verdict → composition → activity and the quick
+// start moves to the end as a reminder rather than an instruction.
+//
+// The order is what a reader acts on, so it is asserted by vertical position
+// rather than by presence: both layouts contain all three sections.
+func TestTheDashboardLeadsWithTheFirstMoveOnAFreshStore(t *testing.T) {
+	positions := func(t *testing.T, app *App) map[string]float32 {
+		t.Helper()
+		tester := ui.NewTester(app.View, 1400, 3000)
+		tester.Frame()
+		out := map[string]float32{}
+		for _, label := range []string{"Quick start", "What the ledger is made of", "Recent activity"} {
+			rect, ok := tester.Find(label)
+			require.Truef(t, ok, "%s must be on the dashboard", label)
+			out[label] = rect.Y
+		}
+		return out
+	}
+
+	fresh := positions(t, New(emptyDashboard{fakeServices: &fakeServices{}}))
+	require.Less(t, fresh["Quick start"], fresh["What the ledger is made of"],
+		"a fresh store leads with the first move")
+	require.Less(t, fresh["What the ledger is made of"], fresh["Recent activity"])
+
+	populated := positions(t, New(&fakeServices{}))
+	require.Less(t, populated["What the ledger is made of"], populated["Quick start"],
+		"a store with records leads with the composition, not with the first move")
+	require.Less(t, populated["Recent activity"], populated["Quick start"],
+		"and the quick start moves to the end")
+}
