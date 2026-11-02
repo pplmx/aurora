@@ -749,4 +749,5 @@ var desktopMessagesHant = map[string]string{
 	"winner count must be positive":                "中獎人數必須為正數",
 	"zero address is not allowed":                  "不允許零地址",
 	"— choose a preset —":                          "— 選擇一個預設 —",
+	"A preset fills the fields once; edit them freely afterwards.": "預設只填充一次；之後可自由修改各欄位。",
 }

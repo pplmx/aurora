@@ -34,6 +34,11 @@ func (a *App) oracleAddBody(c *ui.Context) {
 				a.applyTemplate(strings.SplitN(a.oracle.template, " — ", 2)[0])
 			}
 		})
+		// The preset is a one-time fill, not a mode: the fields below are what
+		// Add Source submits, so an edited form no longer matches the chosen
+		// preset and the box keeps its name. Saying so here is cheaper than a
+		// reader wondering which of the two is about to be saved.
+		hint(c, "A preset fills the fields once; edit them freely afterwards.")
 	}
 	field(c, "Name", &a.oracle.addName)
 	field(c, "URL", &a.oracle.addURL)
