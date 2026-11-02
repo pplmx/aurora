@@ -12,6 +12,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The paging sentence is tested to be spoken, not drawn**: each paged collection
+  used to stack a search field, a visible sentence about paging, a full-width pager and
+  then the rows, so the first row started 247px down. The sentence is the field's
+  accessible description now — still read out, no longer a line on every frame — and a
+  hint that became visible again would be invisible to a behavioural test, since the
+  page would simply be taller. The check asserts what the frame draws and does not, for
+  the three collections whose hint says the search is page-local.
+
 - **Every create is tested to return its list to the first page**: five create
   paths — a voter, a candidate, a session, a token, an NFT — share one step no
   behavioural test could see. Without the reload from page zero the new record sits on a
