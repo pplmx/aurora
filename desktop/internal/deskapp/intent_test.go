@@ -180,12 +180,15 @@ func TestShell_FileIsImportedOnceFromTheCommandLine(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, draw.Winners, record.Winners)
 
-	// Opening the same export again is a new request. The records are already
-	// stored, so the app-layer overwrite guard refuses them - as a reported
-	// failure, not a silent no-op at the shell level.
+	// Opening the same export again is a new request. Every record is already
+	// stored, so the app-layer overwrite guard refuses all of them - as a
+	// reported refusal, not a silent no-op at the shell level. The wording says
+	// nothing was imported: this attempt stored nothing, so calling it a partial
+	// failure would contradict itself.
 	shell.HandleLaunchArgs([]string{exportPath}, dir)
 	require.Len(t, reports, 2, "a second import attempt must be reported, not dropped")
-	assert.Contains(t, reports[1], "Import partially failed")
+	assert.Contains(t, reports[1], "Nothing imported")
+	assert.Contains(t, reports[1], "None of the 1 lottery records were imported")
 }
 
 func TestShell_ReportsBadLinks(t *testing.T) {
