@@ -48,6 +48,11 @@ autoload -U compinit && compinit              # zsh：把 `aurora completion zsh
 一致，可直接 `| jq`；文档里的字段值不随界面语言变化（例如 `version` 的 `name`
 固定为 `Aurora`，表格标题才是翻译后的）。
 
+`--json` 只改变**成功**时的输出。失败时 stdout 为空，原因写在 stderr 上
+（`❌ Error: …`，见[错误与退出码](#错误与退出码)），退出码非零——没有一份
+「错误 JSON」。脚本要以退出码为准，不要用「stdout 能否解析成 JSON」判断成败：
+空 stdout 是失败，不是空结果；空结果仍是一份文档（例如 `{"data":null}`）。
+
 字段一致不等于外层一致：`oracle source list` 打印裸数组，而 `GET
 /api/v1/oracle/sources` 返回 `{"sources":[...]}`。这是 REST 侧有意保留的包装
 （同一个模块的 `/oracle/query` 与 `/oracle/latest` 也包装成 `{"data":...}`），
