@@ -12,6 +12,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The two-column breakpoint is tested at its stated width**: the layout tests
+  compare 1280 against 900, so a breakpoint nudged by a few pixels — or compared
+  with `>` instead of `>=` — would leave both passing while the documented width
+  stopped matching the behaviour. The one-pixel pair is now pinned: at
+  `twoColumnMinWidth` the oracle rail sits beside lottery, one pixel lower it stacks
+  under it, and the first rail's own position is asserted unchanged so the
+  difference is attributable to the rail that changes column.
+
 - **A fresh dashboard is tested to lead with the first move**: the empty state
   changes one thing about the layout — a store with nothing recorded opens on Quick
   start, while a store with records reads verdict → composition → activity with the
