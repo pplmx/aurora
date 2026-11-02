@@ -12,6 +12,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The default session window is tested to be a whole day from a whole minute**:
+  the existing window test checked the defaults were non-empty and ordered, never their
+  shape — and the shape is the decision. A start carrying the current second opens the
+  time control on a value nobody chose, and a default of anything but exactly one day
+  makes "the window I proposed" something the reader has to re-derive from two numbers.
+  Truncating to the minute is also what makes the default stable enough to assert.
+
 - **An empty roster is tested to submit every registered candidate**: the roster field
   says "Leave empty to include every registered candidate", the candidate list on screen
   is one page, and the store refuses an empty roster outright — so the window reads the
