@@ -12,6 +12,16 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The four busy gates are documented where they sit, and checked**: the File
+  menu, the shortcuts, Refresh and the palette's reload/file entries all check the
+  same `busy` flag, and each does it differently — the menu button is disabled so
+  its menu is never built, the shortcuts return before reading their keys, the
+  palette omits the entries from its list, and Refresh is a disabled button. The
+  reference said what was blocked but not where, which is what a maintainer needs
+  before touching one of them. A structural check keeps all four plus the
+  deliberate exception: page entries stay listed, because a page switch does not
+  touch the store.
+
 - **The File menu is tested to stay closed while a write runs**: the busy gate had
   two halves and only the shortcuts were covered. The menu button is disabled for
   the same reason — a document dialog raised mid-write would ask the operator to
