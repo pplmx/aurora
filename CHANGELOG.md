@@ -12,6 +12,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **Every destructive action is tested to ask first**: four writes cannot be
+  undone — burning tokens, burning an asset, deleting a source, forgetting session
+  keys — and each pairs a danger button with `destructiveConfirm`. The pairing is
+  what a refactor can drop, because the button alone still looks right and still
+  works. The check also requires the dialog to expose `RoleAlertDialog` with its
+  label and description, since a modal that draws a title but carries no role is
+  silent to a screen reader.
+
 - **A value card is tested to draw no row for a value it has not read**: the
   empty-read contract has two halves, and only the list half had a test. The value
   cards read something that exists by definition — a token's supply, an account's
