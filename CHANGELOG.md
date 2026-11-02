@@ -12,6 +12,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **Every page header is tested to stay inside the window at its tightest**: the
+  existing header check exercises Token, whose purpose sentence is one of the
+  shortest. Settings has no action at all and the longest purpose line, so it takes
+  the other branch of `header()` and was never measured at any size. Each page is now
+  checked at the smallest window and the largest text, where a header runs out of
+  room first.
+
 - **Every page is tested to scroll its last card into view**: one page had a scroll
   check, at the smallest window and the largest text, because that page's button was
   the one that got clipped. The container is shared, but each page builds its own tree
