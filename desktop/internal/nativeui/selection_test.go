@@ -467,3 +467,39 @@ func TestTokenOwnerContextSurvivesPaging(t *testing.T) {
 	require.Equal(t, "owner-0", app.selectedTokenOwner(),
 		"paging must not erase the owner of the token still under action")
 }
+
+// TestTheAllowanceReadKeepsItsOwnInputs covers the fourth read card, which the
+// test above did not reach. Allowance has its own owner and spender, and Approve
+// the write card has its own pair: sharing them would mean reading one
+// spender's allowance silently retargeted the grant the Approve form would sign.
+func TestTheAllowanceReadKeepsItsOwnInputs(t *testing.T) {
+	fake := &fakeServices{tokenRows: []TokenRow{{ID: "t1", Name: "Gold", Owner: "owner-1"}}}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 5000)
+	app.ShowPage("Token")
+	tester.Frame()
+
+	app.token.tokenID = "t1"
+	tester.Frame()
+	app.token.allowanceOwner, app.token.allowanceTo = "owner-1", "spender-a"
+	tester.Frame()
+	app.token.allowance = "500"
+	app.token.allowanceLoadedToken = "t1"
+	app.token.allowanceLoadedOwner = "owner-1"
+	app.token.allowanceLoadedTo = "spender-a"
+	tester.Frame()
+	require.True(t, tester.HasText("500"))
+
+	// A different spender hides the old number: it describes someone else.
+	app.token.allowanceTo = "spender-b"
+	tester.Frame()
+	require.False(t, tester.HasText("500"), "another spender must hide the old allowance")
+
+	// The write card's spender is a separate field, so the read above must not
+	// have moved it.
+	require.Empty(t, app.token.approveTo, "the Approve form's spender is its own input")
+	app.token.approveTo = "spender-c"
+	tester.Frame()
+	require.Equal(t, "spender-b", app.token.allowanceTo,
+		"typing the write card's spender must not retarget the read")
+}
