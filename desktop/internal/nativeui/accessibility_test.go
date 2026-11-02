@@ -668,3 +668,50 @@ func TestCardsCarryAGroupName(t *testing.T) {
 	require.NotContains(t, body, "Role(ui.RoleGroup)",
 		"formCard must not also set RoleGroup: a labelled container already resolves to one")
 }
+
+// TestFieldErrorAnnouncesOnceAndAgainAfterAClear covers attachFieldError's
+// dedupe. The message is spoken when it appears, stays silent on the frames that
+// rebuild it, and is spoken again once the field has been corrected and the same
+// mistake is made — otherwise the second identical failure would be silent, and
+// the reader would see a red border with nothing announced.
+//
+// The status strip has its own test; field errors are a separate path, since they
+// live inside the field the reader is being sent back to.
+func TestFieldErrorAnnouncesOnceAndAgainAfterAClear(t *testing.T) {
+	app := New(&fakeServices{})
+	tester := ui.NewTester(app.View, 1400, 6000)
+	app.ShowPage("Lottery")
+	tester.Frame()
+	tester.Announcements() // the page transition
+
+	const msg = "the seed must be at least 3 characters"
+
+	app.lottery.seedErr = msg
+	tester.Frame()
+	first := tester.Announcements()
+	require.Len(t, first, 1, "a new field error is announced once")
+	require.Contains(t, first[0], "Seed", "the announcement names the field")
+	require.Contains(t, first[0], msg, "and the reason")
+
+	tester.Frame()
+	require.Empty(t, tester.Announcements(),
+		"rebuilding the same field error must stay silent")
+
+	// Corrected: the field clears.
+	app.lottery.seedErr = ""
+	tester.Frame()
+	require.Empty(t, tester.Announcements(), "clearing a field error is not an announcement")
+
+	// The same mistake again is a new event for the reader.
+	app.lottery.seedErr = msg
+	tester.Frame()
+	again := tester.Announcements()
+	require.Len(t, again, 1, "the same mistake after a correction is announced again")
+
+	// A different reason replaces the message and is announced on its own.
+	app.lottery.seedErr = "the seed must be at most 64 characters"
+	tester.Frame()
+	other := tester.Announcements()
+	require.Len(t, other, 1)
+	require.Contains(t, other[0], "at most 64", "the new reason is what gets spoken")
+}
