@@ -12,6 +12,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The two session time controls are tested to be told apart by their field
+  name**: MyGo names each `TimeInput` spin button after the field's `Label` plus the
+  segment word, so the Label is what distinguishes Start from End. The first version
+  of the test looked at each control on its own and could not fail — giving Start's
+  input the End label left every single-control assertion satisfied. It now requires
+  the two names to differ and requires the form to carry both.
+
 - **A field error is tested to reach the control, not just the space below it**:
   MyGo's `Field.Error` draws the message, marks the control invalid so its border
   turns red and assistive technology reports `AccessInvalid`, and prepends the
