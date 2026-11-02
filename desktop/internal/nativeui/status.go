@@ -16,9 +16,35 @@ type statusLine struct {
 	text     string
 	isErr    bool
 	revision uint64
+	// raw and rawArgs hold the message before translation, so the line can be said
+	// again in another language. The window rebuilds every string it reads on each
+	// frame, but a status line is a value: without this it kept the language it was
+	// created in, and switching to Chinese left "Failed: token name is required" on
+	// screen beside Chinese labels.
+	//
+	// raw stays a format with its arguments rather than a formatted string, because
+	// the catalogs translate templates ("Registered %s"), not their results.
+	raw     string
+	rawArgs []any
 }
 
 func (s statusLine) empty() bool { return s.text == "" }
+
+// spoken returns the line in the language in effect now. The stored text was
+// translated when the line was created; this re-says the same message, which is
+// what keeps one frame from mixing two languages after a switch.
+func (s statusLine) spoken() string {
+	if s.raw == "" {
+		return s.text
+	}
+	if s.isErr {
+		return localizeServiceErrorMessage(s.raw)
+	}
+	if len(s.rawArgs) == 0 {
+		return tr(s.raw)
+	}
+	return fmt.Sprintf(tr(s.raw), s.rawArgs...)
+}
 
 var statusRevision atomic.Uint64
 
@@ -28,6 +54,8 @@ func okStatus(format string, args ...any) statusLine {
 	return statusLine{
 		text:     fmt.Sprintf(tr(format), args...),
 		revision: nextStatusRevision(),
+		raw:      format,
+		rawArgs:  args,
 	}
 }
 
@@ -39,6 +67,7 @@ func errStatus(err error) statusLine {
 		text:     localizeServiceError(err),
 		isErr:    true,
 		revision: nextStatusRevision(),
+		raw:      err.Error(),
 	}
 }
 
@@ -51,6 +80,7 @@ func errorStatusText(text string) statusLine {
 		text:     text,
 		isErr:    true,
 		revision: nextStatusRevision(),
+		raw:      text,
 	}
 }
 
@@ -151,7 +181,7 @@ func renderStatus(c *ui.Context, scope page, s statusLine, dismiss func()) bool 
 		statusDot(c, tone, 7)
 		ui.Text(c, tr(label)).FontSize(textSize(c, 11.5)).FontWeight(700).
 			TextColor(tone).SingleLine().Shrink(0).Role(ui.RoleNone)
-		ui.Text(c, s.text).FontSize(textSize(c, 12)).TextColor(c.Theme().Text).
+		ui.Text(c, s.spoken()).FontSize(textSize(c, 12)).TextColor(c.Theme().Text).
 			Grow(1).Shrink(1).MinWidth(0).Role(ui.RoleNone)
 		if dismiss != nil {
 			if quietButton(c, "Dismiss").Clicked() {
@@ -176,7 +206,7 @@ func inlineStatus(c *ui.Context, s statusLine) {
 		tone = c.Theme().Danger
 	}
 	spoken := statusAnnouncementText(s)
-	status := ui.Text(c, s.text).FontSize(textSize(c, 12)).TextColor(tone).
+	status := ui.Text(c, s.spoken()).FontSize(textSize(c, 12)).TextColor(tone).
 		Role(ui.RoleStatus).Label(spoken)
 	announceStatusChange(c, status, s, spoken)
 }
@@ -185,9 +215,9 @@ func inlineStatus(c *ui.Context, s statusLine) {
 // cannot infer success or failure from the red and green tints.
 func statusAnnouncementText(s statusLine) string {
 	if s.isErr {
-		return labelText(tr("Failed"), s.text)
+		return labelText(tr("Failed"), s.spoken())
 	}
-	return labelText(tr("Done"), s.text)
+	return labelText(tr("Done"), s.spoken())
 }
 
 type announcedStatus struct {

@@ -1,8 +1,10 @@
 package nativeui
 
 import (
+	"errors"
 	"testing"
 
+	"github.com/egoist/mygo/ui"
 	"github.com/stretchr/testify/require"
 
 	"github.com/pplmx/aurora/internal/i18n"
@@ -72,4 +74,47 @@ func TestWrappedPersistenceErrorsKeepTheirCauseReadable(t *testing.T) {
 	require.Equal(t,
 		"try add balance: balance would exceed maximum",
 		localizeServiceErrorMessage("try add balance: balance would exceed maximum"))
+}
+
+// TestAStatusLineIsSaidInTheCurrentLanguage covers the half of a language switch that a
+// frame cannot fix by itself. Every label is read from the translator while the frame is
+// built, so those follow a switch; a status line is a value, translated once when it was
+// created. Switching to Chinese therefore left "Failed: token name is required" under a
+// Chinese "失败", and the line stayed until the next write replaced it.
+//
+// The line keeps its message and its arguments, not the finished sentence: the catalogs
+// translate templates ("Registered %s"), so a formatted string could not be looked up.
+func TestAStatusLineIsSaidInTheCurrentLanguage(t *testing.T) {
+	tr := i18n.GetTranslator()
+	before := tr.GetLocale()
+	t.Cleanup(func() { tr.SetLocale(before) })
+
+	tr.SetLocale("en")
+	app := New(&fakeServices{})
+	tester := ui.NewTester(app.View, 1400, 4000)
+	app.ShowPage("Token")
+	tester.Frame()
+
+	app.token.status = okStatus("Registered %s", "Gold")
+	tester.Frame()
+	require.Equal(t, "Registered Gold", app.token.status.spoken())
+
+	tr.SetLocale("zh")
+	tester.Frame()
+	require.Equal(t, "已注册 Gold", app.token.status.spoken(),
+		"the line must follow the language the window is now drawing in")
+	require.True(t, tester.HasText("已注册 Gold"), "and the redraw must show it")
+
+	// Errors take the same path, through the service-error localizer.
+	tr.SetLocale("en")
+	app.token.status = errStatus(errors.New("token name is required"))
+	require.Equal(t, "token name is required", app.token.status.spoken())
+	tr.SetLocale("zh")
+	require.Equal(t, "代币名称不能为空", app.token.status.spoken())
+
+	// A fixed sentence carrying a literal percent is not a format.
+	tr.SetLocale("en")
+	app.token.status = okStatus("Saved 100% of the rows")
+	require.Equal(t, "Saved 100% of the rows", app.token.status.spoken(),
+		"the percent must survive, not be read as a verb")
 }
