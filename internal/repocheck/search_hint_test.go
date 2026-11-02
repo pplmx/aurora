@@ -1,6 +1,7 @@
 package repocheck
 
 import (
+	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -8,7 +9,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"os"
 )
 
 // TestSearchHintsMatchWhatTheSearchDoes covers the sentence beside every search
