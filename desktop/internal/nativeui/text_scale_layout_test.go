@@ -925,3 +925,54 @@ func TestVotingCollectionsUseRecordsAtLargeText(t *testing.T) {
 		})
 	}
 }
+
+// TestEveryPageScrollsToItsLastCard covers the scroll container on every page
+// rather than the one that was originally clipped. A page whose content is taller
+// than its viewport has to reach its last card: the smallest window at the largest
+// text is where that fails first, and the failure is a card that exists but cannot
+// be brought into view.
+//
+// The measurement is the last card's bottom edge after scrolling to the end. It has
+// to land inside the window — the small margin is the content area's own offset
+// below the fixed header — and a page that overflowed has to have moved.
+func TestEveryPageScrollsToItsLastCard(t *testing.T) {
+	const width, height = 900, 600
+
+	lowest := func(t *testing.T, tester *ui.Tester) float32 {
+		t.Helper()
+		var bottom float32
+		for _, text := range tester.Texts() {
+			if rect, ok := tester.Find(text); ok && rect.Y+rect.H > bottom {
+				bottom = rect.Y + rect.H
+			}
+		}
+		return bottom
+	}
+
+	for _, target := range pageOrder {
+		target := target
+		t.Run(pageTitles[target], func(t *testing.T) {
+			app := New(workbenchFakes())
+			tester := ui.NewTester(app.View, width, height)
+			tester.SetPreferences(ui.Preferences{TextScale: 2})
+			app.ShowPage(pageTitles[target])
+			tester.Frame()
+
+			atTop := lowest(t, tester)
+			app.scroll.Y = math.MaxFloat32
+			tester.Frame()
+			moved := app.scroll.Y
+			atBottom := lowest(t, tester)
+
+			require.GreaterOrEqualf(t, moved, float32(0),
+				"%s: the scroll must not go negative", pageTitles[target])
+			require.LessOrEqualf(t, atBottom, float32(height)*1.1,
+				"%s: the last card must be inside the window at the end of the scroll",
+				pageTitles[target])
+			if atTop > height {
+				require.Greaterf(t, moved, float32(0),
+					"%s: content taller than the window must scroll", pageTitles[target])
+			}
+		})
+	}
+}
