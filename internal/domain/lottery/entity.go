@@ -44,6 +44,14 @@ type LotteryRecord struct {
 	Verified        bool     `json:"verified"`
 }
 
+// Validate checks the record's own shape: a usable seed, a participant list, and
+// no more winners than participants.
+//
+// It deliberately does not check that WinnerAddresses lines up with Winners, or that
+// the addresses are the ones the names derive. Those are integrity questions, and
+// answering them needs the derivation; VerifyRecord in the app layer answers them, and
+// every path that admits a record from outside — an export, an import — runs both. A
+// caller that only wants to know whether a record is well-formed gets the cheap check.
 func (r *LotteryRecord) Validate() error {
 	if err := ValidateSeed(r.Seed); err != nil {
 		return fmt.Errorf("seed: %w", err)

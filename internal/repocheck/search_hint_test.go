@@ -748,3 +748,25 @@ func TestTheThreeSurfacesShareOneDrawSearch(t *testing.T) {
 	// A term carrying LIKE's own wildcards must match literally.
 	require.Contains(t, search, `%`, "and escape the wildcards a seed can contain")
 }
+
+// TestTheExportPathChecksBothHalvesOfARecord covers the two-layer validation an
+// imported draw goes through. Validate answers "is this record well-formed"; VerifyRecord
+// answers "is it intact", which needs the address derivation and is therefore in the app
+// layer. The reference promises both guards on import, and the split is easy to mistake
+// for a gap: Validate alone accepts a record whose WinnerAddresses is one short.
+func TestTheExportPathChecksBothHalvesOfARecord(t *testing.T) {
+	portability := readRepoFile(t, "internal", "app", "lotteryapp", "portability.go")
+	importBody := functionSource(t, portability, "func ImportRecords")
+	require.Contains(t, importBody, "record.Validate()",
+		"an imported record must be checked for shape")
+	require.Contains(t, importBody, "VerifyRecord(&record)",
+		"and for integrity, which is the half that catches a short address list")
+	require.Contains(t, importBody, "report.IntegrityOK",
+		"the integrity verdict is what decides the record's fate")
+
+	// VerifyRecord owns the address relation; Validate must not be mistaken for it.
+	verify := readRepoFile(t, "internal", "app", "lotteryapp", "verify.go")
+	require.Contains(t, functionSource(t, verify, "func verifyWinnerAddresses"),
+		"len(record.Winners) != len(record.WinnerAddresses)",
+		"the address count is compared where the derivation lives")
+}
