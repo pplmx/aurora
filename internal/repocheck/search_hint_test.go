@@ -622,3 +622,35 @@ func TestEveryActionButtonLooksDisabledBeforeItsFieldsAreReady(t *testing.T) {
 			"%s must use the session readiness flag", label)
 	}
 }
+
+// TestEveryCopyConfirmsItselfNearby covers the feedback rule in the reference: a
+// copy button writes the clipboard and also raises a toast. The status line is
+// pinned to the page header, which can be a card away from the value just copied,
+// so the toast is what confirms the copy where the pointer already is.
+//
+// The check is that every clipboard write is followed by a toast in the same
+// function. One that only updated the status line would look, from the pointer, like
+// a copy that did nothing.
+func TestEveryCopyConfirmsItselfNearby(t *testing.T) {
+	files := []string{
+		"controls.go", "lottery.go", "records.go", "settings.go", "values.go",
+	}
+	writes := 0
+	for _, file := range files {
+		body := readRepoFile(t, "desktop", "internal", "nativeui", file)
+		for _, after := range strings.Split(body, "WriteClipboard(")[1:] {
+			writes++
+			// The toast is the next statement in every case; look far enough for
+			// a message built across a line or two.
+			window := after
+			if end := strings.Index(window, "\n\t}\n"); end > 0 {
+				window = window[:end]
+			}
+			require.Containsf(t, window, "c.Toast(",
+				"%s: a clipboard write must also raise a toast", file)
+		}
+	}
+	require.GreaterOrEqual(t, writes, 5,
+		"the window's copy buttons: the generic row, the acting-on strip, the payload, "+
+			"the verdict and the diagnostics")
+}
