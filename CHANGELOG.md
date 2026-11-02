@@ -12,6 +12,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The reference documents only name paths that exist**: a citation that drifts
+  is worse than none, since the reader follows it to a path that is not there. The
+  three reference documents now have their `internal/` and `desktop/` citations
+  checked against the checkout, with a document that cites none passing —
+  `docs/cli.md` is a command reference and needs no path. `docs/architecture.md`
+  is excluded on purpose: its tree uses bare directory names, already covered by
+  the structure check, and the rest quotes gone paths by design.
+
 - **The structure tree in the architecture reference is checked too**: README.md's
   project tree has a test that every `internal/` directory appears in it, and
   `docs/architecture.md` carries the same package set in its 目标结构 section with no
