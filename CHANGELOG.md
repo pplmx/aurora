@@ -12,6 +12,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The Shortcuts card is tested to list what the header actually handles**: the
+  card is the only place a reader learns the chords without opening the File menu,
+  and nothing tied it to the registrations. A chord the header handles but the card
+  omits is a command most operators never find; a chord on the card that nothing
+  listens for sends them to press a key that does nothing. The comparison now runs
+  both ways, and the number-shortcut test's comment was corrected from 1..7 to the
+  eight pages its loop already covered.
+
 - **The warning triangle is documented as marking one thing, not two**: its
   comment claimed an irreversible confirmation and a load that kept stale rows; only
   the first was true. A failed load draws the same status strip as success and busy —
