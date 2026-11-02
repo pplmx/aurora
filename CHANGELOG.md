@@ -12,6 +12,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The failed-server start branch is reachable from a test**: it has to write to the log
+  before returning, and nothing could exercise it — the real `NewServer` needs a working
+  database — so the lines were unreachable and the coverage floor paid for them. `newAPIServer`
+  follows the three seams the package already had (`appLocale`, `applyNativeTheme`,
+  `messageBox`), and the check asserts the log file rather than the returned error: every start
+  failure returns one, and only this one had no record.
+
 - **Closing the runtime twice is tested to be safe**: the window now closes on two paths —
   the deferred call on a normal shutdown, and the explicit call before the failure exit that
   skips defers. They never both run today, but a third stop path would make them overlap, and
