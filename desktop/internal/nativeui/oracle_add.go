@@ -40,7 +40,11 @@ func (a *App) oracleAddBody(c *ui.Context) {
 	ui.Collapsible(c, tr("Advanced"), &a.oracle.addAdvanced, func() {
 		field(c, "Type (optional)", &a.oracle.addType)
 		field(c, "Method (optional, defaults to GET)", &a.oracle.addMethod)
-		field(c, "Path (optional JSON field)", &a.oracle.addPath)
+		// The reader has to know the shape before typing: extractByPath resolves
+		// object keys separated by dots and nothing else — no array index, no
+		// bracket syntax — so "a.b[0].c" would simply never resolve.
+		fieldHint(c, "Path (optional JSON field)",
+			"Dotted object keys only, e.g. bitcoin.usd; no array index.", &a.oracle.addPath)
 		textAreaHint(c, "Request Headers (optional JSON object)",
 			"Values are stored as request headers and shown as “configured”.", &a.oracle.addHeaders)
 		ui.Field(c, tr("Interval (seconds)"), func() {
