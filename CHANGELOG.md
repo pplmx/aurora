@@ -12,6 +12,12 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **A result and a busy write are tested to share the frame**: a write usually
+  starts right after a result, so both strips are on screen — the previous outcome
+  above, the running operation below. Neither may displace the other, and they stay
+  distinct in speech: the result carries Done or Failed while the banner carries the
+  operation's own name, so the two are not heard as one event.
+
 - **A cross-field error is tested to blame the field to change**: a rule spanning
   two inputs still has to put its message on the one the reader must edit. The
   session window is the case the reference names — a missing start blames Start, a
