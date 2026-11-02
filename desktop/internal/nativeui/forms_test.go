@@ -1047,3 +1047,28 @@ func TestAPresetIsAFillNotAMode(t *testing.T) {
 	require.Equal(t, "https://internal.example.com/price", submitted.URL,
 		"the edited URL is what reaches the store")
 }
+
+// TestTheHealthCardSaysTheCountsStartAtLaunch covers the boundary the numbers alone
+// cannot show. The counters live in the scheduler's memory, not the database: they
+// begin at zero when the process does. A row reading "Attempts 0, Successes 0,
+// Failures 0" therefore means "nothing has run since you launched this", not "this feed
+// has never had a problem", and the card said neither.
+func TestTheHealthCardSaysTheCountsStartAtLaunch(t *testing.T) {
+	app := New(&fakeServices{healthRows: []HealthRow{
+		{SourceID: "s1", Attempts: 0, Successes: 0, Failures: 0},
+		{SourceID: "s2", Attempts: 9, Successes: 8, Failures: 1, LastError: "503 Service Unavailable"},
+	}})
+	tester := ui.NewTester(app.View, 1400, 4000)
+	app.ShowPage("Oracle")
+	app.oracle.tab = 1
+	tester.Frame()
+
+	require.True(t,
+		tester.HasText(tr("Background poll attempts, successes and failures per source since this launch, with the last error kept verbatim.")),
+		"the card must scope its counters to this launch")
+
+	// A quiet feed and a busy one must not look the same, and both stay readable.
+	require.True(t, tester.HasText("503 Service Unavailable"),
+		"the last error is kept verbatim")
+	require.True(t, tester.HasText("Feed Health"))
+}
