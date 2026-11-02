@@ -12,6 +12,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **A zero allowance is tested to stay on screen**: the card draws its row whenever the
+  stored answer is not the empty string, and "0" is not empty — a spender granted nothing,
+  or one who spent everything, has an answer of zero, and hiding it would leave that
+  indistinguishable from "you have not asked yet". The service returns a zero amount for a
+  missing approval, so the distinction is real and only the render site can break it. The
+  check reads the condition rather than the frame: the page also draws "Allowance" as the
+  card's title, so a text search cannot separate the card from its row.
+
 - **The three edges of an allowance are tested**: the happy path (approve 500, spend 200,
   300 left) was covered; a spend above the allowance, spending it exactly, and decreasing
   past zero were not. `TryDeductApproval` and `TryAdjustApproval` are the authorities and
