@@ -273,3 +273,30 @@ func pageOrderEntry(src string) []string {
 	}
 	return out
 }
+
+// TestCrossFieldErrorsNameTheFieldTheyBlame covers the half of field validation
+// that a single-field check cannot: a rule spanning two inputs still has to put
+// its message on the one the reader must change. The session window is the case
+// the reference names — an end before the start blames End, a missing start
+// blames Start — and misplacing it sends the reader to edit a field that is fine.
+func TestCrossFieldErrorsNameTheFieldTheyBlame(t *testing.T) {
+	body := readRepoFile(t, "desktop", "internal", "nativeui", "voting_setup.go")
+	start := strings.Index(body, "func (a *App) createVotingSession()")
+	require.NotEqual(t, -1, start, "createVotingSession must still exist")
+	fn := body[start:]
+	if end := strings.Index(fn, "\nfunc "); end >= 0 {
+		fn = fn[:end]
+	}
+
+	for _, want := range []struct{ rule, assign string }{
+		{"a missing start blames Start", `a.voting.sessionStartErr = "Choose a start time."`},
+		{"a missing end blames End", `a.voting.sessionEndErr = "Choose an end time."`},
+		{"an end before the start blames End", `a.voting.sessionEndErr = "End time must be after the start time."`},
+	} {
+		assert.Containsf(t, fn, want.assign, "%s", want.rule)
+	}
+	// The reversed-window message must not blame the start: Start is the value the
+	// reader typed correctly, and the sentence says to fix the end.
+	assert.NotContainsf(t, fn, `a.voting.sessionStartErr = "End time must`,
+		"the reversed-window error must blame End, not Start")
+}
