@@ -12,6 +12,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **A failed detail read is tested to keep the value it showed**: the list-level
+  test drives nine of the fake's eighteen error hooks. The other detail hooks — a
+  token's info and balance, an NFT's details, an oracle reading, the latest value,
+  feed health and the session roster — were declared and never set by any test, so
+  each card's "keep the last value and say why" path was unexercised. A detail card
+  holds one number, so a blank readout beside a failure reads as an empty account
+  rather than a failed read.
+
 - **Many copies are tested not to pile up toasts**: the copy buttons are six
   independent sites and a fast operator can reach three of them before the first
   expires. MyGo shows the newest three toasts and keys a toast by its message, so
