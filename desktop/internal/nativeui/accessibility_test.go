@@ -481,7 +481,7 @@ func TestVisibleHintsDescribeTheirControls(t *testing.T) {
 		"nft.go": {},
 		"settings.go": {
 			`Description(tr("Nothing is written to disk; quitting Aurora clears them."))`,
-			`Description(tr("Applies to Dashboard, Oracle health and open readings; forms keep their text. Saved for the next launch."))`,
+			`Description(tr("Applies to Dashboard, the Oracle source list, health and open readings; forms keep their text. Saved for the next launch."))`,
 			`button.Description(tr(description))`,
 		},
 	}

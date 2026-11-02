@@ -1,6 +1,8 @@
 package nativeui
 
 import (
+	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -57,4 +59,45 @@ func TestLiveUpdatesRefreshOracleHealth(t *testing.T) {
 	before = fake.oracleHealthCalls
 	tester.Advance(liveRefreshInterval + time.Second)
 	require.Equal(t, before, fake.oracleHealthCalls, "Settings must not start a background refresh")
+}
+
+// TestTheLiveUpdatesDescriptionNamesWhatItRefreshes keeps the Settings copy honest.
+// The description listed the Dashboard, Oracle health and open readings, while the
+// Oracle reload also refreshes the source list and the preset picker — a reader who
+// turned it on to watch the health counters had no way to learn that their source
+// list also updates.
+//
+// The check ties the sentence to the reload it describes, so widening the reload
+// without widening the sentence fails here.
+func TestTheLiveUpdatesDescriptionNamesWhatItRefreshes(t *testing.T) {
+	reload := functionSource(t, readFile(t, "oracle.go"), "func (a *App) refreshOracleLive")
+	require.Contains(t, reload, "a.loadOracle()",
+		"the Oracle reload must refresh the source list")
+	require.Contains(t, reload, "a.refreshOracleReads()",
+		"and the readings that are open")
+
+	settings := readFile(t, "settings.go")
+	require.Contains(t, settings, "the Oracle source list, health and open readings",
+		"the description must name the source list the reload refreshes")
+}
+
+// readFile reads a sibling source file. live_test.go works with a few of them and
+// every helper takes a name rather than a path.
+func readFile(t *testing.T, name string) string {
+	t.Helper()
+	source, err := os.ReadFile(name)
+	require.NoError(t, err)
+	return string(source)
+}
+
+// functionSource returns the body of one function, from its declaration to the next.
+func functionSource(t *testing.T, src, declaration string) string {
+	t.Helper()
+	start := strings.Index(src, declaration)
+	require.NotEqualf(t, -1, start, "%s must exist", declaration)
+	rest := src[start+len(declaration):]
+	if end := strings.Index(rest, "\nfunc "); end >= 0 {
+		rest = rest[:end]
+	}
+	return rest
 }
