@@ -12,6 +12,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The Oracle page's comment stops saying it stacks four sections**: the field comment lists
+  the right-hand stages as 0 sources, 1 health, 2 readings and then said "stacking all four made
+  the page a long column". The count was wrong when it was written, not made wrong later — the
+  commit that split the page already passed three labels to the tab widget — and the workbench
+  comment repeated it. The other counts checked while here hold: five token write tabs, four
+  source-action controls, three voting list reads, and the page's three action styles.
+
 - **The confirmation guard's comment stops naming a count**: it said "all six destructive
   commands" and there are seven — `lottery reset` joined after the sentence was written. The
   count is not the fact a reader needs, and a number in a comment goes stale the moment the list
