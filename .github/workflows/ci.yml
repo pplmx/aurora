@@ -48,6 +48,14 @@ jobs:
       - name: Test (pure Go)
         run: CGO_ENABLED=0 go test -count=1 ./...
 
+      # Order independence is a property no fixed-order run can check: a test that
+      # only passes because another one ran first looks healthy until that other
+      # one is renamed. `just test-shuffle` runs the same thing locally, and both
+      # modules were measured green under -shuffle=on before this step existed, so
+      # a failure here is a real dependency rather than a pre-existing one.
+      - name: Test (shuffled order)
+        run: CGO_ENABLED=0 go test -count=1 -shuffle=on ./...
+
       # AGENTS.md promises 80% for the domain and app layers; without this step
       # the promise is prose. The composition root is excluded (it is wiring).
       - name: Coverage floor (domain and app)
@@ -132,6 +140,13 @@ jobs:
       # `just desktop-check` runs the same cgo-free gates locally.
       - name: Test (pure Go)
         run: CGO_ENABLED=0 go test -coverprofile=coverage-desktop.out -count=1 ./...
+        working-directory: desktop
+
+      # Same reason as the core job: the desktop's tests share process-wide state
+      # (viper, the blockchain singleton, the logger), so an accidental ordering
+      # dependency is likelier here than anywhere else in the tree.
+      - name: Test (shuffled order)
+        run: CGO_ENABLED=0 go test -count=1 -shuffle=on ./...
         working-directory: desktop
 
       # Keep the stronger race gate explicit: the detector itself needs cgo,

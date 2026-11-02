@@ -1383,6 +1383,11 @@ func TestCICoversWhatTheLocalGateCannot(t *testing.T) {
 	require.Contains(t, ci, "Verify pure-Go build metadata",
 		"and check that the packaged binaries stayed pure Go")
 
+	// Order independence has no other home: a fixed-order run cannot detect a test that only
+	// passes because another ran first, and the local gate does not run shuffle either.
+	require.GreaterOrEqual(t, strings.Count(ci, "-shuffle=on"), 2,
+		"both modules must run with shuffled order; one job alone leaves half the tree unchecked")
+
 	// `just verify` is what the AGENTS table calls the local equivalent. It is a dependency-only
 	// recipe with no commands of its own, so the declaration line is what to read: it must not
 	// name race.
