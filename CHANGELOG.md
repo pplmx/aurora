@@ -12,6 +12,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **An NFT transfer to the same owner is tested to keep ownership and record it**: the
+  NFT half of the same boundary. The owner still holds the asset and the transfer still
+  appears in the operation history, because a signed operation that happened is what that
+  history is for. The SQLite primitive runs `UPDATE ... WHERE owner = from` and counts a
+  matched row as affected even when the new value equals the old one — had it compared
+  values, the asset's own holder would have been told they were not the owner.
+
 - **A transfer to oneself is tested to leave the balance alone**: the debit and credit
   both run, so the net is zero, and the audit record is still written because a transfer did
   happen. Nothing asserted either half, and the combination is easy to break — a credit that
