@@ -12,6 +12,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **Every choice group is tested to carry its name**: radio groups, tab rows and
+  checkboxes each render a set of controls that are indistinguishable without the
+  group's name — three radios reading "Follow System", "Light", "Dark" say nothing
+  about what they choose. All six are named today, and each shape is checked where
+  it is decided: the `Label` for the radio groups, the argument for the checkboxes,
+  and the call site for the tab rows' group name.
+
 - **The ledger's record list now carries the name its pager already uses**: the
   reference promises a table or record list says which records it holds before
   reading the first one. The ledger's pager was named "Blockchain ledger" and the
