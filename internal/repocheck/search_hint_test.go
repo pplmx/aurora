@@ -1,6 +1,7 @@
 package repocheck
 
 import (
+	"io/fs"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -1076,4 +1077,72 @@ func TestEveryConfirmationGateHasItsWarning(t *testing.T) {
 		require.Contains(t, readRepoFile(t, "cmd", "aurora", "cmd", "root.go"), "cli.confirm.required",
 			"the gate sentence is assembled from this key")
 	}
+}
+
+// TestCommentsNameFunctionsThatExist covers a class of reference that fails quietly: a
+// comment saying "views set it through ok()/fail()" names functions that were never written,
+// and the reader either looks for them or trusts a name that does not exist. Neither breaks a
+// build, so nothing surfaces it.
+//
+// The scan is narrow on purpose: only `name()` written in a comment, only lowercase names, and
+// only against the function declarations in the same package tree. That keeps it free of false
+// positives — prose like "the check()" is rare, and a name that resolves is evidence enough.
+func TestCommentsNameFunctionsThatExist(t *testing.T) {
+	roots := []string{
+		"desktop/internal/nativeui",
+		"internal/app",
+		"internal/api",
+		"internal/domain",
+		"internal/infra",
+		"internal/records",
+		"internal/ledger",
+	}
+	root := repoRoot(t)
+	decl := regexp.MustCompile(`(?m)^func (?:\([^)]*\) )?(\w+)\(`)
+	call := regexp.MustCompile(`\b([a-z][a-zA-Z0-9_]{2,})\(\)`)
+
+	checked := 0
+	for _, tree := range roots {
+		declared := map[string]bool{}
+		files := []string{}
+		err := filepath.WalkDir(filepath.Join(root, tree), func(path string, entry fs.DirEntry, err error) error {
+			if err != nil {
+				return err
+			}
+			if entry.IsDir() || !strings.HasSuffix(path, ".go") || strings.HasSuffix(path, "_test.go") {
+				return nil
+			}
+			files = append(files, path)
+			body, err := os.ReadFile(path) //nolint:gosec // path comes from the repo walk
+			if err != nil {
+				return err
+			}
+			for _, m := range decl.FindAllStringSubmatch(string(body), -1) {
+				declared[m[1]] = true
+			}
+			return nil
+		})
+		require.NoError(t, err)
+		require.NotEmptyf(t, files, "%s must hold Go sources", tree)
+
+		for _, path := range files {
+			body, err := os.ReadFile(path) //nolint:gosec // path comes from the repo walk
+			require.NoError(t, err)
+			rel, err := filepath.Rel(root, path)
+			require.NoError(t, err)
+			for _, line := range strings.Split(string(body), "\n") {
+				trimmed := strings.TrimSpace(line)
+				if !strings.HasPrefix(trimmed, "//") {
+					continue
+				}
+				for _, m := range call.FindAllStringSubmatch(trimmed, -1) {
+					checked++
+					require.Truef(t, declared[m[1]],
+						"%s names %s() in a comment, and this package has no such function",
+						rel, m[1])
+				}
+			}
+		}
+	}
+	require.Greaterf(t, checked, 0, "the scan must find at least one comment reference")
 }
