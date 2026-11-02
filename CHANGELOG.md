@@ -12,6 +12,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **Every action button is tested to state when it is ready**: the reference
+  promises a primary action is disabled until its fields are filled, rather than
+  submitting and reading back an error. The handler-side half was covered; the visible
+  half was checked only where a failure had been seen. Each shape is now pinned where
+  it is decided — `primaryButton`'s `ready` argument, every call site passing one, the
+  Oracle card's single `sourceReady` for its four buttons, and Voting's
+  `sessionReady` for its two.
+
 - **Every page header is tested to stay inside the window at its tightest**: the
   existing header check exercises Token, whose purpose sentence is one of the
   shortest. Settings has no action at all and the longest purpose line, so it takes
