@@ -1072,3 +1072,26 @@ func TestTheHealthCardSaysTheCountsStartAtLaunch(t *testing.T) {
 		"the last error is kept verbatim")
 	require.True(t, tester.HasText("Feed Health"))
 }
+
+// TestAZeroAllowanceIsShownNotHidden covers the one readout whose empty-looking value is
+// real data. The card draws the row when the stored answer is not the empty string, and
+// "0" is not empty: a spender who was granted nothing, or who spent everything, has an
+// answer of zero, and hiding it would leave the reader unable to tell that from "you have
+// not asked yet".
+//
+// The condition is asserted on the source rather than on the frame: the page draws the
+// word "Allowance" as the card's title too, so a text search cannot separate "the card is
+// there" from "the answer is there" — the two differ by one row, not by a word.
+func TestAZeroAllowanceIsShownNotHidden(t *testing.T) {
+	source := readFile(t, "token_read.go")
+
+	require.Contains(t, source, `if a.token.allowance != "" && matches {`,
+		"the row must be drawn whenever a value was read for the account on screen")
+	require.NotContains(t, source, `a.token.allowance != "0"`,
+		`a zero allowance is an answer, not an absence: nothing may special-case it away`)
+
+	// And the empty string keeps meaning "not asked yet", which is the case the guard is
+	// for — a cleared account must not leave the previous answer under a new key.
+	require.Contains(t, source, "func (s tokenState) allowanceMatches(",
+		"the account the answer belongs to is what the guard pairs with the value")
+}
