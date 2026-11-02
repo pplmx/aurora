@@ -1520,7 +1520,10 @@ func (m *mockRepository) TryAddToSupply(id TokenID, amount *Amount) (*Amount, er
 	}
 	newSupply := &Amount{Int: new(big.Int).Add(tok.TotalSupply().Int, amount.Int)}
 	if newSupply.BitLen() > 63 {
-		return nil, fmt.Errorf("try add to supply: total supply would exceed maximum")
+		// Mirror the SQLite primitive, which wraps the domain sentinel so the mint use
+		// case's error reaches the API as a 400. A bare message here made the mock the
+		// only place an overflowing mint looked like a server fault.
+		return nil, fmt.Errorf("try add to supply: total supply would exceed maximum: %w", ErrAmountTooLarge)
 	}
 	m.tokens[id] = NewToken(id, tok.Name(), tok.Symbol(), newSupply, tok.Owner())
 	return newSupply, nil
@@ -4136,5 +4139,66 @@ func TestBurnRollsBackBothHalves(t *testing.T) {
 	}
 	if got := balanceEmpty.Int64(); got != 0 {
 		t.Errorf("the balance must be empty, got %d", got)
+	}
+}
+
+// TestAnAllowanceSaturatesWhileSupplyRefuses pins the asymmetry between the two ceilings.
+// Both are bounded at MaxInt64 and both are protected by the same style of atomic
+// primitive, but they answer differently: a mint that would overflow the supply is refused
+// with ErrAmountTooLarge, because total_supply is part of the ledger invariant; an
+// allowance that would overflow saturates at MaxInt64, because an allowance is a permission
+// ceiling and "the largest number" is indistinguishable from "unlimited".
+//
+// The asymmetry is deliberate and was only in the implementation; the port's comment said
+// what the lower clamp does and nothing about the upper one.
+func TestAnAllowanceSaturatesWhileSupplyRefuses(t *testing.T) {
+	repo := NewMockRepository()
+	eventStore := NewMockEventStore()
+	chain := blockchain.New()
+	service := NewService(repo, newMockTxManager(), newMockEventBus(eventStore), eventStore, newMockReplayProtection(), chain)
+
+	owner, spender := pubKey(1), pubKey(2)
+	if _, err := service.CreateToken(&CreateTokenRequest{
+		Name: "Big", Symbol: "BIG", TotalSupply: NewAmount(math.MaxInt64), Owner: owner,
+	}); err != nil {
+		t.Fatalf("CreateToken: %v", err)
+	}
+	tokens, err := service.ListTokens(10, 0)
+	if err != nil || len(tokens) != 1 {
+		t.Fatalf("ListTokens: %v, %d", err, len(tokens))
+	}
+	id := tokens[0].ID()
+
+	// The supply refuses one more, and keeps its value.
+	if _, err := service.Mint(&MintRequest{
+		TokenID: id, To: owner, Amount: NewAmount(1), PrivateKey: privKey(1),
+	}); !errors.Is(err, ErrAmountTooLarge) {
+		t.Fatalf("a mint past MaxInt64 must be refused, got %v", err)
+	}
+	info, err := service.GetTokenInfo(id)
+	if err != nil {
+		t.Fatalf("GetTokenInfo: %v", err)
+	}
+	if got := info.TotalSupply().Int64(); got != math.MaxInt64 {
+		t.Errorf("the saturated supply must not move, got %d", got)
+	}
+
+	// The allowance saturates instead.
+	if _, err := service.Approve(&ApproveRequest{
+		TokenID: id, Owner: owner, Spender: spender, Amount: NewAmount(math.MaxInt64), PrivateKey: privKey(1),
+	}); err != nil {
+		t.Fatalf("Approve at MaxInt64: %v", err)
+	}
+	if _, err := service.IncreaseAllowance(&AllowanceRequest{
+		TokenID: id, Owner: owner, Spender: spender, Amount: NewAmount(1), PrivateKey: privKey(1),
+	}); err != nil {
+		t.Fatalf("increasing a saturated allowance must saturate, not fail: %v", err)
+	}
+	allowance, err := service.GetAllowance(id, owner, spender)
+	if err != nil {
+		t.Fatalf("GetAllowance: %v", err)
+	}
+	if got := allowance.Int64(); got != math.MaxInt64 {
+		t.Errorf("the allowance must saturate at MaxInt64, got %d", got)
 	}
 }
