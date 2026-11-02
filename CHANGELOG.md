@@ -12,6 +12,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The session card is tested to drop its choose hint once an id is typed**:
+  three cards tell the operator to choose a record and then swap the sentence for a
+  plain field once one is chosen. Readings had a test for both halves; Session
+  Controls had one for the buttons starting to work and none for the sentence going
+  away, so the card could keep contradicting a filled field while every button
+  worked. The check now runs the field both ways, including after it is cleared.
+
 - **Every action button is tested to state when it is ready**: the reference
   promises a primary action is disabled until its fields are filled, rather than
   submitting and reading back an error. The handler-side half was covered; the visible
