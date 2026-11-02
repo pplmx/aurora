@@ -350,3 +350,31 @@ func TestTheBusyGateCoversEveryEntryPoint(t *testing.T) {
 	assert.Contains(t, palette, "for _, p := range pageOrder {",
 		"the palette must keep listing pages regardless of the gate")
 }
+
+// TestThePagerDisablesItsEnds covers the two conditions a reader sees rather than
+// a test can catch by clicking. The offset clamp already keeps the store from being
+// asked for a page before the first or past the end, so moving the disabled
+// condition changes nothing observable — it only offers a button that does nothing.
+// A control that looks live and is not is the failure this pins.
+func TestThePagerDisablesItsEnds(t *testing.T) {
+	controls := readRepoFile(t, "desktop", "internal", "nativeui", "controls.go")
+
+	body := functionSource(t, controls, "func pagerInline")
+	assert.Contains(t, body, "Disabled(offset == 0)",
+		"Previous must be disabled on the first page")
+	assert.Contains(t, body, "Disabled(!hasMore)",
+		"Next must be disabled when the store says there is no next page")
+}
+
+// functionSource returns the source of the named function in src, from its
+// declaration to the next one at the same level.
+func functionSource(t *testing.T, src, declaration string) string {
+	t.Helper()
+	start := strings.Index(src, declaration)
+	require.NotEqualf(t, -1, start, "%s must still exist", declaration)
+	rest := src[start+len(declaration):]
+	if end := strings.Index(rest, "\nfunc "); end >= 0 {
+		rest = rest[:end]
+	}
+	return rest
+}
