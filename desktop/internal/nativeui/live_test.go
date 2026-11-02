@@ -180,3 +180,48 @@ func TestALiveRefreshLeavesTheOpenFormAlone(t *testing.T) {
 	// The refresh did run: the counters were re-read.
 	require.Greater(t, fake.oracleHealthCalls, 0, "the refresh must actually read health")
 }
+
+// TestTurningLiveUpdatesOnStartsAFullInterval covers the switch's timing, which the
+// page-switch test covers for navigation but not for the setting itself. Both reset the
+// same field, so both start a full interval: turning the setting on does not read the
+// page at once, and turning it off and on again does not either.
+//
+// Waiting is the intended behaviour — the switch says "every 10 seconds", and a reload
+// the moment it is flipped would read a page the reader has not looked at yet. The check
+// exists because "arm for now" and "arm for now + interval" differ by one frame and
+// nothing else, so a change to either would not be visible in the UI.
+func TestTurningLiveUpdatesOnStartsAFullInterval(t *testing.T) {
+	now := time.Now()
+	fake := &fakeServices{
+		sources: []SourceRow{{ID: "s1", Name: "btc", URL: "https://example.com", Type: "http", Enabled: true}},
+	}
+	app := New(fake)
+	app.liveNow = func() time.Time { return now }
+	tester := ui.NewTester(app.View, 1400, 3000)
+	app.ShowPage("Oracle")
+	tester.Frame()
+
+	before := fake.oracleHealthCalls
+	app.setLiveUpdates(true)
+	tester.Frame()
+	require.Equal(t, before, fake.oracleHealthCalls,
+		"enabling the setting must not read the page on the same frame")
+	require.Greater(t, app.liveNext.Sub(now), time.Duration(0),
+		"the timer must be armed for later, not already due")
+
+	// One full interval later it runs, and re-arms rather than firing every frame.
+	now = now.Add(liveRefreshInterval)
+	tester.Frame()
+	require.Greater(t, fake.oracleHealthCalls, before, "the first interval must refresh")
+	require.Greater(t, app.liveNext.Sub(now), time.Duration(0), "and re-arm")
+
+	// Flipping it off and on waits again instead of refreshing immediately.
+	app.setLiveUpdates(false)
+	app.setLiveUpdates(true)
+	tester.Frame()
+	before = fake.oracleHealthCalls
+	now = now.Add(time.Second)
+	tester.Frame()
+	require.Equal(t, before, fake.oracleHealthCalls,
+		"a fresh enable starts its own interval")
+}
