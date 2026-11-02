@@ -12,6 +12,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **A field error is tested to be announced once, and again after a correction**:
+  `attachFieldError` speaks the message when it appears and stays silent on the
+  frames that rebuild it, so a repaint does not repeat the sentence — but it also
+  has to reset when the field is corrected, or the same mistake made twice would
+  be silent the second time, leaving a red border with nothing announced. The
+  status strip had a test; field errors are a separate path, because the message
+  belongs to the field the reader is sent back to.
+
 - **The card's group name is tested where it can be observed**: a card is a named
   group, and the name comes from `Label` alone — MyGo's default role inference
   resolves a labelled container to `RoleGroup`, so `formCard` does not also set the
