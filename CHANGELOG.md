@@ -12,6 +12,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **A fresh dashboard is tested to lead with the first move**: the empty state
+  changes one thing about the layout — a store with nothing recorded opens on Quick
+  start, while a store with records reads verdict → composition → activity with the
+  quick start at the end as a reminder. All three sections were tested for presence;
+  the order was not, and the order is what a reader acts on. The assertion is on
+  vertical position, since both layouts contain the same headings.
+
 - **Every rail and every voting metric is tested to open its own page**: the
   composition card has four module rails and three voting metrics, each a button
   with its destination baked in at compile time, and only the first rail had a
