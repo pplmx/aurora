@@ -12,6 +12,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **Every page is tested to scroll its last card into view**: one page had a scroll
+  check, at the smallest window and the largest text, because that page's button was
+  the one that got clipped. The container is shared, but each page builds its own tree
+  under it, so a page whose content is taller than the viewport could stop short and
+  nothing would notice. Each page now scrolls to the end and its last card's bottom
+  edge must be inside the window.
+
 - **The Shortcuts card is tested to list what the header actually handles**: the
   card is the only place a reader learns the chords without opening the File menu,
   and nothing tied it to the registrations. A chord the header handles but the card
