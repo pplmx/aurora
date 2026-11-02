@@ -473,3 +473,26 @@ func TestFieldErrorsMarkTheControlInvalid(t *testing.T) {
 	assert.NotContains(t, body, "ui.Text(c, localized)",
 		"the message is drawn by Field.Error, not by a second text element")
 }
+
+// TestOnlyTheDestructiveButtonFillsWithTheDangerColour covers the rule that makes
+// the three status colours mean something. Danger is the page's "this will not
+// come back" ink; a primary action filled with it would make an ordinary write
+// look destructive, and a red fill anywhere but the destructive button would make
+// the button itself less of a warning.
+//
+// Text and borders may use it freely — a failed load, a field error — because
+// those are failures being reported. This is about the fill.
+func TestOnlyTheDestructiveButtonFillsWithTheDangerColour(t *testing.T) {
+	controls := readRepoFile(t, "desktop", "internal", "nativeui", "controls.go")
+	destructive := functionSource(t, controls, "func dangerButton")
+	require.Contains(t, destructive, "red := c.Theme().Danger",
+		"the destructive button is the one control filled with Danger")
+	require.Contains(t, destructive, "fill, textColor, glow := red",
+		"and it uses it as the fill, not only as an edge")
+
+	primary := functionSource(t, controls, "func primaryButton")
+	require.NotContains(t, primary, "Danger",
+		"an ordinary primary action must take the module accent, never the danger fill")
+	require.NotContains(t, functionSource(t, controls, "func quietButton"), "Danger",
+		"a quiet button must not be tinted as destructive")
+}
