@@ -3,6 +3,7 @@ package nativeui
 import (
 	"errors"
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 	"testing"
@@ -42,10 +43,12 @@ func TestEveryPageHasItsOwnIcon(t *testing.T) {
 	}
 }
 
-// TestNumberShortcutsSwitchPages pins Ctrl/Cmd+1..7 in sidebar order, the
-// desktop convention the reference MyGo apps follow. It runs through the real
-// view so the shortcut has to be registered where the header is built, not
-// only in a helper.
+// TestNumberShortcutsSwitchPages pins Ctrl/Cmd+1..8 in sidebar order, the
+// desktop convention the reference MyGo apps follow. The range follows
+// pageOrder rather than a count, so a ninth page is covered the day it is added
+// and the Shortcuts card's "1…8" is what would have to change with it. It runs
+// through the real view so the shortcut has to be registered where the header is
+// built, not only in a helper.
 func TestNumberShortcutsSwitchPages(t *testing.T) {
 	app := New(&fakeServices{})
 	tester := ui.NewTester(app.View, 1280, 860)
@@ -1090,4 +1093,54 @@ func TestTheDashboardLeadsWithTheFirstMoveOnAFreshStore(t *testing.T) {
 		"a store with records leads with the composition, not with the first move")
 	require.Less(t, populated["Recent activity"], populated["Quick start"],
 		"and the quick start moves to the end")
+}
+
+// TestTheShortcutsCardListsEveryRegisteredChord keeps the card a complete
+// reference. It is the only place a reader can learn the chords without opening
+// the File menu or guessing, so a chord registered in the header but missing from
+// the card is a command most operators will never find — and a chord on the card
+// that nothing listens for sends them to press a key that does nothing.
+//
+// The comparison runs both ways: every registered chord appears on the card, and
+// every card row names a chord the header handles.
+func TestTheShortcutsCardListsEveryRegisteredChord(t *testing.T) {
+	app := New(&fakeServices{})
+	tester := ui.NewTester(app.View, 1280, 2200)
+	app.ShowPage("Settings")
+	tester.Frame()
+
+	card := tr("Shortcuts")
+	require.True(t, tester.HasText(card), "the Settings page must offer the Shortcuts card")
+
+	// The card's rows, as the reader sees them.
+	rows := []struct{ label, chord string }{
+		{"Pages", "1…8"},
+		{"Refresh (data pages)", "R"},
+		{"Back up database", "B"},
+		{"Export lotteries", "E"},
+		{"Import lotteries", "I"},
+		{"Settings", ","},
+		{"Command palette", "K"},
+	}
+	for _, row := range rows {
+		require.Truef(t, tester.HasText(tr(row.label)), "the card must list %q", row.label)
+		require.Truef(t, tester.HasText(row.chord), "the card must show the %q chord", row.chord)
+	}
+
+	// And the registration side: each non-digit chord has a handler, and the
+	// digits run over pageOrder, so the count on the card has to match it.
+	header, err := os.ReadFile("chrome.go")
+	require.NoError(t, err)
+	for _, chord := range []string{"KeyR", "KeyK", "KeyComma"} {
+		require.Containsf(t, string(header), "ui."+chord,
+			"the card lists a chord that header() must handle")
+	}
+	actions, err := os.ReadFile("actions.go")
+	require.NoError(t, err)
+	for _, chord := range []string{"KeyB", "KeyE", "KeyI"} {
+		require.Containsf(t, string(actions), "ui."+chord,
+			"the card lists a file chord that actionShortcuts must handle")
+	}
+	require.Len(t, pageOrder, 8,
+		"the card's 1…8 must describe the sidebar's pages")
 }
