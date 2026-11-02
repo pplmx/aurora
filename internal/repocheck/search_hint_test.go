@@ -848,3 +848,32 @@ func TestTheCLIFailureOutputIsDocumentedAsMultiline(t *testing.T) {
 	require.Contains(t, logger, "zerolog.ConsoleWriter{Out: os.Stderr}",
 		"and it must be the console writer on stderr, not stdout")
 }
+
+// TestAStartupFailureReachesTheLog covers the record an operator looks for after a server
+// that would not start. The API initialises the logger, then creates the server; when that
+// fails the only trace was a line on stderr, so a deployment whose log.path is set had a log
+// file with nothing in it about the failure — the one place the operator reads afterwards.
+//
+// The config-load failure above it is different and stays as it is: that error happens
+// before the logger exists, so stderr is all there is.
+func TestAStartupFailureReachesTheLog(t *testing.T) {
+	main := readRepoFile(t, "cmd", "api", "main.go")
+
+	initAt := strings.Index(main, "logger.Init()")
+	require.GreaterOrEqual(t, initAt, 0, "the API must initialise the logger")
+
+	createAt := strings.Index(main, "srv, err := api.NewServer()")
+	require.Greater(t, createAt, initAt, "the server is created after the logger is up")
+
+	// Everything between the two is the start-up path that can fail with a logger present.
+	startup := main[initAt:strings.Index(main, "srv.RegisterBuildInfo")]
+	require.Contains(t, startup, "logger.Error()",
+		"a failure with the logger up must reach it, not only the terminal")
+	require.Contains(t, startup, "fmt.Fprintf(os.Stderr",
+		"and the terminal stays informed, since the log may be a file nobody is watching")
+
+	// The earlier failure is before Init and legitimately uses stderr alone.
+	configAt := strings.Index(main, "Failed to load config")
+	require.Less(t, configAt, initAt,
+		"the config failure happens before the logger exists; that is why it is stderr-only")
+}
