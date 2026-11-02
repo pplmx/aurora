@@ -12,6 +12,12 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The screenshot script describes what the CI smoke test actually checks**: its header said
+  the packaging job "only proves the binary starts", which undersells it — the job starts the
+  packaged artifact under Xvfb, waits for the database, WAL, SHM and log, checks their modes are
+  `600` and the data directory `700`, and requires the process to be alive once they exist. The gap
+  the script closes is appearance, not startup, and the header now says so.
+
 - **Both modules' tests run in shuffled order in CI**: order independence is a property no
   fixed-order run can check — a test that only passes because another one ran first looks healthy
   until that other one is renamed. The local suite has a `just test-shuffle` recipe that nothing
