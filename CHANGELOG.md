@@ -12,6 +12,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The timeline spine is tested to run through its dots**: the dashboard paints
+  it with a Painter call, which leaves no element for `Tester` to measure, so the
+  geometry can only be pinned where the numbers are written — an 18-wide dot column
+  whose centre is 9, and a 1px spine at 8.5 whose span centres on the same 9.
+  Changing either alone puts the spine beside the dots, which reads as two vertical
+  rules rather than one line through the events.
+
 - **Only the destructive button is tested to fill with the danger colour**:
   `Danger` is the page's "this will not come back" ink. A primary action filled
   with it would make an ordinary write look destructive, and a danger fill anywhere
