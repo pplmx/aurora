@@ -8,6 +8,7 @@ import (
 
 	"github.com/egoist/mygo"
 	"github.com/pplmx/aurora/internal/app/lotteryapp"
+	"github.com/pplmx/aurora/internal/domain/lottery"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -233,4 +234,56 @@ func TestAboutNamesOnlyWhatTheBuildHas(t *testing.T) {
 		assert.NotContains(t, got.Detail, stale,
 			"the About detail must not mention a UI that does not exist")
 	}
+}
+
+// TestFileActionsStayQuietOnCancelAndLoudOnFailure pins the boundary both menu
+// actions have to get right. Cancel is "no error, nothing chosen" and must raise
+// nothing; a picker that failed is a failure and must say so. A bare
+// `err != nil || empty` test erases the difference, and it did once for backup.
+//
+// The pair is checked for export and import here; backup has its own test, which
+// is where the distinction was first found.
+func TestFileActionsStayQuietOnCancelAndLoudOnFailure(t *testing.T) {
+	originalOpen, originalSave, originalBox := openDialog, saveDialog, messageBox
+	t.Cleanup(func() {
+		openDialog, saveDialog, messageBox = originalOpen, originalSave, originalBox
+	})
+
+	var dialogs []mygo.MessageOptions
+	messageBox = func(opts mygo.MessageOptions) { dialogs = append(dialogs, opts) }
+	repoProvider := func() (lottery.Repository, func(), error) {
+		return nil, func() {}, errors.New("no repository")
+	}
+
+	t.Run("export", func(t *testing.T) {
+		dialogs = nil
+		// Cancel: the save dialog returns no path and no error.
+		saveDialog = func(mygo.SaveDialogOptions) (string, error) { return "", nil }
+		exportLotteriesWith(repoProvider, nil)
+		assert.Empty(t, dialogs, "cancel must not raise a dialog")
+
+		// A failing picker is not a cancel.
+		saveDialog = func(mygo.SaveDialogOptions) (string, error) {
+			return "", errors.New("the portal is not running")
+		}
+		exportLotteriesWith(repoProvider, nil)
+		require.Len(t, dialogs, 1)
+		assert.Equal(t, mygo.MessageError, dialogs[0].Type)
+		assert.Contains(t, dialogs[0].Message, "portal", "the reason must reach the user")
+	})
+
+	t.Run("import", func(t *testing.T) {
+		dialogs = nil
+		openDialog = func(mygo.OpenDialogOptions) ([]string, error) { return nil, nil }
+		importLotteriesWith(repoProvider, nil, nil)
+		assert.Empty(t, dialogs, "cancel must not raise a dialog")
+
+		openDialog = func(mygo.OpenDialogOptions) ([]string, error) {
+			return nil, errors.New("the picker is unavailable")
+		}
+		importLotteriesWith(repoProvider, nil, nil)
+		require.Len(t, dialogs, 1)
+		assert.Equal(t, mygo.MessageError, dialogs[0].Type)
+		assert.Contains(t, dialogs[0].Message, "picker", "the reason must reach the user")
+	})
 }
