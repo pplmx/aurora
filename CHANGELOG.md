@@ -12,6 +12,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The three edges of an allowance are tested**: the happy path (approve 500, spend 200,
+  300 left) was covered; a spend above the allowance, spending it exactly, and decreasing
+  past zero were not. `TryDeductApproval` and `TryAdjustApproval` are the authorities and
+  both classify their own errors, so the questions are where they stop and what they leave
+  behind — a refused spend moves neither the allowance nor the balance, an exactly-spent
+  allowance is zero and refuses the next tiny spend, and a decrease larger than the
+  allowance clamps to zero instead of failing.
+
 - **An NFT transfer to the same owner is tested to keep ownership and record it**: the
   NFT half of the same boundary. The owner still holds the asset and the transfer still
   appears in the operation history, because a signed operation that happened is what that
