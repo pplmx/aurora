@@ -12,6 +12,12 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **Turning live updates on is tested to start a full interval**: the page-switch test
+  covered the timer restarting on navigation, nothing covered the setting itself, and both
+  reset the same field. Enabling the switch does not read the page at once, and flipping it
+  off and on again does not either — "arm for now" and "arm for now + interval" differ by
+  one frame and nothing else, so a change to either would be invisible in the UI.
+
 - **A live refresh is tested to leave the open form alone**: the reload's comment
   promises it does not touch the add form or a read card nobody opened, and nothing
   checked it. A refresh runs every ten seconds, so a reload that reset the form would
