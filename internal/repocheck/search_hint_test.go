@@ -1039,3 +1039,41 @@ func commandFiles(t *testing.T) []string {
 	require.NotEmpty(t, names)
 	return names
 }
+
+// TestEveryConfirmationGateHasItsWarning holds the family the translation scan cannot reach.
+// addConfirmFlag takes its key as a literal, but the renderer wraps it at run time
+// (cli.confirm.required formats "⚠️ this %s"), so the sentence a user reads is assembled from
+// two keys and the scan for literal keys sees only the second one. A new gate with no entry
+// would print the key itself on the line that is supposed to explain what is about to be
+// destroyed.
+func TestEveryConfirmationGateHasItsWarning(t *testing.T) {
+	gate := regexp.MustCompile(`addConfirmFlag\(\w+,\s*"(cli\.confirm\.[a-z_]+)"\)`)
+
+	seen := map[string]string{}
+	for _, file := range commandFiles(t) {
+		body := readRepoFile(t, "cmd", "aurora", "cmd", file)
+		for _, m := range gate.FindAllStringSubmatch(body, -1) {
+			seen[m[1]] = file
+		}
+	}
+	require.GreaterOrEqual(t, len(seen), 7, "the destructive commands must still register gates")
+
+	catalogs := []struct {
+		name string
+		path []string
+	}{
+		{"English", []string{"internal", "i18n", "messages_en.go"}},
+		{"Simplified Chinese", []string{"internal", "i18n", "messages_zh.go"}},
+		{"Traditional Chinese", []string{"internal", "i18n", "messages_zh_hant.go"}},
+	}
+	for key, file := range seen {
+		for _, catalog := range catalogs {
+			source := readRepoFile(t, catalog.path...)
+			require.Containsf(t, source, `"`+key+`"`,
+				"%s catalog is missing %s, registered in %s", catalog.name, key, file)
+		}
+		// And the wrapper that reads it, which is what the user actually sees.
+		require.Contains(t, readRepoFile(t, "cmd", "aurora", "cmd", "root.go"), "cli.confirm.required",
+			"the gate sentence is assembled from this key")
+	}
+}
