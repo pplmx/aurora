@@ -12,6 +12,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **Every field error now has a rendered-copy test**: an error that draws nothing
+  is invisible — the write is refused and no sentence says which input to fix —
+  and a second call reporting the same message reads as a duplicate. All eight
+  form fields are counted and required to render exactly once. The setup differs
+  per case because the cards do: Setup shows registration forms over an empty
+  roster and the session card only once a voter exists, and Create Token keeps
+  its decimals input behind a collapsed Advanced section.
+
 - **The session time fields report their error once**: both controls called
   `Error` twice with the same message — `attachFieldError` on the wrapping Field,
   then `Error` on the inner `TimeInput`. Only the first draws anything, since the
