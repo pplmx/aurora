@@ -552,3 +552,26 @@ func TestTheSpacingScaleIsOneArithmeticRun(t *testing.T) {
 		require.Containsf(t, design, radius, "%q must stay on the scale", radius)
 	}
 }
+
+// TestWarningIconIsOnlyForConfirmations keeps the icon's contract closed. Its
+// comment used to claim two uses — an irreversible confirmation and a load that
+// kept stale rows — and only the first was true: a failed load draws the same
+// status strip as success and busy, with a dot and the word "Failed".
+//
+// A comment that lists a use the code does not have is worse than no comment: it
+// tells the next reader that this shape already covers a case it does not.
+func TestWarningIconIsOnlyForConfirmations(t *testing.T) {
+	confirm := readRepoFile(t, "desktop", "internal", "nativeui", "confirmation.go")
+	require.Contains(t, confirm, "iconTile(c, warningIcon, danger, iconTileMedium)",
+		"the destructive dialog is what the triangle marks")
+
+	values := readRepoFile(t, "desktop", "internal", "nativeui", "values.go")
+	require.NotContains(t, values, "warningIcon",
+		"a failed load shares the status strip's dot and word, not this triangle")
+
+	icons := readRepoFile(t, "desktop", "internal", "nativeui", "icons.go")
+	require.Contains(t, icons, "warningIcon marks a confirmation whose action cannot be undone",
+		"the comment must name the one use")
+	require.NotContains(t, icons, "and a\n\t// load that kept stale rows",
+		"the comment must not claim a use the code dropped")
+}
