@@ -8,7 +8,10 @@ import (
 )
 
 func (a *App) oracleHealth(c *ui.Context) {
-	formCard(c, "Feed Health", "Background poll attempts, successes and failures per source, with the last error kept verbatim.", func() {
+	// The counts live in the scheduler, not the database, so they start again when the
+	// window does. Saying so is the difference between "this feed has never failed" and
+	// "this feed has not failed since I launched Aurora".
+	formCard(c, "Feed Health", "Background poll attempts, successes and failures per source since this launch, with the last error kept verbatim.", func() {
 		a.oracleHealthBody(c)
 	})
 }

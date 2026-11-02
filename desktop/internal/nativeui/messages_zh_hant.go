@@ -53,7 +53,7 @@ var desktopMessagesHant = map[string]string{
 	"Back Up Database…": "備份數據庫…",
 	"Back up database":  "備份數據庫",
 	"Back up database…": "備份數據庫…",
-	"Background poll attempts, successes and failures per source, with the last error kept verbatim.": "每個數據源的後臺輪詢嘗試、成功和失敗次數，並保留最近一次錯誤原文。",
+	"Background poll attempts, successes and failures per source since this launch, with the last error kept verbatim.": "每個數據源自本次啟動以來的後臺輪詢嘗試、成功和失敗次數，並保留最近一次錯誤原文。",
 	"Balance":           "餘額",
 	"Ballot":            "選票",
 	"Ballot recorded.":  "選票已記錄。",

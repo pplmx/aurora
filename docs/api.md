@@ -596,7 +596,9 @@ curl -s -G -H "X-API-Key: $KEY" http://localhost:8080/api/v1/token/balance \
 `last_success_at`，当前没有未解决的错误就没有 `last_error`（抓取恢复后它会消失，
 累计的 `failures` 仍保留）。两者缺省即表示「从未成功」与「当前无错误」，调用方按
 字段存在与否判断即可，不要指望它们恒为 `0` 或 `""`。`source_id`、`attempts`、
-`successes`、`failures` 恒定存在。
+`successes`、`failures` 恒定存在。三项计数是**自进程启动以来**的累加（调度器内存，
+不落库）：重启后从 0 重新开始，「0/0/0」表示本次启动后还没有抓取过，不表示该数据源
+从未出过问题。
 Oracle 的读取接口是包装对象：`/oracle/sources` 返回 `{"sources": [...]}`，
 `/oracle/query` 与 `/oracle/latest` 返回 `{"data": ...}`；其它模块的列表是裸数组，
 解析时按各接口的示例处理。

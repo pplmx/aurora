@@ -411,7 +411,7 @@ var desktopMessages = map[string]string{
 	"Headers":                "请求头",
 	"Failed to load sources": "加载数据源失败",
 	"Feed Health":            "抓取健康",
-	"Background poll attempts, successes and failures per source, with the last error kept verbatim.": "每个数据源的后台轮询尝试、成功和失败次数，并保留最近一次错误原文。",
+	"Background poll attempts, successes and failures per source since this launch, with the last error kept verbatim.": "每个数据源自本次启动以来的后台轮询尝试、成功和失败次数，并保留最近一次错误原文。",
 	"Source":                     "数据源",
 	"Attempts":                   "尝试",
 	"Successes":                  "成功",
