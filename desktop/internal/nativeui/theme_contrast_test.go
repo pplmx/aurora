@@ -249,3 +249,34 @@ func TestHighContrastIsActuallyHigherContrast(t *testing.T) {
 			"%s: high contrast must draw its borders more clearly", mode.name)
 	}
 }
+
+// TestThemeModeIgnoresTheSystemInAnExplicitMode pins the resolution every palette lookup
+// goes through. The shell reports the OS appearance on every change, unconditionally, and
+// stores it; the mode is what decides whether that value is used. Light and Dark therefore
+// have to answer the same thing whatever the system says, and only System may follow it.
+//
+// An empty value is the state an older preferences file has, and it resolves to Dark —
+// the previous design — rather than to "follow the system", which would change the look of
+// every existing install on upgrade.
+func TestThemeModeIgnoresTheSystemInAnExplicitMode(t *testing.T) {
+	for _, tc := range []struct {
+		name       string
+		mode       ThemeMode
+		systemDark bool
+		want       bool
+	}{
+		{"light-on-a-dark-system", ThemeModeLight, true, false},
+		{"light-on-a-light-system", ThemeModeLight, false, false},
+		{"dark-on-a-light-system", ThemeModeDark, false, true},
+		{"dark-on-a-dark-system", ThemeModeDark, true, true},
+		{"system-on-a-dark-system", ThemeModeSystem, true, true},
+		{"system-on-a-light-system", ThemeModeSystem, false, false},
+		{"empty-is-dark-on-a-light-system", ThemeMode(""), false, true},
+		{"unknown-is-dark-on-a-light-system", ThemeMode("sepia"), false, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			require.Equal(t, tc.want, themeModeDark(tc.mode, tc.systemDark),
+				"mode %q with systemDark=%v", tc.mode, tc.systemDark)
+		})
+	}
+}
