@@ -1405,3 +1405,32 @@ func TestCICoversWhatTheLocalGateCannot(t *testing.T) {
 	require.Contains(t, verifyLine, "desktop-coverage-floor",
 		"and the local gate must cover both modules' floors")
 }
+
+// TestTheThreeVerificationLayersStayDistinct keeps the split between what each layer can see. The
+// offscreen tester renders without a window backend, CI starts the packaged artifact under Xvfb and
+// inspects the state it writes, and the screenshot script is the only one that shows what the
+// window drew.
+//
+// The script's header used to say CI "only proves the binary starts", which undersold the smoke
+// test and told a reader the gap was startup rather than appearance. All three comments are cheap
+// to drift, so the check reads each one.
+func TestTheThreeVerificationLayersStayDistinct(t *testing.T) {
+	// The header wraps, so the phrases are checked against a joined copy. A failure here prints
+	// one line, not the 500-line script.
+	script := strings.ReplaceAll(readRepoFile(t, "desktop", "scripts", "e2e-window.sh"), "\n# ", " ")
+	require.True(t, strings.Contains(script, "inspects what it writes"),
+		"the header must describe what the CI smoke test actually checks")
+	require.True(t, strings.Contains(script, "Neither shows what the window drew"),
+		"and name the gap this script exists to close")
+	require.False(t, strings.Contains(script, "only proves the binary starts"),
+		"the older, inaccurate description must stay gone")
+
+	// The smoke test really does more than start the app: it waits for the state and checks modes.
+	ci := readRepoFile(t, ".github", "workflows", "ci.yml")
+	require.Contains(t, ci, "Smoke-test the packaged app",
+		"the packaging job must keep starting the real artifact")
+	require.Contains(t, ci, `stat -c '%a' "$data/aurora.db"`,
+		"and check that what it wrote is owner-only, not merely present")
+	require.Contains(t, ci, "kill -0 \"$pid\"",
+		"and that the window was still alive once the state appeared")
+}

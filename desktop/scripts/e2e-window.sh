@@ -2,11 +2,13 @@
 # Capture Aurora's real window through MyGo's automation plugin.
 #
 # The offscreen `ui.Tester` covers rendering and behaviour without a window
-# backend, and CI's packaging job only proves the binary starts. This script
-# closes the gap: it builds the app with the e2e tag (which imports the
-# automation listener), opens one window, presses each page's sidebar entry by
-# its stable key, and writes a PNG after checking the accessibility tree names
-# the page. The output is for a person or an agent to look at.
+# backend, and CI's packaging job starts the real artifact under Xvfb but only
+# inspects what it writes — the database, WAL, log and their modes. Neither shows
+# what the window drew. This script closes that gap: it builds the app with the
+# e2e tag (which imports the automation listener), opens one window, presses each
+# page's sidebar entry by its stable key, and writes a PNG after checking the
+# accessibility tree names the page. The output is for a person or an agent to
+# look at.
 #
 # Usage: desktop/scripts/e2e-window.sh [page ...]
 #   pages default to dashboard lottery voting token oracle nft blockchain
