@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -20,6 +21,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/pplmx/aurora/desktop/internal/nativeui"
+	"github.com/pplmx/aurora/internal/api"
 	"github.com/pplmx/aurora/internal/infra/blockchain"
 	"github.com/pplmx/aurora/internal/logger"
 )
@@ -601,4 +603,36 @@ func TestClosingTheRuntimeTwiceIsSafe(t *testing.T) {
 	require.NoError(t, rt.Close())
 	require.NoError(t, rt.Close(), "a second close must not fail the caller")
 	require.NoError(t, rt.Close(), "nor a third")
+}
+
+// TestStartLogsAFailedServerCreation covers the failure branch the seam exists for. Without
+// it the branch is unreachable from a test — the real NewServer needs a working database —
+// and the three lines it guards are the record an operator reads after a window that never
+// opened.
+//
+// The check asserts the log, not the returned error: every start failure returns an error, and
+// only this one had no line in aurora.log.
+func TestStartLogsAFailedServerCreation(t *testing.T) {
+	resetState(t)
+	logDir := filepath.Join(t.TempDir(), "logs")
+	viper.Set("log.path", logDir)
+
+	original := newAPIServer
+	t.Cleanup(func() { newAPIServer = original })
+	newAPIServer = func() (*api.Server, error) {
+		return nil, errors.New("simulated: cannot open the database")
+	}
+
+	_, err := Start(context.Background(), Options{DataDir: t.TempDir()})
+	require.Error(t, err, "a failed server must fail the start")
+	require.Contains(t, err.Error(), "cannot open the database",
+		"and the reason must reach the caller unchanged")
+
+	logger.Close()
+	data, err := os.ReadFile(filepath.Join(logDir, "aurora.log"))
+	require.NoError(t, err, "the log file must exist")
+	require.Contains(t, string(data), "desktop start: failed to create the server",
+		"the failure must be recorded where an operator looks afterwards")
+	require.Contains(t, string(data), "cannot open the database",
+		"and the record must carry the reason, not only the fact")
 }
