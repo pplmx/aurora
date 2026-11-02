@@ -231,3 +231,45 @@ func TestEveryDestructiveActionAsksFirst(t *testing.T) {
 		assert.Containsf(t, confirm, want, "the confirmation must expose %s", want)
 	}
 }
+
+// TestTheDocumentedShortcutsAreRegistered covers the keyboard promises in
+// docs/desktop.md. They are registered on the window rather than on buttons, so a
+// refactor that moves the header can drop one without any page looking wrong —
+// the action is still there, just no longer reachable by its chord.
+func TestTheDocumentedShortcutsAreRegistered(t *testing.T) {
+	pages := readRepoFile(t, "desktop", "internal", "nativeui", "pages.go")
+	order := pageOrderEntry(pages)
+	require.Len(t, order, 8,
+		"the sidebar has eight pages, so 1…8 are the chords the document promises")
+	assert.Equal(t, "pageSettings", order[7], "Settings is the eighth, as the document says")
+
+	header := readRepoFile(t, "desktop", "internal", "nativeui", "chrome.go")
+	for _, want := range []struct{ what, code string }{
+		{"1…8 select pages", "for i, p := range pageOrder {"},
+		{"the digits come from Key1", "ui.Key(int(ui.Key1)+i)"},
+		{"Ctrl/Cmd+, opens Settings", "c.Shortcut(platformRefreshModifier(), ui.KeyComma)"},
+		{"Ctrl/Cmd+K opens the palette", "c.Shortcut(platformRefreshModifier(), ui.KeyK)"},
+	} {
+		assert.Containsf(t, header, want.code, "chrome.go must keep the shortcut: %s", want.what)
+	}
+}
+
+// pageOrderEntry reads the pageOrder slice literal back out of pages.go.
+func pageOrderEntry(src string) []string {
+	start := strings.Index(src, "var pageOrder = []page{")
+	if start < 0 {
+		return nil
+	}
+	rest := src[start:]
+	end := strings.Index(rest, "}")
+	if end < 0 {
+		return nil
+	}
+	var out []string
+	for _, field := range strings.Split(rest[len("var pageOrder = []page{"):end], ",") {
+		if name := strings.TrimSpace(field); name != "" {
+			out = append(out, name)
+		}
+	}
+	return out
+}
