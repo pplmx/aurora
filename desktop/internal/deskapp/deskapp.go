@@ -145,9 +145,18 @@ func Start(ctx context.Context, opts Options) (*Runtime, error) {
 
 	srv, err := api.NewServer()
 	if err != nil {
+		// The logger is up by now, and the window that would have shown this error
+		// never opens: the dialog on stderr is the user's only view, and it is gone
+		// once they dismiss it. The log file is what is left to read afterwards.
+		logger.Error().Err(err).Msg("desktop start: failed to create the server")
 		return nil, err
 	}
 	if err := keepApplicationFilesPrivate(dbPath, viper.GetString("log.path")); err != nil {
+		// Same reason, and this one closes the log after writing: without the line
+		// above the close, the failure that stopped the start would leave no trace at
+		// all in the file it just closed.
+		logger.Error().Err(err).Str("data_dir", filepath.Dir(dbPath)).
+			Msg("desktop start: data directory is not private")
 		_ = srv.Close()
 		logger.Close()
 		return nil, fmt.Errorf(T("desktop.error.data_dir"), filepath.Dir(dbPath), err)

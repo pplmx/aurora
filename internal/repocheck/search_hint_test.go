@@ -877,3 +877,37 @@ func TestAStartupFailureReachesTheLog(t *testing.T) {
 	require.Less(t, configAt, initAt,
 		"the config failure happens before the logger exists; that is why it is stderr-only")
 }
+
+// TestADesktopStartFailureReachesTheLog covers the same gap the API had, one layer down and
+// harder to notice: the window's start-up path initialises the logger, then opens the
+// server. When either of the two calls after that fails, the window never opens — so the
+// dialog that reports it is the user's only view and disappears when dismissed. The log file
+// is what remains to be read, and it used to say nothing.
+//
+// The second failure is the sharper case: it closes the logger on its way out, so a line
+// written after the close would be lost rather than merely absent.
+func TestADesktopStartFailureReachesTheLog(t *testing.T) {
+	body := readRepoFile(t, "desktop", "internal", "deskapp", "deskapp.go")
+
+	initAt := strings.Index(body, "logger.Init()")
+	require.GreaterOrEqual(t, initAt, 0, "the window must initialise the logger")
+
+	createAt := strings.Index(body, "srv, err := api.NewServer()")
+	require.Greater(t, createAt, initAt, "the server is created after the logger is up")
+
+	// The server-creation failure must be logged before it is returned.
+	createFail := body[createAt:]
+	end := strings.Index(createFail, "keepApplicationFilesPrivate(dbPath")
+	require.Greater(t, end, 0, "the private-files check follows the server creation")
+	require.Contains(t, createFail[:end], "logger.Error()",
+		"a failed server creation must reach the log, not only the dialog")
+
+	// And the data-directory failure must log before closing the logger.
+	privAt := strings.Index(body, "if err := keepApplicationFilesPrivate(dbPath")
+	require.Greater(t, privAt, 0)
+	privBlock := body[privAt:]
+	closeAt := strings.Index(privBlock, "logger.Close()")
+	require.Greater(t, closeAt, 0, "that path closes the logger")
+	require.Contains(t, privBlock[:closeAt], "logger.Error()",
+		"the failure must be written before the handle it writes through is closed")
+}
