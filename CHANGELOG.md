@@ -12,6 +12,12 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **A refresh is tested to re-read only the read cards that are open**: all four
+  tabbed pages reload their lists on a refresh and re-read a detail card only when
+  that card has something on screen. An unopened card has no rows to keep in step, and
+  on the Oracle page it would be two extra queries. Only the neighbouring half was
+  covered — that selecting a source does not read values by itself.
+
 - **A failed detail read is tested to keep the value it showed**: the list-level
   test drives nine of the fake's eighteen error hooks. The other detail hooks — a
   token's info and balance, an NFT's details, an oracle reading, the latest value,
