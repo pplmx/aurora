@@ -12,6 +12,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The palette is tested to match and rank what the window shows**: rows render
+  translated titles, so a query copied from the screen has to match that text and be
+  ranked by it — otherwise typing part of a visible label finds nothing in a Chinese
+  window. Both halves already looked at the original spelling and its translation;
+  neither had a test. Writing it corrected an assumption: "备份数据库…" contains 数据
+  but does not start with it, so its rank is 1, not 0.
+
 - **The four busy gates are documented where they sit, and checked**: the File
   menu, the shortcuts, Refresh and the palette's reload/file entries all check the
   same `busy` flag, and each does it differently — the menu button is disabled so
