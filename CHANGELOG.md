@@ -12,6 +12,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **Every copy is tested to confirm itself with a toast**: the reference says a copy
+  button writes the clipboard and also raises a toast, because the status line is
+  pinned to the page header and can be a card away from the value just copied. Four of
+  the five sites had a behavioural test for the toast, each written for its own card;
+  one structural check now covers all five and reports a sixth that arrives without
+  one.
+
 - **A copy is tested to take the whole value, not the shortened cell**: the id
   copy test uses short identifiers, and a copy of a short value is also a copy of the
   cell that shows it. A long value is where the two differ. `actionSubject` is
