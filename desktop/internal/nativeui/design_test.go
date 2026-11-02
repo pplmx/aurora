@@ -1009,3 +1009,51 @@ func TestSettingsShowsTheDatabaseSize(t *testing.T) {
 	tester.Frame()
 	require.False(t, tester.HasText("数据库大小"))
 }
+
+// TestEveryCompositionRailOpensItsOwnPage covers the other three rails. Each is a
+// button, each has a page baked in at compile time, and the test above only clicked
+// the first — so a rail pointed at the wrong page, or at the dashboard itself,
+// would have looked fine.
+func TestEveryCompositionRailOpensItsOwnPage(t *testing.T) {
+	cases := []struct {
+		label string
+		want  page
+	}{
+		{"Total Lotteries", pageLottery},
+		{"Voting", pageVoting},
+		{"Oracle Feeds", pageOracle},
+		{"Ledger Blocks", pageBlockchain},
+	}
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.label, func(t *testing.T) {
+			app := New(&fakeServices{})
+			tester := ui.NewTester(app.View, 1280, 1600)
+			tester.Frame()
+			require.Equal(t, pageDashboard, app.page, "the run must start on the dashboard")
+
+			require.NoErrorf(t, tester.Click(tr(tc.label)), "%s must be clickable", tc.label)
+			tester.Frame()
+			require.Equalf(t, tc.want, app.page, "%s must open its own module", tc.label)
+		})
+	}
+}
+
+// TestVotingDetailMetricsOpenTheVotingPage covers the second level of the
+// composition: the three voting scales are separate buttons that all lead to the
+// same page, and a mis-wired one would be invisible until clicked.
+func TestVotingDetailMetricsOpenTheVotingPage(t *testing.T) {
+	for _, label := range []string{"Total Votes", "Candidates", "Voting Sessions"} {
+		label := label
+		t.Run(label, func(t *testing.T) {
+			app := New(&fakeServices{})
+			tester := ui.NewTester(app.View, 1280, 1800)
+			tester.Frame()
+			require.Equal(t, pageDashboard, app.page)
+
+			require.NoErrorf(t, tester.Click(tr(label)), "%s must be clickable", label)
+			tester.Frame()
+			require.Equal(t, pageVoting, app.page, "%s must open Voting", label)
+		})
+	}
+}
