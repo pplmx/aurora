@@ -1,6 +1,7 @@
 package deskapp
 
 import (
+	"context"
 	"encoding/hex"
 	"errors"
 	"os"
@@ -386,4 +387,40 @@ func TestImportReportNeverSaysPartiallyWhenNothingWasStored(t *testing.T) {
 
 	// A warning, not an error: the file was readable and the store is unchanged.
 	require.Equal(t, mygo.MessageWarning, importReportType(all))
+}
+
+// TestBackupReportsSuccessAndAMissingService covers the two branches the picker
+// tests above never reach: a backup that ran says where the archive went, and one
+// whose service was never wired complains instead of showing a success dialog for
+// work that did not happen.
+func TestBackupReportsSuccessAndAMissingService(t *testing.T) {
+	originalOpen := openDialog
+	t.Cleanup(func() { openDialog = originalOpen })
+	originalBox := messageBox
+	t.Cleanup(func() { messageBox = originalBox })
+
+	var dialogs []mygo.MessageOptions
+	messageBox = func(opts mygo.MessageOptions) { dialogs = append(dialogs, opts) }
+	dest := t.TempDir()
+	openDialog = func(mygo.OpenDialogOptions) ([]string, error) { return []string{dest}, nil }
+
+	// No service: a failure, not a silent success.
+	backUpDatabase(nil, filepath.Join(t.TempDir(), "aurora.db"), nil)
+	require.Len(t, dialogs, 1)
+	assert.Equal(t, mygo.MessageError, dialogs[0].Type)
+	assert.Equal(t, "Backup failed", dialogs[0].Title)
+
+	// A service that ran reports the archive it wrote.
+	var askedFor string
+	backupFn := func(_ context.Context, out string) (string, error) {
+		askedFor = out
+		return out, nil
+	}
+	backUpDatabase(backupFn, filepath.Join(t.TempDir(), "aurora.db"), nil)
+	require.Len(t, dialogs, 2)
+	assert.Equal(t, mygo.MessageInfo, dialogs[1].Type)
+	assert.Equal(t, "Backup complete", dialogs[1].Title)
+	assert.Contains(t, dialogs[1].Detail, askedFor, "the report must name the archive it wrote")
+	assert.Equal(t, dest, filepath.Dir(askedFor), "the archive goes into the chosen directory")
+	assert.Contains(t, filepath.Base(askedFor), "aurora-backup-")
 }
