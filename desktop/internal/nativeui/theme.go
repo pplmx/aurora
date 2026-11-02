@@ -106,7 +106,7 @@ var modulePalette = map[page]struct {
 	light string
 	dark  string
 }{
-	pageLottery:    {"#9A5C00", "#F2C14E"},
+	pageLottery:    {"#A0522D", "#FF9F45"},
 	pageVoting:     {"#814A8F", "#F0A6D2"},
 	pageToken:      {"#08705A", "#55D6AE"},
 	pageOracle:     {"#0B6690", "#69BDF0"},
