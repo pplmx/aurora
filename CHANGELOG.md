@@ -12,6 +12,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **All three catalogs run the large-text boundary check**: it measured what a
+  Chinese window at double text does to the layout and ran the two Chinese
+  catalogs only. English is not the risky locale, but the assertion is about the
+  layout and a layout regression is not locale-specific; running the three together
+  also keeps the margins comparable, since each one's widest string has to fit under
+  the same check.
+
 - **Larger text is tested to move the breakpoint up and widen the sidebar**: both
   layout decisions multiply by the text scale, and neither interaction was tested —
   every existing layout test runs at the default scale, so dropping either multiplier
