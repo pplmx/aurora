@@ -12,6 +12,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The CI-only gates are held in place**: `just verify` runs what a laptop can run, while the
+  race detector needs cgo and packaging needs a toolchain — so both live in CI. `AGENTS.md`
+  describes that split, and the table stays true only while CI keeps running them: if either
+  disappeared, the local gate would still pass and nothing would notice until a data race reached a
+  release. The check reads two `-race` runs (one per module), the packaging job and its pure-Go
+  metadata assertion, and `verify`'s declaration line.
+
 - **The `bin` ignore rule is anchored, and the rest are held to that shape**: `bin` was a bare
   pattern from the initial commit, so it matched at any depth rather than the root-level output it
   was meant for. The repository has never had such a directory, so anchoring costs nothing. The
