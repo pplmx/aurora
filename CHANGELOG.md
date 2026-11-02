@@ -12,6 +12,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The search announcement is tested to say the count in the window's
+  language**: the structural check counted `announceSearchResults` calls, and
+  nothing checked the words. No match is still a result worth speaking, one result
+  takes the singular, and the rest take the count — in both locales, since Chinese
+  has no plural form and its two entries agree. An unchanged query stays silent, or
+  every repaint repeats the sentence.
+
 - **The palette is tested to match and rank what the window shows**: rows render
   translated titles, so a query copied from the screen has to match that text and be
   ranked by it — otherwise typing part of a visible label finds nothing in a Chinese
