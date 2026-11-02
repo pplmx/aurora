@@ -1181,3 +1181,50 @@ func TestNFTService_Burn_ForgeMismatchedKey(t *testing.T) {
 		t.Fatalf("expected ErrKeyMismatch for forged burn, got %v", err)
 	}
 }
+
+// TestNFTService_TransferToTheSameOwnerKeepsOwnership covers the NFT half of the same
+// boundary the token suite pins: a transfer from a key to itself is a legal signed
+// operation. The owner must still hold the asset, and the record of the transfer must
+// still be written — a signed operation that happened is what the operation history is
+// for, even when both ends are the same key.
+//
+// The SQLite primitive behind this takes an UPDATE ... WHERE owner = from, which counts a
+// matched row as affected even when the new value equals the old one. Had it compared
+// values, this path would have answered ErrNotOwner to the asset's own holder, so the
+// check also pins the primitive's behaviour from the caller's side.
+func TestNFTService_TransferToTheSameOwnerKeepsOwnership(t *testing.T) {
+	repo := NewInmemRepo()
+	svc := NewServiceWithoutTx(repo)
+	chain := blockchain.Init()
+	blockchain.ResetForTest()
+
+	ownerPub, ownerPriv, _ := ed25519.GenerateKey(nil)
+	minted, err := svc.Mint(NewNFT("Self", "Art", "", "", ownerPub, ownerPub), chain)
+	if err != nil {
+		t.Fatalf("Mint failed: %v", err)
+	}
+
+	op, err := svc.Transfer(minted.ID, ownerPub, ownerPub, ownerPriv, chain)
+	if err != nil {
+		t.Fatalf("a transfer from a key to itself must be accepted: %v", err)
+	}
+	if op == nil {
+		t.Fatal("the transfer must return its operation")
+	}
+
+	after, err := svc.GetNFTByID(minted.ID)
+	if err != nil {
+		t.Fatalf("GetNFTByID failed: %v", err)
+	}
+	if !bytes.Equal(after.Owner, ownerPub) {
+		t.Errorf("the owner must not change, got %x", after.Owner)
+	}
+
+	ops, err := svc.GetOperations(minted.ID, 0, 0)
+	if err != nil {
+		t.Fatalf("GetOperations failed: %v", err)
+	}
+	if len(ops) != 2 {
+		t.Errorf("the transfer must still be recorded: expected mint + transfer, got %d", len(ops))
+	}
+}
