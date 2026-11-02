@@ -1,6 +1,7 @@
 package deskapp
 
 import (
+	"encoding/hex"
 	"errors"
 	"os"
 	"path/filepath"
@@ -9,6 +10,7 @@ import (
 	"github.com/egoist/mygo"
 	"github.com/pplmx/aurora/internal/app/lotteryapp"
 	"github.com/pplmx/aurora/internal/domain/lottery"
+	"github.com/pplmx/aurora/internal/infra/sqlite"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -286,4 +288,77 @@ func TestFileActionsStayQuietOnCancelAndLoudOnFailure(t *testing.T) {
 		assert.Equal(t, mygo.MessageError, dialogs[0].Type)
 		assert.Contains(t, dialogs[0].Message, "picker", "the reason must reach the user")
 	})
+}
+
+// TestImportReloadsOnlyWhenItStoredSomething pins the post-import refresh the
+// menu action does. The dialog covers the page, so re-reading behind it is what
+// makes the imported draws visible once the report is dismissed. The condition is
+// `Imported > 0`: a partial import did store records, while a document that
+// stored nothing must not disturb the page.
+//
+// The fixture is produced by the same exporter the menu writes with, because a
+// hand-written record is rejected: ImportRecords re-derives integrity with the
+// verifier, so only a real draw carries the proof it accepts.
+func TestImportReloadsOnlyWhenItStoredSomething(t *testing.T) {
+	originalOpen, originalBox := openDialog, messageBox
+	t.Cleanup(func() {
+		openDialog, messageBox = originalOpen, originalBox
+	})
+	messageBox = func(mygo.MessageOptions) {}
+
+	dbPath := filepath.Join(t.TempDir(), "aurora.db")
+	repo, err := sqlite.NewLotteryRepository(dbPath)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = repo.Close() })
+
+	record := drawForImport(t, "seed-value", []string{"Alice", "Bob"}, 1)
+	require.NoError(t, repo.Save(record))
+
+	dir := t.TempDir()
+	exportPath := filepath.Join(dir, "draws.json")
+	count, err := lotteryapp.WriteRecordsToFile(repo, exportPath)
+	require.NoError(t, err)
+	require.Equal(t, 1, count)
+
+	provider := func() (lottery.Repository, func(), error) {
+		return repo, func() {}, nil
+	}
+	openDialog = func(mygo.OpenDialogOptions) ([]string, error) { return []string{exportPath}, nil }
+
+	// The same document is already stored, so every record is refused and the
+	// page must be left alone.
+	reloads := 0
+	importLotteriesWith(provider, nil, func() { reloads++ })
+	require.Zero(t, reloads, "an import that stored nothing must not disturb the page")
+
+	// A fresh store accepts it, and the page must re-read.
+	freshPath := filepath.Join(t.TempDir(), "fresh.db")
+	fresh, err := sqlite.NewLotteryRepository(freshPath)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = fresh.Close() })
+	importLotteriesWith(func() (lottery.Repository, func(), error) {
+		return fresh, func() {}, nil
+	}, nil, func() { reloads++ })
+	require.Equal(t, 1, reloads, "a stored import must refresh the page behind the dialog")
+}
+
+// drawForImport produces one real draw through the domain service, so the record
+// carries the proof ImportRecords verifies.
+func drawForImport(t *testing.T, seed string, participants []string, winners int) *lottery.LotteryRecord {
+	t.Helper()
+	service := lottery.NewService()
+	names, addresses, output, proof, publicKey, err := service.DrawWinners(participants, seed, winners)
+	require.NoError(t, err)
+	record := &lottery.LotteryRecord{
+		Seed:            seed,
+		Participants:    participants,
+		Winners:         names,
+		WinnerAddresses: addresses,
+		VRFOutput:       hex.EncodeToString(output),
+		VRFProof:        hex.EncodeToString(proof),
+		VRFPublicKey:    publicKey,
+		Timestamp:       1700000000,
+	}
+	record.ID = lottery.LotteryRecordID(seed, output)
+	return record
 }
