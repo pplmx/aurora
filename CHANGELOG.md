@@ -12,6 +12,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The structure tree in the architecture reference is checked too**: README.md's
+  project tree has a test that every `internal/` directory appears in it, and
+  `docs/architecture.md` carries the same package set in its 目标结构 section with no
+  such check — so a new directory would leave one tree stale and the other
+  correct, in the document a reader goes to for the layering. The tree also names
+  the `cmd/`, `desktop/` and `tools/` roots, which are asserted with it.
+
 - **The translator's catalog copies are tested**: `Init` clones each shipped
   catalog, and the copy is what makes a locale file safe — `LoadLocaleFile`
   installs into `messages[locale]`, which for a shipped locale would otherwise be
