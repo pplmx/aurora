@@ -1007,3 +1007,46 @@ func TestTheCandidateCardNamesTheLengthLimits(t *testing.T) {
 			voting.MaxCandidateNameLength, voting.MaxCandidateProgramLength)),
 		"the card must name the bounds the store enforces")
 }
+
+// TestAnEmptyRosterSubmitsEveryCandidate covers the sentence on the roster field:
+// "Leave empty to include every registered candidate." The candidate list on screen is
+// one page, and the store refuses an empty roster outright, so the window has to read
+// the whole set for this one write. Submitting only the visible page would silently
+// create a session that omits candidates past the page boundary — a wrong roster that
+// looks complete.
+func TestAnEmptyRosterSubmitsEveryCandidate(t *testing.T) {
+	// More candidates than one page, so a page-only implementation is visible.
+	candidates := make([]CandidateRow, 0, votingPageSize+1)
+	for i := 0; i <= votingPageSize; i++ {
+		candidates = append(candidates, CandidateRow{ID: fmt.Sprintf("c%03d", i), Name: fmt.Sprintf("C%03d", i)})
+	}
+	rec := &sessionRecorder{fakeServices: &fakeServices{candidates: candidates}}
+	app := New(rec)
+	tester := ui.NewTester(app.View, 1400, 5000)
+	app.ShowPage("Voting")
+	tester.Frame()
+
+	require.Len(t, app.voting.candidates, votingPageSize,
+		"the list itself stays paged, or this test proves nothing")
+
+	app.voting.sessionTitle = "Budget"
+	app.voting.sessionIDs = ""
+	app.voting.sessionStart = time.Now()
+	app.voting.sessionEnd = time.Now().Add(24 * time.Hour)
+	app.createVotingSession()
+
+	require.False(t, app.voting.sessionResult.isErr, "an empty roster is a valid request")
+	require.Len(t, rec.ids, len(candidates),
+		"every registered candidate must reach the session, not only the visible page")
+
+	// And a roster the reader typed is submitted as typed. A successful create
+	// clears the form, so the title (and the window) go back before the second try.
+	rec.ids = nil
+	app.voting.sessionTitle = "Second"
+	app.voting.sessionIDs = "c001, c002"
+	app.voting.sessionStart = time.Now()
+	app.voting.sessionEnd = time.Now().Add(24 * time.Hour)
+	app.createVotingSession()
+	require.Equal(t, []string{"c001", "c002"}, rec.ids,
+		"a typed roster is neither widened nor reordered")
+}
