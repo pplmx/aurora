@@ -799,3 +799,31 @@ func TestOracleQueryLimitDefaultsToTheSharedPageSize(t *testing.T) {
 	app.oracle.queryLim = 5000
 	require.Equal(t, maxListLimit, app.oracleQueryLimit(), "the cap still holds")
 }
+
+// TestSessionTimeErrorsShowBelowTheField covers the two session time controls.
+// They used to report a message twice — through attachFieldError on the wrapping
+// Field and again through Error on the inner TimeInput — and only the first of
+// those draws anything: the inner element carries no field of its own, so that
+// call was a no-op that made the code read as if it were doing something.
+//
+// The assertion is on the rendered text, which is what a reader sees.
+func TestSessionTimeErrorsShowBelowTheField(t *testing.T) {
+	fake := &fakeServices{voterRows: []VoterRow{{Name: "Ada", PublicKey: "pk-1"}}}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 5000)
+	app.ShowPage("Voting")
+	tester.Frame()
+
+	const startMsg = "start must not be in the past"
+	const endMsg = "end must be after start"
+	app.voting.sessionStartErr, app.voting.sessionEndErr = startMsg, endMsg
+	// The first frame after typing clears a field's message, so the errors are
+	// set after the page has settled and read on the next one.
+	tester.Frame()
+
+	texts := strings.Join(tester.Texts(), "\n")
+	require.Contains(t, texts, startMsg, "the start message must be on screen")
+	require.Contains(t, texts, endMsg, "the end message must be on screen")
+	require.Equal(t, 1, strings.Count(texts, startMsg), "the start message must appear once")
+	require.Equal(t, 1, strings.Count(texts, endMsg), "the end message must appear once")
+}

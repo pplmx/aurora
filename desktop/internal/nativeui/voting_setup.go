@@ -259,10 +259,10 @@ func (a *App) votingCreateSessionBody(c *ui.Context) {
 	if startDate.Changed() || startTime.Changed() {
 		a.voting.sessionStartErr = ""
 	}
+	// attachFieldError already puts the message below the control and marks it
+	// invalid; calling Error on the inner TimeInput as well drew nothing, because
+	// that element carries no field of its own.
 	attachFieldError(c, start, "Start", a.voting.sessionStartErr)
-	if a.voting.sessionStartErr != "" {
-		startTime.Error(localizeServiceErrorMessage(a.voting.sessionStartErr))
-	}
 	var endDate, endTime ui.Element
 	end := ui.Field(c, tr("End"), func() {
 		ui.Column(c).Gap(2).Children(func() {
@@ -279,9 +279,6 @@ func (a *App) votingCreateSessionBody(c *ui.Context) {
 		a.voting.sessionEndErr = ""
 	}
 	attachFieldError(c, end, "End", a.voting.sessionEndErr)
-	if a.voting.sessionEndErr != "" {
-		endTime.Error(localizeServiceErrorMessage(a.voting.sessionEndErr))
-	}
 	fieldHint(c, "Candidate IDs (comma-separated)", "Leave empty to include every registered candidate.", &a.voting.sessionIDs)
 	ui.Row(c).Children(func() {
 		if primaryButton(c, "Create Session", allSet(a.voting.sessionTitle)).Clicked() {
