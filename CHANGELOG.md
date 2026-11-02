@@ -12,6 +12,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **Every failed read is now tested to be visible**: a card that stores its error
+  and draws nothing leaves a stale value on screen with no sign of it, which reads
+  as a current answer. All thirteen list-level reads are driven to fail with one
+  message, and that message must appear in the rendered text of all seven pages —
+  a read whose failure is not meant to be visible would have to be exempted with
+  a reason.
+
 - **Every field error now has a rendered-copy test**: an error that draws nothing
   is invisible — the write is refused and no sentence says which input to fix —
   and a second call reporting the same message reads as a duplicate. All eight
