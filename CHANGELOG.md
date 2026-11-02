@@ -12,6 +12,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **A backup that ran is tested to say where it wrote**: the backup dialog's
+  failure paths were covered — no database path, a picker that failed, a cancel that
+  stays silent — and the success branch was not. It puts the archive path in the
+  dialog's detail beside a fixed sentence; a report showing the sentence alone would
+  say the backup worked without saying where, which is the one fact the operator needs
+  next.
+
 - **Exporting onto a hard link of the database is tested to be refused**: the
   reference promises the export guard covers both symlink and hard-link aliases. The
   symlink half had tests, including the sidecars beside a symlinked database; the hard
