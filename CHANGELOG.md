@@ -12,6 +12,15 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The ledger's record list now carries the name its pager already uses**: the
+  reference promises a table or record list says which records it holds before
+  reading the first one. The ledger's pager was named "Blockchain ledger" and the
+  list under it was a plain column, so a screen reader entered two records with no
+  idea what they were. `collectionList` names its own list from the argument every
+  caller passes — all twelve pass one — and the three hand-built lists set the role
+  and label themselves, which is where this went missing. A check now covers both
+  shapes.
+
 - **The pager is tested to stop at both ends**: Previous on the first page and
   Next on the last change nothing and announce no new range. The offset clamp
   already keeps the store from being asked for a page before the first or past the
