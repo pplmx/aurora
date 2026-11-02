@@ -12,6 +12,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **A live refresh is tested to leave the open form alone**: the reload's comment
+  promises it does not touch the add form or a read card nobody opened, and nothing
+  checked it. A refresh runs every ten seconds, so a reload that reset the form would
+  erase a URL the reader was halfway through typing, and the erasure would read as a
+  glitch rather than a rule. The check runs the real reload, and asserts both that the
+  typed values and chosen source survive and that the counters really were re-read — so
+  "nothing changed" cannot pass by the refresh not running.
+
 - **The feed-health counters are scoped to this launch**: they live in the scheduler's
   memory, not the database, so they begin at zero when the process does — but the card
   and `/oracle/health` both described them without saying so. A row reading "0/0/0"
