@@ -12,6 +12,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The source path field states its syntax**: `extractByPath` walks object keys
+  separated by dots and supports nothing else — no array index, no bracket syntax — so
+  `a.b[0].c` never resolves, and the fetch fails with an invalid-source verdict that names
+  no syntax while the field said only "optional JSON field". The CLI has described the
+  shape all along; the window now says the same thing where the operator types it, in
+  both catalogs.
+
 - **A source row is tested to carry no header value**: a list row is read by a
   shoulder-surfer, a screenshot and the copied diagnostics block, and a source's headers
   are usually an Authorization bearer token or an API key. The guarantee is in the type —
