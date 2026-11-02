@@ -12,6 +12,12 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The build-time chain is held to the packaging section**: a packaged binary cannot take
+  `main.BuildTime` from the justfile, so the timestamp travels through a file — a `buildCommand`
+  writes it under `resources/`, MyGo ships that directory with the app, and the binary reads it
+  back from `PathResources`. Any link breaking leaves `Build Time: unknown`, which the same
+  section says CI refuses; the check reads all three links and the workflows that enforce them.
+
 - **The default log directory is tested to sit beside the database**: a bundled window must not
   write into the launch directory — for a desktop entry that is the install directory, for a
   double-click it is wherever the file manager happened to be — so `Start` rewrites the
