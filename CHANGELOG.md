@@ -12,6 +12,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **An incomplete write form is tested never to reach the service**: six writes
+  had no call counter in the fake — create token, mint, approve, transfer from,
+  mint NFT, transfer NFT — so a test could only see the message, not whether the
+  call went out. Each now counts, and the cases fill every field but one, so a
+  guard that checked only some of them still fails. The assertion is the counter:
+  a message beside a call that went out anyway reads as "I was stopped" while the
+  ledger has already changed.
+
 - **An empty verifier id is tested never to reach the service**: the reference
   lists four inputs the window refuses before calling a service — empty
   participants, a short seed, an over-large winner count and an empty verifier id.
