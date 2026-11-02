@@ -1274,3 +1274,52 @@ func TestTheBuildTimeChainIsWhole(t *testing.T) {
 	require.Contains(t, doc, "resources/build-time.txt",
 		"and the packaging section must describe this chain")
 }
+
+// TestNothingGoLivesInShippedResources holds the boundary three comments describe. Every file in
+// desktop/resources is copied next to the executable and into the .deb/tarball by `mygo build`, so
+// a Go package placed there would ship its sources and tests with the app. The icon lives in
+// desktop/appicon for exactly that reason, and the packaging config names it from there.
+//
+// The other direction matters too: resources/ holds generated files only, and the one it holds is
+// ignored — committing it would freeze a build timestamp into the repository, and every later
+// build would ship the old one unless the file changed.
+func TestNothingGoLivesInShippedResources(t *testing.T) {
+	// No Go sources under resources/, and it holds at most the generated stamp.
+	found := 0
+	err := filepath.WalkDir(filepath.Join(repoRoot(t), "desktop", "resources"),
+		func(path string, entry fs.DirEntry, err error) error {
+			if err != nil {
+				if os.IsNotExist(err) {
+					return filepath.SkipAll // a fresh clone has no generated stamp yet
+				}
+				return err
+			}
+			if entry.IsDir() {
+				return nil
+			}
+			found++
+			require.Falsef(t, strings.HasSuffix(path, ".go"),
+				"%s would be copied into the shipped app", path)
+			return nil
+		})
+	require.NoError(t, err)
+	require.LessOrEqual(t, found, 1, "resources/ holds the generated stamp, not shipped assets")
+
+	// The packaging names the icon from appicon/, which is what makes its location load-bearing.
+	config := readRepoFile(t, "desktop", "mygo.config.ts")
+	require.Contains(t, config, `icon: "./appicon/icon.png"`,
+		"the packaging icon must come from outside resources/")
+	require.Contains(t, config, "It is deliberately outside resources/",
+		"and the reason must stay next to it")
+
+	// The embed keeps the same file as the window icon for an unpackaged build.
+	icon := readRepoFile(t, "desktop", "appicon", "icon.go")
+	require.Contains(t, icon, "//go:embed icon.png",
+		"the runtime icon is the same bytes, embedded")
+	require.True(t, strings.Contains(icon, "It deliberately lives outside desktop/resources"),
+		"with the boundary stated where the package begins")
+
+	// The generated stamp stays untracked.
+	require.Contains(t, readRepoFile(t, ".gitignore"), "/desktop/resources/build-time.txt",
+		"the stamp is generated per build, so it must not be committed")
+}
