@@ -12,6 +12,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **Ending a session is tested to be reversible, which is why it asks nothing**:
+  the window confirms four destructive actions; End Session is not one of them, and
+  that looked like a gap until the transition was read — the status has no state
+  machine, so an ended session can be started again with its ballots intact. The CLI
+  draws the same line, requiring `--confirm` for the destructive five and not for this.
+  The check records the reason, so a one-way transition added to the domain would fail
+  here rather than silently turning an unguarded button into a data-losing one.
+
 - **A backup that ran is tested to say where it wrote**: the backup dialog's
   failure paths were covered — no database path, a picker that failed, a cancel that
   stays silent — and the success branch was not. It puts the archive path in the
