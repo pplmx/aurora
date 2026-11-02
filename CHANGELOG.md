@@ -12,6 +12,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The warning triangle is documented as marking one thing, not two**: its
+  comment claimed an irreversible confirmation and a load that kept stale rows; only
+  the first was true. A failed load draws the same status strip as success and busy —
+  a dot and the word "Failed" — so the three read as one family. A comment that lists
+  a use the code does not have tells the next reader this shape already covers a case
+  it does not.
+
 - **The layout scale is spelled, not numbered**: eighteen call sites wrote a
   spacing or radius value that is exactly one of the scale's constants. The scale
   exists so a card, a button and a page header agree on rhythm; a literal that
