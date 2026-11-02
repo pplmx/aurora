@@ -348,3 +348,56 @@ func TestDedupeLinesKeepsTheFirstOfEachAndItsOrder(t *testing.T) {
 		require.Equalf(t, tc.want, dedupeLines(tc.in), "dedupeLines(%q)", tc.in)
 	}
 }
+
+// TestFailedDetailReadKeepsTheLastValue covers the detail reads the list-level test
+// above cannot reach: a token's info and balance, a token's history, an NFT's
+// details and history, an oracle reading, the latest value, feed health and the
+// session roster. None of the fake's error hooks for these was ever set by a test,
+// so each card's "keep the last value and say why" path was unexercised.
+//
+// A detail read is the case where losing the value matters most: the card holds one
+// number, and a blank readout beside a failure says the account is empty.
+func TestFailedDetailReadKeepsTheLastValue(t *testing.T) {
+	boom := errors.New("database is locked")
+	fake := &fakeServices{
+		tokenRows: []TokenRow{{ID: "t1", Name: "Gold", Symbol: "GLD", TotalSupply: "100", Owner: "owner-pk"}},
+		sources:   []SourceRow{{ID: "s1", Name: "btc", URL: "https://example.com", Type: "http", Enabled: true}},
+	}
+	fake.loadErrs.oracleLatestRow = &DataRow{Value: "42"}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1400, 7000)
+
+	// Load the balances and readings once, successfully.
+	app.ShowPage("Token")
+	app.token.tokenID, app.token.owner = "t1", "owner-pk"
+	app.loadTokenInfo("t1")
+	require.NoError(t, app.loadTokenBalance("t1", "owner-pk"))
+	app.ShowPage("Oracle")
+	app.oracle.queryID = "s1"
+	require.NoError(t, app.loadOracleLatest("s1"))
+	tester.Frame()
+
+	before := app.token.balance
+	require.NotEmpty(t, before, "the fixture must load a balance, or this proves nothing")
+
+	// Now every detail read fails; the values must survive.
+	fake.loadErrs.tokenBalance = boom
+	fake.loadErrs.tokenInfo = boom
+	fake.loadErrs.oracleLatest = boom
+	_ = app.loadTokenBalance("t1", "owner-pk")
+	app.loadTokenInfo("t1")
+	_ = app.loadOracleLatest("s1")
+
+	require.Equal(t, before, app.token.balance,
+		"a failed balance read must keep the number it showed")
+	require.NotNil(t, app.token.info,
+		"a failed info read must keep the token it showed")
+	require.NotNil(t, app.oracle.latest,
+		"a failed latest read must keep the value it showed")
+
+	// And each card says the read failed rather than showing a value as current.
+	app.ShowPage("Token")
+	tester.Frame()
+	require.True(t, tester.HasText("database is locked"))
+	require.True(t, tester.HasText("Showing the last successful load."))
+}
