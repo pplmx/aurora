@@ -12,6 +12,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **Every create is tested to return its list to the first page**: five create
+  paths — a voter, a candidate, a session, a token, an NFT — share one step no
+  behavioural test could see. Without the reload from page zero the new record sits on a
+  page the reader is not looking at, so the highlight lands on nothing and the create
+  reads as one that stored nothing. The check reads each path for the reload and the
+  highlight together, so a sixth create path that skips it fails here.
+
 - **The default session window is tested to be a whole day from a whole minute**:
   the existing window test checked the defaults were non-empty and ordered, never their
   shape — and the shape is the decision. A start carrying the current second opens the
