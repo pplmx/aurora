@@ -8,6 +8,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"os"
 )
 
 // TestSearchHintsMatchWhatTheSearchDoes covers the sentence beside every search
@@ -979,4 +980,62 @@ func TestTheReferenceSaysJSONIsForSuccessOnly(t *testing.T) {
 		"failures have one formatter")
 	require.NotContains(t, functionSource(t, root, "func formatCLIError("), "jsonRequested",
 		"and it does not branch on --json, which is why stdout stays empty")
+}
+
+// TestTheCommandsWithoutJSONAreListedTogether holds the reference's "no JSON mode" list to
+// the commands that actually have no flag. The list is the only place a script can learn that
+// passing --json to one of them fails before the command does anything, so a command left off
+// it is a command whose caller finds out the hard way.
+func TestTheCommandsWithoutJSONAreListedTogether(t *testing.T) {
+	doc := readRepoFile(t, "docs", "cli.md")
+
+	// Each entry is named by the command a reader types, not by its Go variable.
+	for _, want := range []struct {
+		doc  string
+		vars []string
+	}{
+		{"`token create`", []string{"tokenCreateCmd"}},
+		{"`voter register`", []string{"voterRegisterCmd"}},
+		{"`oracle source add`", []string{"sourceAddCmd"}},
+		{"`oracle fetch`", []string{"fetchCmd"}},
+		{"`lottery reset`", []string{"resetCmd"}},
+	} {
+		require.Containsf(t, doc, want.doc, "the reference must name %s", want.doc)
+		for _, v := range want.vars {
+			// Every command file, not a fixed shortlist: a flag registered from a different
+			// file than the one that declares the command is exactly the case the list would
+			// miss.
+			registered := false
+			for _, file := range commandFiles(t) {
+				if strings.Contains(readRepoFile(t, "cmd", "aurora", "cmd", file), "addJSONFlag("+v+")") {
+					registered = true
+				}
+			}
+			require.Falsef(t, registered,
+				"%s has a --json flag now, so the reference's no-JSON list is stale", v)
+		}
+	}
+
+	// And the sentence about an unknown flag failing early, which is the cost of getting it
+	// wrong.
+	require.Contains(t, doc, "不认识的 flag 会让命令在写入前就失败退出",
+		"the reference must say what happens when the flag is passed anyway")
+}
+
+// commandFiles lists the non-test sources of the CLI's command package, so a check about
+// every command does not need a hand-kept shortlist.
+func commandFiles(t *testing.T) []string {
+	t.Helper()
+	entries, err := os.ReadDir(filepath.Join(repoRoot(t), "cmd", "aurora", "cmd"))
+	require.NoError(t, err)
+	var names []string
+	for _, e := range entries {
+		name := e.Name()
+		if e.IsDir() || !strings.HasSuffix(name, ".go") || strings.HasSuffix(name, "_test.go") {
+			continue
+		}
+		names = append(names, name)
+	}
+	require.NotEmpty(t, names)
+	return names
 }

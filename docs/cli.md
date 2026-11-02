@@ -91,7 +91,11 @@ CLI 侧按上表的「数组」处理；`blockchain blocks` 两侧都是分页�
 **没有 JSON 模式的命令**：`token create` 与 `voter register` 会打印一次性私钥，
 `oracle source add`/`enable`/`disable`/`delete` 的响应可能带上游请求头（凭据），
 `oracle fetch` 依赖真实网络、无法在离线测试里固定形状——这几类留在人读输出，
-或改用 REST/`doctor`。
+或改用 REST/`doctor`。`lottery reset` 也只有一个结论句（`✅ Database reset
+complete!`），没有字段可给：它删掉的是记录本身，成功之后库里只剩「没有记录」这一
+事实，要确认结果就再读一次 `lottery history` 或 `stats`。
+
+脚本对这几条命令不要传 `--json`：不认识的 flag 会让命令在写入前就失败退出。
 
 ## 抽奖（VRF）
 
