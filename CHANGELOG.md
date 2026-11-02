@@ -12,6 +12,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **Switching pages restarts the live-update timer**: it used to carry its due time
+  across a switch, so a reader who waited ten seconds and then changed pages made the
+  new page's first frame find it already expired — the page's own load ran, then the
+  timer fired for the same data, costing a second query and a visible repaint for a
+  refresh nobody asked for. `setPage` now clears the field, which is what
+  `setLiveUpdates` already does when that setting changes.
+
 - **The live-updates copy names the source list it also refreshes**: the Settings
   description said the timer applies to "Dashboard, Oracle health and open readings",
   while the Oracle reload also refreshes the source list and the preset picker. A
