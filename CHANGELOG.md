@@ -12,6 +12,15 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The default log directory is tested to sit beside the database**: a bundled window must not
+  write into the launch directory — for a desktop entry that is the install directory, for a
+  double-click it is wherever the file manager happened to be — so `Start` rewrites the
+  CWD-relative default to the database's own directory, which is also what the reference promises.
+  The placement is a privacy decision too: `aurora.log` records Oracle request details, so it
+  belongs in the directory the app already keeps private, not under a per-user log tree. The
+  existing test asserted the file's `0600` mode but not its location, and those fail for different
+  reasons.
+
 - **The desktop data directory is held to the path its doc names**: the reference tells a user
   their database lives in `$XDG_CONFIG_HOME/Aurora/aurora.db` and adds that `SetName` runs before
   `Start` or a machine ends up with both `MyGo/` and `Aurora/`. Both halves were checked against
