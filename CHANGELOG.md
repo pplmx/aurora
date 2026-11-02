@@ -12,6 +12,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **Go sources are kept out of the shipped resources**: every file in `desktop/resources` is
+  copied next to the executable and into the `.deb`/tarball, so a Go package placed there ships
+  its sources and tests with the app. The icon lives in `desktop/appicon` for that reason and three
+  comments say so — the packaging config, `.gitignore` and the package itself — but nothing
+  enforced it. The other direction matters too: `resources/` holds generated files only, and
+  committing the stamp would freeze a build timestamp into the repository.
+
 - **The build-time chain is held to the packaging section**: a packaged binary cannot take
   `main.BuildTime` from the justfile, so the timestamp travels through a file — a `buildCommand`
   writes it under `resources/`, MyGo ships that directory with the app, and the binary reads it
