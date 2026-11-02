@@ -13,7 +13,9 @@ import (
 // generated key: Transfer/Burn can fill their private-key field while the
 // creator is still the holder and this asset is the subject.
 func TestUseGeneratedCreatorKey(t *testing.T) {
-	app := New(&fakeServices{})
+	// The collection supplies the holder when the id itself changes: the frame
+	// that sees a new burn id re-derives it, so the asset has to be listed.
+	app := New(&fakeServices{nftRows: []NFTRow{{ID: "n1", Name: "Star", Owner: "creator-pub"}}})
 	tester := ui.NewTester(app.View, 1280, 4000)
 	app.ShowPage("NFT")
 	tester.Frame()
@@ -33,6 +35,26 @@ func TestUseGeneratedCreatorKey(t *testing.T) {
 	tester.Frame()
 	require.False(t, tester.HasText("Use generated creator key"),
 		"the creator key must not be offered after the asset changes hands")
+
+	// Burn reads its own id and its own holder, so it is a separate decision.
+	app.nft.from = "creator-pub"
+	app.nft.burnID, app.nft.burnOwner = "n1", "creator-pub"
+	app.nft.opTab = 1
+	tester.Frame()
+	require.True(t, tester.HasText("Use generated creator key"),
+		"Burn may offer the key while the holder is still the creator")
+
+	app.nft.burnOwner = "another-owner"
+	tester.Frame()
+	require.False(t, tester.HasText("Use generated creator key"),
+		"a burn by another holder must not be signed with the creator key")
+
+	// Another asset is a different subject even when its holder matches.
+	app.nft.burnOwner = "creator-pub"
+	app.nft.burnID = "n2"
+	tester.Frame()
+	require.False(t, tester.HasText("Use generated creator key"),
+		"the key belongs to the asset it minted")
 }
 
 // TestMintingAnNftSelectsItsRow pins the post-mint context: a successful mint

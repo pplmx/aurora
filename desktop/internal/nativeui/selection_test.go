@@ -399,6 +399,36 @@ func TestUseGeneratedOwnerKey(t *testing.T) {
 	tester.Frame()
 	require.False(t, tester.HasText("Use generated owner key"),
 		"the generated key must not be offered for another token")
+
+	// The other half: on the tabs that sign as a named account, the offer depends
+	// on that account being the owner, not only on the subject.
+	app.token.tokenID = "t1"
+	app.token.xFrom = owner
+	app.token.opTab = 1 // Transfer
+	tester.Frame()
+	require.True(t, tester.HasText("Use generated owner key"),
+		"Transfer may offer the key while the sender is the owner")
+
+	app.token.xFrom = "someone-else"
+	tester.Frame()
+	require.False(t, tester.HasText("Use generated owner key"),
+		"a transfer from another account must not be signed with the owner key")
+
+	app.token.opTab = 2 // Approve
+	app.token.approveOwner = owner
+	tester.Frame()
+	require.True(t, tester.HasText("Use generated owner key"))
+
+	app.token.approveOwner = "someone-else"
+	tester.Frame()
+	require.False(t, tester.HasText("Use generated owner key"),
+		"an approval from another account must not be signed with the owner key")
+
+	// Mint has no account field: only the owner can mint, so the offer stands.
+	app.token.opTab = 0
+	tester.Frame()
+	require.True(t, tester.HasText("Use generated owner key"),
+		"Mint signs as the owner by definition")
 }
 
 // TestInspectingAnOlderTokenRestoresOwnerContext covers a token outside the
