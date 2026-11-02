@@ -101,3 +101,45 @@ func functionSource(t *testing.T, src, declaration string) string {
 	}
 	return rest
 }
+
+// TestSwitchingPagesRestartsTheLiveTimer keeps a page switch from reading a page
+// twice. The timer used to carry its due time across the switch, so a reader who
+// changed pages after ten seconds of waiting made the new page's first frame find
+// it expired: the page's own load ran, then the timer fired immediately for the
+// same data, costing a second query and a visible repaint for a refresh nobody
+// asked for.
+//
+// Restarting on the switch matches setLiveUpdates, which resets the same field
+// whenever the setting changes.
+func TestSwitchingPagesRestartsTheLiveTimer(t *testing.T) {
+	now := time.Now()
+	fake := &fakeServices{
+		sources: []SourceRow{{ID: "s1", Name: "btc", URL: "https://example.com", Type: "http", Enabled: true}},
+	}
+	app := New(fake)
+	app.liveUpdates = true
+	app.liveNow = func() time.Time { return now }
+	tester := ui.NewTester(app.View, 1400, 3000)
+	app.ShowPage("Dashboard")
+	tester.Frame()
+
+	// Past the interval, then switch without a frame in between: the switch is
+	// what has to restart the timer.
+	now = now.Add(liveRefreshInterval + time.Second)
+	app.liveNow = func() time.Time { return now }
+	app.ShowPage("Oracle")
+	tester.Frame()
+
+	require.Equal(t, 1, fake.sourceListCalls,
+		"the page's own load must not be followed by a timer reload on the same frame")
+	require.Greaterf(t, app.liveNext.Sub(now), time.Duration(0),
+		"the timer must be armed for the new page, not already due")
+
+	// And it still fires on time afterwards.
+	before := fake.sourceListCalls
+	now = now.Add(liveRefreshInterval)
+	app.liveNow = func() time.Time { return now }
+	tester.Frame()
+	require.Greater(t, fake.sourceListCalls, before,
+		"the timer must still fire once its interval passes on the new page")
+}
