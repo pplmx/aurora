@@ -12,6 +12,15 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **An allowance saturates where the supply refuses**: both ceilings sit at `MaxInt64`
+  and both are guarded by the same style of atomic primitive, but they answer differently —
+  a mint past the limit is refused with `ErrAmountTooLarge`, because `total_supply` is part
+  of the ledger invariant, while an allowance past it saturates, because an allowance is a
+  permission ceiling and "the largest number" is indistinguishable from "unlimited". The
+  port's comment described the lower clamp only; it now says both, with the reason. The
+  mock's overflow also gained the sentinel the SQLite primitive already wrapped, so a test
+  can no longer see an overflowing mint as an unclassified fault.
+
 - **A burn is tested to roll back both halves**: a burn subtracts the balance and the
   total supply in one transaction, so `total_supply == sum of balances` depends on both
   moving together. A successful burn and a refused one were both covered, never the refused
