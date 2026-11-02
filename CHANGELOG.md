@@ -12,6 +12,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **A status line is said in the language now in use**: labels are read from the
+  translator while each frame is built, so they follow a language switch; a status line is a
+  value, translated once when it was created. Switching to Chinese left "Failed: token name
+  is required" under a Chinese "失败" until the next write replaced it. The line keeps its
+  message and arguments rather than the finished sentence — the catalogs hold templates
+  ("Registered %s"), so keeping the result would have fixed errors and left successes in
+  English — and a literal percent stays out of `Sprintf`.
+
 - **An explicit theme mode is tested to ignore the system**: `themeModeDark` is the one
   resolution every palette lookup goes through, and it had no direct test. The shell reports
   the OS appearance on every change and stores it unconditionally, so the mode decides
