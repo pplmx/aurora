@@ -143,3 +143,40 @@ func TestSwitchingPagesRestartsTheLiveTimer(t *testing.T) {
 	require.Greater(t, fake.sourceListCalls, before,
 		"the timer must still fire once its interval passes on the new page")
 }
+
+// TestALiveRefreshLeavesTheOpenFormAlone covers the promise the reload's comment makes
+// ("does not touch the add form or a read card the user has not opened"). A refresh runs
+// every ten seconds, so a reload that reset the add form would erase a URL the reader was
+// halfway through typing — and the erasure would look like a glitch, not a rule.
+//
+// The reload is the real one, not a stub: the point is what loadOracle does to state the
+// form owns.
+func TestALiveRefreshLeavesTheOpenFormAlone(t *testing.T) {
+	fake := &fakeServices{
+		sources: []SourceRow{{ID: "s1", Name: "feed", URL: "https://example.com/feed", Enabled: true}},
+	}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1400, 4000)
+	app.ShowPage("Oracle")
+	tester.Frame()
+
+	// A form in progress, and a source the read cards are pointed at.
+	app.oracle.addName = "half typed"
+	app.oracle.addURL = "https://example.com/partial"
+	app.oracle.addPath = "a.b"
+	app.oracle.addHeaders = `{"X-Key":"v"}`
+	app.oracle.fetchID, app.oracle.queryID = "s1", "s1"
+
+	app.refreshOracleLive()
+	tester.Frame()
+
+	require.Equal(t, "half typed", app.oracle.addName, "the add form must survive a refresh")
+	require.Equal(t, "https://example.com/partial", app.oracle.addURL)
+	require.Equal(t, "a.b", app.oracle.addPath)
+	require.Equal(t, `{"X-Key":"v"}`, app.oracle.addHeaders)
+	require.Equal(t, "s1", app.oracle.fetchID, "and so must the chosen source")
+	require.Equal(t, "s1", app.oracle.queryID)
+
+	// The refresh did run: the counters were re-read.
+	require.Greater(t, fake.oracleHealthCalls, 0, "the refresh must actually read health")
+}
