@@ -165,3 +165,45 @@ func TestLogger_DebugSuppressedByInfoLevel(t *testing.T) {
 	require.NoError(t, err)
 	require.False(t, strings.Contains(string(data), "should-be-suppressed"))
 }
+
+// TestRepeatedInitKeepsOneHandleAndOneFile covers the CLI's actual startup sequence: main
+// calls Init before Cobra has read [log], and the command hook calls it again once the
+// config is loaded. The second call replaces the logger, so it must release the first
+// handle — otherwise every command leaks a descriptor for the log file it opened and then
+// abandoned.
+//
+// The check cannot count descriptors portably. What it can do is prove the replacement
+// happened: both writes land in one file, the earlier handle is gone (the file is
+// readable and removable), and logging still works afterwards.
+func TestRepeatedInitKeepsOneHandleAndOneFile(t *testing.T) {
+	logPath := filepath.Join(t.TempDir(), "logs")
+	setLogConfig(t, "info", logPath)
+
+	Init()
+	first := logFile
+	require.NotNil(t, first, "the first Init must open the file")
+
+	Info().Msg("first line")
+	Init()
+	second := logFile
+	require.NotNil(t, second, "the second Init must open the file again")
+	Info().Msg("second line")
+
+	// The abandoned handle must be closed, not merely forgotten. Writing to it is the
+	// portable way to ask: a closed *os.File answers ErrClosed on every platform, while
+	// "the file is still readable" says nothing — Unix tolerates an open handle there.
+	_, err := first.WriteString("written through the abandoned handle")
+	require.ErrorIs(t, err, os.ErrClosed,
+		"the first handle must be closed when Init replaces it")
+
+	// One file, both lines through the live handle.
+	Close()
+	entries, err := os.ReadDir(logPath)
+	require.NoError(t, err)
+	require.Len(t, entries, 1, "repeated Init must not create a second log file")
+
+	data, err := os.ReadFile(filepath.Join(logPath, "aurora.log"))
+	require.NoError(t, err)
+	require.Contains(t, string(data), "first line")
+	require.Contains(t, string(data), "second line")
+}
