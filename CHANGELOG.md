@@ -12,6 +12,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **A failed settings save now has a documented contract and a check**: three
+  Settings choices persist to `desktop-settings.json` — language, theme mode and
+  live updates — and each applies in the window first, then reports a failed write.
+  A silent failure looks like success until the next launch reverts it, and the
+  operator cannot tell that from having misremembered. The reference described the
+  file but not the failure; it does now, and a structural check keeps the three
+  branches, since a refactor can drop them while the controls keep working.
+
 - **Cancelling the forget-keys confirmation is tested to change nothing**:
   turning memory off while keys are held opens a confirmation, because those keys
   may exist only in this process. Cancel means "keep both" — the policy stays on,
