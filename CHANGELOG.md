@@ -12,6 +12,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **`Validate` says which half of a record it answers**: it checks a record's own
+  shape and deliberately leaves `WinnerAddresses` alone. That reads as a gap until the
+  layering is seen — comparing the address list to the winners needs the derivation,
+  which lives in the app layer, so `VerifyRecord` owns it and both run on every path that
+  admits a record from outside. The comment now says so, and a structural check holds the
+  pair on the import path.
+
 - **The three surfaces are tested to share one draw search**: the reference says a
   lottery search is one read whether it comes from the window, the API's `q` or the
   CLI's `-s`. All three call the same repository method, which matches the same four
