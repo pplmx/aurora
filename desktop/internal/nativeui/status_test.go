@@ -118,3 +118,39 @@ func TestAStatusLineIsSaidInTheCurrentLanguage(t *testing.T) {
 	require.Equal(t, "Saved 100% of the rows", app.token.status.spoken(),
 		"the percent must survive, not be read as a verb")
 }
+
+// TestAnErrorWithNoMessageStillSaysSo covers the one failure that used to look like
+// nothing happening. The status line decides whether it is worth drawing by looking at its
+// text, so an error whose message is empty was not drawn at all: a click that failed left
+// the page exactly as it was, with no word, no tint and no announcement.
+//
+// No production path builds such an error today. The guard is here because the failure it
+// prevents costs the reader every signal at once, and the cost of the guard is one branch.
+func TestAnErrorWithNoMessageStillSaysSo(t *testing.T) {
+	tr := i18n.GetTranslator()
+	before := tr.GetLocale()
+	t.Cleanup(func() { tr.SetLocale(before) })
+	tr.SetLocale("en")
+
+	for _, message := range []string{"", "   ", "\n"} {
+		line := errStatus(errors.New(message))
+		require.Truef(t, line.isErr, "%q: a failed operation is still a failure", message)
+		require.Falsef(t, line.empty(), "%q: an empty line is not drawn, so it must not be empty", message)
+		require.Equal(t, "The operation failed without a message.", line.spoken(),
+			"the reader must be told that something failed")
+	}
+
+	// The sentence is translated, since it is the window's own words.
+	tr.SetLocale("zh")
+	require.Equal(t, "操作失败，但没有返回错误信息。", errStatus(errors.New("")).spoken())
+
+	// It reaches the frame, rather than being dropped between the value and the view.
+	tr.SetLocale("en")
+	app := New(&fakeServices{})
+	tester := ui.NewTester(app.View, 1400, 4000)
+	app.ShowPage("Token")
+	app.token.status = errStatus(errors.New(""))
+	tester.Frame()
+	require.True(t, tester.HasText("The operation failed without a message."))
+	require.True(t, tester.HasText("Failed"), "and the outcome word is beside it")
+}

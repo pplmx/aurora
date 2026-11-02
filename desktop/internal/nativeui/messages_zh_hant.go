@@ -750,4 +750,5 @@ var desktopMessagesHant = map[string]string{
 	"zero address is not allowed":                  "不允許零地址",
 	"— choose a preset —":                          "— 選擇一個預設 —",
 	"A preset fills the fields once; edit them freely afterwards.": "預設只填充一次；之後可自由修改各欄位。",
+	"The operation failed without a message.":                      "操作失敗，但沒有回傳錯誤訊息。",
 }

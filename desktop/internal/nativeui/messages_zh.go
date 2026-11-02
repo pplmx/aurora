@@ -787,4 +787,5 @@ var desktopMessages = map[string]string{
 	"No readings recorded for this source yet.":                    "此数据源还没有记录读数。",
 	"No reading recorded for this source yet.":                     "此数据源还没有记录读数。",
 	"A preset fills the fields once; edit them freely afterwards.": "预设只填充一次；之后可自由修改各字段。",
+	"The operation failed without a message.":                      "操作失败，但没有返回错误信息。",
 }
