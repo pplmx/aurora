@@ -873,3 +873,60 @@ func TestTimeSegmentsInheritTheFieldsLabel(t *testing.T) {
 		require.Truef(t, ok, "the session form must name a control %q", name)
 	}
 }
+
+// TestEveryModuleThatWritesALedgerRecordHasAPage covers the mapping the dashboard
+// timeline uses to take a reader to the module that wrote a record. The words come
+// from the chain, so a module added later without an entry here would leave its
+// records as buttons that do nothing — the row still hovers and presses, and the
+// click is silently discarded.
+//
+// The known modules are exactly the ones the record vocabulary carries, so that is
+// what this compares: a new record.module.* word without a page fails here.
+func TestEveryModuleThatWritesALedgerRecordHasAPage(t *testing.T) {
+	for _, module := range []string{"lottery", "voting", "token", "nft", "oracle"} {
+		target, ok := pageForBlockModule(module)
+		require.Truef(t, ok, "%s writes records, so it must map to a page", module)
+		require.NotEqualf(t, pageDashboard, target,
+			"%s must map to its own page, not the dashboard fallback", module)
+	}
+
+	// The spellings the chain uses are lower case; the mapping folds case and
+	// trims, which is what keeps a hand-written payload reachable.
+	upper, ok := pageForBlockModule("  LOTTERY ")
+	require.True(t, ok, "the mapping must fold case and trim")
+	require.Equal(t, pageLottery, upper)
+
+	// Anything else is data, not vocabulary: it has no page.
+	if _, ok := pageForBlockModule("quorum"); ok {
+		t.Fatal("an unknown module must not claim a page")
+	}
+}
+
+// TestEveryRecordModuleWordHasAPage keeps the mapping and the record vocabulary
+// from drifting apart: record.module.* is what the chain's words translate
+// through, and pageForBlockModule is what turns them into a destination. A word
+// added to one without the other leaves a module that names itself but cannot be
+// reached.
+func TestEveryRecordModuleWordHasAPage(t *testing.T) {
+	modules := recordModuleWords(t)
+	require.NotEmpty(t, modules)
+	require.Contains(t, modules, "lottery", "the vocabulary must be found, not empty")
+	for _, module := range modules {
+		_, ok := pageForBlockModule(module)
+		require.Truef(t, ok, "record.module.%s exists, so it needs a page", module)
+	}
+}
+
+// recordModuleWords reads the record.module.* keys out of the English catalog.
+func recordModuleWords(t *testing.T) []string {
+	t.Helper()
+	source, err := os.ReadFile("../../../internal/i18n/messages_en.go")
+	require.NoError(t, err, "the English catalog must be readable from here")
+	var modules []string
+	for _, part := range strings.Split(string(source), `"record.module.`)[1:] {
+		if end := strings.IndexByte(part, '"'); end > 0 {
+			modules = append(modules, part[:end])
+		}
+	}
+	return modules
+}
