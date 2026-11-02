@@ -940,3 +940,39 @@ func TestBallotOffersTheStoredSessions(t *testing.T) {
 	require.True(t, tester.HasText("Stored sessions"),
 		"the picker stays while the field holds a value it can change")
 }
+
+// TestAnAcceptedBallotClearsTheSigningKey covers the last of the three places the
+// ballot's private key is cleared, and the one that matters most: once a vote is
+// accepted, the key has done its job and there is no reason to keep it on screen.
+//
+// The other two — choosing a different voter and editing the public key — destroy a
+// key that no longer matches the subject. This one destroys the key that just signed,
+// and nothing asserted it: the post-vote tests check the tally and the status line,
+// and a flipped boolean there would leave a live key in a field.
+func TestAnAcceptedBallotClearsTheSigningKey(t *testing.T) {
+	fake := &fakeServices{
+		sessions:   []SessionRow{{ID: "s1", Title: "Budget", Candidates: []string{"c1"}}},
+		candidates: []CandidateRow{{ID: "c1", Name: "Ada"}},
+	}
+	app := New(fake)
+	app.voting.voteSession = "s1"
+	app.voting.voteCandidate = "c1"
+	app.voting.voteVoterPub = "voter-pk"
+	app.voting.votePriv = "voter-sk"
+
+	app.castVote()
+
+	require.Equal(t, "Ballot recorded.", app.voting.voteResult.text)
+	require.Empty(t, app.voting.votePriv,
+		"an accepted ballot must not leave its signing key in the field")
+	require.Equal(t, "voter-pk", app.voting.voteVoterPub,
+		"the voter stays chosen, so the next ballot can reuse the subject")
+
+	// A refused ballot keeps the key: the reader has to be able to retry.
+	fake.castVoteErr = errors.New("already voted")
+	app.voting.votePriv = "voter-sk"
+	app.castVote()
+	require.True(t, app.voting.voteResult.isErr)
+	require.Equal(t, "voter-sk", app.voting.votePriv,
+		"a refused ballot must keep the key so the reader can act on the error")
+}
