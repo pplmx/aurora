@@ -12,6 +12,12 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **A duplicate roster add says it changed nothing**: the click asks for the candidate
+  to be in the roster, it already is, so the outcome is success and the roster is unchanged.
+  Beside a green "Done", "Alice is already in the session roster." read as a second
+  successful add, which is exactly what did not happen. The tone stays success — the roster
+  holds what the click asked for — and the sentence now says nothing was added.
+
 - **A status line is said in the language now in use**: labels are read from the
   translator while each frame is built, so they follow a language switch; a status line is a
   value, translated once when it was created. Switching to Chinese left "Failed: token name
