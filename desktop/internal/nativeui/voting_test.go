@@ -2,12 +2,15 @@ package nativeui
 
 import (
 	"errors"
+	"fmt"
 	"strconv"
 	"testing"
 	"time"
 
 	"github.com/egoist/mygo/ui"
 	"github.com/stretchr/testify/require"
+
+	"github.com/pplmx/aurora/internal/domain/voting"
 )
 
 // TestVotingTablesLoadFullIDsIntoTheForms pins how a UUID reaches the forms on
@@ -975,4 +978,32 @@ func TestAnAcceptedBallotClearsTheSigningKey(t *testing.T) {
 	require.True(t, app.voting.voteResult.isErr)
 	require.Equal(t, "voter-sk", app.voting.votePriv,
 		"a refused ballot must keep the key so the reader can act on the error")
+}
+
+// TestTheCandidateCardNamesTheLengthLimits covers the refusal the operator cannot
+// act on: the store bounds the name, party and program, and the error says only "is
+// too long" — no number, on any of the three surfaces. The card itself is the right
+// place for it, and the numbers come from the domain constants, so the sentence cannot
+// describe a different bound than the one enforced.
+func TestTheCandidateCardNamesTheLengthLimits(t *testing.T) {
+	app := New(&fakeServices{voterRows: []VoterRow{{PublicKey: "pk-1", Name: "Ada"}}})
+	tester := ui.NewTester(app.View, 1400, 4000)
+	app.ShowPage("Voting")
+	tester.Frame()
+
+	for _, want := range []struct {
+		label string
+		value int
+	}{
+		{"name", voting.MaxCandidateNameLength},
+		{"party", voting.MaxCandidatePartyLength},
+		{"program", voting.MaxCandidateProgramLength},
+	} {
+		require.NotZero(t, want.value, "%s bound must be a real number", want.label)
+	}
+
+	require.True(t,
+		tester.HasText(fmt.Sprintf("Up to %d characters for the name and party, %d for the program.",
+			voting.MaxCandidateNameLength, voting.MaxCandidateProgramLength)),
+		"the card must name the bounds the store enforces")
 }

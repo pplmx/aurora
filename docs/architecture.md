@@ -49,7 +49,7 @@ desktop          ─┘                                              ^
 | `internal/infra/sqlite`                                    | `domain/*`, `infra/events`, `utils`                                                                               | 仓储实现                                                                                                                       |
 | `internal/api`                                             | `api/handler`, `api/middleware`, `app/container`, `app/oracleapp`, `config`, `metrics`                            | HTTP 表示层；数据库、账本、HTTP 与 outbox 实现由 `app/container` 注入                                                          |
 | `desktop/internal/deskapp`                                 | `api`, `app/*`, `config`, `domain/*`, `i18n`, `ledger`, `logger`, `records`, `utils`, `desktop/internal/nativeui` | 桌面适配器；通过 `container.Services` 取依赖，不接触 SQLite/backup 实现                                                        |
-| `desktop/internal/nativeui`                                | `domain/lottery`, `i18n`, `records`                                                                               | 纯视图状态与 MyGo 控件，不直接打开数据库；写入前的预校验复用领域常量与校验函数；账本词汇经 `records` 解析，与 CLI 共用一份词表 |
+| `desktop/internal/nativeui`                                | `domain/lottery`, `domain/voting`, `i18n`, `records`                                                              | 纯视图状态与 MyGo 控件，不直接打开数据库；写入前的预校验复用领域常量与校验函数；账本词汇经 `records` 解析，与 CLI 共用一份词表 |
 
 ## 已解决的边界问题
 
