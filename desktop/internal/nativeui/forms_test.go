@@ -909,3 +909,34 @@ func TestEveryFieldErrorReachesTheScreen(t *testing.T) {
 		})
 	}
 }
+
+// TestTheSessionCardDropsItsChooseHintOnceAnIDIsTyped covers the other half of
+// the hint rule on the Voting ballot card. The existing test types an id and
+// checks that the buttons start working; it never checks that the sentence telling
+// the operator to choose a session went away, so the card could keep contradicting
+// a filled field while every button worked.
+func TestTheSessionCardDropsItsChooseHintOnceAnIDIsTyped(t *testing.T) {
+	const hint = "Choose a stored session below, or paste its ID."
+	fake := &fakeServices{
+		voterRows:  []VoterRow{{PublicKey: "voter-pk-1", Name: "Ada"}},
+		sessions:   []SessionRow{{ID: "s1", Title: "Budget"}},
+		candidates: []CandidateRow{{ID: "cand-1", Name: "Ada"}},
+	}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 4000)
+	app.ShowPage("Voting")
+	app.voting.tab = 1
+	tester.Frame()
+	require.True(t, tester.HasText(hint), "with no id the hint names the first step")
+
+	app.voting.controlID = "s1"
+	tester.Frame()
+	require.False(t, tester.HasText(hint),
+		"a filled id must not sit beside the sentence telling the operator to choose one")
+
+	// Clearing it brings the first step back: the hint follows the field, not the
+	// fact that this card was visited once.
+	app.voting.controlID = ""
+	tester.Frame()
+	require.True(t, tester.HasText(hint), "a cleared field needs the first step again")
+}
