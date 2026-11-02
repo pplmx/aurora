@@ -318,3 +318,30 @@ func TestWriteRecordsToFile_RejectsAnUnusableDestination(t *testing.T) {
 	assert.Contains(t, err.Error(), "export directory")
 	assert.Contains(t, err.Error(), "does not exist")
 }
+
+// TestWriteRecordsToFile_RefusesAHardLinkAlias covers the other way a path names
+// the live database. A symlink is refused through the resolved target; a hard link
+// shares the inode and has no target to resolve, so the guard has to compare the
+// files themselves. The reference promises both spellings, and only the symlink had
+// a test.
+func TestWriteRecordsToFile_RefusesAHardLinkAlias(t *testing.T) {
+	dir := t.TempDir()
+	dbPath := filepath.Join(dir, "aurora.db")
+	alias := filepath.Join(dir, "draws.json")
+	require.NoError(t, os.WriteFile(dbPath, []byte("not really sqlite"), 0o644))
+	if err := os.Link(dbPath, alias); err != nil {
+		t.Skipf("hard links unavailable: %v", err)
+	}
+
+	_, err := WriteRecordsToFile(pathLotteryRepo{path: dbPath}, alias)
+	require.Error(t, err, "a hard link to the database is the database")
+	require.Contains(t, err.Error(), "live database")
+
+	// The guard runs before the write, so both names still hold the original bytes.
+	for _, path := range []string{dbPath, alias} {
+		data, readErr := os.ReadFile(path)
+		require.NoError(t, readErr)
+		require.Equal(t, "not really sqlite", string(data),
+			"a refused export must leave %s alone", filepath.Base(path))
+	}
+}
