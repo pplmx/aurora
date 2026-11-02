@@ -478,3 +478,42 @@ func TestOracleStageLeadsInAStackedWindow(t *testing.T) {
 	require.Less(t, tab.Y, add.Y,
 		"the stage selector must come before the add form when the columns stack")
 }
+
+// TestTheTwoColumnBreakpointFlipsAtItsStatedWidth covers the one pixel pair the
+// layout tests above skip. They compare 1280 against 900, so a breakpoint moved by
+// a few pixels — or one compared with > instead of >= — would keep both passing
+// while the documented width stopped matching the behaviour.
+//
+// The pair is the decision itself: at twoColumnMinWidth the two columns are in use,
+// one pixel below it the page is stacked.
+func TestTheTwoColumnBreakpointFlipsAtItsStatedWidth(t *testing.T) {
+	oracleTop := func(t *testing.T, width int) float32 {
+		t.Helper()
+		app := New(&fakeServices{})
+		tester := ui.NewTester(app.View, width, 2600)
+		tester.Frame()
+		rect, ok := tester.Find(tr("Registered data feeds"))
+		require.True(t, ok, "the oracle rail must be on the page")
+		return rect.Y
+	}
+
+	atThreshold := oracleTop(t, int(twoColumnMinWidth))
+	justBelow := oracleTop(t, int(twoColumnMinWidth)-1)
+	require.Lessf(t, atThreshold, justBelow,
+		"at %d the oracle rail sits beside lottery; one pixel lower it stacks under it",
+		int(twoColumnMinWidth))
+
+	// The lottery rail is in the same column either way, so its own position does
+	// not move: the difference belongs to the rail that changes column.
+	lotteryTop := func(t *testing.T, width int) float32 {
+		t.Helper()
+		app := New(&fakeServices{})
+		tester := ui.NewTester(app.View, width, 2600)
+		tester.Frame()
+		rect, ok := tester.Find(tr("VRF draws recorded"))
+		require.True(t, ok)
+		return rect.Y
+	}
+	require.Equal(t, lotteryTop(t, int(twoColumnMinWidth)-1), lotteryTop(t, int(twoColumnMinWidth)),
+		"the left column's first rail keeps its place across the breakpoint")
+}
