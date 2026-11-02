@@ -1050,3 +1050,22 @@ func TestAnEmptyRosterSubmitsEveryCandidate(t *testing.T) {
 	require.Equal(t, []string{"c001", "c002"}, rec.ids,
 		"a typed roster is neither widened nor reordered")
 }
+
+// TestTheDefaultSessionWindowIsATidyDay covers the shape of the values the card opens
+// with, which the test above only checks are non-empty and ordered. A start carrying
+// the current second makes the time control open on a value nobody chose, and a
+// default that is not exactly one day makes "the window I proposed" something the
+// reader has to re-derive from two numbers.
+//
+// Truncating to the minute is what makes the value stable enough to assert at all.
+func TestTheDefaultSessionWindowIsATidyDay(t *testing.T) {
+	now := time.Date(2026, 7, 4, 13, 47, 32, 123456789, time.Local)
+	start, end := defaultSessionWindow(now)
+
+	require.Equal(t, now.Truncate(time.Minute), start,
+		"the start must drop the seconds and nanoseconds the clock happens to carry")
+	require.Zero(t, start.Second(), "a start on a whole minute")
+	require.Zero(t, start.Nanosecond())
+	require.Equal(t, 24*time.Hour, end.Sub(start), "the window opens one day long")
+	require.Equal(t, start.Location(), end.Location(), "both ends stay in the same zone")
+}
