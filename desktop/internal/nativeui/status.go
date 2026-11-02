@@ -9,9 +9,9 @@ import (
 )
 
 // statusLine is the transient result a view shows under its form: either the
-// success text a service returned or the error it failed with. Views set it
-// through ok()/fail() so the two cases render differently and an error can
-// never look like a success.
+// success text a service returned or the error it failed with. Views build one
+// through okStatus / errStatus (or errorStatus for a literal sentence), so the
+// two cases render differently and an error can never look like a success.
 type statusLine struct {
 	text     string
 	isErr    bool

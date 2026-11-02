@@ -32,9 +32,9 @@ const (
 	outboxBatch = 50
 	// outboxBackoffBase is the first gap after one failed retry.
 	outboxBackoffBase = time.Second
-	// outboxBackoffCap bounds the exponential backoff so a persistently-failing
-	// destination does not hit events() every tick forever. Mirrors the oracle
-	// scheduler's maxBackoff.
+	// outboxBackoffCap bounds the exponential backoff, so a persistently failing
+	// destination is not retried by every tick of the drain loop: the gap grows to
+	// this ceiling and stops there. Mirrors the oracle scheduler's maxBackoff.
 	outboxBackoffCap = 5 * time.Minute
 )
 
@@ -100,7 +100,7 @@ func (d *OutboxDrainer) drainOnceAndLog() {
 }
 
 // DrainOnce retries every due pending event exactly once and returns the number
-// that landed in events(). Events that still fail get an incremented attempt
+// that reached the events table. Events that still fail get an incremented attempt
 // count and a backed-off next_attempt_at; they remain in the outbox. Batch
 // reads are bounded (outboxBatch) so each pass is small and repeatable.
 func (d *OutboxDrainer) DrainOnce() (int, error) {
