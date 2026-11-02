@@ -1,10 +1,13 @@
 package nativeui
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
 	"github.com/egoist/mygo/ui"
+
+	"github.com/pplmx/aurora/internal/domain/voting"
 )
 
 // votingView splits the page into the three stages an operator moves through:
@@ -116,6 +119,11 @@ func (a *App) votingRegister(c *ui.Context) {
 func (a *App) votingRegisterCandidateBody(c *ui.Context) {
 	validatedField(c, "Candidate Name", &a.voting.candName, &a.voting.candNameErr)
 	fieldPair(c, "Party (optional)", &a.voting.candParty, "Program (optional)", &a.voting.candProgram)
+	// The store bounds all three fields, and the refusal names no number. The
+	// limits come from the domain constants the store enforces, so this sentence
+	// cannot describe a different rule than the one applied.
+	hint(c, fmt.Sprintf("Up to %d characters for the name and party, %d for the program.",
+		voting.MaxCandidateNameLength, voting.MaxCandidateProgramLength))
 	ui.Row(c).Children(func() {
 		if primaryButton(c, "Register Candidate", allSet(a.voting.candName)).Clicked() {
 			a.registerCandidate()
