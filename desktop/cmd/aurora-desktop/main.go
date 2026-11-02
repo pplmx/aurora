@@ -412,6 +412,11 @@ func main() {
 	})
 
 	if err := mygo.App.Run(); err != nil {
+		// os.Exit skips the deferred rt.Close, so the SQLite handle and the two
+		// background loops would be torn down by process exit instead of being
+		// stopped: the WAL is left as it was and the audit outbox loses whatever it
+		// had not drained. cmd/api does the same for the same reason.
+		_ = rt.Close()
 		fmt.Fprintf(os.Stderr, "aurora-desktop: %v\n", err)
 		os.Exit(1)
 	}
