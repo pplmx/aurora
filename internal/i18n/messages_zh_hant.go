@@ -152,6 +152,7 @@ var traditionalMessages = map[string]string{
 	"desktop.error.open_link_title":             "Aurora 無法打開該鏈接",
 	"desktop.error.unexpected_arg":              "意外參數 %q（aurora-desktop 只接受參數、aurora:// 鏈接或 .json 抽獎導出文件）",
 	"desktop.error.unsupported_file_message":    "%s 不是 Aurora 的抽獎導出文件（.json）；未導入任何內容",
+	"desktop.error.unsupported_files_message":   "以下文件不是 Aurora 的抽獎導出文件（.json）；未導入任何內容：%s",
 	"desktop.error.unsupported_file_title":      "不支持的文件",
 	"desktop.error.user_config_dir":             "解析用戶配置目錄失敗：%w",
 	"desktop.filter.lottery_export":             "抽獎導出文件",
