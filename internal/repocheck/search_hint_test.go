@@ -1363,3 +1363,40 @@ func TestIgnoreRulesForBinariesAreAnchored(t *testing.T) {
 			"%s is where just build and a bare go build put their output", want)
 	}
 }
+
+// TestCICoversWhatTheLocalGateCannot holds the split AGENTS.md describes: `just verify` runs the
+// gates a laptop can run, while the race detector needs cgo and packaging needs a toolchain — so
+// CI is where those two live. If CI stopped running either, the local gate would still pass and
+// nobody would notice until a data race reached a release.
+func TestCICoversWhatTheLocalGateCannot(t *testing.T) {
+	ci := readRepoFile(t, ".github", "workflows", "ci.yml")
+
+	// The race detector runs for both modules. It is the one gate deliberately outside
+	// `just verify`, so it has no other home.
+	require.Contains(t, ci, "-race", "CI must run the race detector, since the local gate cannot")
+	require.GreaterOrEqual(t, strings.Count(ci, "-race"), 2,
+		"both the core module and the desktop run it; one job alone leaves half the tree unchecked")
+
+	// Packaging is exercised too, because a build that only compiles proves nothing about a
+	// package's metadata.
+	require.Contains(t, ci, "Package", "CI must package the desktop app")
+	require.Contains(t, ci, "Verify pure-Go build metadata",
+		"and check that the packaged binaries stayed pure Go")
+
+	// `just verify` is what the AGENTS table calls the local equivalent. It is a dependency-only
+	// recipe with no commands of its own, so the declaration line is what to read: it must not
+	// name race.
+	just := readRepoFile(t, "justfile")
+	var verifyLine string
+	for _, line := range strings.Split(just, "\n") {
+		if strings.HasPrefix(line, "verify:") {
+			verifyLine = line
+			break
+		}
+	}
+	require.NotEmpty(t, verifyLine, "the justfile must define a verify recipe")
+	require.NotContains(t, verifyLine, "race",
+		"a local gate that needs cgo is why the race run lives in CI instead")
+	require.Contains(t, verifyLine, "desktop-coverage-floor",
+		"and the local gate must cover both modules' floors")
+}
