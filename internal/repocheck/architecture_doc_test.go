@@ -5,6 +5,7 @@ import (
 	"go/token"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -388,5 +389,52 @@ func TestArchitectureStructureListsEveryDirectory(t *testing.T) {
 	// The command and desktop roots are listed too, beside internal/.
 	for _, root := range []string{"cmd/", "desktop/", "tools/"} {
 		assert.Containsf(t, section, root, "the structure tree must name %s", root)
+	}
+}
+
+// TestTheReferenceOnlyNamesPathsThatExist checks the design documents' file and
+// package references against the checkout. A reference that drifts is worse than
+// none: the reader follows it to a path that is not there.
+//
+// docs/architecture.md is excluded on purpose. Its 目标结构 section is a tree of
+// bare directory names, already covered by
+// TestArchitectureStructureListsEveryDirectory, and its other sections quote old
+// paths by design — 已解决的边界问题 says where code used to live and 执行顺序 records
+// the moves as arrows. The three reference documents below cite paths only where
+// they describe something that exists.
+func TestTheReferenceOnlyNamesPathsThatExist(t *testing.T) {
+	repo := repoRoot(t)
+	for _, name := range []string{"desktop.md", "cli.md", "api.md"} {
+		name := name
+		t.Run(name, func(t *testing.T) {
+			doc := readRepoFile(t, "docs", name)
+			checkReferencedPaths(t, repo, "docs/"+name, doc)
+		})
+	}
+}
+
+// refPathPattern matches the two reference shapes the documents use: a package
+// directory and a single file, both under internal/ or the desktop module. The
+// trailing \b is load-bearing: without it "theme.go" also matches "theme" and
+// "layers_test.go" also matches "layers", and both would be reported missing.
+var refPathPattern = regexp.MustCompile(
+	`(?:desktop/)?internal(?:/[a-z0-9]+)+/[a-z0-9_]+\.go\b|(?:desktop/)?internal(?:/[a-z0-9]+)+\b`)
+
+// checkReferencedPaths reports every path a document cites that the checkout does
+// not hold. A document that cites none passes: the reference documents mention a
+// path only where they describe something concrete, and not every one of them
+// needs to.
+func checkReferencedPaths(t *testing.T, repo, doc, body string) {
+	t.Helper()
+	seen := map[string]bool{}
+	for _, match := range refPathPattern.FindAllString(body, -1) {
+		if seen[match] {
+			continue
+		}
+		seen[match] = true
+		if _, err := os.Stat(filepath.Join(repo, match)); err != nil {
+			t.Errorf("%s names %s, which is not in the checkout; update the reference or the path",
+				doc, match)
+		}
 	}
 }
