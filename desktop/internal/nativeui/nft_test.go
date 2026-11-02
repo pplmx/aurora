@@ -442,3 +442,33 @@ func TestMintingHighlightsTheNewAssetByID(t *testing.T) {
 	require.Equal(t, "n1", app.nft.list[app.nft.selected].ID,
 		"the highlighted row must be the asset every write card acts on")
 }
+
+// TestTheFourNFTCardsKeepTheirOwnIDs covers what the readout test above leaves
+// open: Inspect, Transfer, Burn and History each hold an id, and typing into one
+// must not move another. They share the collection as a source, and a selection
+// deliberately fills all four — but a typed id is a local edit, so retargeting a
+// transfer must not silently aim the burn at the same asset.
+func TestTheFourNFTCardsKeepTheirOwnIDs(t *testing.T) {
+	fake := &fakeServices{nftRows: []NFTRow{
+		{ID: "n1", Name: "One", Owner: "owner-1"},
+		{ID: "n2", Name: "Two", Owner: "owner-2"},
+	}}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1400, 6000)
+	app.ShowPage("NFT")
+	tester.Frame()
+
+	app.nft.id, app.nft.transferID, app.nft.burnID, app.nft.historyID = "n1", "n1", "n1", "n1"
+	tester.Frame()
+	require.Equal(t, "owner-1", app.nft.from)
+	require.Equal(t, "owner-1", app.nft.burnOwner)
+
+	app.nft.transferID = "n2"
+	tester.Frame()
+
+	require.Equal(t, "n1", app.nft.id, "Inspect keeps the asset it was asked for")
+	require.Equal(t, "n1", app.nft.burnID, "Burn keeps its own target")
+	require.Equal(t, "n1", app.nft.historyID, "History keeps its own target")
+	require.Equal(t, "owner-2", app.nft.from, "Transfer follows its own id")
+	require.Equal(t, "owner-1", app.nft.burnOwner, "Burn's holder does not move with Transfer")
+}

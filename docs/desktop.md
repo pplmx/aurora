@@ -433,8 +433,13 @@ just check && just test
   会遮住新记录的搜索/筛选并高亮新行，状态句子之外也能看到结果落在哪。
 - **读卡各用各的输入**：代币的 Balance 账户与 History 持有者曾是同一个字段，
   在 History 输入会悄悄改掉 Balance 要读的账户；现已拆成两个独立输入，刷新也
-  分别按各自的值重读。History 同时有 Limit 与 Offset，长流水可翻页查看，并显示
-  每笔转账的 replay nonce（来源是链上事件，不是 UI 推算）。
+  分别按各自的值重读。Allowance 更进一步：它有 owner 与 spender 两个输入，两者
+  都属于读卡，与 Approve 写卡的同一对字段分开——读某个 spender 的余额不会改掉
+  下一次授权要签给谁。页面上四张读卡（Inspect / Balance / History / Allowance）
+  与四张写卡（Mint / Transfer / Approve / Transfer From）各持一套输入；NFT 的
+  Inspect / Transfer / Burn / History 四张卡同样各持一个 id，改其中一张不会移动
+  另一张。History 同时有 Limit 与 Offset，长流水可翻页查看，并显示每笔转账的
+  replay nonce（来源是链上事件，不是 UI 推算）。
 - **预言机 Feed Health 读真实调度器**：卡片显示的是运行中 scheduler 的
   attempt/success/failure 与 last error，与受保护的 `GET /api/v1/oracle/health`
   同源；调度统计直接携带数据源名称，当前页之外的 feed 也不会退化成裸 ID。
