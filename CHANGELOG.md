@@ -12,6 +12,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **A second logger Init is tested to close the first handle**: the CLI initialises the
+  logger twice on every run — `main` before Cobra has read `[log]`, and the command hook once
+  the config is loaded — so the second call has to release the first handle or each command
+  leaks a descriptor. Nothing covered the replacement. The check asks the abandoned handle
+  directly, since writing to a closed `*os.File` answers `ErrClosed` on every platform while
+  "the file is still readable" says nothing on Unix.
+
 - **The CLI reference says a failure can write more than one stderr line**: it promised
   "失败只打印一行错误前缀后退出", which holds only when a log path is configured. Without one
   the logger falls back to stderr, so the same failure prints `ERR Application error
