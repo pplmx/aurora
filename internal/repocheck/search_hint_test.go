@@ -1323,3 +1323,43 @@ func TestNothingGoLivesInShippedResources(t *testing.T) {
 	require.Contains(t, readRepoFile(t, ".gitignore"), "/desktop/resources/build-time.txt",
 		"the stamp is generated per build, so it must not be committed")
 }
+
+// TestIgnoreRulesForBinariesAreAnchored holds the lesson .gitignore already records: a bare
+// `aurora` pattern matches the `cmd/aurora/` source directory at any depth, and git then ignores
+// every file under it without a word. The rule is anchored to the root now, and the comment beside
+// it says why.
+//
+// The check is narrow on purpose — it asks only about patterns whose name is also a directory under
+// cmd/ or internal/, since those are the ones a missing slash silently swallows.
+func TestIgnoreRulesForBinariesAreAnchored(t *testing.T) {
+	// Directory names a stray ignore pattern could swallow.
+	shadows := map[string]bool{}
+	for _, tree := range []string{"cmd", "internal"} {
+		entries, err := os.ReadDir(filepath.Join(repoRoot(t), tree))
+		require.NoError(t, err)
+		for _, e := range entries {
+			if e.IsDir() {
+				shadows[e.Name()] = true
+			}
+		}
+	}
+	require.NotEmpty(t, shadows, "the source tree must have package directories")
+
+	for _, line := range strings.Split(readRepoFile(t, ".gitignore"), "\n") {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" || strings.HasPrefix(trimmed, "#") {
+			continue
+		}
+		pattern := strings.TrimSuffix(trimmed, "/")
+		require.Falsef(t, shadows[pattern],
+			".gitignore has a bare %q, which would also match the source directory of the same name; anchor it as /%s",
+			pattern, pattern)
+	}
+
+	// The build outputs are still ignored, which is what the anchored rules are for.
+	ignore := readRepoFile(t, ".gitignore")
+	for _, want := range []string{"/aurora", "/aurora-*", "/bin"} {
+		require.Containsf(t, ignore, want,
+			"%s is where just build and a bare go build put their output", want)
+	}
+}
