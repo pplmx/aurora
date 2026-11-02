@@ -413,3 +413,44 @@ func TestEveryRecordListIsNamed(t *testing.T) {
 		}
 	}
 }
+
+// TestEveryChoiceGroupIsNamed covers the labelled groups a screen reader announces
+// before its options: radio groups, tab rows and checkboxes. Each renders a set of
+// controls that are indistinguishable without the group's name — three radios
+// reading "Follow System", "Light", "Dark" say nothing about what they choose.
+//
+// The two radio groups build their chain differently (one is a helper, one is
+// inline), so the check is on the presence of a Label in the same file rather than
+// on a shape both happen to share.
+func TestEveryChoiceGroupIsNamed(t *testing.T) {
+	settings := readRepoFile(t, "desktop", "internal", "nativeui", "settings.go")
+	assert.Contains(t, settings, `.Label(tr("Theme mode"))`,
+		"the theme radios must name what they choose")
+	assert.Contains(t, settings, `.Label(tr("Display language"))`,
+		"the language radios must name what they choose")
+
+	// Checkboxes take their name as the second argument, so an empty one is the
+	// failure shape rather than a missing Label.
+	for _, want := range []string{
+		`ui.Checkbox(c, &remember, tr("Remember private keys for this session"))`,
+		`ui.Checkbox(c, &a.liveUpdates, tr("Every 10 seconds"))`,
+	} {
+		assert.Contains(t, settings, want, "a checkbox must carry its own name")
+	}
+
+	// tabs() names its row from the argument the caller passes; every call site
+	// has to supply one.
+	for _, file := range []string{
+		"nft_write.go", "oracle.go", "token_write.go", "voting_setup.go",
+	} {
+		body := readRepoFile(t, "desktop", "internal", "nativeui", file)
+		start := strings.Index(body, "tabs(c, ")
+		require.NotEqualf(t, -1, start, "%s must still call tabs", file)
+		call := body[start:]
+		if end := strings.Index(call, ")\n"); end > 0 {
+			call = call[:end]
+		}
+		assert.Containsf(t, call, `", tr(`,
+			"%s must pass a group name before the tab labels", file)
+	}
+}
