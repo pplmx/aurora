@@ -12,6 +12,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The documented keyboard shortcuts are tested to be registered**: the
+  reference promises Ctrl/Cmd+1…8 in sidebar order, Ctrl/Cmd+, for Settings and
+  Ctrl/Cmd+K for the palette. They are registered on the window rather than on
+  buttons, so a refactor that moves the header can drop one without any page
+  looking wrong — the action stays, just no longer reachable by its chord. The
+  check also reads `pageOrder` back out of `pages.go` and requires eight entries
+  with Settings last, since the count is what makes "1…8" true.
+
 - **Every destructive action is tested to ask first**: four writes cannot be
   undone — burning tokens, burning an asset, deleting a source, forgetting session
   keys — and each pairs a danger button with `destructiveConfirm`. The pairing is
