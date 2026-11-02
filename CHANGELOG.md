@@ -12,6 +12,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **A cross-field error is tested to blame the field to change**: a rule spanning
+  two inputs still has to put its message on the one the reader must edit. The
+  session window is the case the reference names — a missing start blames Start, a
+  missing end blames End, and an end before the start blames End, since Start holds
+  the value typed correctly. Swapping two error fields type-checks and still
+  renders a sentence, just next to the wrong input.
+
 - **A field error is tested to be announced once, and again after a correction**:
   `attachFieldError` speaks the message when it appears and stays silent on the
   frames that rebuild it, so a repaint does not repeat the sentence — but it also
