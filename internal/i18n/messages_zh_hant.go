@@ -132,6 +132,8 @@ var traditionalMessages = map[string]string{
 	"desktop.dialog.exported_title":             "抽獎記錄已導出",
 	"desktop.dialog.import_partial_message":     "已導入 %d / %d 條抽獎記錄（失敗 %d 條）。",
 	"desktop.dialog.import_partial_title":       "部分導入失敗",
+	"desktop.dialog.import_rejected_title":      "未導入任何記錄",
+	"desktop.dialog.import_rejected_message":    "%d 條抽獎記錄均未導入。",
 	"desktop.dialog.import_rejected_detail":     "被拒絕的記錄下標（從 0 開始）：%v\n\n記錄被拒絕的原因：未通過校驗、ID 已存在（重新導入同一份導出會被拒絕，而不是覆蓋已存的開獎），或者無法寫入。\n\n%s",
 	"desktop.dialog.import_title":               "導入抽獎記錄",
 	"desktop.dialog.imported_message":           "已導入 %d 條抽獎記錄。",

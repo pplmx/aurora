@@ -362,3 +362,28 @@ func drawForImport(t *testing.T, seed string, participants []string, winners int
 	record.ID = lottery.LotteryRecordID(seed, output)
 	return record
 }
+
+// TestImportReportNeverSaysPartiallyWhenNothingWasStored covers the re-import
+// case: opening an export whose records are all already stored rejects every one,
+// and the partial wording read "Import partially failed. Imported 0 of 3 lottery
+// records" — a heading that contradicted its own sentence, on the most common way
+// to reach it.
+func TestImportReportNeverSaysPartiallyWhenNothingWasStored(t *testing.T) {
+	all := lotteryapp.ImportResult{Total: 3, Imported: 0, Rejected: []int{0, 1, 2}}
+	title, message, detail := importReport(all, "/tmp/draws.json")
+
+	require.Equal(t, "Nothing imported", title)
+	require.NotContains(t, title, "partially",
+		"nothing was stored, so nothing was partial")
+	require.Equal(t, "None of the 3 lottery records were imported.", message)
+	require.NotContains(t, message, "Imported 0 of",
+		"the sentence must not report a partial import that did not happen")
+
+	// The detail still says which records failed, why, and which file.
+	for _, want := range []string{"[0 1 2]", "already exists", "/tmp/draws.json"} {
+		require.Contains(t, detail, want)
+	}
+
+	// A warning, not an error: the file was readable and the store is unchanged.
+	require.Equal(t, mygo.MessageWarning, importReportType(all))
+}
