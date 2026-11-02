@@ -12,6 +12,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The `bin` ignore rule is anchored, and the rest are held to that shape**: `bin` was a bare
+  pattern from the initial commit, so it matched at any depth rather than the root-level output it
+  was meant for. The repository has never had such a directory, so anchoring costs nothing. The
+  file already records what a missing slash does — a bare `aurora` matched the `cmd/aurora/` source
+  directory and git silently ignored every file under it — and a check now turns that lesson into a
+  rule for any pattern whose name is also a directory under `cmd/` or `internal/`.
+
 - **Go sources are kept out of the shipped resources**: every file in `desktop/resources` is
   copied next to the executable and into the `.deb`/tarball, so a Go package placed there ships
   its sources and tests with the app. The icon lives in `desktop/appicon` for that reason and three
