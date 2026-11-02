@@ -824,3 +824,27 @@ func TestOwnershipChangedStaysASingleton(t *testing.T) {
 			"%s must classify the rejection with the sentinel", surface.name)
 	}
 }
+
+// TestTheCLIFailureOutputIsDocumentedAsMultiline holds the reference to what a failing
+// command actually writes. It said "失败只打印一行错误前缀后退出", and that is only true
+// when a log path is configured: without one the logger falls back to stderr and the
+// same failure prints a structured line as well. A script written against the promised
+// single line would compare the wrong one.
+func TestTheCLIFailureOutputIsDocumentedAsMultiline(t *testing.T) {
+	doc := readRepoFile(t, "docs", "cli.md")
+	require.Contains(t, doc, "日志回退到 stderr",
+		"the reference must say where the structured line goes when no log path is set")
+	require.Contains(t, doc, "ERR Application error",
+		"and what it looks like, since that is the line a script must skip")
+	require.Contains(t, doc, "Using config file",
+		"the config notice is the other unannounced line")
+	require.NotContains(t, doc, "失败只打印一行错误前缀后退出",
+		"the single-line promise is what this check replaced")
+
+	// The fallback is real: the logger reaches for stderr only when no log file opened.
+	logger := readRepoFile(t, "internal", "logger", "zero.go")
+	require.Contains(t, logger, "fallbackToConsole",
+		"the stderr path must still be the fallback the reference describes")
+	require.Contains(t, logger, "zerolog.ConsoleWriter{Out: os.Stderr}",
+		"and it must be the console writer on stderr, not stdout")
+}
