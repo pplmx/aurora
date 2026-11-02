@@ -12,6 +12,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **Comments name functions that exist**: two pointed at functions nobody wrote —
+  `statusLine`'s said views build it "through `ok()`/`fail()`" when the constructors are
+  `okStatus` / `errStatus` / `errorStatus`, and the outbox's backoff note said a failing
+  destination "does not hit `events()` every tick" when there is no such function. Neither breaks
+  a build, which is why both survived; a third mention was true but misleading, calling the
+  `events` table a call. A check now scans every `name()` in a comment and requires a declaration
+  in the same tree.
+
 - **The Oracle page's comment stops saying it stacks four sections**: the field comment lists
   the right-hand stages as 0 sources, 1 health, 2 readings and then said "stacking all four made
   the page a long column". The count was wrong when it was written, not made wrong later — the
