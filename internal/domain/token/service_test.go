@@ -3957,3 +3957,104 @@ func TestTransferToTheSameOwnerLeavesTheBalanceAlone(t *testing.T) {
 			chainBefore, got)
 	}
 }
+
+// TestAllowanceBoundaries pins the three edges of an allowance, none of which the happy
+// path exercises. TryDeductApproval and TryAdjustApproval are the authorities, and both
+// clamp rather than fail, so the interesting question is not "does it reject" but "where
+// does it stop, and does it say so".
+func TestAllowanceBoundaries(t *testing.T) {
+	newService := func(t *testing.T) (*TokenService, PublicKey, PublicKey) {
+		t.Helper()
+		repo := NewMockRepository()
+		eventStore := NewMockEventStore()
+		chain := blockchain.New()
+		service := NewService(repo, newMockTxManager(), newMockEventBus(eventStore), eventStore, newMockReplayProtection(), chain)
+		owner := pubKey(1)
+		if _, err := service.CreateToken(&CreateTokenRequest{
+			Name: "Test Token", Symbol: "TEST", TotalSupply: NewAmount(1000), Owner: owner,
+		}); err != nil {
+			t.Fatalf("CreateToken: %v", err)
+		}
+		return service, owner, pubKey(2)
+	}
+
+	t.Run("a spend above the allowance is refused and moves nothing", func(t *testing.T) {
+		service, owner, spender := newService(t)
+		if _, err := service.Approve(&ApproveRequest{
+			TokenID: "TEST", Owner: owner, Spender: spender, Amount: NewAmount(100), PrivateKey: privKey(1),
+		}); err != nil {
+			t.Fatalf("Approve: %v", err)
+		}
+		balanceBefore, _ := service.GetBalance("TEST", owner)
+
+		_, err := service.TransferFrom(&TransferFromRequest{
+			TokenID: "TEST", Owner: owner, To: pubKey(3), Amount: NewAmount(101),
+			Spender: spender, SpenderKey: privKey(2),
+		})
+		if !errors.Is(err, ErrInsufficientAllowance) {
+			t.Fatalf("expected ErrInsufficientAllowance, got %v", err)
+		}
+		allowance, _ := service.GetAllowance("TEST", owner, spender)
+		if allowance.Int64() != 100 {
+			t.Errorf("a refused spend must not touch the allowance: got %d", allowance.Int64())
+		}
+		balanceAfter, _ := service.GetBalance("TEST", owner)
+		if balanceBefore.Int64() != balanceAfter.Int64() {
+			t.Errorf("a refused spend must not move the balance: %d -> %d",
+				balanceBefore.Int64(), balanceAfter.Int64())
+		}
+	})
+
+	t.Run("spending the allowance exactly empties it", func(t *testing.T) {
+		service, owner, spender := newService(t)
+		if _, err := service.Approve(&ApproveRequest{
+			TokenID: "TEST", Owner: owner, Spender: spender, Amount: NewAmount(100), PrivateKey: privKey(1),
+		}); err != nil {
+			t.Fatalf("Approve: %v", err)
+		}
+		if _, err := service.TransferFrom(&TransferFromRequest{
+			TokenID: "TEST", Owner: owner, To: pubKey(3), Amount: NewAmount(100),
+			Spender: spender, SpenderKey: privKey(2),
+		}); err != nil {
+			t.Fatalf("spending the whole allowance must be allowed: %v", err)
+		}
+		allowance, _ := service.GetAllowance("TEST", owner, spender)
+		if allowance.Int64() != 0 {
+			t.Errorf("the allowance must be empty, got %d", allowance.Int64())
+		}
+		// A second spend is now refused, which is what "empty" has to mean.
+		if _, err := service.TransferFrom(&TransferFromRequest{
+			TokenID: "TEST", Owner: owner, To: pubKey(3), Amount: NewAmount(1),
+			Spender: spender, SpenderKey: privKey(2),
+		}); !errors.Is(err, ErrInsufficientAllowance) {
+			t.Fatalf("expected ErrInsufficientAllowance after the allowance was spent, got %v", err)
+		}
+	})
+
+	t.Run("decreasing past zero clamps instead of failing", func(t *testing.T) {
+		service, owner, spender := newService(t)
+		if _, err := service.Approve(&ApproveRequest{
+			TokenID: "TEST", Owner: owner, Spender: spender, Amount: NewAmount(50), PrivateKey: privKey(1),
+		}); err != nil {
+			t.Fatalf("Approve: %v", err)
+		}
+		if _, err := service.DecreaseAllowance(&AllowanceRequest{
+			TokenID: "TEST", Owner: owner, Spender: spender, Amount: NewAmount(80), PrivateKey: privKey(1),
+		}); err != nil {
+			t.Fatalf("DecreaseAllowance must clamp, not fail: %v", err)
+		}
+		allowance, _ := service.GetAllowance("TEST", owner, spender)
+		if allowance.Int64() != 0 {
+			t.Errorf("the allowance must stop at zero, got %d", allowance.Int64())
+		}
+		// And decreasing again keeps it at zero rather than going negative.
+		if _, err := service.DecreaseAllowance(&AllowanceRequest{
+			TokenID: "TEST", Owner: owner, Spender: spender, Amount: NewAmount(10), PrivateKey: privKey(1),
+		}); err != nil {
+			t.Fatalf("DecreaseAllowance on an empty allowance: %v", err)
+		}
+		if allowance, _ := service.GetAllowance("TEST", owner, spender); allowance.Int64() != 0 {
+			t.Errorf("the allowance must stay at zero, got %d", allowance.Int64())
+		}
+	})
+}
