@@ -12,6 +12,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The ownership-changed sentinel is held to one value**: `ErrOwnershipChanged` is a
+  pointer and its callers classify it with `errors.Is`. The type has no `Is` or `Unwrap`
+  method, so that comparison is pointer identity — returning a fresh
+  `&OwnershipChangedError{}` from either repository would print the same sentence, stop
+  matching the sentinel, and surface a concurrent-transfer rejection as an unclassified 500.
+  Both repositories return the package value, and the check also holds the absence of
+  method-based matching, which is what makes the singleton load-bearing.
+
 - **An overflowing credit is tested to be classified like an overflowing supply**: three
   places can push a number past `MaxInt64` — `total_supply`, one account's balance, and an
   allowance — and there are not three answers. The two that hold ledger state refuse with
