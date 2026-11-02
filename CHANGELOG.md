@@ -12,6 +12,15 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **Every module that writes a record is tested to have a page to open**: the
+  dashboard timeline takes a reader to the module that wrote a record through
+  `pageForBlockModule`. A module the mapping does not know leaves the row as a
+  button that hovers, presses and then discards the click. Two checks, one per
+  direction: the five known modules must map to their own page rather than the
+  dashboard fallback, and every `record.module.*` word in the catalog must map too,
+  so adding a module to the vocabulary without a destination fails here instead of
+  producing dead rows.
+
 - **The two session time controls are tested to be told apart by their field
   name**: MyGo names each `TimeInput` spin button after the field's `Label` plus the
   segment word, so the Label is what distinguishes Start from End. The first version
