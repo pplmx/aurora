@@ -197,3 +197,55 @@ func labOf(c ui.Color) [3]float64 {
 	fx, fy, fz := f(x/0.95047), f(y), f(z/1.08883)
 	return [3]float64{116*fy - 16, 500 * (fx - fy), 200 * (fy - fz)}
 }
+
+// TestHighContrastIsActuallyHigherContrast covers the promise the setting makes.
+// The contrast test above runs both preference states against the same floor, so a
+// high-contrast palette identical to the normal one would pass it: the floor says
+// "readable", not "more readable".
+//
+// The comparison is per surface, because the two palettes use different inks and
+// one surface's margin can grow while another's stays flat.
+func TestHighContrastIsActuallyHigherContrast(t *testing.T) {
+	for _, mode := range []struct {
+		name   string
+		mode   ThemeMode
+		system bool
+	}{
+		{"dark", ThemeModeDark, true},
+		{"light", ThemeModeLight, false},
+	} {
+		normal := auroraThemeForState(ui.Preferences{}, mode.mode, mode.system, pageLottery)
+		high := auroraThemeForState(ui.Preferences{HighContrast: true}, mode.mode, mode.system, pageLottery)
+
+		surfaces := []struct {
+			name   string
+			normal ui.Color
+			high   ui.Color
+		}{
+			{"background", normal.Background, high.Background},
+			{"surface", normal.Surface, high.Surface},
+		}
+		for _, surface := range surfaces {
+			for _, ink := range []struct {
+				name string
+				n, h ui.Color
+			}{
+				{"text", normal.Text, high.Text},
+				{"muted text", normal.TextMuted, high.TextMuted},
+			} {
+				before := contrastRatio(ink.n, surface.normal)
+				after := contrastRatio(ink.h, surface.high)
+				require.Greaterf(t, after, before,
+					"%s/%s on %s: high contrast must be clearer than %.2f, got %.2f",
+					mode.name, ink.name, surface.name, before, after)
+			}
+		}
+
+		// The setting is documented as changing text, borders and the focus ring
+		// only; the module accent stays put so a module keeps its identity.
+		require.Equal(t, pageAccentForPalette(mode.mode == ThemeModeDark, pageLottery),
+			high.Accent, "%s: high contrast must not repaint the module accent", mode.name)
+		require.NotEqual(t, normal.Border, high.Border,
+			"%s: high contrast must draw its borders more clearly", mode.name)
+	}
+}
