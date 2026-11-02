@@ -12,6 +12,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The card's group name is tested where it can be observed**: a card is a named
+  group, and the name comes from `Label` alone — MyGo's default role inference
+  resolves a labelled container to `RoleGroup`, so `formCard` does not also set the
+  role. `ui.Tester` renders frames but exposes no accessibility tree, so the check
+  reads `layout.go` and asserts what the helper does, including that it does not add
+  the redundant role. The reference records the mechanism, since a later reader
+  could reasonably add the explicit role and think it was required.
+
 - **The documented keyboard shortcuts are tested to be registered**: the
   reference promises Ctrl/Cmd+1…8 in sidebar order, Ctrl/Cmd+, for Settings and
   Ctrl/Cmd+K for the palette. They are registered on the window rather than on
