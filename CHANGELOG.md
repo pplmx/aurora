@@ -12,6 +12,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **An explicit theme mode is tested to ignore the system**: `themeModeDark` is the one
+  resolution every palette lookup goes through, and it had no direct test. The shell reports
+  the OS appearance on every change and stores it unconditionally, so the mode decides
+  whether that value is used — Light and Dark answer the same whatever the system says, and
+  only System follows it. An empty value, which is what an older preferences file has,
+  resolves to Dark rather than to "follow the system", so an upgrade does not change the
+  look of an existing install.
+
 - **Turning live updates on is tested to start a full interval**: the page-switch test
   covered the timer restarting on navigation, nothing covered the setting itself, and both
   reset the same field. Enabling the switch does not read the page at once, and flipping it
