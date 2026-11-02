@@ -715,3 +715,46 @@ func TestFieldErrorAnnouncesOnceAndAgainAfterAClear(t *testing.T) {
 	require.Len(t, other, 1)
 	require.Contains(t, other[0], "at most 64", "the new reason is what gets spoken")
 }
+
+// TestAResultAndABusyWriteShareTheFrame covers the two strips at once. A write
+// usually starts right after a result, so both are on screen: the previous
+// outcome above, the running operation below. Neither may displace the other —
+// the busy bar is where "this is happening now" lives, and the status strip is
+// the last thing that finished, which is still what the reader may want to read.
+//
+// They are also distinct in speech: the result is labelled Done or Failed and the
+// banner carries the operation's own name, so the two are not confused for one
+// event.
+func TestAResultAndABusyWriteShareTheFrame(t *testing.T) {
+	app := New(&fakeServices{})
+	app.SetBackgroundWrites(true)
+	tester := ui.NewTester(app.View, 1280, 1600)
+	app.ShowPage("Token")
+	tester.Frame()
+	tester.Announcements()
+
+	app.token.status = okStatus("Saved 12 units.")
+	started := make(chan struct{})
+	release := make(chan struct{})
+	app.runWrite("Minting…", func() func() {
+		close(started)
+		<-release
+		return func() {}
+	})
+	<-started
+	tester.Frame()
+
+	texts := strings.Join(tester.Texts(), "\n")
+	require.Contains(t, texts, "Saved 12 units.", "the last result stays readable")
+	require.Contains(t, texts, tr("Minting…"), "the running operation is named")
+	require.Contains(t, texts, tr("Done"), "the result says how it ended")
+
+	spoken := tester.Announcements()
+	joined := strings.Join(spoken, " ")
+	require.Contains(t, joined, tr("Done"), "the result is announced with its verdict")
+	require.Contains(t, joined, tr("Minting…"), "the running operation is announced too")
+
+	close(release)
+	tester.Advance(60 * time.Millisecond)
+	tester.Frame()
+}
