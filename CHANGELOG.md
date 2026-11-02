@@ -12,6 +12,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **A start-up failure is recorded in the log, not only on the terminal**: the API
+  initialises the logger and then creates the server; when that failed the only trace was a
+  line on stderr, so a deployment with `log.path` set had an `aurora.log` with nothing in it
+  about the failure — the one file an operator reads afterwards. Both lines stay: the log is
+  the record, stderr is for the terminal that launched the process. The config-load failure
+  above it keeps its stderr-only shape, because it happens before the logger exists.
+
 - **A second logger Init is tested to close the first handle**: the CLI initialises the
   logger twice on every run — `main` before Cobra has read `[log]`, and the command hook once
   the config is loaded — so the second call has to release the first handle or each command
