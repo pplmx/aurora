@@ -4058,3 +4058,83 @@ func TestAllowanceBoundaries(t *testing.T) {
 		}
 	})
 }
+
+// TestBurnRollsBackBothHalves pins the ledger invariant from the side the happy path
+// cannot see. A burn subtracts the balance and the total supply in one transaction, so a
+// refused burn must leave both exactly where they were — a balance that moved without the
+// supply would break total_supply == sum of balances, and the break would be invisible
+// until someone added the numbers up.
+//
+// Burning the whole balance is the other end: both reach zero, not "balance zero, supply
+// still counting tokens nobody holds".
+func TestBurnRollsBackBothHalves(t *testing.T) {
+	repo := NewMockRepository()
+	eventStore := NewMockEventStore()
+	chain := blockchain.New()
+	service := NewService(repo, newMockTxManager(), newMockEventBus(eventStore), eventStore, newMockReplayProtection(), chain)
+
+	owner := pubKey(1)
+	if _, err := service.CreateToken(&CreateTokenRequest{
+		Name: "Gold", Symbol: "GLD", TotalSupply: NewAmount(100), Owner: owner,
+	}); err != nil {
+		t.Fatalf("CreateToken: %v", err)
+	}
+	tokens, err := service.ListTokens(10, 0)
+	if err != nil || len(tokens) != 1 {
+		t.Fatalf("ListTokens: %v, %d", err, len(tokens))
+	}
+	id := tokens[0].ID()
+
+	infoBefore, err := service.GetTokenInfo(id)
+	if err != nil {
+		t.Fatalf("GetTokenInfo before: %v", err)
+	}
+	balanceBefore, err := service.GetBalance(id, owner)
+	if err != nil {
+		t.Fatalf("GetBalance before: %v", err)
+	}
+
+	// A burn larger than the balance is refused, and must leave both halves alone.
+	if _, err := service.Burn(&BurnRequest{
+		TokenID: id, From: owner, Amount: NewAmount(200), PrivateKey: privKey(1),
+	}); !errors.Is(err, ErrInsufficientBalance) {
+		t.Fatalf("expected ErrInsufficientBalance, got %v", err)
+	}
+	infoAfter, err := service.GetTokenInfo(id)
+	if err != nil {
+		t.Fatalf("GetTokenInfo after: %v", err)
+	}
+	balanceAfter, err := service.GetBalance(id, owner)
+	if err != nil {
+		t.Fatalf("GetBalance after: %v", err)
+	}
+	if infoBefore.TotalSupply().Int64() != infoAfter.TotalSupply().Int64() {
+		t.Errorf("a refused burn must not move the supply: %d -> %d",
+			infoBefore.TotalSupply().Int64(), infoAfter.TotalSupply().Int64())
+	}
+	if balanceBefore.Int64() != balanceAfter.Int64() {
+		t.Errorf("a refused burn must not move the balance: %d -> %d",
+			balanceBefore.Int64(), balanceAfter.Int64())
+	}
+
+	// Burning everything empties both halves.
+	if _, err := service.Burn(&BurnRequest{
+		TokenID: id, From: owner, Amount: NewAmount(100), PrivateKey: privKey(1),
+	}); err != nil {
+		t.Fatalf("burning the whole balance must be allowed: %v", err)
+	}
+	infoEmpty, err := service.GetTokenInfo(id)
+	if err != nil {
+		t.Fatalf("GetTokenInfo after burn-all: %v", err)
+	}
+	balanceEmpty, err := service.GetBalance(id, owner)
+	if err != nil {
+		t.Fatalf("GetBalance after burn-all: %v", err)
+	}
+	if got := infoEmpty.TotalSupply().Int64(); got != 0 {
+		t.Errorf("the supply must be empty, got %d", got)
+	}
+	if got := balanceEmpty.Int64(); got != 0 {
+		t.Errorf("the balance must be empty, got %d", got)
+	}
+}
