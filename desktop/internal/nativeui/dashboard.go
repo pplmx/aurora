@@ -101,7 +101,7 @@ func (a *App) dashboardView(c *ui.Context) {
 		return
 	}
 	if !a.dashboard.loaded {
-		ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
+		ui.Row(c).Gap(space2).AlignItems(ui.Center).Children(func() {
 			ui.Spinner(c)
 			ui.Text(c, tr("Loading counters…")).FontSize(textSize(c, 12)).TextColor(c.Theme().TextMuted)
 		})

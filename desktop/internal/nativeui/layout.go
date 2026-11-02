@@ -216,7 +216,7 @@ func badge(c *ui.Context, text string, background, foreground ui.Color) ui.Eleme
 func formCard(c *ui.Context, title, purpose string, fn func()) {
 	panel := card(c, func() {
 		sectionHeading(c, title, purpose)
-		ui.Column(c).Gap(8).Children(fn)
+		ui.Column(c).Gap(space2).Children(fn)
 	})
 	panel.Label(tr(title))
 }

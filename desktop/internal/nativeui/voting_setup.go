@@ -247,7 +247,7 @@ func (a *App) votingCreateSessionBody(c *ui.Context) {
 	var startDate, startTime ui.Element
 	start := ui.Field(c, tr("Start"), func() {
 		ui.Column(c).Gap(2).Children(func() {
-			ui.Row(c).Gap(8).Children(func() {
+			ui.Row(c).Gap(space2).Children(func() {
 				startDate = ui.DateInput(c, &a.voting.sessionStart).Label(tr("Start date")).
 					Description(tr("Local time. Ballots are rejected before it."))
 				startTime = ui.TimeInput(c, &a.voting.sessionStart).Label(tr("Start time")).
@@ -266,7 +266,7 @@ func (a *App) votingCreateSessionBody(c *ui.Context) {
 	var endDate, endTime ui.Element
 	end := ui.Field(c, tr("End"), func() {
 		ui.Column(c).Gap(2).Children(func() {
-			ui.Row(c).Gap(8).Children(func() {
+			ui.Row(c).Gap(space2).Children(func() {
 				endDate = ui.DateInput(c, &a.voting.sessionEnd).Label(tr("End date")).
 					Description(tr("Local time. Ballots are rejected after it."))
 				endTime = ui.TimeInput(c, &a.voting.sessionEnd).Label(tr("End time")).

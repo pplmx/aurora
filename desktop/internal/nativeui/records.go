@@ -289,7 +289,7 @@ func recordPayloadBody(c *ui.Context, payload string) {
 	ui.Column(c).FillWidth().Padding(space2+2, space3).Gap(space1).Radius(radiusSmall).
 		Background(c.Theme().Background).BorderWidth(1).BorderColor(c.Theme().Border).
 		Children(func() {
-			ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Start).Children(func() {
+			ui.Row(c).FillWidth().Gap(space2).AlignItems(ui.Start).Children(func() {
 				ui.Text(c, payload).FontSize(textSize(c, 11.5)).
 					TextColor(c.Theme().TextMuted).FontFeatures("tnum").Grow(1).Shrink(1).MinWidth(0)
 				// The exact bytes are what an auditor pastes into a comparison

@@ -518,3 +518,37 @@ func TestTheTimelineSpineRunsThroughItsDots(t *testing.T) {
 	require.Contains(t, dashboard, "statusDot(c, tone, 9)",
 		"the timeline node must keep the size the spine is centred for")
 }
+
+// TestTheSpacingScaleIsOneArithmeticRun keeps the layout scale a scale. Six of
+// its steps run 4 apart, so a card's gap, its padding and the space above a
+// heading are drawn from measurements a reader can compare; a step nudged by two
+// would make two cards that should look equally spaced look unevenly spaced.
+//
+// space7 is 32 rather than the next step of 28, and deliberately so: it is the one
+// empty-state inset, a jump out of the rhythm for a panel that is alone on the
+// page. It is not part of the run this test measures.
+//
+// The check also fails if a step is dropped: callers spell these names, so a
+// missing constant is a build error, but a scale with a hole in it — four steps
+// where the layout uses six — is not.
+func TestTheSpacingScaleIsOneArithmeticRun(t *testing.T) {
+	design := readRepoFile(t, "desktop", "internal", "nativeui", "design.go")
+
+	steps := []struct {
+		name string
+		want string
+	}{
+		{"space1", "4"}, {"space2", "8"}, {"space3", "12"},
+		{"space4", "16"}, {"space5", "20"}, {"space6", "24"},
+	}
+	for _, step := range steps {
+		require.Containsf(t, design, step.name+" float32 = "+step.want,
+			"%s must be %s", step.name, step.want)
+	}
+
+	// The radii are their own short scale, not derived from the spacing: a card's
+	// corner and the space inside it answer different questions.
+	for _, radius := range []string{"radiusSmall float32 = 8", "radiusPanel float32 = 14", "radiusLarge float32 = 18"} {
+		require.Containsf(t, design, radius, "%q must stay on the scale", radius)
+	}
+}

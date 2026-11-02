@@ -193,7 +193,7 @@ func (a *App) votingSessionControlsCard(c *ui.Context) {
 		// other look like it accepted a free-form id alone.
 		a.sessionShortcuts(c, a.chooseSessionForBallot)
 		sessionReady := strings.TrimSpace(a.voting.controlID) != ""
-		ui.Row(c).Wrap().Gap(8).Children(func() {
+		ui.Row(c).Wrap().Gap(space2).Children(func() {
 			if secondaryButton(c, "Start Session", sessionReady).Clicked() {
 				a.setSessionControl("Starting session…", a.services.StartSession, "Session started.")
 			}

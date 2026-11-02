@@ -343,7 +343,7 @@ func (a *App) tokenCreate(c *ui.Context) {
 			attachFieldError(c, decimals, "Decimals", a.token.decimalsErr)
 		})
 		fieldHint(c, "Owner (base64 public key)", "Required: the owner signs every later mint, transfer and burn.", &a.token.owner)
-		ui.Row(c).Gap(8).Children(func() {
+		ui.Row(c).Gap(space2).Children(func() {
 			if secondaryButton(c, "Generate key pair").Bind(&a.token.generateControl).Clicked() {
 				generated = a.generateTokenOwner()
 			}

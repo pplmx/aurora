@@ -86,7 +86,7 @@ func (a *App) settingsLanguageCard(c *ui.Context) {
 func (a *App) settingsDataCard(c *ui.Context) {
 	formCard(c, "Data", "Aurora keeps the ledger in one local SQLite database.", func() {
 		copyRow(c, "Database path", a.actions.DBPath, nil)
-		ui.Row(c).Wrap().Gap(8).Children(func() {
+		ui.Row(c).Wrap().Gap(space2).Children(func() {
 			const privacy = "Nothing is uploaded; the window opens no network listener and contacts only the oracle sources you configure."
 			a.settingsButton(c, "Show Data Folder", privacy, a.actions.ShowDataFolder)
 			a.settingsButton(c, "Back Up Database…", privacy, a.actions.BackUpDatabase)
@@ -382,7 +382,7 @@ func languageChooser(c *ui.Context, current string, set func(string) error, onEr
 				radio.Description(tr("Use the language selected by the operating system."))
 			}
 		}
-	}).Row().Wrap().Gap(16).Label(tr("Display language"))
+	}).Row().Wrap().Gap(space4).Label(tr("Display language"))
 	if choice == current {
 		return
 	}
