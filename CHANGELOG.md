@@ -12,6 +12,12 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The feed-health counters are scoped to this launch**: they live in the scheduler's
+  memory, not the database, so they begin at zero when the process does — but the card
+  and `/oracle/health` both described them without saying so. A row reading "0/0/0"
+  therefore meant either "nothing has run yet" or "this feed has never failed", and a
+  reader had no way to tell. Both surfaces now say the counters are per launch.
+
 - **The preset says it fills once and then lets go**: choosing a preset fills every
   field it defines and opens the disclosure that hides them, and the box then keeps its
   name while Add Source submits the fields rather than the preset. An edited form and a
