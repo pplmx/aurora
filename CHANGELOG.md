@@ -12,6 +12,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The layout scale is spelled, not numbered**: eighteen call sites wrote a
+  spacing or radius value that is exactly one of the scale's constants. The scale
+  exists so a card, a button and a page header agree on rhythm; a literal that
+  happens to equal a step reads as a local decision and drifts the moment the step
+  changes. Values are unchanged, so nothing on screen moves. One existing check
+  located the language options by matching `Gap(16)` and caught the change
+  immediately; it now matches `Gap(space4)`.
+
 - **The timeline spine is tested to run through its dots**: the dashboard paints
   it with a Painter call, which leaves no element for `Tester` to measure, so the
   geometry can only be pinned where the numbers are written — an 18-wide dot column
