@@ -12,6 +12,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The CLI reference says a failure can write more than one stderr line**: it promised
+  "失败只打印一行错误前缀后退出", which holds only when a log path is configured. Without one
+  the logger falls back to stderr, so the same failure prints `ERR Application error
+  error="..."` and then the `❌ Error:` prefix; a run that used a config file adds
+  `Using config file: ...` too. The section names both extra lines and tells a script to find
+  the prefix rather than count lines.
+
 - **An error with no message is tested to still say so**: the status line decides whether
   it is worth drawing by looking at its text, so an error whose message was empty was not
   drawn at all — a click failed and left the page exactly as it was, with no word, no tint and
