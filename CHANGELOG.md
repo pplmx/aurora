@@ -12,6 +12,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The accent is checked against the navigation layer too**: the contrast test
+  covered the window background and the card surface. The navigation paints a third
+  layer, darker than both in the light palette, and nothing measured it. The lottery
+  accent that shipped before the previous commit was 4.32 there — below the 4.5
+  floor — while both tested surfaces passed. It moves again to `#964B29`, which keeps
+  the new distance from the warning colour and clears the sidebar at 5.06.
+
 - **The lottery accent no longer reads as the warning colour**: `pageAccent`
   promises a module's identity "can never read as success or failure". The lottery
   accent was `#9A5C00` and the light warning `#9A5B00` — ΔE 0.6 in CIELAB, one
