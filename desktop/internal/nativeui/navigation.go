@@ -3,6 +3,7 @@ package nativeui
 import (
 	"runtime"
 	"strings"
+	"time"
 
 	"github.com/egoist/mygo/ui"
 )
@@ -54,6 +55,13 @@ func (a *App) setPage(p page) {
 	}
 	a.page = p
 	a.scroll.X, a.scroll.Y = 0, 0
+	// The timer belongs to the page that armed it. Carrying its due time across
+	// a switch makes the new page's first frame find the timer already expired,
+	// so it reads everything it just read a moment ago and repaints once more —
+	// a second query and a visible flicker for a refresh the reader did not ask
+	// for. Restarting here matches setLiveUpdates, which resets the same field
+	// whenever the setting changes.
+	a.liveNext = time.Time{}
 	a.sidebarReveal = true
 	a.pageAnnouncement = a.PageTitle()
 	if a.actions.SetPageTitle != nil {
