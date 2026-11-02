@@ -12,6 +12,12 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **A drop of several unreadable files reports them once**: each file the shell
+  could not read raised its own dialog, so dropping five unrelated files meant closing
+  five boxes to dismiss one drag. They are now collected and reported together, naming
+  every file in one sentence; a single file keeps the sentence it always had, and a
+  readable file in the same drop still opens on its own.
+
 - **A deep link with only spaces no longer navigates**: `aurora://lottery?id=%20%20`
   carries an id of two spaces, and the handler tested the raw string — so it navigated
   to Lottery and then reported "Enter a lottery ID or block height" about a field the
