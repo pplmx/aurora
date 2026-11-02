@@ -284,7 +284,7 @@ func (a *App) tokenHistory(c *ui.Context) {
 func (a *App) tokenHistoryBody(c *ui.Context) {
 	fieldHint(c, "Owner (base64 public key)", "Leave empty to page the token's whole transfer stream.", &a.token.historyOwner)
 	ui.Collapsible(c, tr("Paging"), &a.token.historyAdvanced, func() {
-		ui.Row(c).Gap(12).Children(func() {
+		ui.Row(c).Gap(space3).Children(func() {
 			ui.Field(c, tr("Limit"), func() {
 				ui.NumberInput(c, &a.token.historyLimit, 1, maxListLimit, 1)
 			})

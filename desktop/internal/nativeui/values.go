@@ -58,7 +58,7 @@ func copyRow(c *ui.Context, label, value string, onCopied func()) ui.Element {
 	}
 	var copyButton ui.Element
 	label = tr(label)
-	ui.Row(c).FillWidth().Wrap().Gap(8).AlignItems(ui.Center).Children(func() {
+	ui.Row(c).FillWidth().Wrap().Gap(space2).AlignItems(ui.Center).Children(func() {
 		ui.Text(c, label).FontSize(textSize(c, labelSize)).Width(labelColumnWidth(c, label)).
 			TextColor(c.Theme().TextMuted).SingleLine()
 		ui.Text(c, abbreviate(value)).FontSize(textSize(c, 12)).TextColor(c.Theme().Text).
@@ -106,7 +106,7 @@ func readout(c *ui.Context, rows []readoutRow) {
 		BorderWidth(1).BorderColor(c.Theme().Border).Children(func() {
 		for i, r := range rows {
 			label := labels[i]
-			ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Start).Children(func() {
+			ui.Row(c).FillWidth().Gap(space2).AlignItems(ui.Start).Children(func() {
 				ui.Text(c, label).FontSize(textSize(c, labelSize)).Width(column).
 					TextColor(c.Theme().TextMuted).SingleLine().Ellipsis("…").Tooltip(label)
 				value := ui.Text(c, r.value).FontSize(textSize(c, 12)).TextColor(c.Theme().Text).

@@ -21,7 +21,7 @@ func (a *App) nftMintBody(c *ui.Context) {
 		field(c, "Token URI (optional)", &a.nft.tokenURI)
 	})
 	fieldHint(c, "Creator (base64 public key)", "The creator becomes the first owner.", &a.nft.creator)
-	ui.Row(c).Gap(8).Children(func() {
+	ui.Row(c).Gap(space2).Children(func() {
 		if secondaryButton(c, "Generate key pair").Bind(&a.nft.generateControl).Clicked() {
 			generated = a.generateNFTCreator()
 		}

@@ -22,7 +22,7 @@ func TestLanguageOptionsMatchTheDoc(t *testing.T) {
 
 	start := strings.Index(code, "func languageChooser(")
 	require.GreaterOrEqual(t, start, 0, "settings.go must keep languageChooser")
-	end := strings.Index(code[start:], "}).Row().Wrap().Gap(16)")
+	end := strings.Index(code[start:], "}).Row().Wrap().Gap(space4)")
 	require.Greater(t, end, 0, "the option list must end before the group's row settings")
 
 	options := languageOptionDecl.FindAllStringSubmatch(code[start:start+end], -1)

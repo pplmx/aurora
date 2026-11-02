@@ -131,7 +131,7 @@ func (a *App) oracleSourceActions(c *ui.Context) {
 		// different widths, and at the workbench column's width the wrap left
 		// Delete alone on a line that looked like a layout accident.
 		actionPair := func(left, right func()) {
-			ui.Row(c).FillWidth().Gap(8).Children(func() {
+			ui.Row(c).FillWidth().Gap(space2).Children(func() {
 				ui.Column(c).Grow(1).Shrink(1).Children(left)
 				ui.Column(c).Grow(1).Shrink(1).Children(right)
 			})

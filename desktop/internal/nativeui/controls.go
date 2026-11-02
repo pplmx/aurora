@@ -650,7 +650,7 @@ func pagerInline(c *ui.Context, name string, offset, count int, hasMore bool) (p
 // total, so the range text and disabled states are supplied by the caller.
 func pagerControls(c *ui.Context, name string, offset int, rangeLabel string, previousDisabled, nextDisabled bool) (previous, next bool) {
 	pagerLabel := fmt.Sprintf(tr("%s pager, %s"), tr(name), rangeLabel)
-	pager := ui.Row(c).FillWidth().AlignItems(ui.Center).Gap(12).
+	pager := ui.Row(c).FillWidth().AlignItems(ui.Center).Gap(space3).
 		Role(ui.RoleGroup).Label(pagerLabel)
 	announcePagerMove(c, pager, offset, rangeLabel)
 	pager.Children(func() {

@@ -87,7 +87,7 @@ func (a *App) votingResultsQuery(c *ui.Context) {
 		// in another card under another heading. The picker stays visible after
 		// a session loads, so reading a second session is one click.
 		a.sessionShortcuts(c, a.showResultsFor)
-		ui.Row(c).Wrap().Gap(8).Children(func() {
+		ui.Row(c).Wrap().Gap(space2).Children(func() {
 			if secondaryButton(c, "Show Results", allSet(a.voting.resultsSession)).Clicked() {
 				a.readSessionResults()
 			}

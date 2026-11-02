@@ -310,7 +310,7 @@ func (a *App) lotteryVerify(c *ui.Context) {
 			ui.TextInput(c, &a.lottery.verifyID)
 		})
 		copyRow(c, "Draw ID", strings.TrimSpace(a.lottery.verifyID), nil)
-		ui.Row(c).Wrap().Gap(8).Children(func() {
+		ui.Row(c).Wrap().Gap(space2).Children(func() {
 			if primaryButton(c, "Verify", allSet(a.lottery.verifyID)).Clicked() {
 				a.verifyLottery()
 			}
