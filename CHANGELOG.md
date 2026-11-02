@@ -12,6 +12,12 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The allowance read card's inputs are tested to be its own**: the token page has
+  four read cards with separate inputs, and the test for that covered three.
+  Allowance is the fourth and the only one with two inputs, an owner and a
+  spender — and Approve, the write card, has its own pair, so reading one
+  spender's allowance must not silently retarget the grant Approve would sign.
+
 - **The burn and the source toggle now have tests**: of seventeen writes, those
   two had none, and both change something the same page shows — a destroyed asset
   still listed, or a switch that disagrees with its row. The burn is driven
