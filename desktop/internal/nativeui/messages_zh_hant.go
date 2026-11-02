@@ -8,11 +8,11 @@ package nativeui
 // Simplified table and a regeneration follows. The key set must stay equal to
 // desktopMessages (TestTraditionalDesktopCatalogCoversEveryKey).
 var desktopMessagesHant = map[string]string{
-	"%d results.":                          "%d 條結果。",
-	"%s is already in the session roster.": "%s 已在會期名單中。",
-	"%s is on the clipboard":               "%s 已複製到剪貼板",
-	"%s pager, %s":                         "%s分頁器，%s",
-	"%s: %d votes":                         "%s：%d 票",
+	"%d results.": "%d 條結果。",
+	"%s is already in the session roster; nothing was added.": "%s 已在會期名單中，未重複新增。",
+	"%s is on the clipboard":                                  "%s 已複製到剪貼板",
+	"%s pager, %s":                                            "%s分頁器，%s",
+	"%s: %d votes":                                            "%s：%d 票",
 	"0 for a whole-unit token; 8 matches most asset conventions.": "0 表示整數單位代幣；8 適合多數資產習慣。",
 	"0 uses the default of 60; at most 30 days.":                  "0 表示默認 60 秒；最大 30 天。",
 	"1 result.": "1 條結果。",

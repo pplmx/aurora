@@ -1069,3 +1069,38 @@ func TestTheDefaultSessionWindowIsATidyDay(t *testing.T) {
 	require.Equal(t, 24*time.Hour, end.Sub(start), "the window opens one day long")
 	require.Equal(t, start.Location(), end.Location(), "both ends stay in the same zone")
 }
+
+// TestAddingACandidateAlreadyInTheRosterSaysNothingWasAdded covers a notice that is
+// correct in state and wrong in wording. The click asks for the candidate to be in the
+// roster; it already is, so the outcome is success and the roster is unchanged. Beside a
+// green "Done", the old sentence — "Alice is already in the session roster." — reads as a
+// second successful add, which is exactly what did not happen.
+//
+// Both halves are asserted: the sentence says no row was added, and the roster really is
+// unchanged, so the wording cannot drift away from the behaviour.
+func TestAddingACandidateAlreadyInTheRosterSaysNothingWasAdded(t *testing.T) {
+	app := New(&fakeServices{candidates: []CandidateRow{{ID: "c1", Name: "Alice"}}})
+	tester := ui.NewTester(app.View, 1400, 4000)
+	app.ShowPage("Voting")
+	tester.Frame()
+
+	app.voting.sessionIDs = "c1"
+	app.voting.candChoice = 0
+	app.addCandidateToRoster()
+	tester.Frame()
+
+	require.False(t, app.voting.status.isErr,
+		"the roster already holds the candidate; this is the state the click asked for")
+	require.Contains(t, app.voting.status.spoken(), "nothing was added",
+		"the sentence must say the roster did not change")
+	require.Equal(t, "c1", app.voting.sessionIDs, "and it must not have changed it")
+	require.True(t, tester.HasText("Done"), "the row still reports success")
+
+	// A candidate that is not in the roster is added, and says so.
+	app.voting.sessionIDs = ""
+	app.addCandidateToRoster()
+	tester.Frame()
+	require.Equal(t, "c1", app.voting.sessionIDs)
+	require.NotContains(t, app.voting.status.spoken(), "nothing was added",
+		"a real add must not borrow the no-op sentence")
+}
