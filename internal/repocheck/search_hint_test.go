@@ -575,3 +575,50 @@ func TestWarningIconIsOnlyForConfirmations(t *testing.T) {
 	require.NotContains(t, icons, "and a\n\t// load that kept stale rows",
 		"the comment must not claim a use the code dropped")
 }
+
+// TestEveryActionButtonLooksDisabledBeforeItsFieldsAreReady covers the promise in
+// the reference: a primary action is disabled until its fields are filled, rather
+// than submitting and reading back an error. The button is the visible half; the
+// handlers check the same fields again, which is the half already covered.
+//
+// The shapes differ by page — a form uses allSet, the Oracle card computes one
+// ready flag and passes it to four buttons, Voting passes its own — so the check is
+// per shape rather than one pattern.
+func TestEveryActionButtonLooksDisabledBeforeItsFieldsAreReady(t *testing.T) {
+	controls := readRepoFile(t, "desktop", "internal", "nativeui", "controls.go")
+	primary := functionSource(t, controls, "func primaryButton")
+	require.Contains(t, primary, "Disabled(!enabled)",
+		"a primary button must be disabled when it is not ready")
+
+	// Every call site has to hand it a readiness value, or it is always enabled.
+	files := []string{
+		"lottery.go", "token.go", "token_write.go", "nft_mint.go", "nft_write.go",
+		"voting_setup.go", "voting_ballot.go", "oracle.go", "oracle_add.go",
+		"oracle_sources.go",
+	}
+	unguarded := 0
+	for _, file := range files {
+		body := readRepoFile(t, "desktop", "internal", "nativeui", file)
+		for _, call := range strings.Split(body, "primaryButton(c, ")[1:] {
+			if !strings.Contains(call[:min(len(call), 120)], ",") {
+				unguarded++
+				t.Errorf("%s calls primaryButton without a readiness value", file)
+			}
+		}
+	}
+	require.Zero(t, unguarded, "every primary action must state when it is ready")
+
+	// The two cards that act on a chosen record compute one flag for a group.
+	oracle := readRepoFile(t, "desktop", "internal", "nativeui", "oracle_sources.go")
+	require.Contains(t, oracle, `sourceReady := strings.TrimSpace(a.oracle.fetchID) != ""`,
+		"the Oracle actions need a chosen source or a typed id")
+	for _, label := range []string{"Enable", "Disable", "Fetch now", "Delete"} {
+		require.Containsf(t, oracle, `(c, "`+label+`", sourceReady)`,
+			"%s must use the source readiness flag", label)
+	}
+	ballot := readRepoFile(t, "desktop", "internal", "nativeui", "voting_ballot.go")
+	for _, label := range []string{"Start Session", "End Session"} {
+		require.Containsf(t, ballot, `(c, "`+label+`", sessionReady)`,
+			"%s must use the session readiness flag", label)
+	}
+}
