@@ -2,6 +2,7 @@ package nativeui
 
 import (
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/egoist/mygo/ui"
@@ -578,4 +579,52 @@ func TestOracleQueryChangeInvalidatesRows(t *testing.T) {
 	require.Empty(t, app.oracle.data, "rows from the previous limit must be dropped")
 	require.True(t, tester.HasText("Couldn't load readings"))
 	require.False(t, tester.HasText("old-page"))
+}
+
+// TestEveryLoadFailureIsVisible covers the rule that a failed read never passes
+// silently. Each card that reads on its own reports through loadWarning, which
+// draws a strip in the danger colour and speaks it; a card that stored the error
+// and drew nothing would leave a stale value on screen with no sign of it.
+//
+// The check drives every read to fail with a distinct message and requires that
+// message to appear in the rendered text. A read whose failure is not meant to
+// be visible would need to be added to the exempt list below with a reason.
+func TestEveryLoadFailureIsVisible(t *testing.T) {
+	const boom = "BOOM_READ_FAILED"
+	failures := func() fakeLoadErrors {
+		err := errors.New(boom)
+		return fakeLoadErrors{
+			history: err, health: err, templates: err, blocks: err, tokens: err,
+			nfts: err, sources: err, voters: err, candidates: err, sessionRoster: err,
+			sessions: err, chain: err, stats: err,
+		}
+	}
+
+	cases := []struct {
+		name string
+		page string
+		open func(*App)
+	}{
+		{name: "dashboard", page: "Dashboard"},
+		{name: "lottery", page: "Lottery"},
+		{name: "voting", page: "Voting"},
+		{name: "token", page: "Token"},
+		{name: "oracle", page: "Oracle"},
+		{name: "nft", page: "NFT"},
+		{name: "blockchain", page: "Blockchain"},
+	}
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			fake := &fakeServices{loadErrs: failures()}
+			app := New(fake)
+			tester := ui.NewTester(app.View, 1400, 9000)
+			app.ShowPage(tc.page)
+			tester.Frame()
+			tester.Frame()
+
+			require.Contains(t, strings.Join(tester.Texts(), "\n"), boom,
+				"the page must show what failed; a silent failure leaves stale values that look current")
+		})
+	}
 }
