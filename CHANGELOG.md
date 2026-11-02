@@ -12,6 +12,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The four NFT cards are tested to keep their own ids**: Inspect, Transfer,
+  Burn and History each hold an id; a selection fills all four on purpose, but a
+  typed id is a local edit, so retargeting a transfer must not quietly aim the
+  burn at the same asset. `docs/desktop.md` now states the separation for both
+  pages — four read cards and four write cards on the token page, Allowance's
+  owner and spender included, and four ids on the NFT page.
+
 - **The allowance read card's inputs are tested to be its own**: the token page has
   four read cards with separate inputs, and the test for that covered three.
   Allowance is the fourth and the only one with two inputs, an owner and a
