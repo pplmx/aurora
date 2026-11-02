@@ -517,3 +517,62 @@ func TestTheTwoColumnBreakpointFlipsAtItsStatedWidth(t *testing.T) {
 	require.Equal(t, lotteryTop(t, int(twoColumnMinWidth)-1), lotteryTop(t, int(twoColumnMinWidth)),
 		"the left column's first rail keeps its place across the breakpoint")
 }
+
+// TestLargerTextMovesTheTwoColumnBreakpointUp covers the multiplication in
+// sideBySide. The threshold is a width that only works at the default text size;
+// at 125% the same window has proportionally less room for two cards, so the
+// breakpoint moves up with the scale. Without the multiplier the columns would
+// squeeze into unreadable strips before the layout ever stacked.
+//
+// The assertion is the decision at one fixed width, measured across scales, so a
+// dropped multiplier fails here rather than only at a window size nobody tested.
+func TestLargerTextMovesTheTwoColumnBreakpointUp(t *testing.T) {
+	const width = 1240 // exactly the breakpoint at 100%
+
+	stacked := func(t *testing.T, scale float32) bool {
+		t.Helper()
+		app := New(&fakeServices{})
+		tester := ui.NewTester(app.View, width, 3000)
+		tester.SetPreferences(ui.Preferences{TextScale: scale})
+		tester.Frame()
+		oracle, ok := tester.Find(tr("Registered data feeds"))
+		require.True(t, ok, "the oracle rail must be on the page")
+		ledger, ok := tester.Find(tr("Entries on the audit chain"))
+		require.True(t, ok, "the ledger rail must be on the page")
+		// Two columns put them at different x; stacked puts them in one column.
+		return oracle.X == ledger.X
+	}
+
+	require.False(t, stacked(t, 1), "at 100%% the breakpoint width is still two columns")
+	for _, scale := range []float32{1.25, 1.5, 2} {
+		require.Truef(t, stacked(t, scale),
+			"at %.0f%% text the same window must stack", scale*100)
+	}
+}
+
+// TestLargeTextWidensTheSidebarInsteadOfClippingLabels covers the other half of
+// the text-scale layout: the navigation is a fixed width until the labels no
+// longer fit, then it measures them and grows, bounded by a fraction of the
+// window so it cannot take the page's room.
+func TestLargeTextWidensTheSidebarInsteadOfClippingLabels(t *testing.T) {
+	contentStart := func(t *testing.T, scale float32) float32 {
+		t.Helper()
+		app := New(&fakeServices{})
+		tester := ui.NewTester(app.View, 1400, 3000)
+		tester.SetPreferences(ui.Preferences{TextScale: scale})
+		tester.Frame()
+		// A card heading in the content area: its x is where the sidebar ends.
+		heading, ok := tester.Find(tr("Quick start"))
+		require.True(t, ok, "the dashboard must show its quick start card")
+		return heading.X
+	}
+
+	normal := contentStart(t, 1)
+	doubled := contentStart(t, 2)
+	require.Greater(t, doubled, normal,
+		"doubling the text size must widen the navigation rather than clip its labels")
+
+	// The bound: the sidebar never takes more than its stated fraction.
+	require.LessOrEqual(t, doubled, 1400*sidebarMaxFraction,
+		"the navigation must stay within its share of the window")
+}
