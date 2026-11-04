@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -1103,4 +1104,48 @@ func TestAddingACandidateAlreadyInTheRosterSaysNothingWasAdded(t *testing.T) {
 	require.Equal(t, "c1", app.voting.sessionIDs)
 	require.NotContains(t, app.voting.status.spoken(), "nothing was added",
 		"a real add must not borrow the no-op sentence")
+}
+
+// TestAnOverlongCandidateNameIsRejectedAtTheField covers where a length refusal
+// belongs. The store enforces the bound and its message names no number, so the
+// operator had to match a sentence in the status line back to one of three
+// controls. Validating before the write puts the same rule on the field it
+// applies to — the sentence is the domain's own, so the window cannot describe a
+// different limit than the store applies.
+func TestAnOverlongCandidateNameIsRejectedAtTheField(t *testing.T) {
+	fake := workbenchFakes()
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 2400)
+	app.ShowPage("Voting")
+	tester.Frame()
+	before := fake.candidateRegisterCalls
+
+	app.voting.candName = strings.Repeat("A", voting.MaxCandidateNameLength+1)
+	app.registerCandidate()
+	tester.Frame()
+
+	require.Equal(t, before, fake.candidateRegisterCalls,
+		"a name the store would refuse must not reach it")
+	require.NotEmpty(t, app.voting.candNameErr)
+	require.True(t, tester.HasText(app.voting.candNameErr),
+		"the refusal belongs on the field, where the fix is")
+}
+
+// TestACandidateNameAtTheLimitIsAccepted keeps the check from being too eager: the
+// bound is inclusive, and a name one character shorter than the rejected one must
+// go through.
+func TestACandidateNameAtTheLimitIsAccepted(t *testing.T) {
+	fake := workbenchFakes()
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 2400)
+	app.ShowPage("Voting")
+	tester.Frame()
+	before := fake.candidateRegisterCalls
+
+	app.voting.candName = strings.Repeat("A", voting.MaxCandidateNameLength)
+	app.registerCandidate()
+	tester.Frame()
+
+	require.Equal(t, before+1, fake.candidateRegisterCalls, "the bound is inclusive")
+	require.Empty(t, app.voting.candNameErr)
 }

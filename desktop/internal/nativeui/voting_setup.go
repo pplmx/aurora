@@ -150,6 +150,14 @@ func (a *App) registerCandidate() {
 		return
 	}
 	party, program := strings.TrimSpace(a.voting.candParty), strings.TrimSpace(a.voting.candProgram)
+	// The store enforces these bounds and its refusal names no number. Checking
+	// the length here turns the same rule into a message on the field it applies
+	// to, so the operator can fix it without matching a sentence in the status
+	// line back to one of three controls.
+	if err := voting.ValidateCandidateName(name); err != nil {
+		a.voting.candNameErr = err.Error()
+		return
+	}
 	a.runWrite("Registering candidate…", func() func() {
 		cand, err := a.services.RegisterCandidate(name, party, program)
 		return func() {

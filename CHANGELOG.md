@@ -56,6 +56,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **An over-long candidate name is refused at its own field**: the store enforces the bound, but its
+  message names no number, so the operator had to match a sentence in the status line back to one of
+  three controls. The window now runs the domain's own validator before the write, so the refusal
+  appears under the field that needs fixing — and because the sentence is the domain's, the window
+  cannot describe a different limit than the store applies.
+
+### Fixed
+
 - **One write owns the database on both paths**: the busy gate lived only on the asynchronous path, so
   the synchronous one relied on the window having disabled the page body. A caller that reached it
   anyway — a keyboard chord, a second click in the same frame, or a test — started a second write under
