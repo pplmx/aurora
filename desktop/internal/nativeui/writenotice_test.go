@@ -88,12 +88,12 @@ func TestWriteNoticeReturnsToThePage(t *testing.T) {
 	tester.Frame()
 	settleOnPage(t, app, tester, pageDashboard)
 
-	// The toast's action is the same call the button runs; driving the callback
-	// directly keeps the assertion about the destination rather than about
-	// toast hit-testing, which MyGo tests itself.
-	app.goToOrigin(pageToken)
+	// Click the real button rather than the callback behind it: the action is
+	// only useful if it is reachable, and a toast drawn outside the window or
+	// covered by one of its siblings would pass a callback-only test.
+	require.NoError(t, tester.Click("Open Token"))
 	tester.Frame()
-	require.Equal(t, pageToken, app.page)
+	require.Equal(t, pageToken, app.page, "the offered action must open the page")
 }
 
 // TestFailedWriteOffPageSaysItFailed keeps a failure from looking like a success

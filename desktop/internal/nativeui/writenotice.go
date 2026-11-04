@@ -52,8 +52,9 @@ func (a *App) returnLabel(p page) string {
 	return fmt.Sprintf(tr("Open %s"), tr(pageTitles[p]))
 }
 
-// goToOrigin is the toast action's body, kept separate so a test can prove the
-// destination without driving a toast's button.
+// goToOrigin is the toast action's body. It goes through setPage rather than
+// setting the page directly, so the destination loads its data and announces
+// itself exactly as a sidebar click does.
 func (a *App) goToOrigin(p page) {
 	a.setPage(p)
 	if a.invalidate != nil {
