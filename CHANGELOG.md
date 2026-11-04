@@ -34,6 +34,16 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Added
 
+- **The race detector was run on every package and found no data race**: the window packages
+  (559 s), `deskapp`, and the whole core module came back clean, so the background write path and the
+  per-frame audits hold under the detector as well as under the tests.
+- **A race recipe that survives a working tree with local captures**: the capture scratch tests
+  (`zz_*_test.go`, excluded from git) render and PNG-encode a dozen full windows, which the detector
+  turns into a near-hang while it times the image encoder. `desktop-race` stays exactly what CI runs;
+  `desktop-race-window` is the same check over the window packages with those tests left out.
+
+### Added
+
 - **The busy bar follows the reader across every page**: a write can take seconds and the sidebar stays
   usable during it, so the banner has to be a fact about the window rather than about one page — moving
   away from the form must not look like the write ended. All eight destinations are exercised, each

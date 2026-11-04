@@ -182,6 +182,14 @@ desktop-coverage-floor:
 desktop-race:
     cd desktop && CGO_ENABLED=1 go test -race -count=1 ./...
 
+# The capture scratch tests (zz_*_test.go, excluded from git) render and PNG-encode
+# a dozen full windows, which the detector turns into a near-hang while it times the
+# image encoder rather than this window.
+
+# Run the race detector for the window packages only
+desktop-race-window:
+    cd desktop && CGO_ENABLED=1 go test -race -count=1 -skip '^TestCapture' ./internal/nativeui/ ./internal/deskapp/ ./cmd/...
+
 # Open the real window and capture each page as a PNG through MyGo's automation
 # plugin. The offscreen tester covers rendering, but only this path proves a
 # built binary draws what the tests expect; it complements the packaging job's

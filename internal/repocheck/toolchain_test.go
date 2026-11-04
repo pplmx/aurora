@@ -213,8 +213,13 @@ func TestDesktopCheckStaysCgoFree(t *testing.T) {
 	test := justRecipe(t, justfile, "desktop-test")
 	assert.Contains(t, test, "CGO_ENABLED=0 go test -count=1 ./...")
 
+	// The recipe may narrow the suite (`-skip '^TestCapture'` leaves out the local
+	// scratch captures, which the race detector turns into a near-hang while it
+	// times the PNG encoder). What must not change is the cgo requirement: the
+	// detector needs it explicitly, and a recipe that lost it would run under the
+	// race build tags without actually checking anything.
 	race := justRecipe(t, justfile, "desktop-race")
-	assert.Contains(t, race, "CGO_ENABLED=1 go test -race -count=1 ./...",
+	assert.Contains(t, race, "CGO_ENABLED=1 go test -race",
 		"the cgo requirement of the race detector must be explicit")
 
 	root := justRecipe(t, justfile, "race")

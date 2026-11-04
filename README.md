@@ -65,6 +65,7 @@ just desktop-run     # 构建并打开窗口
 just desktop-test    # 桌面模块测试（根目录 just test 不进嵌套模块）
 just desktop-check   # gofmt + build + vet + lint + 纯 Go 测试（无需 C 工具链）
 just desktop-race    # 可选 race 检测（显式启用 cgo）
+just desktop-race-window # race 检测仅跑窗口包，跳过本地截图草稿
 just desktop-verbose [包] [测试名] # 单包 verbose 跑一次，输出留档便于定位失败测试
 just desktop-stress [次数] [包]    # 单包重复 N 次，偶发失败也会带出测试名
 just desktop-package # mygo build：.deb / tar.gz / desktop entry
