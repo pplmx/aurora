@@ -1,6 +1,7 @@
 package nativeui
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/egoist/mygo/ui"
@@ -195,4 +196,46 @@ func TestZoomIsAnnouncedForScreenReaders(t *testing.T) {
 	tester.Frame()
 	require.Empty(t, tester.Announcements(),
 		"an unrelated frame must not repeat the ratio")
+}
+
+// TestZoomKeepsEveryPageInsideTheWindow holds the zoom to the same promise the
+// large-text tests hold the font to. Zooming lays the view out in a window 1/z
+// the size, so a page that only fits because the sidebar and columns were tuned
+// at 100% would push content past the right edge — and at 200% in the minimum
+// window the content area is a quarter of what it was.
+func TestZoomKeepsEveryPageInsideTheWindow(t *testing.T) {
+	const windowWidth, windowHeight = 900, 600
+	for _, zoom := range []float32{1.25, 1.5, 1.75, 2} {
+		t.Run(fmt.Sprintf("zoom=%g", zoom), func(t *testing.T) {
+			for _, target := range pageOrder {
+				app := New(workbenchFakes())
+				tester := ui.NewTester(app.View, windowWidth, windowHeight)
+				app.contentZoom = zoom
+				app.ShowPage(pageTitles[target])
+				tester.Frame()
+
+				violations := func() []string {
+					var out []string
+					for _, text := range tester.Texts() {
+						rect, ok := tester.Find(text)
+						if !ok || rect.W == 0 {
+							continue
+						}
+						if rect.X < -1 || rect.X+rect.W > windowWidth+1 {
+							out = append(out, text)
+						}
+					}
+					return out
+				}
+				// Every page is a scroll, so walk it: an element can be built and
+				// laid out far below the viewport and still be in the wrong column.
+				for step := 0; step < 25; step++ {
+					require.Emptyf(t, violations(),
+						"%s at %s zoom must keep its content inside the window", pageTitles[target], zoomLabel(zoom))
+					app.scroll.Y += 400
+					tester.Frame()
+				}
+			}
+		})
+	}
 }
