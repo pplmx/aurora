@@ -124,3 +124,30 @@ func TestTheBacklogLineOpensTheAuditLedger(t *testing.T) {
 	require.Equal(t, pageBlockchain, app.page,
 		"the backlog line must open the ledger that holds the parked events")
 }
+
+// TestTheBacklogLineIsKeyboardReachable covers the reader who never touches a
+// pointer. The line is a button, so Tab must reach it and Enter must open the
+// ledger; a report that only answers a mouse would leave exactly the user who
+// relies on the keyboard unable to act on it.
+func TestTheBacklogLineIsKeyboardReachable(t *testing.T) {
+	app := New(&fakeServices{})
+	app.SetActions(outboxActions(2, 20*time.Second))
+	tester := ui.NewTester(app.View, 1280, 900)
+	tester.Frame()
+
+	const line = "Audit outbox: 2 pending, oldest 20s"
+	reached := false
+	for range 60 {
+		tester.Key(0, ui.KeyTab)
+		tester.Frame()
+		if tester.Focused(line) {
+			reached = true
+			break
+		}
+	}
+	require.True(t, reached, "Tab must reach the backlog line")
+
+	tester.Key(0, ui.KeyEnter)
+	tester.Frame()
+	require.Equal(t, pageBlockchain, app.page, "Enter must open the ledger like a click does")
+}
