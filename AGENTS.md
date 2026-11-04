@@ -27,6 +27,7 @@
 | lint     | `just lint`（配置里不含 errcheck，含 bodyclose/misspell/errorlint/nilerr/durationcheck/rowserrcheck/sqlclosecheck，原因见 `.golangci.yml`）；桌面模块的 lint 在 `just desktop-check` 里 |
 | 全部     | `just verify`（按表依次跑 check/test/lint/覆盖率底线与桌面门槛）                                                                                                                        |
 | 界面     | `just desktop-shot`                                                                                                                                                                     |
+| 偶发失败 | `just desktop-verbose` / `just desktop-stress`（保留完整输出，含测试名）                                                                                                                |
 
 - 真实窗口截图按需加环境变量：有数据 `AURORA_E2E_SEED=1`、浅色
   `AURORA_E2E_THEME=light`、窄窗 `AURORA_E2E_SIZE=900x600`。

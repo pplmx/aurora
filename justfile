@@ -144,6 +144,27 @@ desktop-check:
     cd desktop && golangci-lint run --config ../.golangci.yml ./...
     cd desktop && CGO_ENABLED=0 go test -coverprofile=coverage-desktop.out -count=1 ./...
 
+# Run one package verbosely, keeping the whole output in a file. A gate that
+# prints only the last line loses the failing test's name, which is the one fact
+# needed to fix an intermittent failure; this recipe keeps the evidence.
+#
+# Usage: just desktop-verbose [package] [test-name-filter]
+#
+# One verbose run of a package, output kept at /tmp.
+desktop-verbose package="github.com/pplmx/aurora/desktop/internal/nativeui" filter="":
+    cd desktop && CGO_ENABLED=0 go test -count=1 -v -run "{{filter}}" {{package}} > /tmp/aurora-verbose.log 2>&1 || { echo "FAILED — full output at /tmp/aurora-verbose.log"; grep -A 25 -- '--- FAIL' /tmp/aurora-verbose.log | head -80; exit 1; }
+    @echo "ok — full output at /tmp/aurora-verbose.log"
+
+# Stress one package N times. A `-count` run repeats every test in the package,
+# so an intermittent failure surfaces with its own name in the output.
+#
+# Usage: just desktop-stress [runs] [package]
+#
+# Repeats one package N times to surface an intermittent failure.
+desktop-stress runs="10" package="github.com/pplmx/aurora/desktop/internal/nativeui":
+    cd desktop && CGO_ENABLED=0 go test -count={{runs}} -v {{package}} > /tmp/aurora-stress.log 2>&1 || { echo "FAILED — full output at /tmp/aurora-stress.log"; grep -A 25 -- '--- FAIL' /tmp/aurora-stress.log | head -80; exit 1; }
+    @echo "{{runs}} runs passed"
+
 # The views carry the behaviour and the adapters carry the platform glue; a
 # floor keeps a refactor from deleting the tests that cover them. The command
 # binaries are wiring and stay out of the check.
