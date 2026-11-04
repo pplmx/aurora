@@ -235,3 +235,22 @@ func TestStartupWiresTheRememberedPage(t *testing.T) {
 			"the startup wiring must hand the window its remembered page (missing %q)", want)
 	}
 }
+
+// TestNextLaunchOpensOnTheRememberedPage runs the whole path the way a restart
+// does: one shell records a page switch, a second shell loads the same settings
+// file, and the window state it feeds opens on that page. The two halves are
+// tested separately above; this one proves they agree through the real files and
+// the real App, which is where a field rename would otherwise slip through.
+func TestNextLaunchOpensOnTheRememberedPage(t *testing.T) {
+	dbPath := filepath.Join(t.TempDir(), "aurora.db")
+
+	first := NewShell(About{DBPath: dbPath})
+	first.PageChanged("voting")
+
+	second := NewShell(About{DBPath: dbPath})
+	app := nativeui.New(nil)
+	app.SetActions(nativeui.Actions{LastPage: second.LastPage()})
+
+	require.Equal(t, "Voting", app.PageTitle(),
+		"the next launch must open on the page the last one closed on")
+}
