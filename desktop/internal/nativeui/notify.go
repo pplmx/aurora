@@ -26,8 +26,13 @@ const writeNoticeAfter = 10 * time.Second
 // names it rather than calling MyGo directly: the view package has no window or
 // app handle, and a test can then observe the decision without a desktop.
 type NotifyOptions struct {
-	// ID lets a click be routed back: the shell matches it to a page.
-	ID    string
+	// ID identifies the notification on the platform, so a second write from
+	// the same page replaces the first notice instead of stacking.
+	ID string
+	// Page is the page the write started on, as its stable id. A click brings
+	// that page forward: a notification that only raises the window leaves the
+	// operator to remember which page the record went to.
+	Page  string
 	Title string
 	Body  string
 }
@@ -35,7 +40,7 @@ type NotifyOptions struct {
 // maybeNotifyWrite raises the completion notice when the write ran long enough
 // and the window is not in front. It is a no-op without a notify callback, which
 // is how every view test runs and how the app behaves before the shell wires it.
-func (a *App) maybeNotifyWrite(label string, started time.Time) {
+func (a *App) maybeNotifyWrite(label string, started time.Time, origin page) {
 	if a.actions.Notify == nil || a.actions.Active == nil {
 		return
 	}
@@ -48,7 +53,8 @@ func (a *App) maybeNotifyWrite(label string, started time.Time) {
 		return
 	}
 	a.actions.Notify(NotifyOptions{
-		ID:    "write-done",
+		ID:    "write-done:" + pageIDs[origin],
+		Page:  pageIDs[origin],
 		Title: tr("Aurora finished a task"),
 		Body:  tr(label),
 	})

@@ -67,7 +67,7 @@ func (a *App) pollAsync(c *ui.Context) {
 		// A write that ran for a while and finished while the window was in the
 		// background raises a system notification: its result is only drawn in
 		// a window nobody is looking at.
-		a.maybeNotifyWrite(label, started)
+		a.maybeNotifyWrite(label, started, origin.page)
 		// The reader may have moved while the write ran. Its outcome still
 		// belongs to the page that started it, but nobody is looking at that
 		// page's status line, so the window says it where they are.

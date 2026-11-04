@@ -1,6 +1,8 @@
 package deskapp
 
 import (
+	"strings"
+
 	"github.com/egoist/mygo"
 
 	"github.com/pplmx/aurora/desktop/internal/nativeui"
@@ -19,7 +21,15 @@ var (
 	}
 	// appIsActive is the front-ness the view asks about before raising one.
 	appIsActive = mygo.App.IsActive
+	// appFocus brings the app forward when its notice is clicked.
+	appFocus = mygo.App.Focus
 )
+
+// notificationPagePrefix marks a completion notice and carries the page the
+// write started on, so a click knows where to go without a second lookup that
+// would have to survive a restart. MyGo hands the raw ID back on click, also
+// for a notice raised by an earlier run, so the ID has to be self-describing.
+const notificationPagePrefix = "write-done:"
 
 // Notify shows a task's completion while the window is in the background. The
 // view decides when it is worth it; the shell owns the call because showing a
@@ -33,8 +43,12 @@ func (s *Shell) Notify(opts nativeui.NotifyOptions) {
 	if !notificationsSupported() {
 		return
 	}
+	id := opts.ID
+	if opts.Page != "" {
+		id = notificationPagePrefix + opts.Page
+	}
 	_ = showNotification(mygo.NotificationOptions{
-		ID:    opts.ID,
+		ID:    id,
 		Title: opts.Title,
 		Body:  opts.Body,
 	})
@@ -51,15 +65,32 @@ func (s *Shell) Active() bool {
 	return appIsActive()
 }
 
-// OpenNotification routes a click on a completion notice back to the window,
-// which is what makes the notification useful: it names the task, and clicking
-// it brings the page that owns the record to the front.
+// OpenNotification routes a click on a completion notice back to the record:
+// the window comes forward and the page the write started on becomes the visible
+// one. Raising the window alone would leave the operator on whatever page they
+// had moved to, looking for a result the notice already named.
+//
+// A page a later release removed, or an ID from another notification, changes
+// nothing: bringing the window forward is still better than a click that does
+// nothing at all.
 func (s *Shell) OpenNotification(id string) {
-	switch id {
-	case "write-done":
-		if win := s.Window(); win != nil && !win.IsDestroyed() {
-			mygo.App.Focus()
-			win.Focus()
-		}
+	// The application comes forward first, whether or not a window is attached:
+	// a click that only navigates a hidden window would look like nothing
+	// happened.
+	appFocus()
+	win := s.Window()
+	hasWindow := win != nil && !win.IsDestroyed()
+	if hasWindow {
+		win.Focus()
+	}
+	page, ok := strings.CutPrefix(id, notificationPagePrefix)
+	if !ok || page == "" {
+		return
+	}
+	if app := s.App(); app != nil {
+		app.ShowPage(page)
+	}
+	if hasWindow {
+		win.Invalidate()
 	}
 }

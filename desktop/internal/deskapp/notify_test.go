@@ -38,11 +38,13 @@ func TestShellShowsATaskCompletionNotice(t *testing.T) {
 	shell := NewShell(About{})
 
 	shell.Notify(nativeui.NotifyOptions{
-		ID: "write-done", Title: "Aurora finished a task", Body: "Fetching source…",
+		ID: "write-done:oracle", Page: "oracle",
+		Title: "Aurora finished a task", Body: "Fetching source…",
 	})
 
 	require.Len(t, *shown, 1)
-	require.Equal(t, "write-done", (*shown)[0].ID, "the id is how a click finds its page")
+	require.Equal(t, "write-done:oracle", (*shown)[0].ID,
+		"the id carries the page, so a click can route without a second lookup")
 	require.Equal(t, "Aurora finished a task", (*shown)[0].Title)
 	require.Equal(t, "Fetching source…", (*shown)[0].Body)
 }
@@ -95,4 +97,48 @@ func TestStartupWiresTheNotificationHooks(t *testing.T) {
 		require.Contains(t, main, want,
 			"the startup wiring must connect the notification hooks (missing %q)", want)
 	}
+}
+
+// TestNotificationClickOpensThePageTheWriteStartedOn makes the notice useful
+// rather than merely polite. Clicking brings the window forward and shows the
+// page the write started on; raising the window alone would leave the operator
+// on whatever page they had moved to, looking for a result the notice named.
+func TestNotificationClickOpensThePageTheWriteStartedOn(t *testing.T) {
+	originalFocus := appFocus
+	t.Cleanup(func() { appFocus = originalFocus })
+	focused := 0
+	appFocus = func() { focused++ }
+
+	shell := NewShell(About{})
+	app := nativeui.New(nil)
+	shell.SetApp(app)
+
+	shell.OpenNotification("write-done:oracle")
+
+	require.Equal(t, 1, focused, "the window must come forward")
+	require.Equal(t, "Oracle", app.PageTitle(),
+		"and the page the write started on must be the visible one")
+}
+
+// TestNotificationClickWithoutAPageStillRaisesTheWindow covers the IDs this
+// release does not recognise: a notice from another build, or one whose page was
+// removed. Bringing the window forward is still better than a click that does
+// nothing, and the page must not change on a guess.
+func TestNotificationClickWithoutAPageStillRaisesTheWindow(t *testing.T) {
+	originalFocus := appFocus
+	t.Cleanup(func() { appFocus = originalFocus })
+	focused := 0
+	appFocus = func() { focused++ }
+
+	shell := NewShell(About{})
+	app := nativeui.New(nil)
+	app.ShowPage("Token")
+	shell.SetApp(app)
+
+	for _, id := range []string{"", "write-done", "something-else:settings"} {
+		shell.OpenNotification(id)
+	}
+	require.Equal(t, 3, focused, "the window comes forward for any notice")
+	require.Equal(t, "Token", app.PageTitle(),
+		"an unrecognised id must not navigate on a guess")
 }

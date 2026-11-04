@@ -31,7 +31,10 @@ The milestone notes under `.planning/` are history, not current instructions.
   drawn in the window, and a write that runs off the frame thread is exactly the one the operator
   switches away from. A write that took at least ten seconds and settled while the app was not the
   front one now raises a notification whose body is that write's own label, and clicking it brings
-  the window forward. Below ten seconds nothing is raised — a notification for a two-second mint is
+  the window forward and opens the page the write started on — raising the window alone would leave
+  the operator on whatever page they had moved to, looking for a result the notice had already named.
+  The page id travels inside the notification id, because MyGo hands the raw id back to a click,
+  including for a notice raised by an earlier run. Below ten seconds nothing is raised — a notification for a two-second mint is
   noise, and noise is what makes people turn notifications off. A platform that cannot show one
   (an unpackaged macOS build, a Linux session without a notification daemon) or a denied permission
   is skipped silently: the notification is an extra channel, and the window still reports the

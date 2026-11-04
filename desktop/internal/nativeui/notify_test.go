@@ -49,7 +49,10 @@ func TestSlowWriteInTheBackgroundRaisesANotification(t *testing.T) {
 	finishWrite(t, app, tester, writeNoticeAfter+time.Second)
 
 	require.Len(t, recorder.shown, 1, "a slow write finishing in the background must notify")
-	require.Equal(t, "write-done", recorder.shown[0].ID)
+	require.Equal(t, "token", recorder.shown[0].Page,
+		"the notice carries the page the write started on, so a click can return there")
+	require.Equal(t, "write-done:token", recorder.shown[0].ID,
+		"and the id names it, so two pages do not replace each other's notice")
 	require.NotEmpty(t, recorder.shown[0].Body, "the notice says which task finished")
 	require.Contains(t, recorder.shown[0].Body, "Creating token",
 		"the task's own label is what tells the operator what was done")
