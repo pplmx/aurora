@@ -34,6 +34,16 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Added
 
+- **The busy bar follows the reader across every page**: a write can take seconds and the sidebar stays
+  usable during it, so the banner has to be a fact about the window rather than about one page — moving
+  away from the form must not look like the write ended. All eight destinations are exercised, each
+  asserting the write can be reached and the banner still names it.
+- **The timing-sensitive suites were stressed after last round's fix**: live refresh, tab switching,
+  pagination, the outbox, the palette search and the per-frame audit were each repeated 15–20 times
+  across several rounds and stayed green, so the race fixed last round was the one that was there.
+
+### Added
+
 - **Every busy gate is checked at its source**: twelve controls stop working while a write owns the
   database — the File menu button, the export/import/backup shortcuts, Refresh, the page body, the
   palette's ledger search — and a window test cannot tell whether any of them is actually gated, because

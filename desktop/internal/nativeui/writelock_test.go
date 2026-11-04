@@ -50,3 +50,29 @@ func TestASecondWriteWaitsForTheFirst(t *testing.T) {
 		"a write attempted during another must not reach storage")
 	require.NotEmpty(t, app.busy, "and must not clear the running write's banner")
 }
+
+// TestTheBusyBarFollowsTheReaderAcrossEveryPage generalises the arrangement to
+// where the reader can go. A write can take seconds and the sidebar stays usable
+// during it, so the banner must be a fact about the window rather than about one
+// page — otherwise moving away from the form looks like the write ended.
+func TestTheBusyBarFollowsTheReaderAcrossEveryPage(t *testing.T) {
+	for _, target := range pageOrder {
+		t.Run(pageTitles[target], func(t *testing.T) {
+			app := New(workbenchFakes())
+			tester := ui.NewTester(app.View, 1280, 2400)
+			app.ShowPage("Token")
+			tester.Frame()
+
+			app.busy = "Creating token…"
+			app.busyLabel = "Creating token…"
+			tester.Frame()
+
+			app.ShowPage(pageTitles[target])
+			tester.Frame()
+
+			require.Equal(t, target, app.page, "the write must not block navigation")
+			require.Truef(t, tester.HasText("Creating token…"),
+				"the busy bar must still name the write on %s", pageTitles[target])
+		})
+	}
+}
