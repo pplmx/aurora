@@ -27,6 +27,18 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Added
 
+- **A parked audit backlog shows in the sidebar**: the outbox parks audit events whose delivery
+  failed and retries them, so a backlog means the chain's own record is behind what the modules
+  wrote. It was reported in exactly one place — a line inside the copied diagnostics, which only
+  appears if the operator opens Settings and clicks Copy. Nobody opens Settings to discover a
+  problem. The footer now carries it beside the ledger's own health, where it is seen without being
+  looked for, and stays there across page switches because a backlog can last for minutes. An empty
+  outbox says nothing: a permanent "0 pending" would train the reader to ignore the space where the
+  warning appears. A backlog inside the drainer's retry window is a warning; one whose oldest event
+  has outlived it is a failure and says "not draining", because the two need different responses.
+
+### Added
+
 - **The command palette opens a record from its id**: a record id is what an operator copies into a
   ticket or a chat message, and the window could only reach a *page* — a pasted token, NFT, oracle
   source or session id meant opening the page and hunting the row by eye. Typing `kind:id`

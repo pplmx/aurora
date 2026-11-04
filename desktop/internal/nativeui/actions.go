@@ -155,6 +155,23 @@ func (a *App) sidebarActions(c *ui.Context) {
 					TextColor(c.Theme().TextMuted).SingleLine()
 			})
 		}
+		// A parked audit backlog is a condition, not an event: it can last for
+		// minutes, so it belongs where the ledger's own health already sits and
+		// must be visible without opening anything. It is shown only when there
+		// is one — an empty outbox is healthy and has nothing to say.
+		if line, stuck := outboxLine(a.readOutbox()); line != "" {
+			tone := c.Theme().Warning
+			if stuck {
+				tone = c.Theme().Danger
+			}
+			row := ui.Row(c).FillWidth().Gap(space2).AlignItems(ui.Center).Padding(space1, 2).
+				Role(ui.RoleStatus).Label(line)
+			row.Children(func() {
+				statusDot(c, tone, 5)
+				ui.Text(c, line).FontSize(textSize(c, 10)).TextColor(tone).
+					Grow(1).Shrink(1).MinWidth(0).Wrap()
+			})
+		}
 	})
 }
 
@@ -174,7 +191,7 @@ func versionBadge(version string) string {
 func (a Actions) empty() bool {
 	return a.BackUpDatabase == nil && a.ExportLotteries == nil && a.ImportLotteries == nil &&
 		a.ShowDataFolder == nil && a.ShowAbout == nil && a.RecentDocuments == nil &&
-		a.SetLanguage == nil && a.SetThemeMode == nil
+		a.SetLanguage == nil && a.SetThemeMode == nil && a.OutboxPending == nil
 }
 
 // actionShortcuts keeps the file shortcuts that used to come from the native
