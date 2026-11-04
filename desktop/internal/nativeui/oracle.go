@@ -18,8 +18,12 @@ const maxOracleIntervalSeconds = oracle.MaxSourceIntervalSeconds
 // oracleState is the Oracle page's state.
 type oracleState struct {
 	// Add-source form.
-	addName     string
-	addURL      string
+	addName string
+	addURL  string
+	// addURLErr carries the domain's own refusal for the URL, so an address the
+	// SSRF policy rejects is reported under the control that holds it rather than
+	// in the card's status line above a form of seven fields.
+	addURLErr   string
 	addType     string
 	addMethod   string
 	addPath     string

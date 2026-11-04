@@ -56,6 +56,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **An unsafe oracle source URL is refused at its own control**: the store applies an SSRF policy —
+  scheme, host shape, loopback and the cloud-metadata endpoint — and its message names no field, so the
+  sentence arrived in the card's status line above a form of seven controls. The window now runs the
+  domain's validator before the write, and the three distinct reasons the policy gives each land under
+  the URL field.
+
+### Fixed
+
 - **An over-long session title or description is refused at its own control**: the store bounds both and
   its refusal names neither, so the refusal surfaced in the card's status line above a form whose two
   controls are stacked on separate rows. The window now runs the domain's validators before the write,

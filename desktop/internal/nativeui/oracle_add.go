@@ -4,6 +4,8 @@ import (
 	"strings"
 
 	"github.com/egoist/mygo/ui"
+
+	"github.com/pplmx/aurora/internal/domain/oracle"
 )
 
 func (a *App) oracleAdd(c *ui.Context) {
@@ -41,7 +43,7 @@ func (a *App) oracleAddBody(c *ui.Context) {
 		hint(c, "A preset fills the fields once; edit them freely afterwards.")
 	}
 	field(c, "Name", &a.oracle.addName)
-	field(c, "URL", &a.oracle.addURL)
+	validatedField(c, "URL", &a.oracle.addURL, &a.oracle.addURLErr)
 	ui.Collapsible(c, tr("Advanced"), &a.oracle.addAdvanced, func() {
 		field(c, "Type (optional)", &a.oracle.addType)
 		field(c, "Method (optional, defaults to GET)", &a.oracle.addMethod)
@@ -104,6 +106,15 @@ func (a *App) addOracleSource() {
 		Interval: int(a.oracle.addInterval),
 	}
 	if rejectIncomplete(&a.oracle.status, "Source name and URL are required.", input.Name, input.URL) {
+		return
+	}
+	// The store enforces the URL policy — scheme, host shape, and the refusal of
+	// loopback and cloud-metadata addresses — and its refusal names no field. The
+	// domain's own validator runs here so the same sentence lands under the URL
+	// control, before a write that the store would reject.
+	a.oracle.addURLErr = ""
+	if err := oracle.ValidateSourceURL(input.URL); err != nil {
+		a.oracle.addURLErr = err.Error()
 		return
 	}
 	a.runWrite("Adding source…", func() func() {
