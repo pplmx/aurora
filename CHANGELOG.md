@@ -27,6 +27,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Added
 
+- **Page shortcuts follow the sidebar order**: the Settings page lists "Pages 1…8", so the number a
+  reader learns by counting down the sidebar must open that page. `pageOrder` (the keyboard order) and
+  `moduleOrder` (the sidebar's module section) are separate lists, and a page inserted into one without
+  the other would send the shortcut somewhere the reader can see it is not. Every digit is pressed from
+  a different starting page, and the comma shortcut is held alongside it.
+
+### Added
+
 - **Reload reaches every data page**: the File menu's import calls the window's reload, and a page it
   skipped would keep showing the rows it read before the import — the data would be stored and
   invisible, which reads as a failed import. Every page that reads a collection is now checked, with
