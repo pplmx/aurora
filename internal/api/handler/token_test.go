@@ -472,6 +472,9 @@ type tokenListService struct {
 	lastOffset int
 }
 
+func (f *tokenListService) ListMatchingTokens(term string, limit, offset int) ([]*token.Token, error) {
+	return f.ListTokens(limit, offset)
+}
 func (f *tokenListService) ListTokens(limit, offset int) ([]*token.Token, error) {
 	f.lastLimit, f.lastOffset = limit, offset
 	if offset < 0 {

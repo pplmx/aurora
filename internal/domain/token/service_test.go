@@ -1409,6 +1409,9 @@ func (m *mockRepository) GetToken(id TokenID) (*Token, error) {
 
 // ListTokens returns the mock's tokens in a stable order, so a test that
 // lists them twice sees the same result.
+func (m *mockRepository) ListMatchingTokens(term string, limit, offset int) ([]*Token, error) {
+	return m.ListTokens(limit, offset)
+}
 func (m *mockRepository) ListTokens(limit, offset int) ([]*Token, error) {
 	if m.errListTokens {
 		return nil, fmt.Errorf("list tokens error")

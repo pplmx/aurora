@@ -142,6 +142,12 @@ type tokenState struct {
 	burnTrigger     ui.Handle
 	generateControl ui.Handle
 	ownerKeyCopy    ui.Handle
+	// storeEmpty records whether a term-less read found nothing, so an empty
+	// result for a search is told apart from an empty store. storeChecked records
+	// that the question has been asked, which a query restored from an earlier
+	// session has not.
+	storeEmpty   bool
+	storeChecked bool
 }
 
 const tokenPageSize = 100
@@ -158,7 +164,11 @@ func (a *App) loadTokenPage(offset int) bool {
 	if offset < 0 {
 		offset = 0
 	}
-	tokens, err := a.services.ListTokens(tokenPageSize+1, offset)
+	// The search is a storage query, not a filter over the loaded rows: a token
+	// whose row is on an older page must be reachable by typing its name. The
+	// applied term is the one the rows describe, so a paged move keeps matching
+	// what the reader saw when they pressed Next.
+	tokens, err := a.services.ListMatchingTokens(a.token.appliedSearch, tokenPageSize+1, offset)
 	a.token.loadErr = err
 	if err != nil {
 		return false
@@ -167,6 +177,11 @@ func (a *App) loadTokenPage(offset int) bool {
 		return a.loadTokenPage(0)
 	}
 	a.token.offset = offset
+	// A term-less read says whether the store has anything at all; a term that
+	// matches nothing must not be mistaken for an empty store.
+	if a.token.appliedSearch == "" {
+		a.token.storeEmpty = len(tokens) == 0
+	}
 	a.token.hasMore = len(tokens) > tokenPageSize
 	if a.token.hasMore {
 		tokens = tokens[:tokenPageSize]
@@ -242,27 +257,48 @@ func (a *App) tokenList(c *ui.Context) {
 		if a.token.loadErr != nil && !loadWarning(c, "Failed to load tokens", a.token.loadErr, len(a.token.tokens) > 0) {
 			return
 		}
+		// A new term is a new query over the whole collection, so it re-reads from
+		// the first page: keeping the old offset would show "page 3" of a result
+		// set that may hold three rows. This runs before the empty-state branch,
+		// because a search that matches nothing leaves the previous rows in place
+		// and would otherwise be recorded as applied without ever being read —
+		// the next term then found the old list still showing.
+		searchChanged := a.token.search != a.token.appliedSearch
+		if searchChanged {
+			a.token.appliedSearch = a.token.search
+			// The highlight indexes the rows the new query returns; after a new
+			// term the same index is a different token, so no row stays chosen.
+			a.token.chosen = -1
+			a.loadTokenPage(0)
+		}
+		// The count is announced before either empty branch: "0 results" is the
+		// answer a screen reader needs, and it is the same fact the empty note
+		// states visually.
+		announceSearchResults(c, searchChanged, len(a.token.tokens))
 		if len(a.token.tokens) == 0 {
-			// The field's state is recorded before this return: a query cleared
-			// while the store is empty must not stay applied, or the first-record
-			// guide stays hidden behind a work bench over nothing.
-			if a.token.search != a.token.appliedSearch {
-				a.token.appliedSearch = a.token.search
-				a.token.chosen = -1
+			// An empty result is not always an empty store, and the store's state is
+			// what decides which sentence is true. A store with no tokens gets the
+			// first-record guide even when a term is open — the guide's create is the
+			// only way forward. A store with tokens gets "no match", because clearing
+			// the field is the fix and the guide's advice would be wrong.
+			// A search that has never seen a term-less read cannot say whether the
+			// store is empty; ask it once, so a query restored from an earlier
+			// session still tells "nothing stored" from "nothing matched".
+			if !a.token.storeChecked && a.services != nil {
+				if all, err := a.services.ListTokens(0, 0); err == nil {
+					a.token.storeEmpty = len(all) == 0
+					a.token.storeChecked = true
+				}
 			}
-			emptyState(c, pageToken, "No tokens yet", "Create the first token below; the list, forms and history follow it.")
+			if a.token.storeEmpty {
+				emptyState(c, pageToken, "No tokens yet", "Create the first token below; the list, forms and history follow it.")
+				return
+			}
+			emptyNote(c, fmt.Sprintf(tr("No tokens match “%s”."), strings.TrimSpace(a.token.appliedSearch)))
 			return
 		}
-		queryChanged := a.token.search != a.token.appliedSearch
-		if queryChanged {
-			// The highlight indexes the filtered rows; after a new query the same
-			// index is a different token, so no row is chosen until the operator
-			// picks one from the list they are looking at.
-			a.token.appliedSearch = a.token.search
-			a.token.chosen = -1
-		}
 		previous, next := collectionToolbar(c, &a.token.search, "Search tokens",
-			"Search narrows the current page; use Previous/Next for older tokens.",
+			"Search matches id, name or symbol across the whole collection.",
 			"Token collection", a.token.offset, len(a.token.tokens), a.token.hasMore)
 		if previous || next {
 			target := a.token.offset
@@ -276,17 +312,10 @@ func (a *App) tokenList(c *ui.Context) {
 			}
 			return
 		}
-		rows := make([]TokenRow, 0, len(a.token.tokens))
-		for _, t := range a.token.tokens {
-			if containsFold(a.token.search, t.ID, t.Name, t.Symbol) {
-				rows = append(rows, t)
-			}
-		}
-		announceSearchResults(c, queryChanged, len(rows))
-		if len(rows) == 0 {
-			emptyNote(c, fmt.Sprintf(tr("No tokens match “%s”."), strings.TrimSpace(a.token.search)))
-			return
-		}
+		// The rows already answer the applied term: storage selected them. Filtering
+		// again by the field would double-count and, worse, disagree with storage
+		// about what a term matches, so the list is exactly what was read.
+		rows := a.token.tokens
 		collectionList(c, "Token collection",
 			collectionRecords(rows, tokenCollectionRecord),
 			a.token.chosen, func(i int) { a.chooseToken(rows, i) })

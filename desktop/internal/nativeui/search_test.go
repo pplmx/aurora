@@ -621,3 +621,49 @@ func TestClearingAQueryWhileTheStoreIsEmpty(t *testing.T) {
 			"a cleared query is recorded even when no source survived the read")
 	})
 }
+
+// TestTheTokenSearchSpansTheWholeStore covers what the hint promises. The list is
+// paged, so a token on an older page is not in memory; the search has to be a
+// storage query, or the reader concludes the token does not exist.
+func TestTheTokenSearchSpansTheWholeStore(t *testing.T) {
+	rows := make([]TokenRow, 150)
+	for i := range rows {
+		rows[i] = TokenRow{ID: "t" + strconv.Itoa(i), Name: "Token " + strconv.Itoa(i), Symbol: "T"}
+	}
+	// The row that matters sits on page 2, well away from the loaded page.
+	rows[120].Name = "Needle"
+	fake := &fakeServices{tokenRows: rows}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 3000)
+	app.ShowPage("Token")
+	tester.Frame()
+	require.Len(t, app.token.tokens, tokenPageSize, "page one is loaded")
+	require.False(t, tester.HasText("Needle"), "the row is not on the loaded page")
+
+	app.token.search = "needle"
+	tester.Frame()
+
+	require.True(t, tester.HasText("Needle"), "the search must find a row outside the loaded page")
+	require.Equal(t, "needle", fake.lastTokenSearch, "and it must be the term storage was asked for")
+	require.Len(t, app.token.tokens, 1)
+}
+
+// TestASearchThatMatchesNothingIsNotAnEmptyStore keeps the two sentences apart.
+// The store's own state decides which is true: an empty result from a search over
+// a populated store needs "no match", because clearing the field is the fix.
+func TestASearchThatMatchesNothingIsNotAnEmptyStore(t *testing.T) {
+	fake := &fakeServices{tokenRows: []TokenRow{
+		{ID: "t1", Name: "Gold", Symbol: "AU", TotalSupply: "10"},
+	}}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 3000)
+	app.ShowPage("Token")
+	tester.Frame()
+
+	app.token.search = "nothing-like-this"
+	tester.Frame()
+
+	require.True(t, tester.HasText("No tokens match “nothing-like-this”."))
+	require.False(t, tester.HasText("No tokens yet"),
+		"a populated store must not be described as empty")
+}

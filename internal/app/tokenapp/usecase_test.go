@@ -86,6 +86,9 @@ func (m *mockTokenService) GetTokenInfo(tokenID token.TokenID) (*token.Token, er
 	return m.tokens[tokenID], nil
 }
 
+func (m *mockTokenService) ListMatchingTokens(term string, limit, offset int) ([]*token.Token, error) {
+	return m.ListTokens(limit, offset)
+}
 func (m *mockTokenService) ListTokens(limit, offset int) ([]*token.Token, error) {
 	out := make([]*token.Token, 0, len(m.tokens))
 	for _, t := range m.tokens {

@@ -20,6 +20,12 @@ func newStatefulTokens() *statefulTokens {
 	return &statefulTokens{fakeServices: &fakeServices{}}
 }
 
+// ListMatchingTokens delegates: the window reads through the search path, and
+// this fake keeps one row set rather than implementing matching twice.
+func (s *statefulTokens) ListMatchingTokens(term string, limit, offset int) ([]TokenRow, error) {
+	return s.ListTokens(limit, offset)
+}
+
 func (s *statefulTokens) ListTokens(limit, offset int) ([]TokenRow, error) {
 	s.listTokensCalls++
 	if offset > len(s.rows) {

@@ -36,8 +36,14 @@ func (s *nativeServices) TokenInfo(id string) (nativeui.TokenRow, error) {
 }
 
 func (s *nativeServices) ListTokens(limit, offset int) ([]nativeui.TokenRow, error) {
+	return s.ListMatchingTokens("", limit, offset)
+}
+
+// ListMatchingTokens is the same read with a storage-side search term, so the
+// window's token search spans the whole collection instead of the loaded page.
+func (s *nativeServices) ListMatchingTokens(term string, limit, offset int) ([]nativeui.TokenRow, error) {
 	uc := tokenapp.NewListTokensUseCase(s.tokenService)
-	resp, err := uc.Execute(&tokenapp.ListTokensRequest{Limit: limit, Offset: offset})
+	resp, err := uc.Execute(&tokenapp.ListTokensRequest{Search: term, Limit: limit, Offset: offset})
 	if err != nil {
 		return nil, err
 	}

@@ -52,6 +52,9 @@ func (r *inMemoryTokenRepo) GetToken(id token.TokenID) (*token.Token, error) {
 	return r.tokens[id], nil
 }
 
+func (r *inMemoryTokenRepo) ListMatchingTokens(term string, limit, offset int) ([]*token.Token, error) {
+	return r.ListTokens(limit, offset)
+}
 func (r *inMemoryTokenRepo) ListTokens(limit, offset int) ([]*token.Token, error) {
 	out := make([]*token.Token, 0, len(r.tokens))
 	for _, t := range r.tokens {

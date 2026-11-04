@@ -102,6 +102,9 @@ func (uc *GetAllowanceUseCase) Execute(req *AllowanceRequest) (*AllowanceRespons
 // ListTokensRequest pages the token collection. Limit <= 0 means "the
 // remainder from Offset", preserving the CLI's unpaged form.
 type ListTokensRequest struct {
+	// Search narrows the collection in storage by id, name and symbol, so a term
+	// finds a token whose row is not on the loaded page. Empty is the plain list.
+	Search string
 	Limit  int
 	Offset int
 }
@@ -121,7 +124,7 @@ func (uc *ListTokensUseCase) Execute(req *ListTokensRequest) ([]*TokenInfoRespon
 	if req == nil {
 		req = &ListTokensRequest{}
 	}
-	tokens, err := uc.service.ListTokens(req.Limit, req.Offset)
+	tokens, err := uc.service.ListMatchingTokens(req.Search, req.Limit, req.Offset)
 	if err != nil {
 		return nil, err
 	}

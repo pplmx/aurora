@@ -10,6 +10,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/pplmx/aurora/internal/domain/token"
@@ -203,17 +204,40 @@ func (r *TokenRepository) GetToken(id token.TokenID) (*token.Token, error) {
 // GetToken so a listed token carries the same attributes a fetched one does.
 // limit <= 0 means "all rows from offset", matching the NFT repository.
 func (r *TokenRepository) ListTokens(limit, offset int) ([]*token.Token, error) {
+	return r.listTokens("", nil, limit, offset)
+}
+
+// ListMatchingTokens searches the stored tokens by id, name and symbol, so a
+// search finds a token whose row is not on the loaded page. The escaping and the
+// case-folding mirror the lottery and audit searches: a symbol containing % or _
+// must still match literally.
+func (r *TokenRepository) ListMatchingTokens(term string, limit, offset int) ([]*token.Token, error) {
+	term = strings.TrimSpace(term)
+	if term == "" {
+		return r.ListTokens(limit, offset)
+	}
+	escaped := strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`).Replace(strings.ToLower(term))
+	like := "%" + escaped + "%"
+	where := `WHERE lower(id) LIKE ? ESCAPE '\' OR lower(name) LIKE ? ESCAPE '\'
+		OR lower(symbol) LIKE ? ESCAPE '\'`
+	return r.listTokens(where, []any{like, like, like}, limit, offset)
+}
+
+// listTokens is the one paged read: ListTokens and ListMatchingTokens differ only
+// in the WHERE clause, and both keep the newest-first order.
+func (r *TokenRepository) listTokens(where string, args []any, limit, offset int) ([]*token.Token, error) {
 	if limit <= 0 {
 		limit = -1
 	}
 	if offset < 0 {
 		offset = 0
 	}
+	queryArgs := append(append([]any{}, args...), limit, offset)
 	rows, err := r.q().Query(`
 		SELECT id, name, symbol, total_supply, decimals, owner, is_mintable, is_burnable, created_at
-		FROM tokens ORDER BY created_at DESC, id
+		FROM tokens `+where+` ORDER BY created_at DESC, id
 		LIMIT ? OFFSET ?
-	`, limit, offset)
+	`, queryArgs...)
 	if err != nil {
 		return nil, err
 	}

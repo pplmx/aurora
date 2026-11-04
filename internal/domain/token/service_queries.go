@@ -3,6 +3,7 @@ package token
 import (
 	"database/sql"
 	"errors"
+	"strings"
 )
 
 func (s *TokenService) CreateToken(req *CreateTokenRequest) (*Token, error) {
@@ -67,6 +68,17 @@ func (s *TokenService) GetTokenInfo(tokenID TokenID) (*Token, error) {
 // ListTokens returns stored tokens newest first, bounded by limit/offset.
 func (s *TokenService) ListTokens(limit, offset int) ([]*Token, error) {
 	return s.repo.ListTokens(limit, offset)
+}
+
+// ListMatchingTokens pages through the tokens a search term selects. The term
+// is passed to storage unchanged; an empty one is the plain list, which keeps a
+// cleared search field from being a special case at every caller.
+func (s *TokenService) ListMatchingTokens(term string, limit, offset int) ([]*Token, error) {
+	term = strings.TrimSpace(term)
+	if term == "" {
+		return s.repo.ListTokens(limit, offset)
+	}
+	return s.repo.ListMatchingTokens(term, limit, offset)
 }
 
 // requireToken returns ErrTokenNotFound unless a token with tokenID exists,

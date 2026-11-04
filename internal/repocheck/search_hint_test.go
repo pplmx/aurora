@@ -41,7 +41,11 @@ func TestSearchHintsMatchWhatTheSearchDoes(t *testing.T) {
 		readRepoFile(t, "desktop", "internal", "nativeui", "nft_collection.go") +
 		readRepoFile(t, "desktop", "internal", "nativeui", "oracle_sources.go") +
 		readRepoFile(t, "desktop", "internal", "nativeui", "token.go")
-	require.GreaterOrEqual(t, strings.Count(view, "containsFold("), 5,
+	// The token list joined the storage-side searches, so the page-local ones are
+	// the voters, candidates, sessions, NFT collection and oracle sources. The
+	// count guards against a list quietly switching to an in-memory filter while
+	// its hint still promises a whole-store search.
+	require.GreaterOrEqual(t, strings.Count(view, "containsFold("), 4,
 		"the page-local lists must still filter in memory")
 
 	// Every hint is one of the two sentences, and the whole-store hint appears
@@ -58,8 +62,11 @@ func TestSearchHintsMatchWhatTheSearchDoes(t *testing.T) {
 			wholeStore++
 		}
 	}
-	assert.Equal(t, 2, wholeStore,
-		"exactly the two lists that query storage may promise a whole-store search")
+	// The draws and the ledger always queried storage; the token collection now
+	// does too, so three hints may promise it. A new one must come with its own
+	// storage-side read, which is what this count is here to notice.
+	assert.Equal(t, 3, wholeStore,
+		"exactly the lists that query storage may promise a whole-store search")
 }
 
 // TestAppliedQueryIsRecordedBeforeTheEmptyReturn covers the ordering that six

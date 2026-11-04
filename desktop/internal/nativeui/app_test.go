@@ -87,6 +87,7 @@ type fakeServices struct {
 	// test can prove the page refreshes what it shows after a write.
 	listTokensCalls        int
 	lastTokenListLimit     int
+	lastTokenSearch        string
 	lastTokenListOffset    int
 	voterListCalls         int
 	candidateRegisterCalls int
@@ -425,19 +426,36 @@ func (f *fakeServices) TokenInfo(id string) (TokenRow, error) {
 	return TokenRow{ID: id}, nil
 }
 func (f *fakeServices) ListTokens(limit, offset int) ([]TokenRow, error) {
+	return f.ListMatchingTokens("", limit, offset)
+}
+
+// ListMatchingTokens filters the fixture the way storage does — id, name or
+// symbol contains the term — so a test can prove the search spans rows that are
+// not on the loaded page.
+func (f *fakeServices) ListMatchingTokens(term string, limit, offset int) ([]TokenRow, error) {
 	f.listTokensCalls++
 	f.lastTokenListLimit = limit
 	f.lastTokenListOffset = offset
+	f.lastTokenSearch = term
 	if f.loadErrs.tokens != nil {
 		return nil, f.loadErrs.tokens
+	}
+	matching := f.tokenRows
+	if term = strings.TrimSpace(term); term != "" {
+		matching = make([]TokenRow, 0, len(f.tokenRows))
+		for _, row := range f.tokenRows {
+			if containsFold(term, row.ID, row.Name, row.Symbol) {
+				matching = append(matching, row)
+			}
+		}
 	}
 	if offset < 0 {
 		offset = 0
 	}
-	if offset >= len(f.tokenRows) {
+	if offset >= len(matching) {
 		return nil, nil
 	}
-	rows := f.tokenRows[offset:]
+	rows := matching[offset:]
 	if limit > 0 && len(rows) > limit {
 		rows = rows[:limit]
 	}

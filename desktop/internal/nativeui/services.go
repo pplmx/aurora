@@ -55,6 +55,9 @@ type Services interface {
 	// ListTokens returns stored tokens newest first. limit <= 0 returns every
 	// token from offset.
 	ListTokens(limit, offset int) ([]TokenRow, error)
+	// ListMatchingTokens searches the stored tokens by id, name and symbol in
+	// storage, so a search finds a token whose row is not on the loaded page.
+	ListMatchingTokens(term string, limit, offset int) ([]TokenRow, error)
 	TokenBalance(tokenID, owner string) (string, error)
 	MintToken(tokenID, to, amount, priv string) error
 	TransferToken(tokenID, from, to, amount, priv string) error

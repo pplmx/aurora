@@ -34,6 +34,16 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Added
 
+- **The token collection's search spans the whole store**: the list is paged, so a token on an older
+  page was not in memory and the search could not find it — the reader concluded it did not exist. The
+  field now queries storage by id, name and symbol, following the pattern the lottery and audit
+  searches already use: a new repository read with the same escaping and case-folding, threaded through
+  the domain service, the app use case, the desktop adapter and the window. An empty result is told
+  apart from an empty store, because clearing the field is the fix for one and creating the first token
+  is the fix for the other.
+
+### Added
+
 - **The desktop suite was shuffled to look for order dependencies**: five random orders of the window
   package, plus the adapters and the whole core module, all passed. The existing `just test-shuffle`
   only walks the core module, so a desktop test that depended on another having run first would have

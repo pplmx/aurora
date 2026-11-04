@@ -17,6 +17,10 @@ type Service interface {
 	// remainder from offset, which keeps CLI callers able to request the whole
 	// collection while API/desktop callers ask for bounded pages.
 	ListTokens(limit, offset int) ([]*Token, error)
+	// ListMatchingTokens returns one page of tokens whose id, name or symbol
+	// contains term. Storage does the filtering, so the search spans the whole
+	// collection rather than the rows already loaded.
+	ListMatchingTokens(term string, limit, offset int) ([]*Token, error)
 
 	Mint(req *MintRequest) (*MintEvent, error)
 
@@ -47,6 +51,10 @@ type Repository interface {
 	// storage so a large collection is never materialised just to show one
 	// page. limit <= 0 returns the remainder from offset.
 	ListTokens(limit, offset int) ([]*Token, error)
+	// ListMatchingTokens searches the stored tokens by id, name and symbol, so a
+	// term finds a token whose row is not on the loaded page. An empty term is
+	// the plain list.
+	ListMatchingTokens(term string, limit, offset int) ([]*Token, error)
 
 	SaveApproval(approval *Approval) error
 	GetApproval(tokenID TokenID, owner, spender PublicKey) (*Approval, error)
