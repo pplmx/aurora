@@ -57,12 +57,20 @@ func (a *App) readOutbox() OutboxState {
 	return state
 }
 
-// followOutbox opens the ledger narrowed to the parked events. A backlog usually
-// belongs to one module whose sink is refusing its writes, so opening the whole
-// chain makes the operator search for the very records the footer just told them
-// about. A single parked module becomes the ledger's search term; several are
-// left unfiltered, because no single term names them all and a search for one
-// would hide the rest.
+// followOutbox opens the ledger narrowed to the module a backlog belongs to.
+//
+// What the page can and cannot show is worth being precise about. A parked event
+// is an audit *copy* of an operation whose block was already written: the module
+// wrote its record to the chain, and the separate delivery of that record to the
+// audit store failed. So the ledger holds the operation, and it does not hold the
+// backlog — pending_events is its own table. Opening the ledger therefore answers
+// "what was being written when the sink started refusing", not "which rows are
+// stuck"; the footer's count remains the only place the backlog itself is
+// reported, and the copied diagnostics carries the age a support thread needs.
+//
+// One parked module becomes the ledger's search term because that is the useful
+// question the page can answer. Several are left unfiltered: no single term names
+// them all, and searching for one would hide the rest.
 func (a *App) followOutbox() {
 	search := ""
 	if a.actions.OutboxModules != nil {

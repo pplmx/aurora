@@ -1,6 +1,7 @@
 package nativeui
 
 import (
+	"os"
 	"testing"
 	"time"
 
@@ -218,4 +219,27 @@ func TestThePrefilterUsesTheWindowsWord(t *testing.T) {
 	require.Equal(t, "代币", app.blockchain.search,
 		"the field carries the word the window draws, not the stored id")
 	require.Equal(t, pageBlockchain, app.page)
+}
+
+// TestTheBacklogLineExplainsWhatTheNumberMeans covers the sentence a reader needs
+// before following the line. A parked event is a failed *copy* of an operation
+// whose block is already on the chain — Save failed, so the event went to
+// pending_events instead. The ledger therefore holds the operations but not the
+// backlog, and without saying so the page a reader is sent to looks like it should
+// highlight the stuck rows and does not.
+func TestTheBacklogLineExplainsWhatTheNumberMeans(t *testing.T) {
+	app := New(&fakeServices{})
+	app.SetActions(outboxActions(3, 20*time.Second))
+	tester := ui.NewTester(app.View, 1280, 900)
+	tester.Frame()
+
+	// The description is what assistive technology reads, not text the window
+	// draws, so it is asserted at its source the way the other description
+	// contracts are. The window test above already proves the line is a button
+	// with a Role(Status) label.
+	want := "The blocks are already written; this is their audit copy waiting to be delivered."
+	source, err := os.ReadFile("actions.go")
+	require.NoError(t, err)
+	require.Contains(t, string(source), want,
+		"the line's description must say what the backlog is and is not")
 }

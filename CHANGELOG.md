@@ -27,6 +27,15 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **The backlog line says what the number does and does not mean**: a parked event is an audit
+  *copy* whose block is already on the chain — the module wrote its record, and the separate delivery
+  of that record to the audit store failed — so `pending_events` is its own table and the ledger the
+  line opens shows the operations but not which of them are stuck. The line's accessible description
+  now says so, because a reader sent to a page that does not highlight anything would take the page
+  for broken rather than for a different store.
+
+### Fixed
+
 - **Every module that matched appears in the palette's results**: the search took the newest five
   matching rows, and the chain is newest-first, so six writes from one module filled the list and a
   match in another module showed none at all — while the disclosure line said eight records matched.

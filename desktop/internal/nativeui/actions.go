@@ -175,8 +175,14 @@ func (a *App) sidebarActions(c *ui.Context) {
 			// It opens the audit page rather than starting a drain: the drainer
 			// is a background retry loop owned by the runtime, and a window that
 			// started a second pass would race it.
+			// The description says what the number does and does not mean. A
+			// backlog is a failed *copy* of an operation that is already on the
+			// chain, so the ledger it opens shows the operations but not which
+			// of them are parked — without this sentence a reader reasonably
+			// expects the page to highlight the stuck rows.
 			b := ui.ButtonBase(c).FillWidth().Gap(space2).AlignItems(ui.Center).Padding(space1, 2).
-				Role(ui.RoleStatus).Label(line).Description(tr("Open the audit ledger"))
+				Role(ui.RoleStatus).Label(line).
+				Description(tr("Open the audit ledger. The blocks are already written; this is their audit copy waiting to be delivered."))
 			fill := ui.Transparent
 			if b.Hovered() || b.Pressed() {
 				fill = c.Theme().SurfaceHover
