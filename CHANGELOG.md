@@ -27,6 +27,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Added
 
+- **A page that empties falls back to the first**: when the store shrinks under an open page — the
+  rows behind page 2 are removed and a refresh re-reads that offset — the page now returns to the
+  first instead of rendering its empty state, which would claim the store is empty while a page's
+  worth of rows sit on page 1.
+
+### Added
+
 - **Tab switching keeps the page's state and reads nothing**: the tabs on Oracle and Voting are
   different views of one page's state, so flipping to another and back must leave the search field and
   the highlight where the reader put them, and must not turn into a read per switch — the data arrives

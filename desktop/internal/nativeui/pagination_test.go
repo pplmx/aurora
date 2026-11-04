@@ -834,3 +834,34 @@ func TestChangingTheOracleLimitReReads(t *testing.T) {
 		"a new limit re-reads, so the field describes the rows on screen")
 	require.Greater(t, fake.oracleDataCalls, calls, "the read actually happened")
 }
+
+// TestAPageThatEmptiesFallsBackToTheFirst covers the store shrinking under a page
+// that is still open. A refresh on page 2 after the rows behind it were removed
+// reads an empty offset; showing "no tokens yet" there would claim the store is
+// empty while 100 tokens sit on page 1. The page falls back instead.
+func TestAPageThatEmptiesFallsBackToTheFirst(t *testing.T) {
+	tokens := make([]TokenRow, tokenPageSize+1)
+	for i := range tokens {
+		tokens[i] = TokenRow{ID: "t" + strconv.Itoa(i), Name: "Token " + strconv.Itoa(i), Symbol: "T"}
+	}
+	fake := &fakeServices{tokenRows: tokens}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 5000)
+	app.ShowPage("Token")
+	tester.Frame()
+	require.True(t, app.token.hasMore)
+	require.True(t, app.loadTokenPage(tokenPageSize))
+	tester.Frame()
+	require.Equal(t, tokenPageSize, app.token.offset)
+	require.Len(t, app.token.tokens, 1)
+
+	// The one row on this page is gone; re-reading the same offset finds nothing.
+	fake.tokenRows = tokens[:tokenPageSize]
+	require.True(t, app.loadTokenPage(tokenPageSize))
+	tester.Frame()
+
+	require.Equal(t, 0, app.token.offset, "an empty page falls back to the first")
+	require.Len(t, app.token.tokens, tokenPageSize)
+	require.False(t, tester.HasText("No tokens yet"),
+		"the store still holds a page's worth; it must not claim to be empty")
+}
