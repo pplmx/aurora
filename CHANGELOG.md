@@ -27,6 +27,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Added
 
+- **Tab switching keeps the page's state and reads nothing**: the tabs on Oracle and Voting are
+  different views of one page's state, so flipping to another and back must leave the search field and
+  the highlight where the reader put them, and must not turn into a read per switch — the data arrives
+  when the page opens. Both halves are held by tests, and the state assertion fails if a page starts
+  clearing its search on a tab change.
+
+### Added
+
 - **The write-then-reread loop is covered end to end**: the shared test fake returns a row without
   keeping it, which proves the write path but cannot show whether the page re-reads afterwards. A fake
   that stores what it creates now holds both halves: a successful create re-reads the list and the row
