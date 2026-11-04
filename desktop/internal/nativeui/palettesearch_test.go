@@ -194,3 +194,66 @@ func TestShortSearchListSaysNothing(t *testing.T) {
 	require.Len(t, entries, 1)
 	require.Equal(t, "token · Mint", entries[0].title)
 }
+
+// TestEveryMatchingModuleIsRepresented covers the case a newest-first slice gets
+// wrong. Six writes from one module and three from another all match the query;
+// taking the five newest rows showed five records from the first module and none
+// from the second, so a reader whose match was in the second module saw a list
+// with none of their records in it — while the ledger total said eight matched.
+func TestEveryMatchingModuleIsRepresented(t *testing.T) {
+	rows := make([]BlockRow, 0, 9)
+	for i := range 6 {
+		rows = append(rows, BlockRow{
+			Height: int64(20 - i), Module: "token", Action: "Mint", Summary: "shared",
+		})
+	}
+	for i := range 3 {
+		rows = append(rows, BlockRow{
+			Height: int64(10 - i), Module: "oracle", Action: "Observation", Summary: "shared",
+		})
+	}
+
+	app := New(&fakeServices{blocks: rows})
+	tester := ui.NewTester(app.View, 1280, 1600)
+	tester.Frame()
+	app.openPalette()
+	tester.Frame()
+
+	app.paletteQuery = "shared"
+	entries := app.paletteRecordEntries("shared")
+
+	var tokens, oracles int
+	for _, entry := range entries {
+		switch entry.title {
+		case "token · Mint":
+			tokens++
+		case "oracle · Observation":
+			oracles++
+		}
+	}
+	require.Greater(t, oracles, 0, "a module that matched must appear in the list")
+	require.Greater(t, tokens, 0, "and so must the other one")
+	require.Len(t, entries, paletteSearchLimit+1,
+		"the cap still holds: balanced rows plus the entry that discloses the rest")
+}
+
+// TestBalancedResultsKeepTheOrder shows the same search twice, which is what a
+// reader does after glancing away. A balancing that shuffled rows would make the
+// list move under them.
+func TestBalancedResultsKeepTheOrder(t *testing.T) {
+	rows := []BlockRow{
+		{Height: 9, Module: "token", Action: "Mint", Summary: "shared"},
+		{Height: 8, Module: "token", Action: "Mint", Summary: "shared"},
+		{Height: 7, Module: "token", Action: "Mint", Summary: "shared"},
+		{Height: 6, Module: "oracle", Action: "Observation", Summary: "shared"},
+		{Height: 5, Module: "oracle", Action: "Observation", Summary: "shared"},
+		{Height: 4, Module: "token", Action: "Mint", Summary: "shared"},
+	}
+	first := balanceByModule(rows, 4)
+	second := balanceByModule(rows, 4)
+	require.Equal(t, first, second, "the same rows must produce the same list")
+
+	// Every module appears before any module takes a second slot.
+	require.Equal(t, "token", first[0].Module)
+	require.Equal(t, "oracle", first[1].Module)
+}

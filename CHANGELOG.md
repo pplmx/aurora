@@ -25,6 +25,15 @@ The milestone notes under `.planning/` are history, not current instructions.
   find them by name; they are the one palette group that stays available during a database write,
   which is exactly when a reader waiting on a long import may want the page larger.
 
+### Fixed
+
+- **Every module that matched appears in the palette's results**: the search took the newest five
+  matching rows, and the chain is newest-first, so six writes from one module filled the list and a
+  match in another module showed none at all — while the disclosure line said eight records matched.
+  The fetch is now deep enough to see every matching module, and the rows are picked round-robin so
+  each module is represented before any takes a second slot. Order within a module and the order of
+  modules' first appearances are kept, so the same search shows the same list twice.
+
 ### Added
 
 - **The command palette searches the ledger by text**: the palette could jump to a page, run a

@@ -30,6 +30,14 @@ const paletteSearchMinRunes = 2
 // Blockchain page, which has a pager.
 const paletteSearchLimit = 5
 
+// paletteSearchFetch is how many rows the palette asks storage for, which is more
+// than it shows. A plain newest-first slice of the matches can leave a module out
+// entirely — five token records ahead of three oracle ones filled the list, and a
+// reader whose match was an oracle record saw a list that contained none of them
+// — so the fetch is deep enough for the balancing below to find every module that
+// matched.
+const paletteSearchFetch = 50
+
 // paletteRecordSearch is the cached ledger search behind the palette.
 type paletteRecordSearch struct {
 	// query is the text the rows were read for, so an edit invalidates them
@@ -59,7 +67,7 @@ func (a *App) paletteRecordEntries(query string) []paletteEntry {
 	}
 	if a.paletteSearch.query != query {
 		a.paletteSearch = paletteRecordSearch{query: query}
-		page, err := a.services.LedgerBlocksPage(query, paletteSearchLimit, 0)
+		page, err := a.services.LedgerBlocksPage(query, paletteSearchFetch, 0)
 		a.paletteSearch.rows, a.paletteSearch.total = page.Rows, page.Total
 		a.paletteSearch.err = err
 		a.paletteSearch.done = true
@@ -67,8 +75,9 @@ func (a *App) paletteRecordEntries(query string) []paletteEntry {
 	if a.paletteSearch.err != nil {
 		return nil
 	}
-	entries := make([]paletteEntry, 0, len(a.paletteSearch.rows))
-	for _, row := range a.paletteSearch.rows {
+	rows := balanceByModule(a.paletteSearch.rows, paletteSearchLimit)
+	entries := make([]paletteEntry, 0, len(rows))
+	for _, row := range rows {
 		target, ok := pageForBlockModule(row.Module)
 		if !ok {
 			continue
@@ -108,6 +117,56 @@ func (a *App) showLedgerSearch(query string) {
 	if a.invalidate != nil {
 		a.invalidate()
 	}
+}
+
+// balanceByModule picks up to limit rows so that every module present in rows is
+// represented before any module takes a second slot. The chain is newest-first, so
+// a burst of writes from one module can otherwise hide every match from another:
+// the reader searched the whole chain and the palette answered from its newest
+// edge.
+//
+// The order within a module is kept, and so is the relative order of the modules'
+// first appearances, so a repeated search shows the same list.
+func balanceByModule(rows []BlockRow, limit int) []BlockRow {
+	if len(rows) <= limit {
+		return rows
+	}
+	// Group by the page that owns the module; an unknown module groups under its
+	// own name so it is still represented rather than dropped.
+	groupOf := func(row BlockRow) string {
+		if target, ok := pageForBlockModule(row.Module); ok {
+			return pageIDs[target]
+		}
+		return row.Module
+	}
+	order := make([]string, 0, 8)
+	groups := make(map[string][]BlockRow, 8)
+	for _, row := range rows {
+		key := groupOf(row)
+		if _, seen := groups[key]; !seen {
+			order = append(order, key)
+		}
+		groups[key] = append(groups[key], row)
+	}
+	picked := make([]BlockRow, 0, limit)
+	for round := 0; len(picked) < limit; round++ {
+		added := false
+		for _, key := range order {
+			group := groups[key]
+			if round >= len(group) {
+				continue
+			}
+			picked = append(picked, group[round])
+			added = true
+			if len(picked) == limit {
+				break
+			}
+		}
+		if !added {
+			break
+		}
+	}
+	return picked
 }
 
 // fmtRecordTitle is the row's headline: the module's own name and the action it
