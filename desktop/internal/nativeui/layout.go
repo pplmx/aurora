@@ -251,7 +251,9 @@ func emptyStateIcon(c *ui.Context, icon *ui.SVG, tone ui.Color, title, body stri
 		iconTile(c, icon, tone, iconTileLarge)
 		heading(c, tr(title), 14.5, 3).TextAlign(ui.Center)
 		ui.Text(c, tr(body)).FontSize(textSize(c, 12)).TextColor(c.Theme().TextMuted).
-			TextAlign(ui.Center).MaxWidth(420)
+			// The cap scales with the text for the same reason the font does: at 2x the same
+			// sentence needs twice the line, and a fixed 420 would break it into twice as many.
+			TextAlign(ui.Center).MaxWidth(textSize(c, 420))
 	})
 }
 

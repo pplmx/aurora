@@ -1216,3 +1216,43 @@ func TestASourceRowCarriesNoHeaderValue(t *testing.T) {
 			"SourceRow's header field must stay a flag, or a row could draw a credential: %s", field.Name)
 	}
 }
+
+// TestEmptyStateBodyCapFollowsTextScale pins the body cap both empty states share. The cap keeps
+// a one-sentence explanation from running the width of a wide window, and it has to scale with the
+// font for the same reason the font does: at 2x the same sentence needs twice the line, so a fixed
+// 420 would wrap it into twice as many lines right where the reader asked for larger text. The
+// compact panel already did this; the full-page state did not.
+//
+// The test measures the cap directly instead of driving a page. The empty page states only appear
+// after a read returns no rows, which keeps the assertion on the contract — this body is capped at
+// 420 scaled — rather than on which page happens to be empty in the fixture.
+func TestEmptyStateBodyCapFollowsTextScale(t *testing.T) {
+	const cap = float32(420)
+	long := strings.Repeat(tr("Create the first token below; the list, forms and history follow it.")+" ", 8)
+
+	states := map[string]func(*ui.Context, string){
+		"page": func(c *ui.Context, body string) { emptyState(c, pageToken, "No tokens yet", body) },
+		"list": func(c *ui.Context, body string) {
+			emptyStateIcon(c, usersIcon, pageAccent(c, pageVoting), "No voters registered yet.", body)
+		},
+		"panel": func(c *ui.Context, body string) { emptyPanel(c, tokenIcon, pageAccent(c, pageToken), body) },
+	}
+	for name, draw := range states {
+		for _, scale := range []float32{1, 2} {
+			t.Run(fmt.Sprintf("%s/scale=%g", name, scale), func(t *testing.T) {
+				body := long + name
+				// A wide window proves the cap, not the available width, sets the line.
+				tester := ui.NewTester(func(c *ui.Context) {
+					ui.Column(c).FillWidth().Children(func() { draw(c, body) })
+				}, 1600, 2000)
+				tester.SetPreferences(ui.Preferences{TextScale: scale})
+				tester.Frame()
+
+				el, ok := tester.Find(body)
+				require.True(t, ok, "the empty state must draw its body")
+				require.Equalf(t, cap*scale, el.W,
+					"the body cap must follow the text scale (scale %v)", scale)
+			})
+		}
+	}
+}
