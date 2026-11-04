@@ -12,6 +12,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The full-page empty state's body cap follows the text scale**: the cap keeps a one-sentence
+  explanation from running the width of a wide window, and it was the last fixed 420 left in the
+  window — the compact panel beside it already scaled. At 2x the same sentence needs twice the line,
+  so the fixed cap wrapped it into twice as many lines right where the reader asked for larger
+  text. The new test measures the cap in both empty states at 1x and 2x and fails at 420 against the
+  old code.
+
 - **The screenshot script describes what the CI smoke test actually checks**: its header said
   the packaging job "only proves the binary starts", which undersells it — the job starts the
   packaged artifact under Xvfb, waits for the database, WAL, SHM and log, checks their modes are
