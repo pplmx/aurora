@@ -254,8 +254,8 @@ func (a *App) votingSessions(c *ui.Context) {
 }
 
 func (a *App) votingCreateSessionBody(c *ui.Context) {
-	field(c, "Title", &a.voting.sessionTitle)
-	field(c, "Description (optional)", &a.voting.sessionDesc)
+	validatedField(c, "Title", &a.voting.sessionTitle, &a.voting.sessionTitleErr)
+	validatedField(c, "Description (optional)", &a.voting.sessionDesc, &a.voting.sessionDescErr)
 	// The window is edited with the toolkit's own date and time controls:
 	// asking an operator to type epoch seconds made the card unusable without
 	// a clock and a converter outside the app. The two controls edit one
@@ -358,6 +358,15 @@ func (a *App) createVotingSession() {
 	if rejectIncomplete(&a.voting.sessionResult, "Session title is required.", title) {
 		return
 	}
+	// The store bounds both fields and its refusal names neither. Running the
+	// domain's own validators here puts the same sentences on the controls they
+	// apply to, and reusing the domain's wording is what keeps the window from
+	// ever describing a limit the store does not enforce.
+	a.voting.sessionTitleErr, a.voting.sessionDescErr = "", ""
+	if err := voting.ValidateSessionTitle(title); err != nil {
+		a.voting.sessionTitleErr = err.Error()
+		return
+	}
 	ids := splitParticipants(a.voting.sessionIDs)
 	if len(ids) == 0 {
 		// The visible list is one page, but an empty roster means every
@@ -377,6 +386,10 @@ func (a *App) createVotingSession() {
 		return
 	}
 	description := strings.TrimSpace(a.voting.sessionDesc)
+	if err := voting.ValidateSessionDescription(description); err != nil {
+		a.voting.sessionDescErr = err.Error()
+		return
+	}
 	a.runWrite("Creating session…", func() func() {
 		s, err := a.services.CreateSession(title, description, ids, start, end)
 		return func() {

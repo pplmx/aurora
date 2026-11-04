@@ -56,6 +56,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **An over-long session title or description is refused at its own control**: the store bounds both and
+  its refusal names neither, so the refusal surfaced in the card's status line above a form whose two
+  controls are stacked on separate rows. The window now runs the domain's validators before the write,
+  using the domain's own sentences; the bound is inclusive, which the paired test holds.
+
+### Fixed
+
 - **An over-long token name or symbol is refused at its own control**: the store bounds both and its
   message names no field, so the refusal appeared in the status line above a form whose controls sit on
   two different rows. The window now runs the domain's validators before the write. The symbol keeps

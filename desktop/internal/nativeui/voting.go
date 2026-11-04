@@ -31,6 +31,11 @@ type votingState struct {
 	sessionIDs      string
 	sessionStartErr string
 	sessionEndErr   string
+	// sessionTitleErr and sessionDescErr carry the domain's own refusals for the
+	// two bounded fields, so the sentence sits under the control it applies to
+	// instead of in the status line above the whole card.
+	sessionTitleErr string
+	sessionDescErr  string
 	sessionResult   statusLine
 	// sessionCopyID is the id of the session just created, offered for copying
 	// the same way.

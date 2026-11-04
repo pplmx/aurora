@@ -1149,3 +1149,60 @@ func TestACandidateNameAtTheLimitIsAccepted(t *testing.T) {
 	require.Equal(t, before+1, fake.candidateRegisterCalls, "the bound is inclusive")
 	require.Empty(t, app.voting.candNameErr)
 }
+
+// TestAnOverlongSessionFieldIsRejectedAtItsControl covers the session form the way
+// the candidate and token forms are covered. The store bounds the title and the
+// description and its refusal names neither, so both used to surface in the card's
+// status line — above a form whose two controls are stacked on separate rows.
+func TestAnOverlongSessionFieldIsRejectedAtItsControl(t *testing.T) {
+	for _, tc := range []struct {
+		field string
+		title string
+		desc  string
+		check func(*App) string
+	}{
+		{"title", strings.Repeat("T", voting.MaxSessionTitleLength+1), "",
+			func(a *App) string { return a.voting.sessionTitleErr }},
+		{"description", "Budget", strings.Repeat("D", voting.MaxSessionDescriptionLen+1),
+			func(a *App) string { return a.voting.sessionDescErr }},
+	} {
+		t.Run(tc.field, func(t *testing.T) {
+			fake := workbenchFakes()
+			app := New(fake)
+			tester := ui.NewTester(app.View, 1280, 2600)
+			app.ShowPage("Voting")
+			tester.Frame()
+
+			app.voting.sessionTitle, app.voting.sessionDesc = tc.title, tc.desc
+			app.voting.sessionStart, app.voting.sessionEnd = time.Now(), time.Now().Add(time.Hour)
+			app.voting.sessionIDs = "c1"
+			app.createVotingSession()
+			tester.Frame()
+
+			require.NotEmptyf(t, tc.check(app), "the refusal belongs on the %s field", tc.field)
+			require.True(t, tester.HasText(tc.check(app)))
+			require.Empty(t, app.voting.sessionResult.text,
+				"the status line must not also claim the write ran")
+		})
+	}
+}
+
+// TestSessionFieldsAtTheirLimitsAreAccepted keeps the check from being too eager.
+// Both bounds are inclusive.
+func TestSessionFieldsAtTheirLimitsAreAccepted(t *testing.T) {
+	app := New(workbenchFakes())
+	tester := ui.NewTester(app.View, 1280, 2600)
+	app.ShowPage("Voting")
+	tester.Frame()
+
+	app.voting.sessionTitle = strings.Repeat("T", voting.MaxSessionTitleLength)
+	app.voting.sessionDesc = strings.Repeat("D", voting.MaxSessionDescriptionLen)
+	app.voting.sessionStart, app.voting.sessionEnd = time.Now(), time.Now().Add(time.Hour)
+	app.voting.sessionIDs = "c1"
+	app.createVotingSession()
+	tester.Frame()
+
+	require.Empty(t, app.voting.sessionTitleErr)
+	require.Empty(t, app.voting.sessionDescErr)
+	require.Contains(t, app.voting.sessionResult.text, "Created session")
+}
