@@ -67,6 +67,13 @@ func (a *App) setPage(p page) {
 	if a.actions.SetPageTitle != nil {
 		a.actions.SetPageTitle(a.PageTitle())
 	}
+	// The shell records the page so the next launch can open it again. It is
+	// told only when the page really changed — this function returns early
+	// otherwise — because a frame rebuilds the view many times and must not
+	// rewrite the settings file for the page already showing.
+	if a.actions.PageChanged != nil {
+		a.actions.PageChanged(pageIDs[p])
+	}
 	a.refresh()
 }
 

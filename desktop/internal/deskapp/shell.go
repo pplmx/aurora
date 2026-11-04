@@ -618,6 +618,39 @@ func (s *Shell) SetLiveUpdates(on bool) error {
 	return nil
 }
 
+// LastPage is the page the previous launch closed on, or empty for a first
+// launch. SetActions reads it so the window opens where the operator left it.
+func (s *Shell) LastPage() string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.prefs.LastPage
+}
+
+// PageChanged records the visible page so the next launch opens there. It is
+// a callback rather than a Settings control: the operator chooses a page by
+// using it, not by finding a preference for it.
+//
+// A failed write is deliberately silent. This runs on every page switch, and a
+// dialog for a preference the operator never set would interrupt the work the
+// switch was for; the consequence is only that the next launch opens on the
+// default, which is the behavior of an older release.
+func (s *Shell) PageChanged(id string) {
+	if id == "" {
+		return
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.prefs.LastPage == id {
+		return
+	}
+	next := s.prefs
+	next.LastPage = id
+	if err := savePreferences(s.prefsPath, next); err != nil {
+		return
+	}
+	s.prefs = next
+}
+
 // ThemeMode reports the saved appearance choice. An older preferences file
 // has no theme field, so its empty value resolves to the previous dark design.
 func (s *Shell) ThemeMode() nativeui.ThemeMode {

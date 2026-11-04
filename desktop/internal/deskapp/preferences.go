@@ -28,6 +28,12 @@ type Preferences struct {
 	// from a system locale that happens to match it, and the chooser would
 	// show the same state for both.
 	Language string `json:"language,omitempty"`
+	// LastPage is the page the window was showing when it last closed, so the
+	// next launch opens there instead of always at the dashboard. Only the
+	// stable page id is stored, never its title: a title is shown text and may
+	// be translated, and a renamed page must open on its default rather than on
+	// a page the record no longer names.
+	LastPage string `json:"lastPage,omitempty"`
 }
 
 // preferencesPath is empty when there is no database path yet; saving then

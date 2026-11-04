@@ -277,6 +277,8 @@ func main() {
 		SetThemeMode:    shell.SetThemeMode,
 		SystemDark:      shell.SystemDark,
 		SetPageTitle:    shell.SetPageTitle,
+		PageChanged:     shell.PageChanged,
+		LastPage:        shell.LastPage(),
 		Version:         meta.Version,
 		BuildTime:       meta.BuildTime,
 		Runtime:         deskapp.RuntimeInfo(),

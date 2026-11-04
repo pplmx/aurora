@@ -73,6 +73,14 @@ type Actions struct {
 	// SetPageTitle keeps the native window title in step with the visible
 	// page (and its language); optional for view tests.
 	SetPageTitle func(string)
+	// PageChanged reports a page switch by its stable id (the one the sidebar
+	// chooses by, not the title). The shell records it so the next launch can
+	// open the same page; optional for view tests.
+	PageChanged func(id string)
+	// LastPage is the page the previous launch closed on, or empty. SetActions
+	// resolves it before the first frame, so the window opens where the
+	// operator left it instead of flashing the dashboard first.
+	LastPage string
 }
 
 // SetActions gives the window its application-level callbacks. It is called
@@ -87,6 +95,14 @@ func (a *App) SetActions(actions Actions) {
 	}
 	if actions.SystemDark != nil {
 		a.systemDark = actions.SystemDark()
+	}
+	// Open where the previous launch left off before the first frame draws, so
+	// the window does not paint the dashboard and then jump to the real page.
+	// ShowPage ignores an id no page answers to: a first launch, a page a later
+	// release removed and a hand-edited settings file all land on the default
+	// instead of a blank window.
+	if actions.LastPage != "" {
+		a.ShowPage(actions.LastPage)
 	}
 	if actions.SetPageTitle != nil {
 		actions.SetPageTitle(a.PageTitle())

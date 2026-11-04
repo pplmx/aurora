@@ -178,3 +178,60 @@ func TestShellReportsWhetherItFollowsTheSystem(t *testing.T) {
 	require.False(t, shell.LanguageFollowsSystem(),
 		"a stored choice means the window no longer follows the system")
 }
+
+// TestShellRemembersTheVisiblePage covers "reopen where I left off": the window
+// reports each switch, and the next launch reads the last one back. A shell with
+// no database path must stay silent rather than error — the callback runs on every
+// page switch, and a dialog for a preference nobody set would interrupt the work
+// the switch was for.
+func TestShellRemembersTheVisiblePage(t *testing.T) {
+	dbPath := filepath.Join(t.TempDir(), "aurora.db")
+	shell := NewShell(About{DBPath: dbPath})
+	require.Empty(t, shell.LastPage(), "a fresh install opens on the default page")
+
+	shell.PageChanged("token")
+	require.Equal(t, "token", shell.LastPage())
+
+	// A new shell reads it back, the way the next launch does.
+	require.Equal(t, "token", NewShell(About{DBPath: dbPath}).LastPage(),
+		"the page must survive a restart")
+
+	require.NotPanics(t, func() { NewShell(About{}).PageChanged("token") },
+		"a shell without a settings path must not fail the page switch")
+	require.Empty(t, NewShell(About{}).LastPage())
+}
+
+// TestRememberingAPageKeepsTheOtherChoices keeps the page from resetting a setting
+// the operator already made. Preferences are written as one file, so a field left
+// out of the copy would silently drop what the previous save stored.
+func TestRememberingAPageKeepsTheOtherChoices(t *testing.T) {
+	dbPath := filepath.Join(t.TempDir(), "aurora.db")
+	shell := NewShell(About{DBPath: dbPath})
+	require.NoError(t, shell.SetLiveUpdates(true))
+
+	shell.PageChanged("oracle")
+
+	next := NewShell(About{DBPath: dbPath})
+	require.Equal(t, "oracle", next.LastPage())
+	require.True(t, next.LiveUpdates(), "remembering a page must not clear the other choices")
+}
+
+// TestStartupWiresTheRememberedPage closes the gap the pure tests leave: both
+// ends can be correct while the binary never connects them. The shell reads the
+// saved page and writes each switch, but only main's SetActions call carries
+// them to the window, so a missing field there would silently disable the
+// behavior with every unit test still green.
+func TestStartupWiresTheRememberedPage(t *testing.T) {
+	root := repoRoot(t)
+	data, err := os.ReadFile(filepath.Join(root, "desktop", "cmd", "aurora-desktop", "main.go"))
+	require.NoError(t, err)
+	main := string(data)
+
+	for _, want := range []string{
+		"PageChanged:     shell.PageChanged",
+		"LastPage:        shell.LastPage()",
+	} {
+		require.Contains(t, main, want,
+			"the startup wiring must hand the window its remembered page (missing %q)", want)
+	}
+}

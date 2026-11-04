@@ -322,3 +322,47 @@ func TestThePaletteMatchesAndRanksWhatTheWindowShows(t *testing.T) {
 	require.Equal(t, 1, first,
 		"the backup command's title contains the query without starting with it")
 }
+
+// TestActionsOpenOnTheRememberedPage covers the launch path: the shell reads the
+// page the previous launch closed on and hands it over with the rest of Actions.
+// Resolving it inside SetActions matters because that runs before the first frame:
+// opening it any later paints the dashboard and then jumps, which is the flicker a
+// reader would see on every launch.
+func TestActionsOpenOnTheRememberedPage(t *testing.T) {
+	app := New(&fakeServices{})
+	require.Equal(t, pageDashboard, app.page, "a fresh app starts on the dashboard")
+
+	app.SetActions(Actions{LastPage: "nft"})
+	require.Equal(t, pageNFT, app.page,
+		"the remembered page must be showing before the first frame")
+}
+
+// TestRememberedPageFallsBackWhenNoPageAnswers keeps a stale record from blanking
+// the window. The value survives releases, so it can name a page that was renamed,
+// removed, or hand-edited; the default page is the only safe destination.
+func TestRememberedPageFallsBackWhenNoPageAnswers(t *testing.T) {
+	for _, stored := range []string{"no-such-page", "", "  "} {
+		app := New(&fakeServices{})
+		app.ShowPage("Token")
+		app.SetActions(Actions{LastPage: stored})
+		require.Equalf(t, pageToken, app.page,
+			"a page id %q that answers no page must leave the current page alone", stored)
+	}
+}
+
+// TestPageChangedReportsTheStablePageID pins what the shell persists. The titles
+// are shown text: a record of "Token" would stop matching the moment the title is
+// translated or reworded, so the callback carries the id the sidebar chooses by.
+// It also must not fire for a page already showing, or every frame that selects
+// the same page would rewrite the settings file.
+func TestPageChangedReportsTheStablePageID(t *testing.T) {
+	app := New(&fakeServices{})
+	var reported []string
+	app.SetActions(Actions{PageChanged: func(id string) { reported = append(reported, id) }})
+
+	app.ShowPage("Token")
+	app.ShowPage("Token") // already there: nothing to record
+	app.ShowPage(pageIDs[pageVoting])
+
+	require.Equal(t, []string{"token", "voting"}, reported)
+}
