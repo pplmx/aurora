@@ -27,6 +27,17 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Added
 
+- **Reload reaches every data page**: the File menu's import calls the window's reload, and a page it
+  skipped would keep showing the rows it read before the import — the data would be stored and
+  invisible, which reads as a failed import. Every page that reads a collection is now checked, with
+  Settings exempt because it reads none. The other half is covered too: importing while another page
+  is open still shows the new rows when the operator navigates there.
+- **The per-frame read audit now counts the NFT collection**: the list of counters it watches was
+  missing `ListAllNFTs`, so the NFT page looked clean whatever it did. The audit's own self-check
+  exists for exactly this, and the gap was found by a test that failed for the wrong reason.
+
+### Added
+
 - **Narrow layouts hold in every language at twice the text size**: the existing narrow-window test
   used English at the default size, which is the easiest case — Chinese prose is set without the
   spaces English gets, and at twice the size the sidebar and every label need more room than the

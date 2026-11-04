@@ -56,6 +56,7 @@ func storageReadCounters(f *fakeServices) map[string]int {
 		"oracleSource":   f.oracleSourceCalls,
 		"dashboard":      f.dashboardCalls,
 		"blockList":      f.blockListCalls,
+		"listAllNFTs":    f.listAllNFTsCalls,
 		"oracleHealth":   f.oracleHealthCalls,
 		"tokenInfo":      f.tokenInfoCalls,
 		"tokenBalance":   f.tokenBalanceCalls,
