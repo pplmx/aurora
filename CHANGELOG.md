@@ -35,7 +35,10 @@ The milestone notes under `.planning/` are history, not current instructions.
   parallel lookup, because selecting a record also sets the owner context and the readouts keyed by
   id, and a second implementation of that would drift from the first. An id the store does not know
   still becomes the subject: the page's own "not found" is a more useful answer than a palette that
-  refuses to move.
+  refuses to move. Where the record is already on the loaded page the jump goes through the same
+  function a click does, because a selection also sets the owner context the write forms reuse and
+  the row highlight — an id-only jump left the page in a state no click can produce, which a reader
+  notices only after signing with a key the form silently did not fill in.
 
 ### Added
 

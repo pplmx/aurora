@@ -124,3 +124,56 @@ func TestJumpToAnUnknownKindDoesNothing(t *testing.T) {
 	app.ShowRecord("token", "   ")
 	require.Equal(t, pageOracle, app.page, "neither an unknown kind nor an empty id may navigate")
 }
+
+// TestJumpLandsWhereAClickWould pins the state a jump produces against the state
+// a click produces. A selection sets more than the subject id — the owner context
+// the write forms reuse and the row highlight among them — so a jump that only
+// wrote the id left the page in a state no click can reach: the write cards knew
+// no owner, and the row it had just opened was not marked. A reader notices that
+// only after signing with a key the form silently did not fill in.
+func TestJumpLandsWhereAClickWould(t *testing.T) {
+	rows := []TokenRow{
+		{ID: "tok-a", Name: "Alpha", Symbol: "A", TotalSupply: "1", Owner: "owner-a-pk"},
+		{ID: "tok-b", Name: "Beta", Symbol: "B", TotalSupply: "1", Owner: "owner-b-pk"},
+	}
+
+	clicked := New(&fakeServices{tokenRows: rows})
+	clickTester := ui.NewTester(clicked.View, 1280, 1800)
+	clicked.ShowPage("Token")
+	clickTester.Frame()
+	require.NoError(t, clickTester.Click("Beta"))
+	clickTester.Frame()
+
+	jumped := New(&fakeServices{tokenRows: rows})
+	jumpTester := ui.NewTester(jumped.View, 1280, 1800)
+	jumped.ShowPage("Token")
+	jumpTester.Frame()
+	jumped.ShowRecord("token", "tok-b")
+	jumpTester.Frame()
+
+	require.Equal(t, clicked.token.tokenID, jumped.token.tokenID)
+	require.Equal(t, clicked.token.chosen, jumped.token.chosen,
+		"the jumped row must be highlighted the way a click highlights it")
+	require.Equal(t, clicked.token.resolvedOwner, jumped.token.resolvedOwner,
+		"and the write forms must know the same owner")
+	require.NotEmpty(t, jumped.token.resolvedOwner, "the fixture must have an owner to compare")
+}
+
+// TestJumpToARecordOutsideTheLoadedPage is the fallback half: a pasted id that is
+// not on the page still becomes the subject, so the cards act on it and the
+// page's own read fills in what it can. Refusing to move would be worse — the
+// operator would have to find the record by hand to learn it is gone.
+func TestJumpToARecordOutsideTheLoadedPage(t *testing.T) {
+	app := New(&fakeServices{tokenRows: []TokenRow{
+		{ID: "tok-a", Name: "Alpha", Symbol: "A", TotalSupply: "1", Owner: "owner-a-pk"},
+	}})
+	tester := ui.NewTester(app.View, 1280, 1800)
+	app.ShowPage("Token")
+	tester.Frame()
+
+	app.ShowRecord("token", "tok-pasted")
+	tester.Frame()
+
+	require.Equal(t, "tok-pasted", app.token.tokenID, "the pasted id is still the subject")
+	require.Equal(t, -1, app.token.chosen, "and no row is highlighted, because none is that record")
+}

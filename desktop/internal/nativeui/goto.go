@@ -71,17 +71,39 @@ func (a *App) ShowRecord(kindOrPageID, recordID string) {
 	a.applyRecordSubject(p, recordID)
 }
 
-// applyRecordSubject hands the id to the page's own selection path. Each case is
-// the same call the collection's click handler makes, so a jump and a click land
-// in an identical state.
+// applyRecordSubject hands the id to the page's own selection path.
+//
+// Where the record is already on the loaded page, the jump calls the same
+// function a click does. That matters because a selection sets more than the
+// subject id: the owner context the write forms reuse, the row highlight, and the
+// readouts keyed by id. Setting only the id left a jumped record in a state no
+// click can produce — the write cards knew no owner and the row was not marked —
+// which is the kind of difference a reader only notices after signing with a key
+// the form silently did not fill in.
+//
+// A record outside the loaded page (a pasted id, or a page not read yet) falls
+// back to the id-only path: the page's own reads then fill in what they can, and
+// the card that cannot resolve it says so.
 func (a *App) applyRecordSubject(p page, id string) {
 	switch p {
 	case pageToken:
+		a.token.search, a.token.appliedSearch = "", ""
+		if index := indexOfToken(a.token.tokens, id); index >= 0 {
+			a.chooseToken(a.token.tokens, index)
+			return
+		}
+		a.token.chosen = -1
 		a.token.tokenID = id
 		a.applyTokenSubject("")
 		a.clearTokenHistoryForAnotherRead(id, "", 0, 0)
-		a.loadTokenInfo(id)
+		_ = a.loadTokenInfo(id)
 	case pageNFT:
+		a.nft.search = ""
+		if index := indexOfNFT(a.nft.list, id); index >= 0 {
+			a.chooseNFT(a.nft.list, index)
+			return
+		}
+		a.nft.selected = -1
 		a.nft.id, a.nft.transferID, a.nft.burnID, a.nft.historyID = id, id, id, id
 		a.applyNFTSubject("")
 		a.clearNFTDetailsForAnotherSubject(id)
@@ -92,7 +114,9 @@ func (a *App) applyRecordSubject(p page, id string) {
 		_ = a.loadOracleData(id, a.oracleQueryLimit())
 		_ = a.loadOracleLatest(id)
 	case pageVoting:
-		// A voting id may be any of the three collections; the page has a field
+		// A session that is already on the loaded page goes through the click
+		// path, which also re-reads the tally it shows. A voting id may be any
+		// of the three collections; the page has a field
 		// per collection, and setting all of them is what the session-row click
 		// does. The tab follows the id, because a tally is read on Results.
 		a.voting.controlID, a.voting.voteSession = id, id
@@ -105,4 +129,25 @@ func (a *App) applyRecordSubject(p page, id string) {
 		a.lottery.verifyID = id
 		a.verifyLottery()
 	}
+}
+
+// indexOfToken and indexOfNFT find a record in a loaded page. They are tiny on
+// purpose: the lists are at most a few hundred rows, and a helper that took a key
+// function would be more indirection than the two call sites justify.
+func indexOfToken(rows []TokenRow, id string) int {
+	for i, row := range rows {
+		if row.ID == id {
+			return i
+		}
+	}
+	return -1
+}
+
+func indexOfNFT(rows []NFTRow, id string) int {
+	for i, row := range rows {
+		if row.ID == id {
+			return i
+		}
+	}
+	return -1
 }
