@@ -34,6 +34,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **One write owns the database on both paths**: the busy gate lived only on the asynchronous path, so
+  the synchronous one relied on the window having disabled the page body. A caller that reached it
+  anyway — a keyboard chord, a second click in the same frame, or a test — started a second write under
+  a banner naming the first. The gate now sits before the branch, and the other half is held too: the
+  sidebar stays usable during a write, which is what the busy bar exists for.
+
+### Fixed
+
 - **The waiting list says how many parked copies it is not showing**: the card draws at most twenty
   rows while the footer reports the true backlog, so an operator counting twenty rows against a footer
   that said sixty would take the difference for a display bug rather than for the rest of the queue.

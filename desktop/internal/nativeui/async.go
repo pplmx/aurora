@@ -24,12 +24,17 @@ type writeOrigin struct {
 // apply closure always runs on the frame thread. Tests keep the synchronous
 // path and observe the same state immediately.
 func (a *App) runWrite(label string, work func() func()) {
+	// One write owns the database at a time, on both paths. The window disables
+	// the page body while a write runs, so the synchronous path used to rely on
+	// that; a caller that reached it anyway — a keyboard chord, a second click
+	// in the same frame, or a test — would have started a second write under a
+	// banner naming the first.
+	if a.busy != "" {
+		return
+	}
 	if !a.backgroundWrites {
 		work()()
 		return
-	}
-	if a.asyncCh != nil {
-		return // one write at a time; the banner names the running one
 	}
 	ch := make(chan func(), 1)
 	a.asyncCh = ch
