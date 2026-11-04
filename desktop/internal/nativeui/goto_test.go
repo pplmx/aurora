@@ -177,3 +177,29 @@ func TestJumpToARecordOutsideTheLoadedPage(t *testing.T) {
 	require.Equal(t, "tok-pasted", app.token.tokenID, "the pasted id is still the subject")
 	require.Equal(t, -1, app.token.chosen, "and no row is highlighted, because none is that record")
 }
+
+// TestSessionJumpLoadsTheRoster extends the click-equivalence rule to the third
+// collection. A session row's selection does more than copy an id: it loads the
+// roster the ballot form needs and invalidates a tally belonging to the previous
+// session. A jump that skipped those left the page showing one session's tally
+// beside another session's id.
+func TestSessionJumpLoadsTheRoster(t *testing.T) {
+	session := SessionRow{
+		ID: "sess-1", Title: "Budget 2026", Status: "active",
+		StartTime: 1_800_000_000, EndTime: 1_800_086_400,
+	}
+
+	app := New(&fakeServices{sessions: []SessionRow{session}})
+	tester := ui.NewTester(app.View, 1280, 2000)
+	app.ShowPage("Voting")
+	tester.Frame()
+
+	app.ShowRecord("session", "sess-1")
+	tester.Frame()
+
+	require.Equal(t, "sess-1", app.voting.controlID)
+	require.Equal(t, 0, app.voting.sessionChoice, "the jumped row is highlighted")
+	require.Equal(t, "sess-1", app.voting.rosterSessionID,
+		"the roster the ballot form needs is loaded for the jumped session")
+	require.Equal(t, 1, app.voting.tab, "and the page opens on the stage that reads a session")
+}

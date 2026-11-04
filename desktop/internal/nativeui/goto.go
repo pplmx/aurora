@@ -114,15 +114,23 @@ func (a *App) applyRecordSubject(p page, id string) {
 		_ = a.loadOracleData(id, a.oracleQueryLimit())
 		_ = a.loadOracleLatest(id)
 	case pageVoting:
-		// A session that is already on the loaded page goes through the click
-		// path, which also re-reads the tally it shows. A voting id may be any
-		// of the three collections; the page has a field
-		// per collection, and setting all of them is what the session-row click
-		// does. The tab follows the id, because a tally is read on Results.
+		// The tab follows the id, because a tally is read on Results.
+		a.voting.tab = 1
+		a.voting.sessionSearch, a.voting.sessionApplied = "", ""
+		// A session already on the loaded page goes through the same function
+		// the row click does, which also loads the roster the ballot form needs
+		// and invalidates a tally belonging to the previous session.
+		sessions := a.filteredSessions()
+		if index := indexOfSessionID(sessions, id); index >= 0 {
+			a.chooseSession(sessions, index)
+			return
+		}
+		// The id may name a voter or a candidate rather than a session, so the
+		// remaining fields are set for the collections the click does not cover.
+		a.voting.sessionChoice = -1
 		a.voting.controlID, a.voting.voteSession = id, id
 		a.voting.resultsSession = id
-		a.voting.tab = 1
-		a.selectSessionByID(id)
+		a.clearSessionRoster()
 		a.clearTallyForAnotherSession(id)
 		_ = a.loadSessionResults(id)
 	case pageLottery:
@@ -131,9 +139,10 @@ func (a *App) applyRecordSubject(p page, id string) {
 	}
 }
 
-// indexOfToken and indexOfNFT find a record in a loaded page. They are tiny on
-// purpose: the lists are at most a few hundred rows, and a helper that took a key
-// function would be more indirection than the two call sites justify.
+// indexOfToken, indexOfNFT and indexOfSessionID find a record in a loaded page.
+// They are tiny on purpose: the lists are at most a few hundred rows, and a
+// helper that took a key function would be more indirection than three call sites
+// with three different row types justify.
 func indexOfToken(rows []TokenRow, id string) int {
 	for i, row := range rows {
 		if row.ID == id {
@@ -144,6 +153,15 @@ func indexOfToken(rows []TokenRow, id string) int {
 }
 
 func indexOfNFT(rows []NFTRow, id string) int {
+	for i, row := range rows {
+		if row.ID == id {
+			return i
+		}
+	}
+	return -1
+}
+
+func indexOfSessionID(rows []SessionRow, id string) int {
 	for i, row := range rows {
 		if row.ID == id {
 			return i
