@@ -149,3 +149,28 @@ func TestZoomWorksOnEveryPage(t *testing.T) {
 		})
 	}
 }
+
+// TestThePaletteOffersTheZoomCommands makes the zoom reachable without the
+// chord, which is the point of the palette: a reader who does not remember (or
+// was never told) the keys can find the command by name. The entry's description
+// also carries the current ratio, so opening the palette answers "how big is the
+// window now" without going to Settings.
+func TestThePaletteOffersTheZoomCommands(t *testing.T) {
+	app := New(&fakeServices{})
+	tester := ui.NewTester(app.View, 1280, 860)
+	tester.Frame()
+
+	tester.Key(platformRefreshModifier(), ui.KeyK)
+	tester.Frame()
+	app.paletteQuery = "zoom"
+	tester.Frame()
+
+	require.True(t, tester.HasText("Zoom in"), "the palette must offer enlarging")
+	require.True(t, tester.HasText("Zoom out"))
+	require.True(t, tester.HasText("Actual size"))
+
+	tester.Key(0, ui.KeyEnter)
+	tester.Frame()
+	require.Equal(t, float32(1.1), app.contentZoom,
+		"the first match is Zoom in, which must enlarge the window")
+}

@@ -121,8 +121,32 @@ func (a *App) paletteMatches() []paletteEntry {
 			title: pageTitles[p], detail: pagePurpose[p], icon: pageIcons[p], page: p,
 		})
 	}
-	// Navigation stays live while a background write owns the database, but
-	// reload and file commands must not start a second repository operation.
+	// Window commands come before file work: a reader who types "zoom" or
+	// "refresh" is steering the window, and the list reads in the order those
+	// belong to. Navigation stays live while a background write owns the
+	// database, but reload and file commands must not start a second repository
+	// operation.
+	//
+	// Zoom is the one exception to that gate, and it stays above the busy check
+	// to say so: it reads and writes no database, and a reader waiting on a long
+	// import may well want the page larger. Its description carries the current
+	// ratio, so opening the palette answers "how big is it now" without
+	// Settings.
+	zoom := zoomLabel(a.contentZoom)
+	entries = append(entries,
+		paletteEntry{
+			title: "Zoom in", detail: fmt.Sprintf(tr("Enlarge the window content · now %s"), zoom),
+			icon: zoomInIcon, action: func(*ui.Context) { a.setContentZoom(nextZoom(a.contentZoom, +1)) },
+		},
+		paletteEntry{
+			title: "Zoom out", detail: fmt.Sprintf(tr("Shrink the window content · now %s"), zoom),
+			icon: zoomOutIcon, action: func(*ui.Context) { a.setContentZoom(nextZoom(a.contentZoom, -1)) },
+		},
+		paletteEntry{
+			title: "Actual size", detail: fmt.Sprintf(tr("Reset the content zoom to 100% · now %s"), zoom),
+			icon: zoomResetIcon, action: func(*ui.Context) { a.setContentZoom(1) },
+		},
+	)
 	if a.busy == "" {
 		if a.page != pageSettings {
 			entries = append(entries, paletteEntry{

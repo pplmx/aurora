@@ -20,7 +20,10 @@ The milestone notes under `.planning/` are history, not current instructions.
   1.4999999, so the ratio printed at the end would not be the one applied and the last press could
   stop short of 200%. The ratio is stored in `desktop-settings.json` (a corrupt or missing value
   comes back as 100%), shown on the Appearance card, and acknowledged with a toast on each change,
-  because a zoom on a fixed-size window otherwise reads as content that disappeared.
+  because a zoom on a fixed-size window otherwise reads as content that disappeared. Zoom in, Zoom
+  out and Actual size are also command-palette entries, so a reader who does not know the chords can
+  find them by name; they are the one palette group that stays available during a database write,
+  which is exactly when a reader waiting on a long import may want the page larger.
 
 ### Changed
 

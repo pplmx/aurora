@@ -143,8 +143,9 @@ func TestFileActionsPauseWhileAWriteOwnsTheDatabase(t *testing.T) {
 	tester.Key(platformRefreshModifier(), ui.KeyK)
 	tester.Frame()
 	require.True(t, app.paletteOpen)
-	require.Len(t, app.paletteMatches(), len(pageOrder),
-		"the palette must keep navigation but omit unavailable commands")
+	require.Len(t, app.paletteMatches(), len(pageOrder)+3,
+		"the palette must keep navigation and the database-free zoom commands, "+
+			"but omit the ones that would start a second repository operation")
 	require.False(t, tester.HasText("Refresh current page"))
 	require.False(t, tester.HasText("Back up database…"))
 	require.Empty(t, calls)

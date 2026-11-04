@@ -135,6 +135,27 @@ var (
 	folderIcon = ui.MustParseSVG([]byte(svgOpen +
 		`<path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>` +
 		`</svg>`))
+	// The three zoom marks are Lucide's magnifiers, so the command palette's
+	// zoom entries read as one family. They are only used there: the zoom is
+	// also on the keyboard, and a magnifier beside the page header would compete
+	// with the module's own glyph.
+	zoomInIcon = ui.MustParseSVG([]byte(svgOpen +
+		`<circle cx="11" cy="11" r="8"/>` +
+		`<path d="m21 21-4.3-4.3"/>` +
+		`<path d="M11 8v6"/>` +
+		`<path d="M8 11h6"/>` +
+		`</svg>`))
+	zoomOutIcon = ui.MustParseSVG([]byte(svgOpen +
+		`<circle cx="11" cy="11" r="8"/>` +
+		`<path d="m21 21-4.3-4.3"/>` +
+		`<path d="M8 11h6"/>` +
+		`</svg>`))
+	zoomResetIcon = ui.MustParseSVG([]byte(svgOpen +
+		`<circle cx="11" cy="11" r="8"/>` +
+		`<path d="m21 21-4.3-4.3"/>` +
+		`<path d="M11 8h6"/>` +
+		`<path d="M11 14h6"/>` +
+		`</svg>`))
 	// warningIcon marks a confirmation whose action cannot be undone. The
 	// triangle with an exclamation is the shape readers already know from
 	// every desktop alert.
