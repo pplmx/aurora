@@ -252,3 +252,43 @@ func TestPendingAuditEventsCountsTheOutbox(t *testing.T) {
 	_, _, err = c.OldestPendingAuditEvent(context.Background())
 	require.Error(t, err)
 }
+
+// TestPendingAuditModulesNamesWhatIsStuck covers the read the window uses to
+// narrow its ledger. A backlog usually belongs to one module whose sink is
+// refusing its writes, and the modules are read from the parked events
+// themselves, so a caller never has to guess which one is behind.
+func TestPendingAuditModulesNamesWhatIsStuck(t *testing.T) {
+	blockchain.ResetForTest()
+	t.Cleanup(blockchain.ResetForTest)
+	viper.Reset()
+	t.Cleanup(viper.Reset)
+
+	dir := t.TempDir()
+	t.Chdir(dir)
+	viper.Set("db.path", filepath.Join(dir, "aurora.db"))
+
+	c, err := Open()
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = c.Close() })
+
+	modules, err := c.PendingAuditModules(context.Background())
+	require.NoError(t, err)
+	require.Empty(t, modules, "an empty outbox names no modules")
+
+	require.NoError(t, c.EventStore.EnqueuePending(
+		events.NewBaseEvent("token.mint", "agg-1", []byte(`{"agg_id":"agg-1"}`))))
+	require.NoError(t, c.EventStore.EnqueuePending(
+		events.NewBaseEvent("token.transfer", "agg-2", []byte(`{"agg_id":"agg-2"}`))))
+	require.NoError(t, c.EventStore.EnqueuePending(
+		events.NewBaseEvent("oracle.fetch", "agg-3", []byte(`{"agg_id":"agg-3"}`))))
+
+	modules, err = c.PendingAuditModules(context.Background())
+	require.NoError(t, err)
+	require.Equal(t, []string{"oracle", "token"}, modules,
+		"the modules are distinct and ordered, so the answer is stable between frames")
+
+	// A closed database is a read failure, not an empty backlog.
+	require.NoError(t, c.Close())
+	_, err = c.PendingAuditModules(context.Background())
+	require.Error(t, err)
+}

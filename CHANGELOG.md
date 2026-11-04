@@ -54,7 +54,11 @@ The milestone notes under `.planning/` are history, not current instructions.
   has outlived it is a failure and says "not draining", because the two need different responses.
   The line is also a way in: clicking it opens the audit ledger, where the parked events are visible.
   It deliberately does not start a drain — the drainer is a background retry loop owned by the
-  runtime, and a window that started a second pass would race it.
+  runtime, and a window that started a second pass would race it. When the whole backlog belongs to
+  one module — the usual shape, since one sink refusing one module's writes is what parks them — the
+  ledger opens with that module already in its search field, so the stuck records are what the page
+  shows. Several parked modules leave it unfiltered: no single term names them all, and searching
+  for one would hide the rest.
 
 ### Added
 

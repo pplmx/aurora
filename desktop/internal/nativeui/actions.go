@@ -45,6 +45,10 @@ type Actions struct {
 	// OutboxOldest reports how long the oldest parked audit event has waited,
 	// so the copied diagnostics can say whether the retry loop is moving.
 	OutboxOldest func() (age time.Duration, ok bool)
+	// OutboxModules names the modules whose events are parked, so following the
+	// backlog can narrow the ledger to them instead of opening the whole chain.
+	// It is optional: without it the backlog line simply opens the ledger.
+	OutboxModules func() []string
 	// RecentDocuments lists the lottery exports the user opened or saved;
 	// OpenRecent loads one through the same import path as a drop.
 	RecentDocuments func() []string
@@ -184,7 +188,7 @@ func (a *App) sidebarActions(c *ui.Context) {
 					Grow(1).Shrink(1).MinWidth(0).Wrap()
 			})
 			if b.Clicked() {
-				a.setPage(pageBlockchain)
+				a.followOutbox()
 			}
 		}
 	})

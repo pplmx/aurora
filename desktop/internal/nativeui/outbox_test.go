@@ -151,3 +151,44 @@ func TestTheBacklogLineIsKeyboardReachable(t *testing.T) {
 	tester.Frame()
 	require.Equal(t, pageBlockchain, app.page, "Enter must open the ledger like a click does")
 }
+
+// TestFollowingTheBacklogNarrowsToOneModule covers what following the backlog
+// does when the whole backlog belongs to one module — the usual shape, since one
+// sink refusing one module's writes is what parks them. Opening the whole chain
+// then makes the operator search for the very records the footer just named.
+func TestFollowingTheBacklogNarrowsToOneModule(t *testing.T) {
+	app := New(&fakeServices{})
+	actions := outboxActions(3, 20*time.Second)
+	actions.OutboxModules = func() []string { return []string{"token"} }
+	app.SetActions(actions)
+
+	tester := ui.NewTester(app.View, 1280, 900)
+	tester.Frame()
+	require.NoError(t, tester.Click("Audit outbox: 3 pending, oldest 20s"))
+	tester.Frame()
+
+	require.Equal(t, pageBlockchain, app.page)
+	require.Equal(t, "token", app.blockchain.search,
+		"one parked module must become the ledger's search term")
+}
+
+// TestFollowingTheBacklogLeavesSeveralModulesUnfiltered: with more than one module
+// parked no single term names them all, and searching for one would hide the rest
+// — which is worse than showing the whole chain.
+func TestFollowingTheBacklogLeavesSeveralModulesUnfiltered(t *testing.T) {
+	for _, modules := range [][]string{{"token", "oracle"}, nil} {
+		app := New(&fakeServices{})
+		actions := outboxActions(3, 20*time.Second)
+		actions.OutboxModules = func() []string { return modules }
+		app.SetActions(actions)
+
+		tester := ui.NewTester(app.View, 1280, 900)
+		tester.Frame()
+		require.NoError(t, tester.Click("Audit outbox: 3 pending, oldest 20s"))
+		tester.Frame()
+
+		require.Equal(t, pageBlockchain, app.page)
+		require.Emptyf(t, app.blockchain.search,
+			"with modules %v the ledger must open unfiltered", modules)
+	}
+}

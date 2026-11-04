@@ -38,6 +38,10 @@ type Services interface {
 	// the outbox; ok is false on an empty outbox. A count alone may be normal on
 	// a busy node, while an age that keeps growing means the drainer is stuck.
 	OldestPendingAuditEvent(ctx context.Context) (time.Time, bool, error)
+	// PendingAuditModules names the modules whose events are parked. The desktop
+	// narrows the ledger to one of them when the operator follows the backlog,
+	// so the page opens on the records that are stuck.
+	PendingAuditModules(ctx context.Context) ([]string, error)
 }
 
 // Chain is the ledger view shared by the HTTP and desktop adapters.
@@ -79,6 +83,32 @@ func (c *Container) OldestPendingAuditEvent(ctx context.Context) (time.Time, boo
 		return time.Time{}, false, nil
 	}
 	return time.Unix(stamp.Int64, 0), true, nil
+}
+
+// PendingAuditModules lists the distinct modules whose parked events are waiting
+// in the outbox. The window hands one of them to the ledger's search when the
+// operator follows the backlog, so the page opens on the records that are stuck
+// rather than on the whole chain — the backlog is usually one sink refusing one
+// module's writes.
+func (c *Container) PendingAuditModules(ctx context.Context) ([]string, error) {
+	rows, err := c.DB.QueryContext(ctx,
+		`SELECT DISTINCT module FROM pending_events WHERE module <> '' ORDER BY module`)
+	if err != nil {
+		return nil, fmt.Errorf("read pending audit modules: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+	var modules []string
+	for rows.Next() {
+		var module string
+		if err := rows.Scan(&module); err != nil {
+			return nil, fmt.Errorf("scan pending audit module: %w", err)
+		}
+		modules = append(modules, module)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("read pending audit modules: %w", err)
+	}
+	return modules, nil
 }
 
 func (c *Container) TokenTransactions() voting.TransactionManager  { return c.TxManager }

@@ -57,6 +57,22 @@ func (a *App) readOutbox() OutboxState {
 	return state
 }
 
+// followOutbox opens the ledger narrowed to the parked events. A backlog usually
+// belongs to one module whose sink is refusing its writes, so opening the whole
+// chain makes the operator search for the very records the footer just told them
+// about. A single parked module becomes the ledger's search term; several are
+// left unfiltered, because no single term names them all and a search for one
+// would hide the rest.
+func (a *App) followOutbox() {
+	search := ""
+	if a.actions.OutboxModules != nil {
+		if modules := a.actions.OutboxModules(); len(modules) == 1 {
+			search = modules[0]
+		}
+	}
+	a.showLedgerSearch(search)
+}
+
 // outboxLine is the sentence the footer shows, and its severity. A backlog that
 // the drainer is still moving through is a warning; one whose oldest event has
 // outlived the retry window is a failure, because the audit chain is then

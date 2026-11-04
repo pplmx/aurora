@@ -303,6 +303,13 @@ func main() {
 			}
 			return pending, true
 		},
+		OutboxModules: func() []string {
+			modules, err := rt.Services().PendingAuditModules(context.Background())
+			if err != nil {
+				return nil
+			}
+			return modules
+		},
 		OutboxOldest: func() (time.Duration, bool) {
 			at, ok, err := rt.Services().OldestPendingAuditEvent(context.Background())
 			if err != nil || !ok {
