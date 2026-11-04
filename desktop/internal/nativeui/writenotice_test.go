@@ -30,8 +30,12 @@ func startTokenCreate(t *testing.T, app *App, tester *ui.Tester) {
 	app.token.name, app.token.symbol, app.token.supply = "T", "T", "100"
 	app.token.owner = "owner"
 	app.createToken()
-	tester.Frame()
+	// Assert before painting: the write is in flight the moment createToken
+	// returns, while a frame may already have polled and applied a fast fake's
+	// result. Checking after the frame made this depend on how much work the
+	// frame happened to do first, which the suite running in parallel changes.
 	require.NotEmpty(t, app.busy, "the write must be running in the background")
+	tester.Frame()
 }
 
 // TestWriteOffPageReportsWhereTheReaderIs covers the gap a background write
