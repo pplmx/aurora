@@ -32,6 +32,14 @@ The milestone notes under `.planning/` are history, not current instructions.
   module. The hue is resolved per frame, because which palette answers depends on the appearance being
   painted; pages and commands keep the accent, since they belong to no module.
 
+### Added
+
+- **Every write entry point is checked against the single-write rule**: the gate was proven at one
+  entry point last round; a table now holds five of them — create token, mint, create draw, register
+  voter, register candidate — each comparing a storage fingerprint before and after an attempt made
+  while another write is running. Removing the gate fails all five, so the rule is held where a future
+  write would otherwise slip through.
+
 ### Fixed
 
 - **One write owns the database on both paths**: the busy gate lived only on the asynchronous path, so
