@@ -27,6 +27,15 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Added
 
+- **No layout escapes the window at any zoom level**: a zoom lays the view out in a window 1/z the
+  size and draws it at the screen's resolution times z, so every control keeps its physical position
+  while the space it was sized for shrinks. A card that assumed the full width would be drawn past the
+  edge, and the top of the ladder is where that shows. All eight pages are now checked at all eight
+  zoom steps; the rectangles come back in physical pixels at every zoom, so the bound is the window's
+  own width.
+
+### Added
+
 - **Page shortcuts follow the sidebar order**: the Settings page lists "Pages 1…8", so the number a
   reader learns by counting down the sidebar must open that page. `pageOrder` (the keyboard order) and
   `moduleOrder` (the sidebar's module section) are separate lists, and a page inserted into one without

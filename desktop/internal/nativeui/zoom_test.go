@@ -239,3 +239,34 @@ func TestZoomKeepsEveryPageInsideTheWindow(t *testing.T) {
 		})
 	}
 }
+
+// TestNoLayoutEscapesTheWindowAtAnyZoom covers the layout consequence of zoom.
+// A zoom lays the view out in a window 1/z the size and draws it at the screen's
+// resolution times z, so every control keeps its physical position while the
+// space it was sized for shrinks. A card that assumed the full width would then
+// be drawn past the edge — and the top of the ladder is exactly where that shows.
+func TestNoLayoutEscapesTheWindowAtAnyZoom(t *testing.T) {
+	// Rects come back in physical pixels at every zoom, so the bound is the
+	// window's own width and not the layout width the view was given.
+	const physicalWidth, physicalHeight = 1280, 860
+
+	for _, zoom := range zoomSteps {
+		for _, target := range pageOrder {
+			app := New(workbenchFakes())
+			app.contentZoom = zoom
+			app.ShowPage(pageTitles[target])
+			tester := ui.NewTester(app.View, physicalWidth, physicalHeight)
+			tester.Frame()
+
+			widest, worst := float32(0), ""
+			for _, text := range tester.Texts() {
+				if rect, ok := tester.Find(text); ok && rect.X+rect.W > widest {
+					widest, worst = rect.X+rect.W, text
+				}
+			}
+			require.LessOrEqualf(t, widest, float32(physicalWidth)+1,
+				"%s at zoom %.2f: %q is drawn %.0fpx past the window",
+				pageTitles[target], zoom, worst, widest-physicalWidth)
+		}
+	}
+}
