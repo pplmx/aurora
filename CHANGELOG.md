@@ -25,6 +25,14 @@ The milestone notes under `.planning/` are history, not current instructions.
   find them by name; they are the one palette group that stays available during a database write,
   which is exactly when a reader waiting on a long import may want the page larger.
 
+### Added
+
+- **A per-frame read audit, page by page**: the backlog broke the "a frame draws what the page
+  already read" rule twice, in the sidebar footer and in the ledger's waiting list, and neither was
+  visible to tests that only checked what the screen said. Every page is now measured over ten idle
+  frames, both at rest and with a detail card open, counting the services the page reads plus the
+  audit backlog's own closures. Injecting the old behaviour back makes it fail with the exact count.
+
 ### Fixed
 
 - **The backlog reads moved off the paint path**: both the footer's count and the ledger's waiting
