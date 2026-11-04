@@ -25,6 +25,14 @@ The milestone notes under `.planning/` are history, not current instructions.
   find them by name; they are the one palette group that stays available during a database write,
   which is exactly when a reader waiting on a long import may want the page larger.
 
+### Fixed
+
+- **The dashboard's recent-activity badge says how much it is not showing**: the card draws the newest
+  five chain entries and labelled them with that count, so a five-entry preview of a thirty-entry chain
+  read as a five-entry chain — and nothing on the card pointed at the rest. The badge now reads
+  "5 of 30"; when the card shows everything there is, the bare count stays, because a ratio over the
+  whole chain is one more thing to skip past.
+
 ### Added
 
 - **The restored page arrives with its data**: launching onto the page the previous session closed on

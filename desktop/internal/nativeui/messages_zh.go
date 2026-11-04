@@ -43,6 +43,7 @@ var desktopMessages = map[string]string{
 	"Audit outbox: %d pending events":                    "审计待发事件 %d 条",
 	"Audit outbox: %d pending, oldest %s — not draining": "审计待发：%d 条，最久已等待 %s —— 未在投递",
 	"Open the audit ledger":                              "打开审计账本",
+	"%d of %d":                                           "%d / 共 %d 条",
 	"Open the audit ledger. The blocks are already written; this is their audit copy waiting to be delivered.": "打开审计账本。区块已经写入，这里是它们的审计副本在等待投递。",
 	"Audit outbox: %d pending, oldest %s": "审计待发：%d 条，最久已等待 %s",
 	"Audit outbox: %d pending":            "审计待发：%d 条",

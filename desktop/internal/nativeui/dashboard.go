@@ -433,8 +433,17 @@ func (a *App) dashboardRecent(c *ui.Context) {
 				sectionHeading(c, "Recent activity", "The newest entries written to the audit chain.")
 			})
 			ui.Row(c).Gap(space2).AlignItems(ui.Center).Children(func() {
+				// The badge says how many of the chain's entries are on screen.
+				// A bare count read as the chain's total, so a five-entry
+				// preview of a thirty-entry chain looked like a five-entry
+				// chain — and the card gave no hint that the rest lived one
+				// click away.
 				if n := len(a.dashboard.recent); n > 0 {
-					badge(c, fmt.Sprintf("%d", n), c.Theme().Selection, c.Theme().Text)
+					label := fmt.Sprintf("%d", n)
+					if total := a.dashboard.Blocks; total > n {
+						label = fmt.Sprintf(tr("%d of %d"), n, total)
+					}
+					badge(c, label, c.Theme().Selection, c.Theme().Text)
 				}
 			})
 		})
