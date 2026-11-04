@@ -174,3 +174,25 @@ func TestThePaletteOffersTheZoomCommands(t *testing.T) {
 	require.Equal(t, float32(1.1), app.contentZoom,
 		"the first match is Zoom in, which must enlarge the window")
 }
+
+// TestZoomIsAnnouncedForScreenReaders covers the reader who needs the zoom most.
+// The ratio is drawn as a toast, and MyGo announces a toast's title to assistive
+// technology (ui/toast.go); this test holds Aurora's side of that: the ratio
+// reaches the announcement once per change, because a zoom that silently changes
+// how much of the page fits is the worst kind of change for a reader who cannot
+// see the window resize.
+func TestZoomIsAnnouncedForScreenReaders(t *testing.T) {
+	app := New(&fakeServices{})
+	tester := ui.NewTester(app.View, 1280, 860)
+	tester.Frame()
+	tester.Announcements() // the initial page transition
+
+	tester.Key(platformRefreshModifier(), ui.KeyEqual)
+	tester.Frame()
+	require.Equal(t, []string{"Zoom 110%"}, tester.Announcements(),
+		"the new ratio must be announced exactly once")
+
+	tester.Frame()
+	require.Empty(t, tester.Announcements(),
+		"an unrelated frame must not repeat the ratio")
+}

@@ -101,6 +101,9 @@ func (a *App) showZoomNotice(c *ui.Context) {
 	if !a.zoomNotice {
 		return
 	}
+	// MyGo announces a toast's title to assistive technology (ui.toast.go), so
+	// the ratio reaches a screen reader without a second announcement here:
+	// announcing it again would make the reader hear it twice.
 	c.Toast(fmt.Sprintf(tr("Zoom %s"), zoomLabel(a.contentZoom)))
 	a.zoomNotice = false
 }
