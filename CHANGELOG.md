@@ -38,7 +38,9 @@ The milestone notes under `.planning/` are history, not current instructions.
   refuses to move. Where the record is already on the loaded page the jump goes through the same
   function a click does, because a selection also sets the owner context the write forms reuse and
   the row highlight — an id-only jump left the page in a state no click can produce, which a reader
-  notices only after signing with a key the form silently did not fill in.
+  notices only after signing with a key the form silently did not fill in. The voting and oracle
+  branches follow the same rule: a session row's selection loads the roster the ballot form needs,
+  and a source row's selection highlights the row and re-reads the cards already showing it.
 
 ### Added
 

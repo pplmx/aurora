@@ -203,3 +203,22 @@ func TestSessionJumpLoadsTheRoster(t *testing.T) {
 		"the roster the ballot form needs is loaded for the jumped session")
 	require.Equal(t, 1, app.voting.tab, "and the page opens on the stage that reads a session")
 }
+
+// TestOracleJumpSelectsTheSource extends the click-equivalence rule to the source
+// list. Choosing a source also highlights its row and re-reads the cards already
+// showing it; a jump that left the row unselected showed a page where the actions
+// had a target but nothing on screen said which.
+func TestOracleJumpSelectsTheSource(t *testing.T) {
+	source := SourceRow{ID: "src-1", Name: "btc", URL: "https://example.com", Type: "http", Enabled: true}
+	app := New(&fakeServices{sources: []SourceRow{source}})
+	tester := ui.NewTester(app.View, 1280, 1800)
+	app.ShowPage("Oracle")
+	tester.Frame()
+
+	app.ShowRecord("oracle", "src-1")
+	tester.Frame()
+
+	require.Equal(t, 0, app.oracle.selected, "the jumped source is the highlighted row")
+	require.Equal(t, "src-1", app.oracle.fetchID)
+	require.Equal(t, "src-1", app.oracle.latestID)
+}

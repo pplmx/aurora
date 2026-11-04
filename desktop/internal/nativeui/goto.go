@@ -109,9 +109,21 @@ func (a *App) applyRecordSubject(p page, id string) {
 		a.clearNFTDetailsForAnotherSubject(id)
 		_ = a.loadNFTDetails(id)
 	case pageOracle:
-		a.oracle.fetchID, a.oracle.queryID, a.oracle.latestID = id, id, id
 		a.oracle.tab = 2
+		a.oracle.search, a.oracle.appliedSearch = "", ""
+		// A source on the loaded page goes through the row's own selection,
+		// which also highlights the row and re-reads the cards already showing
+		// that source.
+		sources := a.filteredSources()
+		if index := indexOfSource(sources, id); index >= 0 {
+			a.chooseOracleSource(sources, index)
+			return
+		}
+		a.oracle.selected = -1
+		a.oracle.fetchID, a.oracle.queryID, a.oracle.latestID = id, id, id
+		a.clearOracleDataForAnotherRead(id, a.oracleQueryLimit())
 		_ = a.loadOracleData(id, a.oracleQueryLimit())
+		a.clearOracleLatestForAnotherSource(id)
 		_ = a.loadOracleLatest(id)
 	case pageVoting:
 		// The tab follows the id, because a tally is read on Results.
@@ -139,7 +151,8 @@ func (a *App) applyRecordSubject(p page, id string) {
 	}
 }
 
-// indexOfToken, indexOfNFT and indexOfSessionID find a record in a loaded page.
+// indexOfToken, indexOfNFT, indexOfSource and indexOfSessionID find a record in
+// a loaded page.
 // They are tiny on purpose: the lists are at most a few hundred rows, and a
 // helper that took a key function would be more indirection than three call sites
 // with three different row types justify.
@@ -153,6 +166,15 @@ func indexOfToken(rows []TokenRow, id string) int {
 }
 
 func indexOfNFT(rows []NFTRow, id string) int {
+	for i, row := range rows {
+		if row.ID == id {
+			return i
+		}
+	}
+	return -1
+}
+
+func indexOfSource(rows []SourceRow, id string) int {
 	for i, row := range rows {
 		if row.ID == id {
 			return i
