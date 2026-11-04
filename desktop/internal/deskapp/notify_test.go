@@ -2,6 +2,8 @@ package deskapp
 
 import (
 	"errors"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/egoist/mygo"
@@ -73,4 +75,24 @@ func TestActiveBeforeTheAppRunsIsConservative(t *testing.T) {
 	stubNotifications(t, true, false)
 	require.True(t, NewShell(About{}).Active(),
 		"an app that has not started must read as active, suppressing the notice")
+}
+
+// TestStartupWiresTheNotificationHooks holds the binary's side of the feature.
+// The view decides when a notice is worth showing and the shell knows how, but
+// only main's SetActions call and its click listener connect them: a missing
+// field there would disable the behavior with every unit test above still green.
+func TestStartupWiresTheNotificationHooks(t *testing.T) {
+	root := repoRoot(t)
+	data, err := os.ReadFile(filepath.Join(root, "desktop", "cmd", "aurora-desktop", "main.go"))
+	require.NoError(t, err)
+	main := string(data)
+
+	for _, want := range []string{
+		"Notify:          shell.Notify",
+		"Active:          shell.Active",
+		"mygo.App.OnNotificationClick(shell.OpenNotification)",
+	} {
+		require.Contains(t, main, want,
+			"the startup wiring must connect the notification hooks (missing %q)", want)
+	}
 }
