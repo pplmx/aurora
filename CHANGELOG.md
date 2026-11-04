@@ -12,6 +12,16 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The window reopens on the page the last launch closed on**: it always opened on the Dashboard,
+  so a reader who works on one page clicked back to it after every restart. The visible page is now
+  stored in `desktop-settings.json` beside the other desktop choices, and `SetActions` resolves it
+  before the first frame so the launch does not paint the Dashboard and then jump. The record is the
+  stable page id rather than the shown title, so translating or rewording a title cannot invalidate
+  it, and an id no page answers to — a page a later release removed, a hand-edited file — leaves the
+  default page alone instead of opening a blank window. A failed write stays silent on purpose: the
+  callback runs on every page switch, and a dialog for a preference nobody set would interrupt the
+  switch it belongs to.
+
 - **The full-page empty state's body cap follows the text scale**: the cap keeps a one-sentence
   explanation from running the width of a wide window, and it was the last fixed 420 left in the
   window — the compact panel beside it already scaled. At 2x the same sentence needs twice the line,
