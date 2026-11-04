@@ -22,20 +22,32 @@ func settleOnPage(t *testing.T, app *App, tester *ui.Tester, target page) {
 
 // startTokenCreate begins the token create write in the background and returns
 // once its busy bar is showing.
-func startTokenCreate(t *testing.T, app *App, tester *ui.Tester) {
+//
+// The write is held open until the returned release function is called. A fake
+// service finishes instantly, so a frame could settle the write while the window
+// was still on the origin page — and settleWrite deliberately reports nothing
+// there, because the status line already says it. The off-page tests then found
+// no outcome to look at, and the failure depended on how much work a frame
+// happened to do first, which the rest of the suite running in parallel changes.
+// Holding the write makes "still running when the reader moves" a fact of the
+// test rather than a race it usually wins.
+func startTokenCreate(t *testing.T, app *App, tester *ui.Tester) (release func()) {
 	t.Helper()
 	app.SetBackgroundWrites(true)
 	app.ShowPage("Token")
 	tester.Frame()
-	app.token.name, app.token.symbol, app.token.supply = "T", "T", "100"
-	app.token.owner = "owner"
-	app.createToken()
-	// Assert before painting: the write is in flight the moment createToken
-	// returns, while a frame may already have polled and applied a fast fake's
-	// result. Checking after the frame made this depend on how much work the
-	// frame happened to do first, which the suite running in parallel changes.
+
+	started := make(chan struct{})
+	hold := make(chan struct{})
+	app.runWrite("Creating token…", func() func() {
+		close(started)
+		<-hold
+		return func() { app.token.status = okStatus("Created T (T) with supply 100. Owner: owner") }
+	})
+	<-started
 	require.NotEmpty(t, app.busy, "the write must be running in the background")
 	tester.Frame()
+	return func() { close(hold) }
 }
 
 // TestWriteOffPageReportsWhereTheReaderIs covers the gap a background write
@@ -48,10 +60,11 @@ func TestWriteOffPageReportsWhereTheReaderIs(t *testing.T) {
 	fake := &fakeServices{}
 	app := New(fake)
 	tester := ui.NewTester(app.View, 1280, 1400)
-	startTokenCreate(t, app, tester)
+	release := startTokenCreate(t, app, tester)
 
 	app.ShowPage("Dashboard")
 	tester.Frame()
+	release()
 	settleOnPage(t, app, tester, pageDashboard)
 
 	require.Equal(t, pageDashboard, app.page, "the reader stays where they moved to")
@@ -70,7 +83,8 @@ func TestWriteOnItsOwnPageIsNotDuplicated(t *testing.T) {
 	fake := &fakeServices{}
 	app := New(fake)
 	tester := ui.NewTester(app.View, 1280, 1400)
-	startTokenCreate(t, app, tester)
+	release := startTokenCreate(t, app, tester)
+	release()
 	settleOnPage(t, app, tester, pageToken)
 
 	status := app.token.status.spoken()
@@ -86,10 +100,11 @@ func TestWriteNoticeReturnsToThePage(t *testing.T) {
 	fake := &fakeServices{}
 	app := New(fake)
 	tester := ui.NewTester(app.View, 1280, 1400)
-	startTokenCreate(t, app, tester)
+	release := startTokenCreate(t, app, tester)
 
 	app.ShowPage("Dashboard")
 	tester.Frame()
+	release()
 	settleOnPage(t, app, tester, pageDashboard)
 
 	// Click the real button rather than the callback behind it: the action is
@@ -141,10 +156,11 @@ func TestOffPageReportingWorksFromEveryPage(t *testing.T) {
 		t.Run(pageTitles[target], func(t *testing.T) {
 			app := New(&fakeServices{})
 			tester := ui.NewTester(app.View, 1280, 1400)
-			startTokenCreate(t, app, tester)
+			release := startTokenCreate(t, app, tester)
 
 			app.ShowPage(pageTitles[target])
 			tester.Frame()
+			release()
 			settleOnPage(t, app, tester, target)
 
 			require.Equal(t, target, app.page, "the reader stays where they moved to")

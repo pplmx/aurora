@@ -44,7 +44,8 @@ func TestSlowWriteInTheBackgroundRaisesANotification(t *testing.T) {
 	app := New(fake)
 	app.SetActions(recorder.actions())
 	tester := ui.NewTester(app.View, 1280, 1400)
-	startTokenCreate(t, app, tester)
+	release := startTokenCreate(t, app, tester)
+	release()
 
 	finishWrite(t, app, tester, writeNoticeAfter+time.Second)
 
@@ -66,7 +67,8 @@ func TestFrontWindowSuppressesTheNotification(t *testing.T) {
 	app := New(&fakeServices{})
 	app.SetActions(recorder.actions())
 	tester := ui.NewTester(app.View, 1280, 1400)
-	startTokenCreate(t, app, tester)
+	release := startTokenCreate(t, app, tester)
+	release()
 
 	finishWrite(t, app, tester, writeNoticeAfter+time.Second)
 
@@ -81,7 +83,8 @@ func TestQuickWriteDoesNotNotify(t *testing.T) {
 	app := New(&fakeServices{})
 	app.SetActions(recorder.actions())
 	tester := ui.NewTester(app.View, 1280, 1400)
-	startTokenCreate(t, app, tester)
+	release := startTokenCreate(t, app, tester)
+	release()
 
 	finishWrite(t, app, tester, time.Second)
 
@@ -94,8 +97,11 @@ func TestQuickWriteDoesNotNotify(t *testing.T) {
 func TestNotificationNeedsTheShell(t *testing.T) {
 	app := New(&fakeServices{})
 	tester := ui.NewTester(app.View, 1280, 1400)
-	startTokenCreate(t, app, tester)
-	require.NotPanics(t, func() { finishWrite(t, app, tester, writeNoticeAfter+time.Second) })
+	release := startTokenCreate(t, app, tester)
+	require.NotPanics(t, func() {
+		release()
+		finishWrite(t, app, tester, writeNoticeAfter+time.Second)
+	})
 }
 
 // TestNotificationNamesTheFailedWrite keeps a completion notice from describing a

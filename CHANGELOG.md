@@ -56,6 +56,17 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **The off-page write tests no longer race the write they start**: the helper began a create against a
+  fake that finishes instantly, then painted a frame. That frame could settle the write while the window
+  was still on the origin page, where the off-page notice deliberately says nothing because the status
+  line already reports it — so the tests found no outcome to look for. The failure depended on how much
+  work the frame happened to do first, and only showed under parallel load (measured: about one run in
+  two when the timing-sensitive tests were repeated 25 times). The helper now holds the write open until
+  the test has moved to another page, which makes "still running when the reader moves" a fact of the
+  test instead of a race it usually wins. Eight repetitions of 25 runs pass after the change.
+
+### Fixed
+
 - **A participant refusal reads as a field message**: the domain wraps a per-name failure as
   "invalid participant: <reason>" because its other caller prints a whole CLI sentence. Under a control
   already labelled "Participants (comma-separated)" that prefix repeated the label and buried the
