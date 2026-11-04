@@ -3,8 +3,12 @@ package deskapp
 import (
 	"testing"
 
-	"github.com/pplmx/aurora/internal/infra/blockchain"
 	"github.com/stretchr/testify/require"
+
+	"github.com/pplmx/aurora/desktop/internal/nativeui"
+	"github.com/pplmx/aurora/internal/i18n"
+	"github.com/pplmx/aurora/internal/infra/blockchain"
+	"github.com/pplmx/aurora/internal/records"
 )
 
 // TestLedgerStatusReportsTheChainHead pins the three numbers the Blockchain
@@ -59,4 +63,45 @@ func TestLedgerStatusReportsABrokenChain(t *testing.T) {
 	status, err := (&nativeServices{chain: chain}).LedgerStatus()
 	require.NoError(t, err)
 	require.False(t, status.Valid, "a tampered block must not read as verified")
+}
+
+// ledgerSearchFixture builds a services value whose chain holds one token record,
+// so a search can be tried against a real chain rather than a fake that has to
+// reimplement the matching it is meant to prove.
+func ledgerSearchFixture(t *testing.T) (*nativeServices, *blockchain.Chain) {
+	t.Helper()
+	chain := blockchain.New()
+	// The pipe shapes put the verb first: `mint|<symbol>|<to>|<amount>` is what
+	// the token service writes, and records.Parse reads the module back from it.
+	_, err := chain.AddBlock(`mint|GLD|alice|10`)
+	require.NoError(t, err)
+	return &nativeServices{chain: chain}, chain
+}
+
+// TestTheLedgerSearchUnderstandsTheWindowsLanguage checks the search term the
+// backlog footer writes into the field. The chain stores module ids ("token"),
+// but a Chinese window shows 代币 and a reader who sees that word expects it to
+// find those records. The search text includes the localized vocabulary for
+// exactly this reason; this pins it so a future simplification to "match the raw
+// payload" cannot quietly drop the word the reader is looking at.
+func TestTheLedgerSearchUnderstandsTheWindowsLanguage(t *testing.T) {
+	tr := i18n.GetTranslator()
+	before := tr.GetLocale()
+	t.Cleanup(func() { tr.SetLocale(before) })
+
+	for _, tc := range []struct{ locale, term string }{
+		{"en", "token"},
+		{"zh", nativeui.RecordVocabulary(records.KindModule, "token", "token")},
+	} {
+		t.Run(tc.locale, func(t *testing.T) {
+			tr.SetLocale(tc.locale)
+			services, chain := ledgerSearchFixture(t)
+			page, err := services.LedgerBlocksPage(tc.term, 10, 0)
+			require.NoError(t, err)
+			require.NotEmpty(t, page.Rows,
+				"the term %q shown in a %s window must find the token record (chain height %d)",
+				tc.term, tc.locale, chain.Len())
+			require.Equal(t, "token", page.Rows[0].Module)
+		})
+	}
 }

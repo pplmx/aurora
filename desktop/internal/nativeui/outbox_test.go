@@ -6,6 +6,8 @@ import (
 
 	"github.com/egoist/mygo/ui"
 	"github.com/stretchr/testify/require"
+
+	"github.com/pplmx/aurora/internal/i18n"
 )
 
 // outboxActions wires the two outbox getters a footer needs.
@@ -191,4 +193,29 @@ func TestFollowingTheBacklogLeavesSeveralModulesUnfiltered(t *testing.T) {
 		require.Emptyf(t, app.blockchain.search,
 			"with modules %v the ledger must open unfiltered", modules)
 	}
+}
+
+// TestThePrefilterUsesTheWindowsWord keeps the search field readable in a
+// translated window. The chain stores module ids ("token") and the backlog read
+// returns those, but a Chinese window draws 代币 beside the footer, so filling
+// the field with "token" shows a word from another vocabulary over records that
+// say something else. The storage search matches both spellings, so the record
+// finds are the same either way; only what the reader sees changes.
+func TestThePrefilterUsesTheWindowsWord(t *testing.T) {
+	tr := i18n.GetTranslator()
+	before := tr.GetLocale()
+	t.Cleanup(func() { tr.SetLocale(before) })
+	tr.SetLocale("zh")
+
+	app := New(&fakeServices{})
+	actions := outboxActions(2, time.Minute)
+	actions.OutboxModules = func() []string { return []string{"token"} }
+	app.SetActions(actions)
+	tester := ui.NewTester(app.View, 1280, 900)
+	tester.Frame()
+
+	app.followOutbox()
+	require.Equal(t, "代币", app.blockchain.search,
+		"the field carries the word the window draws, not the stored id")
+	require.Equal(t, pageBlockchain, app.page)
 }

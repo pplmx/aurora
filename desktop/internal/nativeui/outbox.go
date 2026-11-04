@@ -67,7 +67,13 @@ func (a *App) followOutbox() {
 	search := ""
 	if a.actions.OutboxModules != nil {
 		if modules := a.actions.OutboxModules(); len(modules) == 1 {
-			search = modules[0]
+			// The search field shows a word the reader is looking at, so it
+			// carries the module's own name in the window's language rather than
+			// the id the chain stores. Both find the same records — the storage
+			// search matches the localized vocabulary as well as the raw ids —
+			// but "代币" in a Chinese window is the word the record beside it
+			// says, and "token" there would look like a term from another app.
+			search = recordModuleName(modules[0])
 		}
 	}
 	a.showLedgerSearch(search)

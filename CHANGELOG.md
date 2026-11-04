@@ -58,7 +58,10 @@ The milestone notes under `.planning/` are history, not current instructions.
   one module — the usual shape, since one sink refusing one module's writes is what parks them — the
   ledger opens with that module already in its search field, so the stuck records are what the page
   shows. Several parked modules leave it unfiltered: no single term names them all, and searching
-  for one would hide the rest.
+  for one would hide the rest. The term is the module's own name in the window's language rather
+  than the id the chain stores — a Chinese window draws 代币 beside the footer, so filling the field
+  with "token" would show a word from another vocabulary over records that say something else. Both
+  spellings find the same records; only what the reader sees differs.
 
 ### Added
 
