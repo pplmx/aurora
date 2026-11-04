@@ -128,3 +128,32 @@ func TestFailedWriteOffPageSaysItFailed(t *testing.T) {
 	require.True(t, tester.HasText("Open Lottery"),
 		"and the message still names the page the write belongs to")
 }
+
+// TestOffPageReportingWorksFromEveryPage generalises the rule to where the reader
+// can actually end up. The existing case moves Token → Dashboard; the sidebar
+// offers seven destinations, and a toast that only appeared on one of them would
+// leave the operator who moved elsewhere with a vanished busy bar and no outcome.
+func TestOffPageReportingWorksFromEveryPage(t *testing.T) {
+	for _, target := range pageOrder {
+		if target == pageToken {
+			continue
+		}
+		t.Run(pageTitles[target], func(t *testing.T) {
+			app := New(&fakeServices{})
+			tester := ui.NewTester(app.View, 1280, 1400)
+			startTokenCreate(t, app, tester)
+
+			app.ShowPage(pageTitles[target])
+			tester.Frame()
+			settleOnPage(t, app, tester, target)
+
+			require.Equal(t, target, app.page, "the reader stays where they moved to")
+			status := app.token.status.spoken()
+			require.NotEmpty(t, status)
+			require.Truef(t, tester.HasText(status),
+				"the outcome must be visible on %s", pageTitles[target])
+			require.Truef(t, tester.HasText("Open Token"),
+				"and %s must offer the page the record went to", pageTitles[target])
+		})
+	}
+}

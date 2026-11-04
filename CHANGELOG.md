@@ -34,6 +34,12 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Added
 
+- **A write that finishes off-page reports on every page**: the rule was proven from Token → Dashboard,
+  but the sidebar offers seven destinations, and a toast that appeared on one of them would leave the
+  operator who moved elsewhere with a vanished busy bar and no outcome. All seven are now exercised.
+
+### Added
+
 - **Every write entry point is checked against the single-write rule**: the gate was proven at one
   entry point last round; a table now holds five of them — create token, mint, create draw, register
   voter, register candidate — each comparing a storage fingerprint before and after an attempt made
