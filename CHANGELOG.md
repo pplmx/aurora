@@ -27,6 +27,18 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Added
 
+- **The command palette opens a record from its id**: a record id is what an operator copies into a
+  ticket or a chat message, and the window could only reach a *page* — a pasted token, NFT, oracle
+  source or session id meant opening the page and hunting the row by eye. Typing `kind:id`
+  (`token:…`, `nft:…`, `oracle:…`, `session:…`, `lottery:…`) now offers one entry that opens the
+  page with that record as its subject. The jump reuses each page's own selection path rather than a
+  parallel lookup, because selecting a record also sets the owner context and the readouts keyed by
+  id, and a second implementation of that would drift from the first. An id the store does not know
+  still becomes the subject: the page's own "not found" is a more useful answer than a palette that
+  refuses to move.
+
+### Added
+
 - **A slow write that finishes in the background raises a system notification**: the result is only
   drawn in the window, and a write that runs off the frame thread is exactly the one the operator
   switches away from. A write that took at least ten seconds and settled while the app was not the

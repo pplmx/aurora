@@ -35,7 +35,8 @@ func (a *App) commandPalette(c *ui.Context) {
 	accentHairline(c, panel, c.Theme().Accent)
 	panel.Children(func() {
 		heading(c, tr("Jump to"), 17, 2)
-		search := searchField(c, &a.paletteQuery, "Search pages and commands").AutoFocus()
+		search := searchField(c, &a.paletteQuery, "Search pages and commands").AutoFocus().
+			Description(tr("Paste a record id as kind:id to open it, for example token:…"))
 		submitted := search.Submitted()
 		queryChanged := a.paletteQuery != a.paletteApplied
 		if queryChanged {
@@ -179,6 +180,20 @@ func (a *App) paletteMatches() []paletteEntry {
 			})
 		}
 	}
+	// A pasted "kind:id" is a jump, not a search: the id an operator copies into
+	// a ticket is exactly the thing they want to open, and searching for it as
+	// text would only ever match the command that pasted it. The entry comes
+	// first so Enter on a pasted id does what the reader meant, without knowing
+	// which page owns it.
+	var jump *paletteEntry
+	if target, id, ok := parseRecordQuery(a.paletteQuery); ok {
+		jump = &paletteEntry{
+			title:  fmt.Sprintf(tr("Open %s"), tr(pageTitles[target])),
+			detail: id,
+			icon:   pageIcons[target],
+			action: func(*ui.Context) { a.ShowRecord(pageIDs[target], id) },
+		}
+	}
 	// Read-only and always available: a support reply should be copyable while
 	// a background write owns the database.
 	if a.actions.Version != "" {
@@ -189,6 +204,12 @@ func (a *App) paletteMatches() []paletteEntry {
 		})
 	}
 	matches := entries[:0]
+	// A parsed jump is offered on its own: the literal text "token:<id>" matches
+	// no page or command, so passing it through the filter below would drop the
+	// one entry the reader asked for.
+	if jump != nil {
+		return []paletteEntry{*jump}
+	}
 	for _, entry := range entries {
 		// Search what the palette shows, not only the English source strings.
 		// A Chinese window renders translated titles and purposes, so a query
