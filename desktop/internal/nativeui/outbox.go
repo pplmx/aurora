@@ -35,6 +35,12 @@ const outboxWarnAge = 5 * time.Minute
 // accurately; the list exists to be read, not to be exhaustive.
 const PendingAuditLimit = 20
 
+// outboxReadInterval is how often the sidebar re-reads the backlog. It matches
+// the live-refresh tick, which is already slow on purpose: a backlog is a
+// condition that lasts minutes, so a value that is a few seconds old says the
+// same thing as a fresh one.
+const outboxReadInterval = liveRefreshInterval
+
 // OutboxState is what the sidebar footer needs to report a backlog, resolved
 // once per frame. ok is false when the shell could not read it (no database yet,
 // or a query error), which is different from an empty outbox: an empty one is
@@ -58,12 +64,34 @@ type PendingEvent struct {
 	NextTryAt time.Time
 }
 
-// readOutbox asks the shell for the current backlog. It is a method rather than a
-// closure so a test can render a backlog without a database.
+// readOutbox returns the backlog the sidebar draws. The footer renders on every
+// frame, so the value is cached and re-read on the live-refresh tick rather than
+// on each paint: three of the four facts it needs are storage reads, and an idle
+// window repaints for a hover or a caret blink just as often as it does for new
+// data.
 func (a *App) readOutbox() OutboxState {
 	if a.actions.OutboxPending == nil {
 		return OutboxState{}
 	}
+	return a.outboxState
+}
+
+// refreshOutbox re-reads the backlog and caches it. It runs at the start of a
+// frame when the cached value is due, so the first frame after a launch has a
+// number rather than a blank.
+func (a *App) refreshOutbox(now time.Time) {
+	if a.actions.OutboxPending == nil {
+		return
+	}
+	if !a.outboxRead.IsZero() && now.Sub(a.outboxRead) < outboxReadInterval {
+		return
+	}
+	a.outboxRead = now
+	a.outboxState = a.readOutboxStorage()
+}
+
+// readOutboxStorage is the actual read, isolated so refreshOutbox can cache it.
+func (a *App) readOutboxStorage() OutboxState {
 	pending, ok := a.actions.OutboxPending()
 	if !ok {
 		return OutboxState{}
@@ -237,7 +265,7 @@ func (a *App) pendingAuditCard(c *ui.Context) {
 	if a.actions.OutboxList == nil {
 		return
 	}
-	events := a.actions.OutboxList()
+	events := a.blockchain.pending
 	if len(events) == 0 {
 		return
 	}

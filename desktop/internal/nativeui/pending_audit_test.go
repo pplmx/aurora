@@ -106,3 +106,39 @@ func TestPendingEventTitleSpeaksTheWindowsLanguage(t *testing.T) {
 	event := PendingEvent{EventType: "token.mint", Module: "token"}
 	require.Equal(t, "token · Mint", pendingEventTitle(event))
 }
+
+// TestTheWaitingListIsReadWithThePageNotPerFrame keeps a body of data out of the
+// paint path. The card listed the outbox on every frame, which means a database
+// read on each repaint — including the idle ones the window does for a hover or a
+// caret blink. Every other list on this page is read when the page loads or is
+// refreshed, and this one has no reason to differ.
+func TestTheWaitingListIsReadWithThePageNotPerFrame(t *testing.T) {
+	reads := 0
+	app := New(&fakeServices{blocks: []BlockRow{{Height: 2, Module: "token", Summary: "x"}}})
+	app.SetActions(Actions{
+		BackUpDatabase: func() {},
+		OutboxList: func() []PendingEvent {
+			reads++
+			return []PendingEvent{{
+				EventType: "token.mint", Module: "token", Aggregate: "GLD",
+				ParkedAt: time.Now(), Attempts: 1,
+			}}
+		},
+	})
+	tester := ui.NewTester(app.View, 1280, 2400)
+	app.ShowPage("Blockchain")
+	tester.Frame()
+
+	afterLoad := reads
+	require.Equal(t, 1, afterLoad, "opening the page reads the outbox once")
+
+	for range 10 {
+		tester.Frame()
+	}
+	require.Equal(t, afterLoad, reads, "repainting must not read storage")
+	require.True(t, tester.HasText("Waiting to be delivered"),
+		"the list is still on screen, from the rows read with the page")
+
+	app.loadBlockchainAt("", 200, 0)
+	require.Equal(t, afterLoad+1, reads, "a refresh reads it again")
+}

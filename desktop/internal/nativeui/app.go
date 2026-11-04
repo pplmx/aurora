@@ -68,6 +68,11 @@ type App struct {
 	paletteChoice  int
 	paletteScroll  ui.ScrollState
 	paletteReveal  bool
+	// outboxState/outboxRead cache the audit backlog the sidebar footer draws.
+	// The footer renders every frame, so the value is re-read on the live-refresh
+	// tick instead of on each paint.
+	outboxState OutboxState
+	outboxRead  time.Time
 	// paletteSearch caches the ledger search behind the palette. The panel
 	// rebuilds every frame, so the query runs once per edit rather than once per
 	// frame.
@@ -187,6 +192,16 @@ func (a *App) View(c *ui.Context) {
 	c.SetZoom(clampZoom(a.contentZoom))
 	a.displayTextScale = c.Preferences().TextScale
 	a.showZoomNotice(c)
+	// The footer draws the audit backlog, and its facts are storage reads. They
+	// are refreshed on the same slow tick the live pages use, and never while a
+	// write owns the database.
+	now := time.Now()
+	if a.liveNow != nil {
+		now = a.liveNow()
+	}
+	if a.busy == "" {
+		a.refreshOutbox(now)
+	}
 	ui.Row(c).Fill().Children(func() {
 		a.sidebarColumn(c)
 		workspace := ui.Column(c).Fill().Grow(1).LinearGradient(workspaceFill(c))

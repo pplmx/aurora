@@ -25,6 +25,14 @@ The milestone notes under `.planning/` are history, not current instructions.
   find them by name; they are the one palette group that stays available during a database write,
   which is exactly when a reader waiting on a long import may want the page larger.
 
+### Fixed
+
+- **The backlog reads moved off the paint path**: both the footer's count and the ledger's waiting
+  list queried storage on every frame, so a window sitting idle — repainting for a hover or a caret
+  blink — ran two to three database reads per repaint. The footer's value is now cached and re-read
+  on the same slow tick the live pages use, and the ledger's list is read with the page rather than
+  per frame, like every other list on it. Neither reads while a background write owns the database.
+
 ### Added
 
 - **The ledger lists the audit copies that are waiting**: the footer says how many copies are parked,

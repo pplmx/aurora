@@ -65,6 +65,11 @@ type blockchainState struct {
 	// read, so a failed pager move leaves the label on the rows it shows.
 	queriedSearch string
 	queriedLimit  int
+	// pending is the outbox's parked copies, read with the page rather than per
+	// frame: the list is a body of data like the blocks above it, and a read in
+	// the frame would query storage on every repaint — including the idle
+	// repaints the window does for a hover or a caret blink.
+	pending []PendingEvent
 	// expanded is the index of the record whose exact payload is open, or -1
 	// when every record shows its decoded sentence only.
 	expanded int

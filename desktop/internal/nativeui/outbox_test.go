@@ -243,3 +243,59 @@ func TestTheBacklogLineExplainsWhatTheNumberMeans(t *testing.T) {
 	require.Contains(t, string(source), want,
 		"the line's description must say what the backlog is and is not")
 }
+
+// TestTheFooterReadsTheBacklogOnATickNotEveryFrame covers where the footer's
+// numbers come from. It renders on every frame and needs three storage reads —
+// the count, the oldest wait, and (when followed) the modules — so reading them
+// per paint meant a database query for a hover or a caret blink. The value is
+// cached and re-read on the same slow tick the live pages already use.
+func TestTheFooterReadsTheBacklogOnATickNotEveryFrame(t *testing.T) {
+	reads := 0
+	app := New(&fakeServices{})
+	app.SetActions(Actions{
+		BackUpDatabase: func() {},
+		OutboxPending: func() (int, bool) {
+			reads++
+			return 3, true
+		},
+		OutboxOldest: func() (time.Duration, bool) { return time.Minute, true },
+	})
+	tester := ui.NewTester(app.View, 1280, 900)
+	tester.Frame()
+	require.Equal(t, 1, reads, "the first frame reads the backlog once")
+	require.True(t, tester.HasText("Audit outbox: 3 pending, oldest 1m0s"))
+
+	for range 10 {
+		tester.Frame()
+	}
+	require.Equal(t, 1, reads, "repainting within the tick must not read storage")
+
+	// When the tick comes round the value is read again, so a backlog that
+	// drains still disappears without the operator doing anything.
+	app.outboxRead = time.Now().Add(-2 * outboxReadInterval)
+	tester.Frame()
+	require.Equal(t, 2, reads, "the tick re-reads the backlog")
+}
+
+// TestTheFooterWaitsForABackgroundWrite keeps the footer behind the same gate as
+// every other read. A count read while an import owns the database would either
+// block the frame or report a number taken from half-applied state.
+func TestTheFooterWaitsForABackgroundWrite(t *testing.T) {
+	reads := 0
+	app := New(&fakeServices{})
+	app.SetActions(Actions{
+		BackUpDatabase: func() {},
+		OutboxPending: func() (int, bool) {
+			reads++
+			return 2, true
+		},
+	})
+	tester := ui.NewTester(app.View, 1280, 900)
+	tester.Frame()
+	baseline := reads
+
+	app.busy = "Importing lotteries…"
+	app.outboxRead = time.Time{}
+	tester.Frame()
+	require.Equal(t, baseline, reads, "the footer must not read during a write")
+}

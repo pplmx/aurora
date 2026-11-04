@@ -61,6 +61,15 @@ func (a *App) loadBlockchainAt(search string, rawLimit float64, offset int) bool
 	a.blockchain.rows = page.Rows
 	a.blockchain.blockTotal = page.Total
 	a.blockchain.blockOffset = offset
+	// The parked copies are read with the page for the same reason the blocks are:
+	// they are what the page shows, and a read in the frame would run on every
+	// repaint. A failure here is silence rather than a warning — the footer still
+	// reports the backlog's size, and this card is the detail behind it.
+	if a.actions.OutboxList != nil {
+		a.blockchain.pending = a.actions.OutboxList()
+	} else {
+		a.blockchain.pending = nil
+	}
 	return true
 }
 
