@@ -263,3 +263,29 @@ func TestLiveRefreshWaitsForABackgroundWrite(t *testing.T) {
 	require.Greater(t, fake.sourceListCalls, before,
 		"and it must resume once the write is done")
 }
+
+// TestLiveBadgeReportsAPausedTimer keeps the header honest about what the page
+// is doing. The badge described the setting, so during a background write — when
+// the timer is held off — a Dashboard still claimed "Live · 10s". A reader who
+// watched a thirty-second import with that label would conclude the timer was
+// broken, and the one state where the page is not updating was the one state the
+// badge did not distinguish.
+func TestLiveBadgeReportsAPausedTimer(t *testing.T) {
+	app := New(&fakeServices{})
+	tester := ui.NewTester(app.View, 1280, 1400)
+	app.setLiveUpdates(true)
+	app.ShowPage("Dashboard")
+	tester.Frame()
+	require.True(t, tester.HasText("Live · 10s"))
+
+	app.busy = "Importing lotteries…"
+	tester.Frame()
+	require.False(t, tester.HasText("Live · 10s"),
+		"a paused timer must not claim to be live")
+	require.True(t, tester.HasText("Paused · waiting for the write"),
+		"and the badge says why it paused")
+
+	app.busy = ""
+	tester.Frame()
+	require.True(t, tester.HasText("Live · 10s"), "the badge returns with the timer")
+}

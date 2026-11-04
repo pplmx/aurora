@@ -244,7 +244,11 @@ func (a *App) header(c *ui.Context) {
 			ui.Text(c, tr(pagePurpose[a.page])).FontSize(textSize(c, 12)).TextColor(c.Theme().TextMuted)
 		})
 		if a.liveUpdates && (a.page == pageDashboard || a.page == pageOracle) {
-			liveBadge(c)
+			// The badge reports whether the timer is running, not only whether
+			// the setting is on: a write pauses it, and a badge that claimed
+			// "Live · 10s" through that pause described the setting while the
+			// page it labels was not updating.
+			liveBadge(c, a.busy == "")
 		}
 	}
 	action := func() {
@@ -276,13 +280,24 @@ func (a *App) header(c *ui.Context) {
 
 // liveBadge marks a page whose timer refreshes it in the background. The dot
 // and the word carry the same state; the dot alone would be colour-only.
-func liveBadge(c *ui.Context) {
+//
+// running is false while a background write holds the timer off. The badge then
+// says "Paused · until the write finishes" in the muted tone rather than the
+// success tone: the page is still configured to update, but it is not updating
+// now, and a reader who saw "Live" through a thirty-second import would conclude
+// the timer was broken.
+func liveBadge(c *ui.Context, running bool) {
+	text, tone, tint, edge := "Live · 10s", c.Theme().Success, successTint(c), c.Theme().Success.Alpha(0.35)
+	if !running {
+		text = "Paused · waiting for the write"
+		tone, tint, edge = c.Theme().TextMuted, c.Theme().Surface, c.Theme().Border
+	}
 	ui.Row(c).Gap(space2).AlignItems(ui.Center).Padding(space1, space2+2).Radius(999).
-		Background(successTint(c)).BorderWidth(1).BorderColor(c.Theme().Success.Alpha(0.35)).
+		Background(tint).BorderWidth(1).BorderColor(edge).
 		Children(func() {
-			statusDot(c, c.Theme().Success, 6)
-			ui.Text(c, tr("Live · 10s")).FontSize(textSize(c, 11)).FontWeight(500).
-				TextColor(c.Theme().Success).SingleLine()
+			statusDot(c, tone, 6)
+			ui.Text(c, tr(text)).FontSize(textSize(c, 11)).FontWeight(500).
+				TextColor(tone).SingleLine()
 		})
 }
 

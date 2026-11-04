@@ -292,6 +292,7 @@ var desktopMessagesHant = map[string]string{
 	"Live tally per candidate for a session.": "某會期各候選人的實時計票。",
 	"Live updates":                     "實時更新",
 	"Live · 10s":                       "實時 · 10 秒",
+	"Paused · waiting for the write":   "已暫停 · 等待寫入完成",
 	"Load History":                     "加載流水",
 	"Load a portable lottery document": "加載可移植的抽獎文檔",
 	"Loading counters…":                "正在加載計數…",

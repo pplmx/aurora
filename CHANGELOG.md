@@ -51,6 +51,12 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **The live badge says when the timer is paused**: the header pill described the setting rather than
+  the page, so a Dashboard held off by a background write still claimed "Live · 10s". A reader who
+  watched a thirty-second import under that label would conclude the timer was broken, and the one
+  state where the page is not updating was the one state the badge did not distinguish. It now
+  reads "Paused · waiting for the write" in the muted tone while a write holds the timer.
+
 - **The live-update timer waits for a background write**: every other read path already respects
   the busy gate — Refresh and the file commands are disabled, and the command palette drops them —
   but the timer fired regardless. A write landing at the same moment was followed by a read of

@@ -235,7 +235,8 @@ just check && just test
 - **页头给页面一个身份**：同一枚图标放在模块色方块里，旁边是 28pt
   （`pageTitleSize`）标题和一句话用途；原生窗口标题跟随当前页面（如
   `Aurora — Token`）；开启 Live updates 时，Dashboard/Oracle 页头显示
-  `Live · 10s` 状态胶囊，右侧是带 `Ctrl/Cmd+R` 键帽的 Refresh。Ctrl/Cmd+1…8 按侧栏顺序直接切页（Settings 是第 8 个），
+  `Live · 10s` 状态胶囊（后台写入期间定时器暂停，胶囊改为次要色的
+  「已暂停 · 等待写入完成」——徽标描述的是页面此刻在做什么，而不只是设置开着），右侧是带 `Ctrl/Cmd+R` 键帽的 Refresh。Ctrl/Cmd+1…8 按侧栏顺序直接切页（Settings 是第 8 个），
   Ctrl/Cmd+K 打开命令面板（输入筛选，方向键移动，Enter 执行，Escape 关闭）；
   最小窗口下命令列表在面板内滚动，键盘选中项自动进入视野。页面跳转之外，还可
   刷新当前页、备份数据库、导出/导入抽奖文档、打开数据目录、复制诊断信息；
