@@ -56,6 +56,17 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **A participant refusal reads as a field message**: the domain wraps a per-name failure as
+  "invalid participant: <reason>" because its other caller prints a whole CLI sentence. Under a control
+  already labelled "Participants (comma-separated)" that prefix repeated the label and buried the
+  reason, so the wrapped layer is dropped for this one form. The list-level refusals (duplicate, no
+  participants) were already phrased for a reader and pass through unchanged.
+- **A comma list may contain blank entries**: "Ada, , Bob," is a typing accident, not a participant
+  named "". The empty entries are dropped, which is what lets an operator paste a list and move on; a
+  test now holds it so the tolerant behaviour cannot be tightened into a rejection by accident.
+
+### Fixed
+
 - **An unsafe oracle source URL is refused at its own control**: the store applies an SSRF policy —
   scheme, host shape, loopback and the cloud-metadata endpoint — and its message names no field, so the
   sentence arrived in the card's status line above a form of seven controls. The window now runs the

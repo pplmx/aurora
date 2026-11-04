@@ -146,7 +146,11 @@ func (a *App) createLottery() {
 	// hardcoded "at least 3 characters" would silently disagree with the CLI
 	// and the API the day MinSeedLength changed.
 	if err := lottery.ValidateParticipants(participants); err != nil {
-		a.lottery.participantsErr = err.Error()
+		// The domain wraps a per-name failure with "invalid participant:" because
+		// its caller is a CLI printing a whole sentence. Under a field labelled
+		// "Participants (comma-separated)" that prefix repeats the label, so the
+		// wrapped layer is dropped and the reason itself is shown.
+		a.lottery.participantsErr = participantErrorText(err)
 		return
 	}
 	if err := lottery.ValidateSeed(seed); err != nil {
@@ -202,6 +206,17 @@ func (a *App) selectLotteryByID(id string) {
 }
 
 // splitParticipants mirrors the Web UI's split(',').map(trim).filter(Boolean).
+// participantErrorText is the reason without the domain's message prefix. Only a
+// per-name failure carries that prefix; the list-level errors (no participants,
+// too many, duplicate) are already phrased for a reader.
+func participantErrorText(err error) string {
+	const prefix = "invalid participant: "
+	if msg := err.Error(); strings.HasPrefix(msg, prefix) {
+		return strings.TrimPrefix(msg, prefix)
+	}
+	return err.Error()
+}
+
 func splitParticipants(s string) []string {
 	parts := strings.Split(s, ",")
 	out := make([]string, 0, len(parts))

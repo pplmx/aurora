@@ -9,6 +9,7 @@ import (
 	"github.com/egoist/mygo/ui"
 	"github.com/stretchr/testify/require"
 
+	"github.com/pplmx/aurora/internal/domain/lottery"
 	"github.com/pplmx/aurora/internal/domain/token"
 )
 
@@ -1156,4 +1157,52 @@ func TestTokenFieldsAtTheirLimitsAreAccepted(t *testing.T) {
 	require.Equal(t, before+1, fake.createTokenCalls, "both bounds are inclusive")
 	require.Empty(t, app.token.nameErr)
 	require.Empty(t, app.token.symbolErr)
+}
+
+// TestTheParticipantRefusalReadsAsAFieldMessage covers the sentence under the
+// participants field. The domain wraps a per-name failure as "invalid participant:
+// <reason>" because its other caller prints a whole CLI sentence; under a control
+// already labelled "Participants (comma-separated)" that prefix repeats the label
+// and buries the reason.
+func TestTheParticipantRefusalReadsAsAFieldMessage(t *testing.T) {
+	for _, tc := range []struct{ name, input, want string }{
+		{"invalid character", "Ada,Bob<script>", "participant name contains invalid characters"},
+		{"too long", "Ada," + strings.Repeat("N", lottery.MaxParticipantNameLength+1), "participant name too long"},
+		{"duplicate", "Ada,Bob,Ada", "duplicate participant"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			app := New(workbenchFakes())
+			tester := ui.NewTester(app.View, 1280, 2600)
+			app.ShowPage("Lottery")
+			tester.Frame()
+
+			app.lottery.participants, app.lottery.seed, app.lottery.count = tc.input, "seed-abc", 1
+			app.createLottery()
+			tester.Frame()
+
+			require.Equal(t, tc.want, app.lottery.participantsErr,
+				"the reason must stand on its own under the field")
+			require.NotContains(t, app.lottery.participantsErr, "invalid participant:")
+			require.True(t, tester.HasText(tc.want))
+		})
+	}
+}
+
+// TestBlankParticipantEntriesAreIgnored keeps the field forgiving about the comma
+// list's shape. A trailing comma or a doubled one is a typing accident, not a
+// participant named "": dropping the empty entries is what lets an operator paste
+// a list and move on.
+func TestBlankParticipantEntriesAreIgnored(t *testing.T) {
+	app := New(workbenchFakes())
+	tester := ui.NewTester(app.View, 1280, 2600)
+	app.ShowPage("Lottery")
+	tester.Frame()
+
+	app.lottery.participants, app.lottery.seed, app.lottery.count = "Ada, , Bob,", "seed-abc", 1
+	app.createLottery()
+	tester.Frame()
+
+	require.Empty(t, app.lottery.participantsErr,
+		"blank entries between commas must not become participants")
+	require.Contains(t, app.lottery.status.text, "recorded")
 }
