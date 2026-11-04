@@ -82,7 +82,10 @@ type App struct {
 	busySince         time.Time
 	busyAnnouncement  string
 	busySlowAnnounced bool
-	invalidate        func()
+	// origin is where the running background write began, so a result that
+	// arrives after the reader moved can still be reported where they are.
+	origin     writeOrigin
+	invalidate func()
 	// themeMode is the saved appearance choice. systemDark is refreshed by
 	// the shell when the desktop changes while Follow system is selected.
 	themeMode  ThemeMode
@@ -213,8 +216,14 @@ func (a *App) View(c *ui.Context) {
 }
 
 // pageStatus is the transient outcome line of the current page.
-func (a *App) pageStatus() statusLine {
-	switch a.page {
+func (a *App) pageStatus() statusLine { return a.statusOf(a.page) }
+
+// statusOf returns a page's outcome line, whether or not it is showing. A
+// background write needs this for the page it started on: the result is written
+// into that page's line even after the reader moved elsewhere, and the line is
+// what tells the window whether there is an outcome to report at all.
+func (a *App) statusOf(p page) statusLine {
+	switch p {
 	case pageLottery:
 		return a.lottery.status
 	case pageVoting:

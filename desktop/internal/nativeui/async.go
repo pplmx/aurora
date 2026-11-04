@@ -10,6 +10,15 @@ import (
 // desktop. It is opt-in so view tests keep the synchronous contract.
 func (a *App) SetBackgroundWrites(on bool) { a.backgroundWrites = on }
 
+// writeOrigin is where a background write began: the page whose status line will
+// receive its outcome, and that line's revision before the write. The revision is
+// what tells a settled write apart from a line that was already showing when it
+// started.
+type writeOrigin struct {
+	page page
+	rev  uint64
+}
+
 // runWrite runs a service write. In the desktop it leaves the frame thread
 // first, so the busy banner is painted and the window stays responsive; the
 // apply closure always runs on the frame thread. Tests keep the synchronous
@@ -24,6 +33,7 @@ func (a *App) runWrite(label string, work func() func()) {
 	}
 	ch := make(chan func(), 1)
 	a.asyncCh = ch
+	a.origin = writeOrigin{page: a.page, rev: a.statusOf(a.page).revision}
 	a.busy = label
 	a.busySince = time.Now()
 	a.busyAnnouncement = tr(label)
@@ -47,7 +57,15 @@ func (a *App) pollAsync(c *ui.Context) {
 		a.asyncCh = nil
 		a.busy = ""
 		a.busySince = time.Time{}
+		origin := a.origin
+		a.origin = writeOrigin{}
 		apply()
+		// The reader may have moved while the write ran. Its outcome still
+		// belongs to the page that started it, but nobody is looking at that
+		// page's status line, so the window says it where they are.
+		if settled := a.statusOf(origin.page); settled.revision != origin.rev {
+			a.settleWrite(c, origin.page, settled)
+		}
 	default:
 		c.After(40 * time.Millisecond)
 	}

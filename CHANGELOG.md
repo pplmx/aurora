@@ -25,6 +25,19 @@ The milestone notes under `.planning/` are history, not current instructions.
   find them by name; they are the one palette group that stays available during a database write,
   which is exactly when a reader waiting on a long import may want the page larger.
 
+### Fixed
+
+- **A write that finishes after the reader moved still reports its result**: the window disables
+  the page body during a background write but not the sidebar, which is the point of running the
+  write off the frame thread — so an operator waiting on a slow fetch switches pages. The outcome
+  then landed in the status line of the page they left, the busy bar disappeared, and a write that
+  takes seconds reported nowhere at all. A settled write now compares the revision of its origin
+  page's status line: if it moved and the reader is elsewhere, the result is repeated as a toast on
+  the page they are on, with an "Open <page>" action that returns to the record. A failure keeps its
+  error type, since a notice that turned a rejection into an announcement would be worse than the
+  silence it replaces. On the same page nothing extra shows: the status strip there already stays
+  until dismissed.
+
 ### Changed
 
 - **The window reopens on the page the last launch closed on**: it always opened on the Dashboard,
