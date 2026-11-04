@@ -356,7 +356,10 @@ just check && just test
 - **About 可复制诊断信息**：Settings → About 卡片把版本、构建时间、运行时
   （Go 与 MyGo 版本）、数据库路径与占用原样写入剪贴板，并追加账本事实（区块数、头哈希前缀与链是否完整）与审计
   outbox 的待发条数，积压时再带上最老一条已等待的时长（与 `aurora doctor` 同源）；支持人员拿到的就是窗口里的事实。同一动作也在 Ctrl/Cmd+K 的命令面板里，条目为
-  「Copy Diagnostics」，后台写库期间仍可用。
+  「Copy Diagnostics」，后台写库期间仍可用。命令面板里还有 Zoom in / Zoom out /
+  Actual size 三条（说明行带当前比例），它们与 Copy Diagnostics 一样在后台写库期间
+  可用——缩放不读写数据库，而等待长导入时把窗口放大正是常见需求；Refresh 与文件
+  命令仍在写库期间隐去。
 - **复验结论可复制**：Lottery 的 Verify 卡片在结论下方提供「复制结论」，把
   `Draw ID …：Verified/Failed` 与逐条检查原样写进剪贴板，工单里引用的就是窗口
   显示的内容。
