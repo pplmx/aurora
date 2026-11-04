@@ -25,6 +25,18 @@ The milestone notes under `.planning/` are history, not current instructions.
   find them by name; they are the one palette group that stays available during a database write,
   which is exactly when a reader waiting on a long import may want the page larger.
 
+### Added
+
+- **A slow write that finishes in the background raises a system notification**: the result is only
+  drawn in the window, and a write that runs off the frame thread is exactly the one the operator
+  switches away from. A write that took at least ten seconds and settled while the app was not the
+  front one now raises a notification whose body is that write's own label, and clicking it brings
+  the window forward. Below ten seconds nothing is raised — a notification for a two-second mint is
+  noise, and noise is what makes people turn notifications off. A platform that cannot show one
+  (an unpackaged macOS build, a Linux session without a notification daemon) or a denied permission
+  is skipped silently: the notification is an extra channel, and the window still reports the
+  result when the operator returns.
+
 ### Fixed
 
 - **A write that finishes after the reader moved still reports its result**: the window disables

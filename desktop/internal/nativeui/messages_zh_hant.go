@@ -108,6 +108,7 @@ var desktopMessagesHant = map[string]string{
 	"Content zoom": "內容縮放",
 	"Content zoom: %s to enlarge, %s to shrink, %s to reset. Saved for the next launch.": "內容縮放：%s 放大，%s 縮小，%s 恢復實際大小。選擇會保存到下次啟動。",
 	"Open %s":                                 "打開%s",
+	"Aurora finished a task":                  "Aurora 完成了一個任務",
 	"Enlarge the window content · now %s":     "放大視窗內容 · 目前 %s",
 	"Shrink the window content · now %s":      "縮小視窗內容 · 目前 %s",
 	"Reset the content zoom to 100% · now %s": "將內容縮放恢復為 100% · 目前 %s",

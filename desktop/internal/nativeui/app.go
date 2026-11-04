@@ -82,6 +82,10 @@ type App struct {
 	busySince         time.Time
 	busyAnnouncement  string
 	busySlowAnnounced bool
+	// busyLabel is the running write's label without translation. The busy bar
+	// translates it per frame, but the completion notification is raised after
+	// the write settles, when a.busy is already cleared.
+	busyLabel string
 	// origin is where the running background write began, so a result that
 	// arrives after the reader moved can still be reported where they are.
 	origin     writeOrigin

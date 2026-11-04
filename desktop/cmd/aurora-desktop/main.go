@@ -281,6 +281,8 @@ func main() {
 		LastPage:        shell.LastPage(),
 		Zoom:            shell.Zoom,
 		SetContentZoom:  shell.SetContentZoom,
+		Notify:          shell.Notify,
+		Active:          shell.Active,
 		Version:         meta.Version,
 		BuildTime:       meta.BuildTime,
 		Runtime:         deskapp.RuntimeInfo(),
@@ -360,6 +362,9 @@ func main() {
 	// file types it is configured to handle; an export is not one of those
 	// (aurora claims no .json association on purpose), so the shell parses the
 	// arguments itself.
+	// A click on a completion notice brings the window forward; the notice names
+	// the task, so the operator knows what they are returning to.
+	mygo.App.OnNotificationClick(shell.OpenNotification)
 	mygo.App.OnSecondInstance(func(args []string, workDir string) {
 		shell.HandleLaunchArgs(args, workDir)
 	})

@@ -35,6 +35,7 @@ func (a *App) runWrite(label string, work func() func()) {
 	a.asyncCh = ch
 	a.origin = writeOrigin{page: a.page, rev: a.statusOf(a.page).revision}
 	a.busy = label
+	a.busyLabel = label
 	a.busySince = time.Now()
 	a.busyAnnouncement = tr(label)
 	a.busySlowAnnounced = false
@@ -56,10 +57,17 @@ func (a *App) pollAsync(c *ui.Context) {
 	case apply := <-a.asyncCh:
 		a.asyncCh = nil
 		a.busy = ""
+		started := a.busySince
 		a.busySince = time.Time{}
+		label := a.busyLabel
+		a.busyLabel = ""
 		origin := a.origin
 		a.origin = writeOrigin{}
 		apply()
+		// A write that ran for a while and finished while the window was in the
+		// background raises a system notification: its result is only drawn in
+		// a window nobody is looking at.
+		a.maybeNotifyWrite(label, started)
 		// The reader may have moved while the write ran. Its outcome still
 		// belongs to the page that started it, but nobody is looking at that
 		// page's status line, so the window says it where they are.

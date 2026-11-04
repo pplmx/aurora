@@ -79,6 +79,12 @@ type Actions struct {
 	// dialog about a settings file.
 	Zoom           func() float32
 	SetContentZoom func(float32)
+	// Notify raises a system notification, and Active reports whether the
+	// window is the front one. Both are optional: the view only decides *when*
+	// a notification is worth raising, and the shell owns showing it, because
+	// that needs the app handle.
+	Notify func(NotifyOptions)
+	Active func() bool
 	// PageChanged reports a page switch by its stable id (the one the sidebar
 	// chooses by, not the title). The shell records it so the next launch can
 	// open the same page; optional for view tests.
