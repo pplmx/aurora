@@ -186,6 +186,21 @@ func (a *App) liveRefresh(c *ui.Context, reload func()) {
 	if a.liveNow != nil {
 		now = a.liveNow()
 	}
+	// A background write owns the database. Every other read path already waits
+	// for it — Refresh and the file commands are disabled, the palette drops
+	// them — but the timer used to fire regardless, so a write that landed at
+	// the same moment was followed by a read of half-written state and then,
+	// once the write applied its own reload, by a second one. The tick is
+	// pushed out rather than dropped: the page is meant to stay current, and
+	// the write's own reload usually covers this interval anyway.
+	if a.busy != "" {
+		// Wake up again in one interval: the write's own reload usually brings a
+		// frame anyway, but a write that fails before applying one would leave
+		// the timer with nothing scheduled.
+		a.liveNext = time.Time{}
+		c.After(liveRefreshInterval)
+		return
+	}
 	if a.liveNext.IsZero() {
 		a.liveNext = now.Add(liveRefreshInterval)
 	}

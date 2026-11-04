@@ -51,6 +51,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **The live-update timer waits for a background write**: every other read path already respects
+  the busy gate — Refresh and the file commands are disabled, and the command palette drops them —
+  but the timer fired regardless. A write landing at the same moment was followed by a read of
+  half-written state and then, once the write applied its own reload, by a second read of the same
+  page. The tick is now pushed out rather than dropped: the page is meant to stay current, and the
+  write's own reload usually covers the interval anyway.
+
 - **A ledger record's facts wrap instead of being clipped**: a fact value was a single-line cell
   capped at 260px and ellipsized, which reduced exactly the values a ledger is cited for — an NFT's
   holder, the account a transfer moved from — to a prefix. The collection records beside it already

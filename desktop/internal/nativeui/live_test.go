@@ -225,3 +225,41 @@ func TestTurningLiveUpdatesOnStartsAFullInterval(t *testing.T) {
 	require.Equal(t, before, fake.oracleHealthCalls,
 		"a fresh enable starts its own interval")
 }
+
+// TestLiveRefreshWaitsForABackgroundWrite covers the one read path that ignored
+// the busy gate. Refresh and the file commands are disabled while a write owns
+// the database, and the palette drops them; the timer fired regardless, so a
+// write that landed at the same moment was followed by a read of half-written
+// state and then, when the write applied its own reload, by a second one.
+//
+// The tick is pushed out rather than dropped: the page is meant to stay current,
+// and the write's own reload usually covers the interval anyway.
+func TestLiveRefreshWaitsForABackgroundWrite(t *testing.T) {
+	fake := &fakeServices{
+		sources: []SourceRow{{ID: "s1", Name: "btc", URL: "https://example.com", Type: "http", Enabled: true}},
+	}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 1400)
+	app.liveNow = tester.Now
+	app.setLiveUpdates(true)
+	app.ShowPage("Oracle")
+	tester.Frame()
+
+	// A write owns the database, as runWrite leaves it.
+	app.busy = "Fetching source…"
+	tester.Frame()
+
+	before := fake.sourceListCalls
+	tester.Advance(3 * liveRefreshInterval)
+	tester.Frame()
+	require.Equal(t, before, fake.sourceListCalls,
+		"the live timer must not read the database while a write owns it")
+
+	app.busy = ""
+	tester.Frame()
+	before = fake.sourceListCalls
+	tester.Advance(liveRefreshInterval + time.Second)
+	tester.Frame()
+	require.Greater(t, fake.sourceListCalls, before,
+		"and it must resume once the write is done")
+}
