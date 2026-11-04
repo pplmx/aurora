@@ -34,6 +34,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Added
 
+- **Every busy gate is checked at its source**: twelve controls stop working while a write owns the
+  database — the File menu button, the export/import/backup shortcuts, Refresh, the page body, the
+  palette's ledger search — and a window test cannot tell whether any of them is actually gated, because
+  `ui.Disabled` is a paint-time state the tester clicks straight through. Each doorway is now asserted
+  against the source that wires it, and removing one fails the test that names it.
+
+### Added
+
 - **A write that finishes off-page reports on every page**: the rule was proven from Token → Dashboard,
   but the sidebar offers seven destinations, and a toast that appeared on one of them would leave the
   operator who moved elsewhere with a vanished busy bar and no outcome. All seven are now exercised.
