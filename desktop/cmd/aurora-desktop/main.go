@@ -303,6 +303,20 @@ func main() {
 			}
 			return pending, true
 		},
+		OutboxList: func() []nativeui.PendingEvent {
+			events, err := rt.Services().PendingAuditList(context.Background(), nativeui.PendingAuditLimit)
+			if err != nil {
+				return nil
+			}
+			out := make([]nativeui.PendingEvent, 0, len(events))
+			for _, e := range events {
+				out = append(out, nativeui.PendingEvent{
+					EventType: e.EventType, Module: e.Module, Aggregate: e.Aggregate,
+					ParkedAt: e.ParkedAt, Attempts: e.Attempts, NextTryAt: e.NextTryAt,
+				})
+			}
+			return out
+		},
 		OutboxModules: func() []string {
 			modules, err := rt.Services().PendingAuditModules(context.Background())
 			if err != nil {

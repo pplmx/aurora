@@ -38,6 +38,9 @@ type Services interface {
 	// the outbox; ok is false on an empty outbox. A count alone may be normal on
 	// a busy node, while an age that keeps growing means the drainer is stuck.
 	OldestPendingAuditEvent(ctx context.Context) (time.Time, bool, error)
+	// PendingAuditList reads the parked events themselves, so the window can show
+	// what is stuck rather than only that something is.
+	PendingAuditList(ctx context.Context, limit int) ([]PendingAuditEvent, error)
 	// PendingAuditModules names the modules whose events are parked. The desktop
 	// narrows the ledger to one of them when the operator follows the backlog,
 	// so the page opens on the records that are stuck.
@@ -83,6 +86,62 @@ func (c *Container) OldestPendingAuditEvent(ctx context.Context) (time.Time, boo
 		return time.Time{}, false, nil
 	}
 	return time.Unix(stamp.Int64, 0), true, nil
+}
+
+// PendingAuditEvent is one row of the outbox as the window reads it: enough to
+// say what is stuck and how hard the drainer has been trying, without exposing
+// the payload (which the ledger page already shows for the same operation).
+type PendingAuditEvent struct {
+	EventType string
+	Module    string
+	Aggregate string
+	// ParkedAt is when the event entered the outbox, so the window can say how
+	// long it has waited rather than only how many are waiting.
+	ParkedAt time.Time
+	// Attempts counts failed redeliveries; NextTryAt is when the drainer may
+	// try again. Both come from the backoff the drainer keeps, so a row that
+	// stops moving is visible as a growing attempts count.
+	Attempts  int
+	NextTryAt time.Time
+}
+
+// PendingAuditList reads the outbox newest-first, capped at limit. The window
+// shows these rows so a backlog is inspectable rather than only countable: the
+// footer says how many are parked, and this says which.
+func (c *Container) PendingAuditList(ctx context.Context, limit int) ([]PendingAuditEvent, error) {
+	if limit <= 0 {
+		limit = 20
+	}
+	rows, err := c.DB.QueryContext(ctx, `
+		SELECT event_type, module, agg_id, timestamp, attempts, next_attempt_at
+		FROM pending_events
+		ORDER BY timestamp DESC, id ASC
+		LIMIT ?`, limit)
+	if err != nil {
+		return nil, fmt.Errorf("read pending audit events: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+	var out []PendingAuditEvent
+	for rows.Next() {
+		var eventType, module, aggregate string
+		var timestamp int64
+		var attempts, nextTryAt int64
+		if err := rows.Scan(&eventType, &module, &aggregate, &timestamp, &attempts, &nextTryAt); err != nil {
+			return nil, fmt.Errorf("scan pending audit event: %w", err)
+		}
+		out = append(out, PendingAuditEvent{
+			EventType: eventType,
+			Module:    module,
+			Aggregate: aggregate,
+			ParkedAt:  time.Unix(timestamp, 0),
+			Attempts:  int(attempts),
+			NextTryAt: time.Unix(nextTryAt, 0),
+		})
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("read pending audit events: %w", err)
+	}
+	return out, nil
 }
 
 // PendingAuditModules lists the distinct modules whose parked events are waiting

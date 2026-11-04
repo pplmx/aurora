@@ -87,6 +87,7 @@ func (a *App) blockchainView(c *ui.Context) {
 		formCard(c, "Ledger", "", func() {
 			a.blockchainBody(c)
 		})
+		a.pendingAuditCard(c)
 	})
 }
 

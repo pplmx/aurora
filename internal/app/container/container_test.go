@@ -292,3 +292,44 @@ func TestPendingAuditModulesNamesWhatIsStuck(t *testing.T) {
 	_, err = c.PendingAuditModules(context.Background())
 	require.Error(t, err)
 }
+
+// TestPendingAuditListReportsWhatIsStuck covers the read behind the ledger's
+// waiting list. The footer count says how many copies are parked; this says which,
+// with the attempts and next-try time the drainer keeps, so an operator can tell a
+// copy it is still working through from one the destination keeps refusing.
+func TestPendingAuditListReportsWhatIsStuck(t *testing.T) {
+	blockchain.ResetForTest()
+	t.Cleanup(blockchain.ResetForTest)
+	viper.Reset()
+	t.Cleanup(viper.Reset)
+
+	dir := t.TempDir()
+	t.Chdir(dir)
+	viper.Set("db.path", filepath.Join(dir, "aurora.db"))
+
+	c, err := Open()
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = c.Close() })
+
+	pending, err := c.PendingAuditList(context.Background(), 10)
+	require.NoError(t, err)
+	require.Empty(t, pending, "an empty outbox lists nothing")
+
+	parked := events.NewBaseEvent("token.mint", "agg-42", []byte(`{"agg_id":"agg-42"}`))
+	require.NoError(t, c.EventStore.EnqueuePending(parked))
+
+	pending, err = c.PendingAuditList(context.Background(), 10)
+	require.NoError(t, err)
+	require.Len(t, pending, 1)
+	require.Equal(t, "token.mint", pending[0].EventType)
+	require.Equal(t, "token", pending[0].Module)
+	require.Equal(t, "agg-42", pending[0].Aggregate)
+	require.Equal(t, parked.Timestamp().Unix(), pending[0].ParkedAt.Unix(),
+		"the wait a reader is shown starts when the copy was parked")
+	require.Zero(t, pending[0].Attempts, "a fresh copy has not been retried")
+
+	// A closed database is a read failure, not an empty outbox.
+	require.NoError(t, c.Close())
+	_, err = c.PendingAuditList(context.Background(), 10)
+	require.Error(t, err)
+}

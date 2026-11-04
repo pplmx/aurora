@@ -25,6 +25,17 @@ The milestone notes under `.planning/` are history, not current instructions.
   find them by name; they are the one palette group that stays available during a database write,
   which is exactly when a reader waiting on a long import may want the page larger.
 
+### Added
+
+- **The ledger lists the audit copies that are waiting**: the footer says how many copies are parked,
+  which is not something an operator can act on — a module, the operation a copy belongs to, how many
+  deliveries have failed and when the next attempt is due are. A "Waiting to be delivered" card under
+  the ledger shows exactly that, and appears only when something is waiting so a healthy store keeps
+  the page unchanged. The wait is spelled as a quantity ("in 30s", "due") rather than a clock time,
+  because the question the row answers is whether the loop is still moving. A first failed attempt is
+  a warning; a copy past five attempts, or parked beyond the retry window, is a failure — the
+  destination keeps refusing it rather than having blipped once.
+
 ### Fixed
 
 - **The backlog line says what the number does and does not mean**: a parked event is an audit

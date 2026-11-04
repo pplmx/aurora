@@ -2,7 +2,11 @@ package nativeui
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
 	"time"
+
+	"github.com/egoist/mygo/ui"
 )
 
 // Surfacing a stuck audit outbox.
@@ -26,6 +30,11 @@ import (
 // minutes means the sink is unreachable rather than slow.
 const outboxWarnAge = 5 * time.Minute
 
+// PendingAuditLimit caps how many parked copies the ledger lists. The footer
+// carries the true count, so a backlog longer than this is still reported
+// accurately; the list exists to be read, not to be exhaustive.
+const PendingAuditLimit = 20
+
 // OutboxState is what the sidebar footer needs to report a backlog, resolved
 // once per frame. ok is false when the shell could not read it (no database yet,
 // or a query error), which is different from an empty outbox: an empty one is
@@ -34,6 +43,19 @@ type OutboxState struct {
 	Pending int
 	Oldest  time.Duration
 	OK      bool
+}
+
+// PendingEvent is one parked audit event as the ledger page lists it. The
+// aggregate is the operation the copy belongs to; the attempts and next-try time
+// are the drainer's own backoff, so a row whose attempts keep climbing is one the
+// destination keeps refusing rather than one nobody has tried.
+type PendingEvent struct {
+	EventType string
+	Module    string
+	Aggregate string
+	ParkedAt  time.Time
+	Attempts  int
+	NextTryAt time.Time
 }
 
 // readOutbox asks the shell for the current backlog. It is a method rather than a
@@ -106,4 +128,131 @@ func outboxLine(state OutboxState) (string, bool) {
 	default:
 		return fmt.Sprintf(tr("Audit outbox: %d pending"), state.Pending), false
 	}
+}
+
+// pendingEventRow draws one parked audit event. It reads as a record like the
+// blocks above it: the module and verb first, the operation it belongs to, then
+// the facts that say whether the drainer is making progress. The payload is
+// deliberately absent — the block for the same operation is on the page with its
+// exact bytes, and this list exists to say *which* copies are stuck.
+func pendingEventRow(c *ui.Context, event PendingEvent, now time.Time) {
+	tone := pendingEventTone(c, event, now)
+	ui.Column(c).FillWidth().Padding(space2+1, space3+2).Gap(2).Radius(radiusSmall).
+		Background(c.Theme().Background.Mix(c.Theme().Surface, 0.3)).
+		BorderWidth(0, 0, 0, 2).BorderColor(tone.Alpha(0.7)).Children(func() {
+		ui.Row(c).FillWidth().Wrap().Gap(space3).AlignItems(ui.Baseline).Children(func() {
+			ui.Text(c, pendingEventTitle(event)).FontSize(textSize(c, 12)).FontWeight(600).
+				TextColor(c.Theme().Text).Grow(1).Shrink(1).MinWidth(0)
+			ui.Text(c, event.ParkedAt.Local().Format(localTimeLayout)).FontSize(textSize(c, 10.5)).
+				TextColor(c.Theme().TextMuted).Shrink(0).SingleLine()
+		})
+		ui.Row(c).FillWidth().Wrap().Gap(space4).AlignItems(ui.Start).Children(func() {
+			pendingFact(c, "Operation", event.Aggregate, c.Theme().TextMuted)
+			pendingFact(c, "Attempts", strconv.Itoa(event.Attempts), tone)
+			if !event.NextTryAt.IsZero() {
+				// "Due in" rather than an absolute time: the reader's question is
+				// whether the loop is still trying, and a future clock time makes
+				// them do the subtraction against now.
+				pendingFact(c, "Next try", nextTryText(event.NextTryAt, now), c.Theme().TextMuted)
+			}
+		})
+	})
+}
+
+// pendingFact is one labelled value under a parked event. It reads like the facts
+// on a block record above it: a small label over a value, so a column of events
+// scans by label.
+func pendingFact(c *ui.Context, label, value string, tone ui.Color) {
+	ui.Column(c).Gap(0).Shrink(0).MaxWidth(textSize(c, 220)).Children(func() {
+		ui.Text(c, tr(label)).FontSize(textSize(c, 9.5)).FontWeight(600).
+			LetterSpacing(0.4).TextColor(c.Theme().TextMuted).SingleLine()
+		ui.Text(c, value).FontSize(textSize(c, 11.5)).TextColor(tone).Tooltip(value)
+	})
+}
+
+// pendingEventTitle is the line's headline: the module in the window's language
+// and the verb the event type names, which is what distinguishes two parked
+// copies of the same module.
+func pendingEventTitle(event PendingEvent) string {
+	module := pendingModuleName(event.Module)
+	if verb := pendingEventVerb(event.EventType); verb != "" {
+		return module + " · " + verb
+	}
+	return module
+}
+
+// pendingModuleName resolves the module word the way the ledger records do, so
+// the list and the blocks above it call the same subsystem the same thing.
+func pendingModuleName(module string) string {
+	if strings.TrimSpace(module) == "" {
+		return "—"
+	}
+	return recordModuleName(module)
+}
+
+// pendingEventVerb takes the verb out of an event type like "token.mint". The
+// event type is a storage identifier, not copy, so the verb is resolved through
+// the same record vocabulary the blocks use.
+func pendingEventVerb(eventType string) string {
+	_, verb, found := strings.Cut(eventType, ".")
+	if !found || verb == "" {
+		return ""
+	}
+	return recordActionName("", verb)
+}
+
+// pendingEventTone says whether this parked copy is moving. A row still inside
+// the retry window is a warning; one whose attempts have climbed past the point
+// where backoff keeps doubling means the destination keeps refusing it.
+func pendingEventTone(c *ui.Context, event PendingEvent, now time.Time) ui.Color {
+	if event.Attempts >= pendingAttemptsStuck || (!event.ParkedAt.IsZero() && now.Sub(event.ParkedAt) >= outboxWarnAge) {
+		return c.Theme().Danger
+	}
+	return c.Theme().Warning
+}
+
+// pendingAttemptsStuck is where a parked copy stops looking like a transient
+// failure. The drainer backs off geometrically, so five failed deliveries span
+// minutes of trying rather than a single blip.
+const pendingAttemptsStuck = 5
+
+// nextTryText renders when the drainer may try again, as a quantity the reader
+// can act on.
+func nextTryText(at, now time.Time) string {
+	wait := at.Sub(now)
+	if wait <= 0 {
+		return tr("due")
+	}
+	return fmt.Sprintf(tr("in %s"), wait.Round(time.Second))
+}
+
+// pendingAuditCard lists the parked audit copies. The footer says how many are
+// waiting; this says which, because "four pending" is not something an operator
+// can act on — a module, a verb and an attempt count are.
+//
+// The card appears only when there is something to list, and it sits under the
+// ledger rather than above it: the ledger is the page's subject, and these copies
+// belong to operations the blocks already show.
+func (a *App) pendingAuditCard(c *ui.Context) {
+	if a.actions.OutboxList == nil {
+		return
+	}
+	events := a.actions.OutboxList()
+	if len(events) == 0 {
+		return
+	}
+	now := time.Now()
+	if a.liveNow != nil {
+		now = a.liveNow()
+	}
+	panel := card(c, func() {
+		sectionHeading(c, "Waiting to be delivered",
+			"Audit copies of blocks that are already on the chain; the drainer retries them until they land.")
+		ui.Column(c).FillWidth().Gap(space2).Role(ui.RoleList).Label(tr("Pending audit events")).Children(func() {
+			for _, event := range events {
+				pendingEventRow(c, event, now)
+			}
+		})
+	})
+	panel.Label(tr("Waiting to be delivered"))
 }

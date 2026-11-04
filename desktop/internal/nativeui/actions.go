@@ -45,6 +45,10 @@ type Actions struct {
 	// OutboxOldest reports how long the oldest parked audit event has waited,
 	// so the copied diagnostics can say whether the retry loop is moving.
 	OutboxOldest func() (age time.Duration, ok bool)
+	// OutboxList reads the parked audit events, so the ledger can list what is
+	// waiting rather than only count it. It is optional: without it the page
+	// shows only the footer's count.
+	OutboxList func() []PendingEvent
 	// OutboxModules names the modules whose events are parked, so following the
 	// backlog can narrow the ledger to them instead of opening the whole chain.
 	// It is optional: without it the backlog line simply opens the ledger.
@@ -216,7 +220,7 @@ func versionBadge(version string) string {
 func (a Actions) empty() bool {
 	return a.BackUpDatabase == nil && a.ExportLotteries == nil && a.ImportLotteries == nil &&
 		a.ShowDataFolder == nil && a.ShowAbout == nil && a.RecentDocuments == nil &&
-		a.SetLanguage == nil && a.SetThemeMode == nil && a.OutboxPending == nil
+		a.SetLanguage == nil && a.SetThemeMode == nil && a.OutboxPending == nil && a.OutboxList == nil
 }
 
 // actionShortcuts keeps the file shortcuts that used to come from the native
