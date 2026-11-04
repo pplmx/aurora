@@ -101,3 +101,26 @@ func TestOutboxBacklogSurvivesAPageSwitch(t *testing.T) {
 			"the backlog must still show on %s", pageTitles[target])
 	}
 }
+
+// TestTheBacklogLineOpensTheAuditLedger makes the report actionable. A reader who
+// sees a backlog wants to know what is parked, and the ledger page is where those
+// events are visible; a status line nobody can click leaves them to find the page
+// themselves, which is the problem this report was added to fix.
+//
+// It opens the page rather than starting a drain on purpose: the drainer is a
+// background retry loop owned by the runtime, and a window that started a second
+// pass would race it.
+func TestTheBacklogLineOpensTheAuditLedger(t *testing.T) {
+	app := New(&fakeServices{})
+	app.SetActions(outboxActions(2, 20*time.Second))
+	tester := ui.NewTester(app.View, 1280, 900)
+	tester.Frame()
+
+	const line = "Audit outbox: 2 pending, oldest 20s"
+	require.True(t, tester.HasText(line))
+	require.NoError(t, tester.Click(line))
+	tester.Frame()
+
+	require.Equal(t, pageBlockchain, app.page,
+		"the backlog line must open the ledger that holds the parked events")
+}

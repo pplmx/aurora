@@ -52,6 +52,9 @@ The milestone notes under `.planning/` are history, not current instructions.
   outbox says nothing: a permanent "0 pending" would train the reader to ignore the space where the
   warning appears. A backlog inside the drainer's retry window is a warning; one whose oldest event
   has outlived it is a failure and says "not draining", because the two need different responses.
+  The line is also a way in: clicking it opens the audit ledger, where the parked events are visible.
+  It deliberately does not start a drain — the drainer is a background retry loop owned by the
+  runtime, and a window that started a second pass would race it.
 
 ### Added
 

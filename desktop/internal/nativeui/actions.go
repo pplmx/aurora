@@ -164,13 +164,28 @@ func (a *App) sidebarActions(c *ui.Context) {
 			if stuck {
 				tone = c.Theme().Danger
 			}
-			row := ui.Row(c).FillWidth().Gap(space2).AlignItems(ui.Center).Padding(space1, 2).
-				Role(ui.RoleStatus).Label(line)
-			row.Children(func() {
+			// The line is also a way in. A reader who sees a backlog wants to know
+			// what is parked, and the ledger page is where those events are
+			// visible; a status line nobody can act on leaves them to find the
+			// page themselves, which is the problem this report was added to fix.
+			// It opens the audit page rather than starting a drain: the drainer
+			// is a background retry loop owned by the runtime, and a window that
+			// started a second pass would race it.
+			b := ui.ButtonBase(c).FillWidth().Gap(space2).AlignItems(ui.Center).Padding(space1, 2).
+				Role(ui.RoleStatus).Label(line).Description(tr("Open the audit ledger"))
+			fill := ui.Transparent
+			if b.Hovered() || b.Pressed() {
+				fill = c.Theme().SurfaceHover
+			}
+			b.Background(fill)
+			b.Children(func() {
 				statusDot(c, tone, 5)
 				ui.Text(c, line).FontSize(textSize(c, 10)).TextColor(tone).
 					Grow(1).Shrink(1).MinWidth(0).Wrap()
 			})
+			if b.Clicked() {
+				a.setPage(pageBlockchain)
+			}
 		}
 	})
 }
