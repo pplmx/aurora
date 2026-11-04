@@ -34,6 +34,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Added
 
+- **The desktop suite was shuffled to look for order dependencies**: five random orders of the window
+  package, plus the adapters and the whole core module, all passed. The existing `just test-shuffle`
+  only walks the core module, so a desktop test that depended on another having run first would have
+  gone unnoticed; `just desktop-test-shuffle` now covers that side.
+
+### Added
+
 - **The race detector was run on every package and found no data race**: the window packages
   (559 s), `deskapp`, and the whole core module came back clean, so the background write path and the
   per-frame audits hold under the detector as well as under the tests.

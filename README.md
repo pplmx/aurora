@@ -63,6 +63,7 @@ just api             # ./aurora-api，注入 git 版本与构建时间
 just desktop         # ./aurora-desktop（本地开发构建）
 just desktop-run     # 构建并打开窗口
 just desktop-test    # 桌面模块测试（根目录 just test 不进嵌套模块）
+just desktop-test-shuffle # 桌面测试随机顺序，暴露顺序依赖
 just desktop-check   # gofmt + build + vet + lint + 纯 Go 测试（无需 C 工具链）
 just desktop-race    # 可选 race 检测（显式启用 cgo）
 just desktop-race-window # race 检测仅跑窗口包，跳过本地截图草稿

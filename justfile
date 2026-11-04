@@ -131,6 +131,13 @@ desktop-run: desktop
 desktop-test:
     cd desktop && CGO_ENABLED=0 go test -count=1 ./...
 
+# The capture scratch tests (zz_*_test.go, excluded from git) are skipped by name;
+# they are local captures, not part of the suite.
+
+# Run the desktop tests in a random order to surface order dependencies
+desktop-test-shuffle:
+    cd desktop && CGO_ENABLED=0 go test -count=1 -shuffle=on -skip '^TestCapture' ./...
+
 # Every mandatory desktop gate that works in a cgo-free Go sandbox. Kept as a
 # recipe so a local run and CI cannot drift: `just test`/`just check` at the
 # root do not look inside a nested module at all, so without one of these a
