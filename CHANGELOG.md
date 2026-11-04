@@ -27,6 +27,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Added
 
+- **The restored page arrives with its data**: launching onto the page the previous session closed on
+  now also has that page's rows read before the first frame is shown. Opening the right page but
+  displaying it empty would make the reader wait for a read they never asked for, or take the empty
+  list for an empty store. The stale-record fallback, the no-flicker resolution order and the
+  stable-id contract were already covered; this closes the last piece.
+
+### Added
+
 - **No layout escapes the window at any zoom level**: a zoom lays the view out in a window 1/z the
   size and draws it at the screen's resolution times z, so every control keeps its physical position
   while the space it was sized for shrinks. A card that assumed the full width would be drawn past the

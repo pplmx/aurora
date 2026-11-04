@@ -370,3 +370,21 @@ func TestPageChangedReportsTheStablePageID(t *testing.T) {
 
 	require.Equal(t, []string{"token", "voting"}, reported)
 }
+
+// TestTheRememberedPageLoadsItsData covers what the restore owes the first
+// frame. Opening the right page but showing it empty would make the reader wait
+// for a read they did not ask for, or worse, take the empty list for an empty
+// store. The page reads as it opens, so the first frame already has its rows.
+func TestTheRememberedPageLoadsItsData(t *testing.T) {
+	fake := workbenchFakes()
+	fake.tokenRows = []TokenRow{{ID: "t1", Name: "Gold", Symbol: "GLD", TotalSupply: "100"}}
+	app := New(fake)
+	app.SetActions(Actions{LastPage: "token"})
+	tester := ui.NewTester(app.View, 1280, 2200)
+	tester.Frame()
+
+	require.Equal(t, pageToken, app.page)
+	require.Len(t, app.token.tokens, 1, "the restored page must have read its list")
+	require.True(t, tester.HasText("Gold"),
+		"the first frame after a restore must already show the rows")
+}
