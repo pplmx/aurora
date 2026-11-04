@@ -6,8 +6,8 @@ reporting service.
 
 The desktop application stores its SQLite database, logs, recent-document
 metadata, the window geometry the UI toolkit remembers, and a small
-`desktop-settings.json` (the live-updates, appearance, language and last-opened
-page choices) under the user's local data directory. Exports and database
+`desktop-settings.json` (the live-updates, appearance, content zoom, language
+and last-opened page choices) under the user's local data directory. Exports and database
 backups are written wherever the user chooses. These files remain on the user's
 machine unless the user explicitly copies or shares them.
 
@@ -25,7 +25,7 @@ operator names another path. On Unix-like systems the defaults are owner-only:
 | `aurora.db`                         | `0600`          | The SQLite database: every module's records, the hash chain, oracle sources with their request headers |
 | `aurora.db-wal`, `-shm`, `-journal` | `0600`          | SQLite sidecars; `-journal` appears only outside WAL mode                                              |
 | `aurora.log`                        | `0600`          | The structured log                                                                                     |
-| `desktop-settings.json`             | `0600`          | Live-updates, appearance, language and last-opened page choices                                        |
+| `desktop-settings.json`             | `0600`          | Live-updates, appearance, zoom, language and last-opened page choices                                  |
 | `backup directory (new)`            | `0700`          | A backup set created by File → Back Up Database                                                        |
 | `files inside a backup`             | `0600`          | The database copy and its metadata                                                                     |
 | `restore undo snapshot`             | `0700` / `0600` | The temporary pre-restore copy; removed when the restore settles                                       |
