@@ -25,6 +25,13 @@ The milestone notes under `.planning/` are history, not current instructions.
   find them by name; they are the one palette group that stays available during a database write,
   which is exactly when a reader waiting on a long import may want the page larger.
 
+### Added
+
+- **A record row in the command palette takes its module's hue**: a search matching two modules drew
+  one kind of row — same icon shape, one accent colour — while the ledger's rows already use a hue per
+  module. The hue is resolved per frame, because which palette answers depends on the appearance being
+  painted; pages and commands keep the accent, since they belong to no module.
+
 ### Fixed
 
 - **The waiting list says how many parked copies it is not showing**: the card draws at most twenty
@@ -68,6 +75,9 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Added
 
+- **The slow-write notice test no longer depends on a poll race**: it painted a frame before backdating
+  the write's start, so an instantly-completing fake could be polled and applied first, suppressing the
+  notice by timing rather than by behaviour.
 - **Reload reaches every data page**: the File menu's import calls the window's reload, and a page it
   skipped would keep showing the rows it read before the import — the data would be stored and
   invisible, which reads as a failed import. Every page that reads a collection is now checked, with
