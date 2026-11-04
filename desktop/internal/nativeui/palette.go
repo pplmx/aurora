@@ -16,6 +16,12 @@ type paletteEntry struct {
 	detail string
 	icon   *ui.SVG
 	page   page
+	// matched marks an entry the storage layer already filtered. The palette's
+	// own text filter runs over what it draws, and a record's headline is its
+	// module and action — the query that found it may appear only in the payload
+	// the search read, which is not drawn at all. Such an entry is accepted as it
+	// came back instead of being filtered a second time by text it does not show.
+	matched bool
 	// action receives the frame's context so an entry can copy to the
 	// clipboard; navigating entries leave it nil.
 	action func(*ui.Context)
@@ -194,6 +200,11 @@ func (a *App) paletteMatches() []paletteEntry {
 			action: func(*ui.Context) { a.ShowRecord(pageIDs[target], id) },
 		}
 	}
+	// Records that match the query come after the pages and commands: they are
+	// what an operator investigating a problem is usually after, but they are
+	// also the most numerous, and a page or command whose title starts with the
+	// query should still rank first.
+	entries = append(entries, a.paletteRecordEntries(a.paletteQuery)...)
 	// Read-only and always available: a support reply should be copyable while
 	// a background write owns the database.
 	if a.actions.Version != "" {
@@ -211,6 +222,10 @@ func (a *App) paletteMatches() []paletteEntry {
 		return []paletteEntry{*jump}
 	}
 	for _, entry := range entries {
+		if entry.matched {
+			matches = append(matches, entry)
+			continue
+		}
 		// Search what the palette shows, not only the English source strings.
 		// A Chinese window renders translated titles and purposes, so a query
 		// copied from the screen must match the same text.

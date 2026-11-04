@@ -27,6 +27,18 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Added
 
+- **The command palette searches the ledger by text**: the palette could jump to a page, run a
+  command, or open a record by its exact id, but the case an operator hits while investigating — they
+  remember a word from a record and not its id — meant opening Blockchain, typing the word there, and
+  working out which module the result belonged to. Two or more characters now search the ledger and
+  list the matching records by module and action; Enter opens the module that wrote one. The search is
+  a storage query rather than a filter over the loaded page, because a match may be an old block no
+  page has read. It runs once per edited query and caches the rows, since the panel rebuilds every
+  frame; a single character does not query at all, because it matches most of the chain; and it stays
+  behind the busy gate like every other read in the window.
+
+### Added
+
 - **A parked audit backlog shows in the sidebar**: the outbox parks audit events whose delivery
   failed and retries them, so a backlog means the chain's own record is behind what the modules
   wrote. It was reported in exactly one place — a line inside the copied diagnostics, which only

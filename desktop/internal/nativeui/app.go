@@ -68,6 +68,10 @@ type App struct {
 	paletteChoice  int
 	paletteScroll  ui.ScrollState
 	paletteReveal  bool
+	// paletteSearch caches the ledger search behind the palette. The panel
+	// rebuilds every frame, so the query runs once per edit rather than once per
+	// frame.
+	paletteSearch paletteRecordSearch
 	// navigationControl is the sidebar's one keyboard stop. Closing the
 	// command palette moves focus here when its search field disappears, so a
 	// keyboard user is never left at the window root.
