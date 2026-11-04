@@ -16,6 +16,14 @@ type paletteEntry struct {
 	detail string
 	icon   *ui.SVG
 	page   page
+	// accent, when hasAccent is set, is the page whose hue the icon takes. A
+	// record sets it so a list mixing two modules is scannable by colour the way
+	// the ledger's rows are. The hue is resolved per frame rather than stored,
+	// because which palette answers depends on the appearance being painted.
+	// Pages and commands leave it unset and use the accent: pageDashboard is the
+	// zero page, so there is no spare value to mean "none".
+	accent    page
+	hasAccent bool
 	// matched marks an entry the storage layer already filtered. The palette's
 	// own text filter runs over what it draws, and a record's headline is its
 	// module and action — the query that found it may appear only in the payload
@@ -279,7 +287,11 @@ func paletteRow(c *ui.Context, entry paletteEntry, selected bool) (ui.Element, b
 	b.Children(func() {
 		ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Center).Children(func() {
 			size := 18 * textScale(c)
-			ui.Icon(c, entry.icon).Size(size, size).TextColor(c.Theme().Accent)
+			tone := c.Theme().Accent
+			if entry.hasAccent {
+				tone = pageAccent(c, entry.accent)
+			}
+			ui.Icon(c, entry.icon).Size(size, size).TextColor(tone)
 			ui.Column(c).Gap(1).Children(func() {
 				ui.Text(c, title).FontSize(textSize(c, 13)).Bold().TextColor(c.Theme().Text).SingleLine()
 				ui.Text(c, tr(entry.detail)).FontSize(textSize(c, 11)).TextColor(c.Theme().TextMuted).SingleLine()

@@ -257,3 +257,37 @@ func TestBalancedResultsKeepTheOrder(t *testing.T) {
 	require.Equal(t, "token", first[0].Module)
 	require.Equal(t, "oracle", first[1].Module)
 }
+
+// TestRecordRowsCarryTheirModuleHue covers how a mixed list is scanned. Two
+// records from different modules read as one kind of row unless the icon says
+// which module each came from, and the ledger's rows already use that hue. Pages
+// and commands keep the accent: they belong to no module, and colouring them
+// would claim they do.
+func TestRecordRowsCarryTheirModuleHue(t *testing.T) {
+	fake := &fakeServices{blocks: []BlockRow{
+		{Height: 5, Module: "token", Action: "Mint", Summary: "shared"},
+		{Height: 4, Module: "oracle", Action: "Observation", Summary: "shared"},
+	}}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 1600)
+	tester.Frame()
+	app.openPalette()
+	tester.Frame()
+
+	app.paletteQuery = "shared"
+	entries := app.paletteRecordEntries("shared")
+	require.Len(t, entries, 2)
+	for _, entry := range entries {
+		require.Truef(t, entry.hasAccent, "%q must take its module's hue", entry.title)
+	}
+	require.Equal(t, pageToken, entries[0].accent)
+	require.Equal(t, pageOracle, entries[1].accent)
+
+	// A page entry, matched by its own name, takes the accent instead.
+	app.paletteQuery = "dashboard"
+	for _, entry := range app.paletteMatches() {
+		if entry.page == pageDashboard {
+			require.False(t, entry.hasAccent, "a page belongs to no module")
+		}
+	}
+}

@@ -83,11 +83,13 @@ func (a *App) paletteRecordEntries(query string) []paletteEntry {
 			continue
 		}
 		entries = append(entries, paletteEntry{
-			title:   fmtRecordTitle(row),
-			detail:  blockRecordLabel(row),
-			icon:    pageIcons[target],
-			matched: true,
-			action:  func(*ui.Context) { a.navigateToRecord(target, row) },
+			title:     fmtRecordTitle(row),
+			detail:    blockRecordLabel(row),
+			icon:      pageIcons[target],
+			accent:    target,
+			hasAccent: true,
+			matched:   true,
+			action:    func(*ui.Context) { a.navigateToRecord(target, row) },
 		})
 	}
 	// Say when the list is cut short, and give the cut its own way out. A
@@ -97,11 +99,13 @@ func (a *App) paletteRecordEntries(query string) []paletteEntry {
 	if remaining := a.paletteSearch.total - len(entries); remaining > 0 {
 		query := query
 		entries = append(entries, paletteEntry{
-			title:   fmt.Sprintf(tr("Show all %d matching records"), a.paletteSearch.total),
-			detail:  fmt.Sprintf(tr("Opens Blockchain with “%s” in the search field"), query),
-			icon:    pageIcons[pageBlockchain],
-			matched: true,
-			action:  func(*ui.Context) { a.showLedgerSearch(query) },
+			title:     fmt.Sprintf(tr("Show all %d matching records"), a.paletteSearch.total),
+			detail:    fmt.Sprintf(tr("Opens Blockchain with “%s” in the search field"), query),
+			icon:      pageIcons[pageBlockchain],
+			accent:    pageBlockchain,
+			hasAccent: true,
+			matched:   true,
+			action:    func(*ui.Context) { a.showLedgerSearch(query) },
 		})
 	}
 	return entries
