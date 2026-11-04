@@ -273,9 +273,17 @@ func (a *App) pendingAuditCard(c *ui.Context) {
 	if a.liveNow != nil {
 		now = a.liveNow()
 	}
+	// The list is capped, and a capped list that stays quiet reads as the whole
+	// backlog: an operator counting twenty rows against a footer that says sixty
+	// would take the difference for a display bug rather than for the rest of
+	// the queue.
+	purpose := "Audit copies of blocks that are already on the chain; the drainer retries them until they land."
+	if total := a.readOutbox().Pending; total > len(events) {
+		purpose = fmt.Sprintf(tr("Showing the oldest %d of %d parked copies; the rest are retried in the same loop."),
+			len(events), total)
+	}
 	panel := card(c, func() {
-		sectionHeading(c, "Waiting to be delivered",
-			"Audit copies of blocks that are already on the chain; the drainer retries them until they land.")
+		sectionHeading(c, "Waiting to be delivered", purpose)
 		ui.Column(c).FillWidth().Gap(space2).Role(ui.RoleList).Label(tr("Pending audit events")).Children(func() {
 			for _, event := range events {
 				pendingEventRow(c, event, now)

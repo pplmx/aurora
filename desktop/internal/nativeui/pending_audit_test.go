@@ -1,6 +1,7 @@
 package nativeui
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -141,4 +142,58 @@ func TestTheWaitingListIsReadWithThePageNotPerFrame(t *testing.T) {
 
 	app.loadBlockchainAt("", 200, 0)
 	require.Equal(t, afterLoad+1, reads, "a refresh reads it again")
+}
+
+// TestACappedWaitingListSaysHowMuchItIsHiding covers the list's own limit. The
+// card draws a fixed number of rows while the footer reports the true backlog, so
+// an operator counting twenty rows against a footer that says sixty would take the
+// difference for a display bug rather than for the rest of the queue.
+func TestACappedWaitingListSaysHowMuchItIsHiding(t *testing.T) {
+	const total = PendingAuditLimit + 40
+	events := make([]PendingEvent, PendingAuditLimit)
+	for i := range events {
+		events[i] = PendingEvent{
+			EventType: "token.mint", Module: "token",
+			Aggregate: fmt.Sprintf("agg-%02d", i), ParkedAt: time.Now(), Attempts: 1,
+		}
+	}
+	app := New(&fakeServices{blocks: []BlockRow{{Height: 2, Module: "token", Summary: "x"}}})
+	actions := pendingFixture(events...)
+	actions.OutboxPending = func() (int, bool) { return total, true }
+	actions.OutboxOldest = func() (time.Duration, bool) { return time.Minute, true }
+	app.SetActions(actions)
+
+	tester := ui.NewTester(app.View, 1280, 3000)
+	app.ShowPage("Blockchain")
+	tester.Frame()
+
+	require.Truef(t,
+		tester.HasText(fmt.Sprintf("Showing the oldest %d of %d parked copies", PendingAuditLimit, total)),
+		"a capped list must say how many are left out")
+}
+
+// TestAWaitingListThatFitsKeepsThePlainDescription: when every parked copy is on
+// screen there is nothing withheld, and a "showing the oldest 3 of 3" line would
+// only make the reader check a number that always matches.
+func TestAWaitingListThatFitsKeepsThePlainDescription(t *testing.T) {
+	const total = 3
+	events := make([]PendingEvent, total)
+	for i := range events {
+		events[i] = PendingEvent{
+			EventType: "token.mint", Module: "token",
+			Aggregate: fmt.Sprintf("agg-%02d", i), ParkedAt: time.Now(), Attempts: 1,
+		}
+	}
+	app := New(&fakeServices{blocks: []BlockRow{{Height: 2, Module: "token", Summary: "x"}}})
+	actions := pendingFixture(events...)
+	actions.OutboxPending = func() (int, bool) { return total, true }
+	app.SetActions(actions)
+
+	tester := ui.NewTester(app.View, 1280, 3000)
+	app.ShowPage("Blockchain")
+	tester.Frame()
+
+	require.False(t, tester.HasText("Showing the oldest"),
+		"a list showing every parked copy needs no ratio")
+	require.True(t, tester.HasText("Audit copies of blocks that are already on the chain"))
 }

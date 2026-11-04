@@ -27,6 +27,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **The waiting list says how many parked copies it is not showing**: the card draws at most twenty
+  rows while the footer reports the true backlog, so an operator counting twenty rows against a footer
+  that said sixty would take the difference for a display bug rather than for the rest of the queue.
+  When every parked copy fits, the plain description stays — a "showing 3 of 3" line only makes the
+  reader check a number that always matches.
+
+### Fixed
+
 - **The dashboard's recent-activity badge says how much it is not showing**: the card draws the newest
   five chain entries and labelled them with that count, so a five-entry preview of a thirty-entry chain
   read as a five-entry chain — and nothing on the card pointed at the rest. The badge now reads
