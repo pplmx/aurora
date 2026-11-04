@@ -51,6 +51,12 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **Changing the ledger's page size closes the open payload**: the check that clears an expanded
+  record compared the offset and the search, and a `Show` change leaves both untouched — it reloads
+  at offset 0 with a different number of rows. An index opened on the larger page then named a
+  different record: shrinking hid the panel, and growing it again made a record nobody had touched
+  show its raw payload. The page size is part of what the rows on screen describe.
+
 - **The live badge says when the timer is paused**: the header pill described the setting rather than
   the page, so a Dashboard held off by a background write still claimed "Live · 10s". A reader who
   watched a thirty-second import under that label would conclude the timer was broken, and the one

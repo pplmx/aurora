@@ -237,3 +237,38 @@ func TestLedgerFactsWrapLongValues(t *testing.T) {
 		"the complete fact value must wrap instead of being clipped: rect=%+v measured=(%g,%g)",
 		rect, measuredWidth, measuredHeight)
 }
+
+// TestChangingThePageSizeClosesTheOpenPayload covers the one way to replace the
+// rows that leaves both the offset and the search unchanged. Changing Show
+// reloads at offset 0 with a different number of rows, so an index opened on the
+// larger page named a different record afterwards: shrinking hid the panel, and
+// growing again made a record nobody touched show its raw payload.
+func TestChangingThePageSizeClosesTheOpenPayload(t *testing.T) {
+	rows := make([]BlockRow, 30)
+	for i := range rows {
+		rows[i] = BlockRow{
+			Height: int64(30 - i), Module: "token", Action: "Mint",
+			Summary: fmt.Sprintf("entry-%d", i), Payload: fmt.Sprintf(`{"n":%d}`, i),
+		}
+	}
+	app := New(&fakeServices{blocks: rows})
+	tester := ui.NewTester(app.View, 1280, 900)
+	app.ShowPage("Blockchain")
+	app.blockchain.blockLimit = 20
+	app.loadBlockchain()
+	tester.Frame()
+
+	app.blockchain.expanded = 15
+	tester.Frame()
+	require.True(t, tester.HasText(`{"n":15}`), "the opened record shows its payload")
+
+	app.loadBlockchainAt("", 10, 0)
+	tester.Frame()
+	require.Equal(t, -1, app.blockchain.expanded,
+		"a smaller page must not keep the index of a record it no longer holds")
+
+	app.loadBlockchainAt("", 20, 0)
+	tester.Frame()
+	require.False(t, tester.HasText(`{"n":15}`),
+		"growing the page again must not expand a record nobody opened")
+}
