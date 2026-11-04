@@ -8,6 +8,8 @@ import (
 
 	"github.com/egoist/mygo/ui"
 	"github.com/stretchr/testify/require"
+
+	"github.com/pplmx/aurora/internal/domain/token"
 )
 
 // tokenRecorder is a fakeServices that remembers which account each write
@@ -1094,4 +1096,64 @@ func TestAZeroAllowanceIsShownNotHidden(t *testing.T) {
 	// for — a cleared account must not leave the previous answer under a new key.
 	require.Contains(t, source, "func (s tokenState) allowanceMatches(",
 		"the account the answer belongs to is what the guard pairs with the value")
+}
+
+// TestAnOverlongTokenFieldIsRejectedAtItsControl covers where the token form's
+// length refusals belong. The store bounds the name and the symbol and its message
+// names no field, so both used to surface in the status line above a form whose
+// controls sit on two different rows.
+//
+// The sentences are the domain's own: a window-side copy could describe a limit
+// the store does not apply, and the CLI would then disagree with the window.
+func TestAnOverlongTokenFieldIsRejectedAtItsControl(t *testing.T) {
+	for _, tc := range []struct {
+		field string
+		name  string
+		tick  string
+		check func(*App) string
+	}{
+		{"name", strings.Repeat("N", token.MaxTokenNameLength+1), "GLD", func(a *App) string { return a.token.nameErr }},
+		{"symbol", "Gold", strings.Repeat("S", token.MaxTokenSymbolLength+1), func(a *App) string { return a.token.symbolErr }},
+	} {
+		t.Run(tc.field, func(t *testing.T) {
+			fake := workbenchFakes()
+			app := New(fake)
+			tester := ui.NewTester(app.View, 1280, 2600)
+			app.ShowPage("Token")
+			tester.Frame()
+			before := fake.createTokenCalls
+
+			app.token.name, app.token.symbol = tc.name, tc.tick
+			app.token.supply, app.token.owner = "100", "pk"
+			app.createToken()
+			tester.Frame()
+
+			require.Equal(t, before, fake.createTokenCalls,
+				"a %s the store would refuse must not reach it", tc.field)
+			require.NotEmpty(t, tc.check(app), "the refusal belongs on the field it applies to")
+			require.True(t, tester.HasText(tc.check(app)))
+		})
+	}
+}
+
+// TestTokenFieldsAtTheirLimitsAreAccepted keeps the check from being too eager on
+// either side. The bounds are inclusive, so a value exactly at a limit is valid
+// and must reach storage.
+func TestTokenFieldsAtTheirLimitsAreAccepted(t *testing.T) {
+	fake := workbenchFakes()
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 2600)
+	app.ShowPage("Token")
+	tester.Frame()
+	before := fake.createTokenCalls
+
+	app.token.name = strings.Repeat("N", token.MaxTokenNameLength)
+	app.token.symbol = strings.Repeat("S", token.MaxTokenSymbolLength)
+	app.token.supply, app.token.owner = "100", "pk"
+	app.createToken()
+	tester.Frame()
+
+	require.Equal(t, before+1, fake.createTokenCalls, "both bounds are inclusive")
+	require.Empty(t, app.token.nameErr)
+	require.Empty(t, app.token.symbolErr)
 }

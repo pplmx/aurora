@@ -69,6 +69,20 @@ func fieldPair(c *ui.Context, labelA string, valueA *string, labelB string, valu
 	})
 }
 
+// fieldPairError is fieldPair with a message under the first control. The two keep
+// sharing a row: a form that grew a line per validated field would push the cards
+// below it out of reach in a short window.
+func fieldPairError(c *ui.Context, labelA string, valueA *string, messageA *string, labelB string, valueB *string) {
+	ui.Row(c).FillWidth().Gap(space3).AlignItems(ui.Start).Children(func() {
+		ui.Column(c).Grow(1).Shrink(1).MinWidth(0).Children(func() {
+			validatedField(c, labelA, valueA, messageA)
+		})
+		ui.Column(c).Grow(1).Shrink(1).MinWidth(0).Children(func() {
+			field(c, labelB, valueB)
+		})
+	})
+}
+
 // fieldWithError keeps an error inside the field that caused it. MyGo marks
 // the control invalid and exposes the message as its accessible description,
 // so a screen reader does not have to infer which red line belongs where.
