@@ -27,6 +27,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Added
 
+- **Every page's failed read is covered**: a page that fails to read must report that failure, not
+  fall back to its empty state — "nothing is stored" and "this read failed" are different claims, and
+  the one fact the operator opened the page to check is the one being withheld. Each page owns its own
+  error field, so all seven are exercised rather than a sample; swallowing one page's error makes the
+  test fail on that page alone.
+
+### Added
+
 - **A per-frame read audit, page by page**: the backlog broke the "a frame draws what the page
   already read" rule twice, in the sidebar footer and in the ledger's waiting list, and neither was
   visible to tests that only checked what the screen said. Every page is now measured over ten idle
