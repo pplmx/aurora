@@ -114,8 +114,11 @@ func TestNotificationNamesTheFailedWrite(t *testing.T) {
 	app.lottery.participants = "Alice,Bob"
 	app.lottery.seed = "seed-abc"
 	app.createLottery()
-	tester.Frame()
-	require.NotEmpty(t, app.busy)
+	require.NotEmpty(t, app.busy, "the write must be in flight")
+	// No frame between starting the write and backdating its start: the fake
+	// completes at once, and a frame here would poll the result before
+	// finishWrite could make the write look slow, which suppressed the notice
+	// by a race rather than by behaviour.
 
 	finishWrite(t, app, tester, writeNoticeAfter+time.Second)
 
