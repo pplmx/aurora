@@ -224,6 +224,13 @@ func recordFacts(c *ui.Context, entry BlockRow) {
 
 // recordFactView draws one decoded fact on a record. The module is passed in so
 // the fact's label resolves through that module's vocabulary.
+//
+// The value wraps rather than clipping, and the cap is a reading measure rather
+// than a fixed box. A fact's value is often a public key or a whole draw id —
+// exactly the long values a one-line cell cuts to a prefix — and the collection
+// records next to this one already wrap theirs. The cap stays so a long sentence
+// does not run the width of a wide window, and it scales with the text for the
+// same reason the font does.
 func recordFactView(c *ui.Context, module string, fact BlockFact) {
 	value := fact.Value
 	if value == "" {
@@ -232,8 +239,7 @@ func recordFactView(c *ui.Context, module string, fact BlockFact) {
 	ui.Column(c).Gap(1).Shrink(0).MaxWidth(textSize(c, 260)).Children(func() {
 		ui.Text(c, recordFactName(module, fact.Label)).FontSize(textSize(c, 9.5)).FontWeight(600).
 			LetterSpacing(0.4).TextColor(c.Theme().TextMuted).SingleLine()
-		ui.Text(c, value).FontSize(textSize(c, 12)).TextColor(c.Theme().Text).
-			SingleLine().Ellipsis("…").Tooltip(value)
+		ui.Text(c, value).FontSize(textSize(c, 12)).TextColor(c.Theme().Text).Tooltip(value)
 	})
 }
 

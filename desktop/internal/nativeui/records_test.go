@@ -208,3 +208,32 @@ func TestRefreshingTheLedgerKeepsTheOpenPayload(t *testing.T) {
 	require.Equal(t, 1, app.blockchain.expanded,
 		"re-reading the same page keeps the record the reader opened")
 }
+
+// TestLedgerFactsWrapLongValues keeps a record's fact readable when its value is
+// a public key or a whole id. The value was a single-line cell capped at 260px
+// and ellipsized, which reduced exactly the values a ledger is cited for — the
+// holder of an NFT, the account a transfer moved from — to "AQIDAUBGwbJgC…". The
+// collection records beside this one already wrapped theirs, and the guide
+// promises the same for every ledger field.
+func TestLedgerFactsWrapLongValues(t *testing.T) {
+	const key = "AQIDAUBGwbJgCgsMDQ4PEBESExQVFhcYGRobHB0eHyAhIiMkJSYnKCkqKywtLi8wMTIzNDU2Nzg5Ojs8PT4/QA=="
+	app := New(&fakeServices{blocks: []BlockRow{{
+		Height: 2, Module: "nft", Action: "Mint", Subject: "Star",
+		Summary: "nft mint Star", Payload: "mint|star",
+		Facts: []BlockFact{{Label: "Holder", Value: key}},
+	}}})
+
+	var measuredWidth, measuredHeight float32
+	tester := ui.NewTester(func(c *ui.Context) {
+		app.View(c)
+		measuredWidth, measuredHeight = c.MeasureText(0, ui.Span{Text: key, Size: textSize(c, 12)})
+	}, 900, 600)
+	app.ShowPage("Blockchain")
+	tester.Frame()
+
+	rect, ok := tester.Find(key)
+	require.True(t, ok, "the record must show the complete holder key")
+	require.True(t, rect.W >= measuredWidth || rect.H >= 1.5*measuredHeight,
+		"the complete fact value must wrap instead of being clipped: rect=%+v measured=(%g,%g)",
+		rect, measuredWidth, measuredHeight)
+}

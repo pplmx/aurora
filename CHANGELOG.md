@@ -42,6 +42,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **A ledger record's facts wrap instead of being clipped**: a fact value was a single-line cell
+  capped at 260px and ellipsized, which reduced exactly the values a ledger is cited for — an NFT's
+  holder, the account a transfer moved from — to a prefix. The collection records beside it already
+  wrapped theirs, and the desktop guide promises the same for every ledger field. The cap stays as a
+  reading measure and scales with the text, so a long sentence still does not run the width of a
+  wide window.
+
 - **The ledger's open payload follows the record it was opened on**: the page kept the index of the
   expanded record across a page or search change, so on the new rows that index named whichever
   entry landed there — a record nobody had opened showed its raw payload, and the one the reader had
