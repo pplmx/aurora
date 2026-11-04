@@ -648,6 +648,17 @@ func TestSettingsDocumentsTheWindowShortcuts(t *testing.T) {
 	require.True(t, tester.HasText("Import lotteries"))
 	require.True(t, tester.HasText(shortcutChord("I")))
 	require.True(t, tester.HasText(shortcutChord(",")))
+	// The zoom chords are window-wide too, and the card is where a reader
+	// learns them: a shortcut registered in the header but absent here is a
+	// command only its author knows.
+	for _, want := range []string{"Zoom in", "Zoom out", "Actual size"} {
+		require.Truef(t, tester.HasText(want), "the Shortcuts card must document %q", want)
+	}
+	require.True(t, tester.HasText(shortcutChord("=")))
+	require.True(t, tester.HasText(shortcutChord("-")))
+	require.True(t, tester.HasText(shortcutChord("0")))
+	require.True(t, tester.HasText("Content zoom"), "the Appearance card names the ratio")
+	require.True(t, tester.HasText(zoomLabel(1)))
 }
 
 // TestCommandPaletteOpensAndNavigates pins the keyboard-first page switcher:

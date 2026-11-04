@@ -129,3 +129,23 @@ func TestEveryZoomChangeIsReportedToTheShell(t *testing.T) {
 
 	require.Equal(t, []float32{1.25, 1.5}, saved)
 }
+
+// TestZoomWorksOnEveryPage guards where the chord is registered. The header is
+// rebuilt for every page, so a shortcut wired into one page's body would work
+// exactly where its author tested and nowhere else; zoom is a window command and
+// has to answer on all of them, Settings included.
+func TestZoomWorksOnEveryPage(t *testing.T) {
+	for _, target := range pageOrder {
+		t.Run(pageTitles[target], func(t *testing.T) {
+			app := New(workbenchFakes())
+			tester := ui.NewTester(app.View, 1280, 860)
+			app.ShowPage(pageTitles[target])
+			tester.Frame()
+
+			tester.Key(platformRefreshModifier(), ui.KeyEqual)
+			tester.Frame()
+			require.NotEqualf(t, float32(1), app.contentZoom,
+				"%s: the zoom chord must work on this page too", pageTitles[target])
+		})
+	}
+}
