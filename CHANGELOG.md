@@ -27,6 +27,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Added
 
+- **The write-then-reread loop is covered end to end**: the shared test fake returns a row without
+  keeping it, which proves the write path but cannot show whether the page re-reads afterwards. A fake
+  that stores what it creates now holds both halves: a successful create re-reads the list and the row
+  is on screen beside the status line, and a rejected write does not re-read — an unchanged list
+  re-read after a failure would look like a confirmation.
+
+### Added
+
 - **Every page's failed read is covered**: a page that fails to read must report that failure, not
   fall back to its empty state — "nothing is stored" and "this read failed" are different claims, and
   the one fact the operator opened the page to check is the one being withheld. Each page owns its own
