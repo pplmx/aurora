@@ -24,6 +24,10 @@ func (a *App) loadBlockchainAt(search string, rawLimit float64, offset int) bool
 	if offset < 0 {
 		offset = 0
 	}
+	// What the rows currently on screen describe, captured before the query
+	// fields move: the open payload has to be cleared when the list is about to
+	// be replaced, and kept when it is only being re-read.
+	previousOffset, previousSearch := a.blockchain.blockOffset, a.blockchain.queriedSearch
 	a.blockchain.queriedSearch, a.blockchain.queriedLimit = search, limit
 	res, err := a.services.LedgerStatus()
 	a.blockchain.loadErr = err
@@ -42,6 +46,15 @@ func (a *App) loadBlockchainAt(search string, rawLimit float64, offset int) bool
 	a.blockchain.blocksErr = blocksErr
 	if blocksErr != nil {
 		return false
+	}
+	// The open payload belongs to a position in the list that is about to be
+	// replaced. Keeping the index would point at whichever record happens to
+	// sit there on the new page, so a record nobody opened would show its raw
+	// payload — and the one that was open would silently close. A refresh of the
+	// same page is the exception: the rows are the same and the reader expects
+	// the record to stay open.
+	if previousOffset != offset || previousSearch != search {
+		a.blockchain.expanded = -1
 	}
 	a.blockchain.rows = page.Rows
 	a.blockchain.blockTotal = page.Total

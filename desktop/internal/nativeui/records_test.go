@@ -1,6 +1,7 @@
 package nativeui
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/egoist/mygo/ui"
@@ -155,4 +156,55 @@ func TestUnknownPayloadStillReads(t *testing.T) {
 	require.True(t, tester.HasText(payload),
 		"an unrecognised payload must still read as its stored text")
 	require.True(t, tester.HasText("#9"), "the block number must still identify the entry")
+}
+
+// TestMovingTheLedgerClosesTheOpenPayload keeps an expanded payload attached to
+// the record it was opened on. The index into the loaded page survived a page
+// or search change, so the record that happened to land at that position on the
+// new page showed its raw payload unopened — and the one the reader had open
+// closed without a click.
+func TestMovingTheLedgerClosesTheOpenPayload(t *testing.T) {
+	rows := make([]BlockRow, 30)
+	for i := range rows {
+		rows[i] = BlockRow{
+			Height: int64(30 - i), Module: "token", Action: "Mint",
+			Summary: fmt.Sprintf("entry-%d", i), Payload: fmt.Sprintf(`{"n":%d}`, i),
+		}
+	}
+	app := New(&fakeServices{blocks: rows})
+	tester := ui.NewTester(app.View, 1280, 2000)
+	app.ShowPage("Blockchain")
+	app.blockchain.blockLimit = 10
+	app.loadBlockchain()
+	tester.Frame()
+
+	app.blockchain.expanded = 2
+	tester.Frame()
+	require.True(t, tester.HasText(`{"n":2}`), "the opened record shows its payload")
+
+	app.loadBlockchainAt("", 10, 10)
+	tester.Frame()
+	require.Equal(t, -1, app.blockchain.expanded,
+		"a new page must not inherit the index of the record opened on the last one")
+	require.False(t, tester.HasText(`{"n":12}`),
+		"a record nobody opened must not show its raw payload")
+}
+
+// TestRefreshingTheLedgerKeepsTheOpenPayload is the other half: re-reading the
+// same page must not close what the reader opened. A refresh after a write is
+// routine, and losing the open payload there would make the page feel like it
+// reset itself.
+func TestRefreshingTheLedgerKeepsTheOpenPayload(t *testing.T) {
+	app := New(&fakeServices{blocks: ledgerRecords()})
+	tester := ui.NewTester(app.View, 1280, 2000)
+	app.ShowPage("Blockchain")
+	tester.Frame()
+
+	app.blockchain.expanded = 1
+	tester.Frame()
+
+	app.loadBlockchainAt("", app.blockchain.blockLimit, app.blockchain.blockOffset)
+	tester.Frame()
+	require.Equal(t, 1, app.blockchain.expanded,
+		"re-reading the same page keeps the record the reader opened")
 }

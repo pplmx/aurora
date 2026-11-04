@@ -39,6 +39,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **The ledger's open payload follows the record it was opened on**: the page kept the index of the
+  expanded record across a page or search change, so on the new rows that index named whichever
+  entry landed there — a record nobody had opened showed its raw payload, and the one the reader had
+  open closed without a click. Moving to different rows now clears the open payload; re-reading the
+  same page keeps it, because a refresh after a write is routine and closing the reader's record
+  there would feel like the page resetting itself.
+
 - **A write that finishes after the reader moved still reports its result**: the window disables
   the page body during a background write but not the sidebar, which is the point of running the
   write off the frame thread — so an operator waiting on a slow fetch switches pages. The outcome
