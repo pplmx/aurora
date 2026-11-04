@@ -35,7 +35,11 @@ The milestone notes under `.planning/` are history, not current instructions.
   a storage query rather than a filter over the loaded page, because a match may be an old block no
   page has read. It runs once per edited query and caches the rows, since the panel rebuilds every
   frame; a single character does not query at all, because it matches most of the chain; and it stays
-  behind the busy gate like every other read in the window.
+  behind the busy gate like every other read in the window. A list cut short says so: the storage total
+  comes back with the rows, and when more match than the palette offers it appends "Show all N matching
+  records", which opens Blockchain with the query already in its search field — a truncated list that
+  stayed quiet made a reader conclude their record was not in the chain rather than that the palette
+  showed part of it.
 
 ### Added
 

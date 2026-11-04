@@ -2,6 +2,7 @@ package nativeui
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/egoist/mygo/ui"
@@ -140,4 +141,56 @@ func TestPaletteSearchSkipsAnIdJump(t *testing.T) {
 	matches := app.paletteMatches()
 	require.Len(t, matches, 1, "the jump is the only entry")
 	require.Equal(t, baseline, fake.blockListCalls, "and it must not run a ledger search")
+}
+
+// TestTruncatedSearchSaysSoAndOffersTheRest covers what a cut-short list owes the
+// reader. The palette offers a handful of records because it is a jump target, but
+// it drew them without saying the chain held more: a query matching forty records
+// showed five, and the reader concluded their record was not in the chain rather
+// than that the palette showed part of it.
+func TestTruncatedSearchSaysSoAndOffersTheRest(t *testing.T) {
+	rows := make([]BlockRow, 20)
+	for i := range rows {
+		rows[i] = BlockRow{
+			Height: int64(20 - i), Module: "token", Action: "Mint",
+			Summary: fmt.Sprintf("searchable-%d", i),
+		}
+	}
+	app := New(&fakeServices{blocks: rows})
+	tester := ui.NewTester(app.View, 1280, 1600)
+	tester.Frame()
+	app.openPalette()
+	tester.Frame()
+
+	app.paletteQuery = "searchable"
+	tester.Frame()
+	entries := app.paletteRecordEntries("searchable")
+	require.Len(t, entries, paletteSearchLimit+1,
+		"the capped rows plus the entry that discloses the rest")
+	last := entries[len(entries)-1]
+	require.Equal(t, "Show all 20 matching records", last.title)
+
+	// The disclosure is a way out, not a label: it opens the ledger with the
+	// query already in its search field, where the pager lives.
+	app.showLedgerSearch("searchable")
+	require.Equal(t, pageBlockchain, app.page)
+	require.Equal(t, "searchable", app.blockchain.search)
+}
+
+// TestShortSearchListSaysNothing: a result set that fits needs no disclosure. An
+// always-present "show all" row would be one more thing to skip past on every
+// successful search.
+func TestShortSearchListSaysNothing(t *testing.T) {
+	app := New(&fakeServices{blocks: []BlockRow{
+		{Height: 2, Module: "token", Action: "Mint", Summary: "searchable"},
+	}})
+	tester := ui.NewTester(app.View, 1280, 1600)
+	tester.Frame()
+	app.openPalette()
+	tester.Frame()
+
+	app.paletteQuery = "searchable"
+	entries := app.paletteRecordEntries("searchable")
+	require.Len(t, entries, 1)
+	require.Equal(t, "token · Mint", entries[0].title)
 }

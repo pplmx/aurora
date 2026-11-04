@@ -1,6 +1,7 @@
 package nativeui
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/egoist/mygo/ui"
@@ -35,6 +36,11 @@ type paletteRecordSearch struct {
 	// without a second field to keep in step.
 	query string
 	rows  []BlockRow
+	// total is every matching record in the chain, not only the rows kept. The
+	// palette offers a jump target, so it draws a handful; without the total a
+	// reader whose query matched forty records saw five and had no way to learn
+	// the rest existed.
+	total int
 	err   error
 	done  bool
 }
@@ -54,7 +60,8 @@ func (a *App) paletteRecordEntries(query string) []paletteEntry {
 	if a.paletteSearch.query != query {
 		a.paletteSearch = paletteRecordSearch{query: query}
 		page, err := a.services.LedgerBlocksPage(query, paletteSearchLimit, 0)
-		a.paletteSearch.rows, a.paletteSearch.err = page.Rows, err
+		a.paletteSearch.rows, a.paletteSearch.total = page.Rows, page.Total
+		a.paletteSearch.err = err
 		a.paletteSearch.done = true
 	}
 	if a.paletteSearch.err != nil {
@@ -74,7 +81,33 @@ func (a *App) paletteRecordEntries(query string) []paletteEntry {
 			action:  func(*ui.Context) { a.navigateToRecord(target, row) },
 		})
 	}
+	// Say when the list is cut short, and give the cut its own way out. A
+	// truncated list that stays quiet is worse than a short one: the reader
+	// concludes their record is not in the chain rather than that the palette
+	// shows only part of it.
+	if remaining := a.paletteSearch.total - len(entries); remaining > 0 {
+		query := query
+		entries = append(entries, paletteEntry{
+			title:   fmt.Sprintf(tr("Show all %d matching records"), a.paletteSearch.total),
+			detail:  fmt.Sprintf(tr("Opens Blockchain with “%s” in the search field"), query),
+			icon:    pageIcons[pageBlockchain],
+			matched: true,
+			action:  func(*ui.Context) { a.showLedgerSearch(query) },
+		})
+	}
 	return entries
+}
+
+// showLedgerSearch opens the ledger page with the palette's query already in its
+// search field, so the pager that the palette does not have is one click away
+// from the truncated list.
+func (a *App) showLedgerSearch(query string) {
+	a.blockchain.search = query
+	a.blockchain.blockOffset = 0
+	a.setPage(pageBlockchain)
+	if a.invalidate != nil {
+		a.invalidate()
+	}
 }
 
 // fmtRecordTitle is the row's headline: the module's own name and the action it
