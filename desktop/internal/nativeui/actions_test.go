@@ -178,7 +178,10 @@ func TestPaletteCopiesDiagnostics(t *testing.T) {
 	tester.Key(0, ui.KeyEnter)
 	tester.Frame()
 	require.Equal(t,
-		"Version: v1.2.3\nBuild time: 2026-10-26T09:00:00Z\nDatabase: /tmp/aurora/aurora.db\nRuntime: go1.27.3 · mygo v0.7.3\nLedger: 5 blocks, head 009c4a0820ab — chain valid\nAudit outbox: 2 pending events, oldest waiting 5m0s",
+		"Version: v1.2.3\nBuild time: 2026-10-26T09:00:00Z\nDatabase: /tmp/aurora/aurora.db\nRuntime: go1.27.3 · mygo v0.7.3\n"+
+			"Ledger: 5 blocks, head 009c4a0820ab — chain valid\n"+
+			"Theme: Dark\nText size: 100%\nContent zoom: 100%\n"+
+			"Audit outbox: 2 pending events, oldest waiting 5m0s",
 		tester.Clipboard())
 	require.False(t, app.paletteOpen)
 }

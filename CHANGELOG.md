@@ -40,6 +40,15 @@ The milestone notes under `.planning/` are history, not current instructions.
   is skipped silently: the notification is an extra channel, and the window still reports the
   result when the operator returns.
 
+### Changed
+
+- **The copied diagnostics name the window's display settings**: the build identity is the same at
+  200% zoom in the light theme as at 100% in the dark one, so a report that omits them sends support
+  looking for a defect the reporter cannot reproduce. The copy now carries the theme (with the
+  appearance it resolved to when following the system — the same choice is a light window on one
+  machine and a dark one on the next), the operating system's text size as the last frame read it,
+  and the content zoom.
+
 ### Fixed
 
 - **A ledger record's facts wrap instead of being clipped**: a fact value was a single-line cell

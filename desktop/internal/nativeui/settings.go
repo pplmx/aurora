@@ -295,6 +295,11 @@ func (a *App) diagnosticsText() string {
 			lines = append(lines, fmt.Sprintf(tr("Ledger: %d blocks, head %s — %s"), blocks, head, verdict))
 		}
 	}
+	// The display settings a screenshot-based report depends on. A bug that
+	// only appears at 200% zoom or in one theme is much cheaper to place when
+	// the copy says which ones were in effect: the reader's own machine looks
+	// the same otherwise, and the reporter has no reason to mention it.
+	lines = append(lines, a.displayFacts()...)
 	if a.actions.OutboxPending != nil {
 		if pending, ok := a.actions.OutboxPending(); ok {
 			line := fmt.Sprintf(tr("Audit outbox: %d pending events"), pending)
@@ -310,6 +315,30 @@ func (a *App) diagnosticsText() string {
 		}
 	}
 	return strings.Join(lines, "\n")
+}
+
+// displayFacts names the window settings that change what a report looks like.
+// The theme, the operating system's text size and the content zoom are the three
+// that alter every screenshot, and none of them appears anywhere else in the
+// copy: the build identity is the same at 200% in the light theme.
+func (a *App) displayFacts() []string {
+	mode := normalizeThemeMode(a.themeMode)
+	label := themeModeLabel(mode)
+	if mode == ThemeModeSystem {
+		label += " (" + preferenceStateLabel(a.systemDark, "Dark", "Light") + ")"
+	}
+	// The operating system's text size is not stored on the App: the view reads
+	// it from the frame's preferences, which are not available here. A caller
+	// that has them fills it in through DisplayTextScale.
+	scale := a.displayTextScale
+	if scale <= 0 {
+		scale = 1
+	}
+	return []string{
+		labelText(tr("Theme"), label),
+		labelText(tr("Text size"), textScaleLabel(scale)),
+		labelText(tr("Content zoom"), zoomLabel(a.contentZoom)),
+	}
 }
 
 // copyDiagnostics puts diagnosticsText on the clipboard and confirms where the

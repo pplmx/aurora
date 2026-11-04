@@ -105,6 +105,11 @@ type App struct {
 	// looks like content vanishing.
 	contentZoom float32
 	zoomNotice  bool
+	// displayTextScale is the operating system's text size as the last frame
+	// read it. The copied diagnostics names it, and diagnosticsText has no frame
+	// context of its own: the view records the value each frame so the copy can
+	// quote what the reader is actually looking at.
+	displayTextScale float32
 
 	lottery    lotteryState
 	voting     votingState
@@ -176,6 +181,7 @@ func (a *App) View(c *ui.Context) {
 	// every glyph stays sharp at the larger size. It is set before the tree is
 	// built because a frame that changes it rebuilds at the new size.
 	c.SetZoom(clampZoom(a.contentZoom))
+	a.displayTextScale = c.Preferences().TextScale
 	a.showZoomNotice(c)
 	ui.Row(c).Fill().Children(func() {
 		a.sidebarColumn(c)

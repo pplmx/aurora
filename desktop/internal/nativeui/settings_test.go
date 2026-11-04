@@ -55,7 +55,9 @@ func TestSettingsPageCarriesTheApplicationConfiguration(t *testing.T) {
 	require.NoError(t, tester.Click("Copy Diagnostics"))
 	tester.Frame()
 	require.Equal(t,
-		"Version: v1.2.3\nBuild time: 2026-10-26T09:00:00Z\nDatabase: /tmp/aurora/aurora.db\nDatabase size: 332.0 KiB\nLedger: 5 blocks, head 009c4a0820ab — chain valid",
+		"Version: v1.2.3\nBuild time: 2026-10-26T09:00:00Z\nDatabase: /tmp/aurora/aurora.db\nDatabase size: 332.0 KiB\n"+
+			"Ledger: 5 blocks, head 009c4a0820ab — chain valid\n"+
+			"Theme: Dark\nText size: 100%\nContent zoom: 100%",
 		tester.Clipboard())
 	require.True(t, tester.HasText("Diagnostics are on the clipboard"))
 }
@@ -292,6 +294,42 @@ func TestSettingsDiagnosticsNamesABrokenChain(t *testing.T) {
 	require.NoError(t, tester.Click("Copy Diagnostics"))
 	tester.Frame()
 	require.Equal(t,
-		"Version: v1.2.3\nBuild time: 2026-10-26T09:00:00Z\nDatabase: /tmp/aurora/aurora.db\nLedger: 3 blocks, head abc123def456 — chain broken",
+		"Version: v1.2.3\nBuild time: 2026-10-26T09:00:00Z\nDatabase: /tmp/aurora/aurora.db\n"+
+			"Ledger: 3 blocks, head abc123def456 — chain broken\n"+
+			"Theme: Dark\nText size: 100%\nContent zoom: 100%",
 		tester.Clipboard())
+}
+
+// TestDiagnosticsNameTheDisplaySettings covers the facts a screenshot-based bug
+// report depends on. The build identity is the same at 200% zoom in the light
+// theme as at 100% in the dark one, so a report that omits the display settings
+// sends support looking for a defect the reporter cannot reproduce — and the
+// reporter has no reason to think to mention them.
+func TestDiagnosticsNameTheDisplaySettings(t *testing.T) {
+	app := New(&fakeServices{})
+	tester := ui.NewTester(app.View, 1280, 900)
+	tester.SetPreferences(ui.Preferences{TextScale: 1.5})
+	app.contentZoom = 1.25
+	tester.Frame()
+
+	text := app.diagnosticsText()
+	require.Contains(t, text, "Theme: Dark", "the theme in effect")
+	require.Contains(t, text, "Text size: 150%", "the operating system's text size the frame read")
+	require.Contains(t, text, "Content zoom: 125%", "and the window's own zoom")
+}
+
+// TestDiagnosticsSpellTheFollowSystemTheme keeps the ambiguous case honest.
+// "Follow System" alone does not say what the reader is looking at: the same
+// choice is a light window on one machine and a dark one on the next.
+func TestDiagnosticsSpellTheFollowSystemTheme(t *testing.T) {
+	app := New(&fakeServices{})
+	tester := ui.NewTester(app.View, 1280, 900)
+	tester.Frame()
+
+	app.themeMode = ThemeModeSystem
+	app.systemDark = false
+	tester.Frame()
+
+	require.Contains(t, app.diagnosticsText(), "Theme: Follow System (Light)",
+		"following the system must say which appearance it resolved to")
 }
