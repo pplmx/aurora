@@ -279,6 +279,8 @@ func main() {
 		SetPageTitle:    shell.SetPageTitle,
 		PageChanged:     shell.PageChanged,
 		LastPage:        shell.LastPage(),
+		Zoom:            shell.Zoom,
+		SetContentZoom:  shell.SetContentZoom,
 		Version:         meta.Version,
 		BuildTime:       meta.BuildTime,
 		Runtime:         deskapp.RuntimeInfo(),

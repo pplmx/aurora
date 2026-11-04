@@ -618,6 +618,39 @@ func (s *Shell) SetLiveUpdates(on bool) error {
 	return nil
 }
 
+// Zoom reports the saved content zoom, or 1 when none was ever stored. A
+// preferences file from before the zoom existed has no field, and an absent
+// zoom is exactly "no zoom".
+func (s *Shell) Zoom() float32 {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.prefs.Zoom <= 0 {
+		return 1
+	}
+	return s.prefs.Zoom
+}
+
+// SetContentZoom records the zoom. It is silent about a failed write for the
+// same reason PageChanged is: a zoom is reached for while reading, and a dialog
+// about a settings file would interrupt that. The cost is one launch back at the
+// previous ratio.
+func (s *Shell) SetContentZoom(z float32) {
+	if z <= 0 {
+		return
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.prefs.Zoom == z {
+		return
+	}
+	next := s.prefs
+	next.Zoom = z
+	if err := savePreferences(s.prefsPath, next); err != nil {
+		return
+	}
+	s.prefs = next
+}
+
 // LastPage is the page the previous launch closed on, or empty for a first
 // launch. SetActions reads it so the window opens where the operator left it.
 func (s *Shell) LastPage() string {

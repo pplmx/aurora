@@ -87,6 +87,17 @@ type App struct {
 	// the shell when the desktop changes while Follow system is selected.
 	themeMode  ThemeMode
 	systemDark bool
+	// contentZoom is the window content's zoom, 1 for none. It is MyGo's own
+	// content zoom, which lays the view out in a window 1/z the size and draws
+	// it at the screen's resolution times z, so glyphs stay sharp at any ratio.
+	// It is separate from the operating system's text size: that setting is
+	// about text, this one is about how much of the page fits, and a reader
+	// should not have to change a system preference to make a window bigger.
+	// zoomNotice asks for the ratio to be said once, because a zoom applied to a
+	// fixed-size window changes how much of the page fits, which otherwise
+	// looks like content vanishing.
+	contentZoom float32
+	zoomNotice  bool
 
 	lottery    lotteryState
 	voting     votingState
@@ -100,7 +111,7 @@ type App struct {
 func New(services Services) *App {
 	a := &App{
 		services: services, page: pageDashboard, liveNow: time.Now,
-		themeMode: ThemeModeDark, systemDark: true,
+		themeMode: ThemeModeDark, systemDark: true, contentZoom: 1,
 	}
 	// The draw form opens ready to submit: one winner is the domain's own
 	// default, and an empty count field rejected the first Create click with a
@@ -153,6 +164,12 @@ func (a *App) View(c *ui.Context) {
 		a.pageAnnouncement = ""
 	}
 	c.SetTheme(auroraThemeForState(c.Preferences(), a.themeMode, a.systemDark, a.page))
+	// The content zoom is MyGo's own, not a transform: it lays the view out in a
+	// window 1/z the size and draws it at the screen's resolution times z, so
+	// every glyph stays sharp at the larger size. It is set before the tree is
+	// built because a frame that changes it rebuilds at the new size.
+	c.SetZoom(clampZoom(a.contentZoom))
+	a.showZoomNotice(c)
 	ui.Row(c).Fill().Children(func() {
 		a.sidebarColumn(c)
 		workspace := ui.Column(c).Fill().Grow(1).LinearGradient(workspaceFill(c))

@@ -218,9 +218,9 @@ func TestRememberingAPageKeepsTheOtherChoices(t *testing.T) {
 
 // TestStartupWiresTheRememberedPage closes the gap the pure tests leave: both
 // ends can be correct while the binary never connects them. The shell reads the
-// saved page and writes each switch, but only main's SetActions call carries
-// them to the window, so a missing field there would silently disable the
-// behavior with every unit test still green.
+// saved page and zoom and writes each change, but only main's SetActions call
+// carries them to the window, so a missing field there would silently disable
+// the behavior with every unit test still green.
 func TestStartupWiresTheRememberedPage(t *testing.T) {
 	root := repoRoot(t)
 	data, err := os.ReadFile(filepath.Join(root, "desktop", "cmd", "aurora-desktop", "main.go"))
@@ -230,6 +230,8 @@ func TestStartupWiresTheRememberedPage(t *testing.T) {
 	for _, want := range []string{
 		"PageChanged:     shell.PageChanged",
 		"LastPage:        shell.LastPage()",
+		"Zoom:            shell.Zoom",
+		"SetContentZoom:  shell.SetContentZoom",
 	} {
 		require.Contains(t, main, want,
 			"the startup wiring must hand the window its remembered page (missing %q)", want)
@@ -253,4 +255,33 @@ func TestNextLaunchOpensOnTheRememberedPage(t *testing.T) {
 
 	require.Equal(t, "Voting", app.PageTitle(),
 		"the next launch must open on the page the last one closed on")
+}
+
+// TestShellPersistsTheContentZoom covers the zoom across a restart. A reader who
+// enlarged the window once should not have to do it again on every launch, and a
+// window built before any zoom was stored must open at 100% rather than at zero.
+func TestShellPersistsTheContentZoom(t *testing.T) {
+	dbPath := filepath.Join(t.TempDir(), "aurora.db")
+	shell := NewShell(About{DBPath: dbPath})
+	require.Equal(t, float32(1), shell.Zoom(), "a fresh install opens at 100%")
+
+	shell.SetContentZoom(1.25)
+	require.Equal(t, float32(1.25), shell.Zoom())
+	require.Equal(t, float32(1.25), NewShell(About{DBPath: dbPath}).Zoom(),
+		"the zoom must survive a restart")
+	require.NotPanics(t, func() { NewShell(About{}).SetContentZoom(1.5) },
+		"a shell without a settings path must not fail the zoom")
+}
+
+// TestStoredZoomKeepsTheOtherChoices is the same guard as the remembered page:
+// preferences are one file, so a field left out of a copy drops what was saved.
+func TestStoredZoomKeepsTheOtherChoices(t *testing.T) {
+	dbPath := filepath.Join(t.TempDir(), "aurora.db")
+	shell := NewShell(About{DBPath: dbPath})
+	shell.PageChanged("oracle")
+	shell.SetContentZoom(1.5)
+
+	next := NewShell(About{DBPath: dbPath})
+	require.Equal(t, "oracle", next.LastPage())
+	require.Equal(t, float32(1.5), next.Zoom())
 }

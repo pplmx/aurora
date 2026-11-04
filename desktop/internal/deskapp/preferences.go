@@ -28,6 +28,10 @@ type Preferences struct {
 	// from a system locale that happens to match it, and the chooser would
 	// show the same state for both.
 	Language string `json:"language,omitempty"`
+	// Zoom is the window content's zoom as a ratio (1 is 100%), 0 meaning the
+	// window never zoomed. It is stored so a reader who enlarged the window once
+	// does not have to do it again on every launch.
+	Zoom float32 `json:"zoom,omitempty"`
 	// LastPage is the page the window was showing when it last closed, so the
 	// next launch opens there instead of always at the dashboard. Only the
 	// stable page id is stored, never its title: a title is shown text and may

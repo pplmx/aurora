@@ -112,6 +112,9 @@ func (a *App) settingsShortcutsCard(c *ui.Context) {
 				{"Import lotteries", shortcutChord("I")},
 				{"Settings", shortcutChord(",")},
 				{"Command palette", shortcutChord("K")},
+				{"Zoom in", shortcutChord("=")},
+				{"Zoom out", shortcutChord("-")},
+				{"Actual size", shortcutChord("0")},
 			} {
 				if i > 0 {
 					ui.Row(c).FillWidth().Height(1).Background(c.Theme().Border)
@@ -215,10 +218,13 @@ func (a *App) settingsAppearanceCard(c *ui.Context) {
 		readout(c, []readoutRow{
 			{"Theme", themeModeLabel(mode)},
 			{"Text size", textScaleLabel(preferences.TextScale)},
+			{"Content zoom", zoomLabel(a.contentZoom)},
 			{"Contrast", preferenceStateLabel(preferences.HighContrast, "Enhanced", "Standard")},
 			{"Motion", preferenceStateLabel(preferences.ReduceMotion, "Reduced", "Enabled")},
 		})
 		hint(c, "Follow System uses the desktop appearance; Light and Dark keep Aurora's palette regardless of it.")
+		hint(c, fmt.Sprintf(tr("Content zoom: %s to enlarge, %s to shrink, %s to reset. Saved for the next launch."),
+			shortcutChord("="), shortcutChord("-"), shortcutChord("0")))
 		if renderStatus(c, pageSettings, a.settingsStatus, func() { a.settingsStatus = statusLine{} }) {
 			a.navigationControl.Focus(c)
 		}

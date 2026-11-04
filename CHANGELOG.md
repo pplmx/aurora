@@ -10,6 +10,18 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ## [Unreleased]
 
+### Added
+
+- **The window content zooms from the keyboard**: Ctrl/Cmd+= enlarges, Ctrl/Cmd+− shrinks and
+  Ctrl/Cmd+0 returns to 100%, along a fixed ladder from 80% to 200%. It uses MyGo's own content zoom,
+  not a drawing transform: the view is laid out in a window 1/z the size and drawn at the screen's
+  resolution times z, so text and icons stay sharp and the layout reflows at the larger size. A
+  fixed ladder rather than an arithmetic step matters — adding 0.1 seven times from 0.8 gives
+  1.4999999, so the ratio printed at the end would not be the one applied and the last press could
+  stop short of 200%. The ratio is stored in `desktop-settings.json` (a corrupt or missing value
+  comes back as 100%), shown on the Appearance card, and acknowledged with a toast on each change,
+  because a zoom on a fixed-size window otherwise reads as content that disappeared.
+
 ### Changed
 
 - **The window reopens on the page the last launch closed on**: it always opened on the Dashboard,

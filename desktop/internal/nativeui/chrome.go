@@ -204,6 +204,7 @@ func (a *App) setLiveUpdates(on bool) {
 
 func (a *App) header(c *ui.Context) {
 	a.actionShortcuts(c)
+	a.applyZoomShortcuts(c)
 	if !a.paletteOpen && c.Shortcut(platformRefreshModifier(), ui.KeyK) {
 		a.openPalette()
 	}

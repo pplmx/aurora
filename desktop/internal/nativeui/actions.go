@@ -73,6 +73,12 @@ type Actions struct {
 	// SetPageTitle keeps the native window title in step with the visible
 	// page (and its language); optional for view tests.
 	SetPageTitle func(string)
+	// Zoom/SetContentZoom persist the window's content zoom. The getter is read
+	// when SetActions runs; the setter runs on every zoom and reports nothing,
+	// because a zoom the operator reaches for while reading must not raise a
+	// dialog about a settings file.
+	Zoom           func() float32
+	SetContentZoom func(float32)
 	// PageChanged reports a page switch by its stable id (the one the sidebar
 	// chooses by, not the title). The shell records it so the next launch can
 	// open the same page; optional for view tests.
@@ -95,6 +101,9 @@ func (a *App) SetActions(actions Actions) {
 	}
 	if actions.SystemDark != nil {
 		a.systemDark = actions.SystemDark()
+	}
+	if actions.Zoom != nil {
+		a.contentZoom = clampZoom(actions.Zoom())
 	}
 	// Open where the previous launch left off before the first frame draws, so
 	// the window does not paint the dashboard and then jump to the real page.
