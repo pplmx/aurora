@@ -27,6 +27,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Added
 
+- **Narrow layouts hold in every language at twice the text size**: the existing narrow-window test
+  used English at the default size, which is the easiest case — Chinese prose is set without the
+  spaces English gets, and at twice the size the sidebar and every label need more room than the
+  window grew. All eight pages are now rendered at 900px in English, 简体中文 and 繁體中文 at both 1x
+  and 2x, and no text may run past the edge.
+
+### Added
+
 - **A page that empties falls back to the first**: when the store shrinks under an open page — the
   rows behind page 2 are removed and a refresh re-reads that offset — the page now returns to the
   first instead of rendering its empty state, which would claim the store is empty while a page's
