@@ -1267,3 +1267,21 @@ func TestEmptyStateBodyCapFollowsTextScale(t *testing.T) {
 		}
 	}
 }
+
+// TestTheWindowTimeIsMinutePrecise pins what docs/api.md now promises: the
+// window shows a local timestamp to the minute while the CLI shows seconds, so
+// two records inside one minute read identically here. The layout is one
+// constant on purpose — every timestamp in the window spells time the same way —
+// and the reference has to describe what that constant actually is.
+func TestTheWindowTimeIsMinutePrecise(t *testing.T) {
+	base := time.Date(2026, 11, 5, 17, 30, 10, 0, time.Local)
+	later := base.Add(40 * time.Second)
+
+	require.Equal(t, "2026-11-05 17:30", base.Format(localTimeLayout))
+	require.Equal(t, base.Format(localTimeLayout), later.Format(localTimeLayout),
+		"two records in the same minute must read the same on screen, which is why the reference says to read --json for seconds")
+
+	// And a different minute does differ, so the display is not useless.
+	next := base.Add(time.Minute)
+	require.NotEqual(t, base.Format(localTimeLayout), next.Format(localTimeLayout))
+}

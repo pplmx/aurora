@@ -47,6 +47,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **The reference no longer claims both ends format a timestamp the same way**: it said the CLI and the
+  window use "the same formatting, `YYYY-MM-DD HH:MM:SS`", but the window's one layout constant stops at
+  the minute (`2006-01-02 15:04`) — every timestamp in it does, on purpose, so a time and the fields beside
+  it fit one line. Two records inside one minute therefore read identically in the window and differently
+  in `--json`. The paragraph now says so, and a test pins the layout it describes.
+
+### Fixed
+
 - **`decimals` is documented as metadata, not a conversion**: the reference gave its range and nothing
   else, so a reader who saw `decimals: 8` beside `total_supply: "1235067"` would take the service to have
   converted it. Nothing divides by 10^8 anywhere — verified against a running server and by reading the

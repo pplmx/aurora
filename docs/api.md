@@ -130,8 +130,10 @@ AURORA_SERVER_HOST=127.0.0.1 AURORA_SERVER_PORT=9090 ./aurora-api
 - **时间戳一律是 unix 秒**：响应里的 `timestamp`、`created_at`、`start_time`、
   `end_time`，以及请求里的 `start_time`/`end_time`，都是以秒为单位的整数，
   没有一个字段用毫秒或纳秒。把它当毫秒解析会得到 1970 年的日期，而不是报错。
-  CLI 与桌面端用同一个值、同一种格式化（本地时区 `YYYY-MM-DD HH:MM:SS`），
-  所以 `--json` 里的数字和窗口里读到的时间指向同一时刻。
+  CLI 与桌面端读的是同一个值、都用本地时区，但显示精度不同：CLI 给到秒
+  （`YYYY-MM-DD HH:MM:SS`），窗口只给到分（`YYYY-MM-DD HH:MM`），因为窗口里的时间
+  和别的字段挤在同一行。所以 `--json` 里的数字和窗口里读到的时间指向同一时刻，
+  但窗口不足以凭显示区分同一分钟内的两条记录——要精确到秒就读 `--json`。
 
 ## 错误响应
 
