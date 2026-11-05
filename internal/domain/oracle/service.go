@@ -81,7 +81,7 @@ func isBlockedIP(ip net.IP) bool {
 // address — the fetch would simply fail at dial time. Rejecting all
 // unresolvable hosts would wrongly refuse otherwise-valid public endpoints on
 // hosts/environments where DNS is temporarily unavailable.
-func hostBlocked(host string) (bool, error) {
+func hostBlocked(host string) (string, error) {
 	host = strings.TrimSpace(host)
 	if h, _, err := net.SplitHostPort(host); err == nil {
 		host = h
@@ -93,21 +93,24 @@ func hostBlocked(host string) (bool, error) {
 	// bracketed literal and so reported them as NOT blocked — an SSRF bypass.
 	host = strings.TrimSuffix(strings.TrimPrefix(host, "["), "]")
 	if ip := net.ParseIP(host); ip != nil {
-		return isBlockedIP(ip), nil
+		if isBlockedIP(ip) {
+			return ip.String(), nil
+		}
+		return "", nil
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 	addrs, err := net.DefaultResolver.LookupIPAddr(ctx, host)
 	if err != nil {
-		return false, nil // unresolvable → not a usable SSRF vector
+		return "", nil // unresolvable → not a usable SSRF vector
 	}
 	for _, a := range addrs {
 		if isBlockedIP(a.IP) {
-			return true, nil
+			return a.IP.String(), nil
 		}
 	}
-	return false, nil
+	return "", nil
 }
 
 // validateSourceURL rejects URLs that would let a hostile source
@@ -150,12 +153,18 @@ func validateSourceURL(raw string) error {
 	// address. Without this, a source literally pointing at
 	// 169.254.169.254 (cloud metadata) or 127.0.0.1 would pass the
 	// scheme-only check and the fetcher would dial it directly.
-	blocked, err := hostBlocked(host)
+	// The address that triggered the refusal travels with the message: without
+	// it, "blocked address" beside a public name reads as a rule the operator
+	// broke, when a poisoned or split-horizon DNS is a likelier cause.
+	blockedAt, err := hostBlocked(host)
 	if err != nil {
 		return fmt.Errorf("verify host: %w", err)
 	}
-	if blocked {
-		return fmt.Errorf("host %q resolves to a blocked (private/internal) address", u.Host)
+	if blockedAt != "" {
+		return fmt.Errorf(
+			"host %q resolves to %s, a blocked (private/internal) address; "+
+				"check the name or the DNS this machine uses",
+			u.Host, blockedAt)
 	}
 	return nil
 }

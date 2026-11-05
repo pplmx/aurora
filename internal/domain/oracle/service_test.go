@@ -792,3 +792,26 @@ func TestAMissingSchemeIsNotADisallowedOne(t *testing.T) {
 	require.NotContains(t, err.Error(), "missing scheme",
 		"the two mistakes must not share a sentence")
 }
+
+// TestTheBlockedAddressIsNamedInTheError covers why the address travels with the
+// refusal. A public name that a poisoned or split-horizon resolver points at an
+// internal address was reported as "blocked (private/internal) address" with no
+// address in it, which reads as a rule the operator broke rather than a DNS
+// answer worth checking.
+func TestTheBlockedAddressIsNamedInTheError(t *testing.T) {
+	err := ValidateSourceURL("http://10.0.0.5/data")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "10.0.0.5",
+		"the address that triggered the refusal must be in the message")
+
+	// An IPv6 literal too, since the brackets are stripped before the check and
+	// a message that echoed them back would be the wrong form of the address.
+	err = ValidateSourceURL("http://[::1]/data")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "::1")
+	require.NotContains(t, err.Error(), "[::1],")
+
+	// And the guidance, which is the part that distinguishes a misconfigured
+	// name from a misbehaving resolver.
+	require.Contains(t, err.Error(), "DNS")
+}

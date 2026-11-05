@@ -47,6 +47,15 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **A refused source names the address it resolved to**: a public name that a poisoned or split-horizon
+  resolver points at an internal address was reported as `host "api.coingecko.com" resolves to a blocked
+  (private/internal) address` — no address in it, so it read as a rule the operator broke rather than a DNS
+  answer worth checking. The check now returns the address that triggered it, the message names it, and it
+  says which of the two to look at. Found by trying to add a built-in template on a machine whose resolver
+  points that name somewhere private.
+
+### Fixed
+
 - **The results and readings headings carry their count**: `voting results` printed `📊 Results:` and
   `oracle data` printed `📊 Oracle Data:` with nothing beside either, while every other collection heading
   in the CLI states its size — `Total lotteries: 1`, `NFTs: 3`, `Entries 1–1`. A reader wanting the turn-out

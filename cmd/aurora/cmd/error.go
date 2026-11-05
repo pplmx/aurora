@@ -254,7 +254,7 @@ var (
 		{regexp.MustCompile(`^not a valid JSON document: (.+)$`), "不是有效的 JSON 文档：%s"},
 		{regexp.MustCompile(`^disallowed scheme "(.+)" \(only http/https allowed\)$`), "不支持协议「%s」（仅允许 http/https）"},
 		{regexp.MustCompile(`^invalid port "(.+)"$`), "端口 %s 无效"},
-		{regexp.MustCompile(`^host "(.+)" resolves to a blocked \(private/internal\) address$`), "主机 %s 解析到被阻止的（私有/内网）地址"},
+		{regexp.MustCompile(`^host "(.+)" resolves to (.+), a blocked \(private/internal\) address; check the name or the DNS this machine uses$`), "主机 %s 解析到 %s，一个被阻止的（私有/内网）地址；请检查该名称或本机使用的 DNS"},
 		{regexp.MustCompile(`^parse url: (.+)$`), "URL 解析失败：%s"},
 		{regexp.MustCompile(`^verify host: (.+)$`), "校验主机失败：%s"},
 		{regexp.MustCompile(`^export path is empty$`), "导出路径为空"},

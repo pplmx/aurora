@@ -629,7 +629,7 @@ func TestSourceURLDetailsLocalizeToChinese(t *testing.T) {
 		{`invalid port "abc"`, "端口 abc 无效"},
 		{"parse url: missing protocol scheme", "URL 解析失败：missing protocol scheme"},
 		{"verify host: lookup failed", "校验主机失败：lookup failed"},
-		{`host "10.0.0.1" resolves to a blocked (private/internal) address`, "主机 10.0.0.1 解析到被阻止的（私有/内网）地址"},
+		{`host "10.0.0.1" resolves to 10.0.0.1, a blocked (private/internal) address; check the name or the DNS this machine uses`, "主机 10.0.0.1 解析到 10.0.0.1，一个被阻止的（私有/内网）地址；请检查该名称或本机使用的 DNS"},
 		{"something nobody translated", "something nobody translated"},
 	} {
 		require.Equal(t, tt.want, localizeKnownErrorDetail(tt.detail), tt.detail)
