@@ -400,7 +400,7 @@ var desktopMessagesHant = map[string]string{
 	"Open Results and select or enter the session to read the tally.":                                "打開“結果”，選擇或輸入會期以讀取計票。",
 	"Open Setup":  "打開“準備”",
 	"Open ledger": "打開賬本",
-	"Open the folder that holds the database and backups": "打開存放數據庫和備份的文件夾",
+	"Reveal the database file in the file manager; backups go where you pick": "在文件管理器中顯示數據庫文件；備份寫入你選擇的位置",
 	"Optional details":          "可選信息",
 	"Oracle":                    "預言機",
 	"Oracle Feeds":              "預言機數據源",

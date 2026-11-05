@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/egoist/mygo/ui"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/pplmx/aurora/internal/i18n"
@@ -187,8 +188,8 @@ func TestPaletteCopiesDiagnostics(t *testing.T) {
 }
 
 // TestPaletteRunsShowDataFolder covers the file command the palette was
-// missing: the folder that holds the database and backups is reachable from
-// the keyboard switcher, not only from the File menu.
+// missing: revealing the database file is reachable from the keyboard switcher,
+// not only from the Settings page.
 func TestPaletteRunsShowDataFolder(t *testing.T) {
 	app := New(&fakeServices{})
 	shown := false
@@ -387,4 +388,52 @@ func TestTheRememberedPageLoadsItsData(t *testing.T) {
 	require.Len(t, app.token.tokens, 1, "the restored page must have read its list")
 	require.True(t, tester.HasText("Gold"),
 		"the first frame after a restore must already show the rows")
+}
+
+// TestPaletteDetailsAreTranslated keeps every palette command reachable in the
+// Chinese window. The detail line says which of two similar commands does what,
+// so an untranslated one is the only English sentence in an otherwise Chinese
+// panel. The data-folder entry was the last one missing a translation, and it
+// described the wrong thing as well: the command reveals the database file,
+// while backups go wherever the operator picks.
+func TestPaletteDetailsAreTranslated(t *testing.T) {
+	tr := i18n.GetTranslator()
+	before := tr.GetLocale()
+	t.Cleanup(func() { tr.SetLocale(before) })
+
+	app := New(&fakeServices{})
+	app.SetActions(Actions{
+		ShowDataFolder: func() {}, BackUpDatabase: func() {},
+		ExportLotteries: func() {}, ImportLotteries: func() {},
+	})
+	tester := ui.NewTester(app.View, 1280, 900)
+
+	for _, c := range []struct {
+		locale string
+		table  map[string]string
+	}{{"zh", desktopMessages}, {"zh-Hant", desktopMessagesHant}} {
+		tr.SetLocale(c.locale)
+		tester.Frame()
+		tester.Key(platformRefreshModifier(), ui.KeyK)
+		tester.Frame()
+		tester.Type("a")
+		tester.Frame()
+		// A detail the code builds with fmt.Sprintf (the three zoom entries) no
+		// longer equals its table key, so only literal details are looked up.
+		missing := []string{}
+		for _, e := range app.paletteMatches() {
+			if e.action == nil || strings.Contains(e.detail, "%") {
+				continue
+			}
+			if _, ok := c.table[e.detail]; !ok {
+				missing = append(missing, e.detail)
+			}
+			if _, ok := c.table[e.title]; !ok {
+				missing = append(missing, e.title)
+			}
+		}
+		tester.Key(0, ui.KeyEscape)
+		tester.Frame()
+		assert.Emptyf(t, missing, "%s palette entries with no translation: %v", c.locale, missing)
+	}
 }

@@ -205,8 +205,9 @@ func (a *App) paletteMatches() []paletteEntry {
 		}
 		if a.actions.ShowDataFolder != nil {
 			entries = append(entries, paletteEntry{
-				title: "Show data folder", detail: "Open the folder that holds the database and backups",
-				icon: folderIcon, action: func(*ui.Context) { a.actions.ShowDataFolder() },
+				title:  "Show data folder",
+				detail: "Reveal the database file in the file manager; backups go where you pick",
+				icon:   folderIcon, action: func(*ui.Context) { a.actions.ShowDataFolder() },
 			})
 		}
 	}
