@@ -654,7 +654,6 @@ func pagerInline(c *ui.Context, name string, offset, count int, hasMore bool) (p
 		next = pagerButton(c, "Next").
 			Description(fmt.Sprintf(tr("Show the next %s page."), tr(name))).
 			Disabled(!hasMore).Clicked()
-		_ = pagerLabel
 	})
 	return previous, next
 }

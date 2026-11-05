@@ -45,6 +45,13 @@ The milestone notes under `.planning/` are history, not current instructions.
   the same file, so a mistake the CLI points out passed without a trace there. A packaged app has no
   console, so it writes the same report to its log, where its startup facts already go.
 
+### Changed
+
+- **A dead assignment is gone from the pager**: `pagerInline` assigns `pagerLabel` to the group and then
+  wrote `_ = pagerLabel`, a leftover from an earlier shape that reads as though the name were unused. Both
+  pagers carry accessibility tests — three group labels and a range announcement — so the duplicate layout
+  they do keep is covered where it could diverge.
+
 ### Added
 
 - **Create Session and Mint are clicked by their tests**: the earlier sweep missed both, and for two
