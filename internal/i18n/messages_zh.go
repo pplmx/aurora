@@ -716,4 +716,5 @@ nft、token）和运维命令（migrate、backup、version）。`,
 	"voting.candidate_no_match":          "没有候选人匹配 %q。",
 	"voting.voter_no_match":              "没有选民匹配 %q。",
 	"voting.session_no_match":            "没有会期匹配 %q。",
+	"cli.warn.unknown_config_sections":   "⚠️  已忽略无人读取的配置段：%s",
 }

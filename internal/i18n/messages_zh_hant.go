@@ -630,4 +630,5 @@ var traditionalMessages = map[string]string{
 	"voting.candidate_no_match":                 "沒有候選人匹配 %q。",
 	"voting.voter_no_match":                     "沒有選民匹配 %q。",
 	"voting.session_no_match":                   "沒有會期匹配 %q。",
+	"cli.warn.unknown_config_sections":          "⚠️  已忽略無人讀取的設定段：%s",
 }

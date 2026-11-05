@@ -32,6 +32,14 @@ The milestone notes under `.planning/` are history, not current instructions.
   module. The hue is resolved per frame, because which palette answers depends on the appearance being
   painted; pages and commands keep the accent, since they belong to no module.
 
+### Added
+
+- **A config section nothing reads is reported**: viper ignores unknown keys by design, so `[database]`
+  written for `[db]` looked applied while the default path stayed in effect — the file said one thing and
+  the process did another, with nothing in between. The CLI now names the sections it skipped. It is a
+  warning rather than a failure, because a newer version's key must not stop an older binary from
+  starting, and a correct file stays silent.
+
 ### Fixed
 
 - **`backup create` reports the backup's real size**: the walk that totals the output built its paths

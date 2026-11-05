@@ -729,4 +729,5 @@ nft, token) and operational commands (migrate, backup, version).`,
 	"voting.candidate_no_match":          "No candidate matches %q.",
 	"voting.voter_no_match":              "No voter matches %q.",
 	"voting.session_no_match":            "No session matches %q.",
+	"cli.warn.unknown_config_sections":   "⚠️  Ignoring config sections nothing reads: %s",
 }

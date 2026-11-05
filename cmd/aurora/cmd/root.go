@@ -227,6 +227,14 @@ func initConfig() {
 	}
 	i18n.DetectAndInit()
 	fmt.Fprintln(os.Stderr, i18n.GetTextF("cli.using_config_file", viper.ConfigFileUsed()))
+	// A misspelled section is silent otherwise: viper ignores keys nothing reads,
+	// so [database] instead of [db] looked applied while the default was in
+	// effect. The report names the sections, not the keys, because that is the
+	// level the mistake happens at.
+	if unknown := config.UnknownSections(); len(unknown) > 0 {
+		fmt.Fprintln(os.Stderr, i18n.GetTextF("cli.warn.unknown_config_sections",
+			strings.Join(unknown, ", ")))
+	}
 }
 
 func setDefaultConfig() {

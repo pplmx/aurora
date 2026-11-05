@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -374,4 +375,36 @@ func resolveAPIKey(key string) (string, error) {
 	}
 	fmt.Printf("Generated development API key: %s\n", generated)
 	return generated, nil
+}
+
+// knownSections are the top-level tables the loader reads. Anything else in the
+// file is a key nothing looks at: viper ignores unknown keys by design, so a
+// misspelled section — [database] for [db] — left the operator's setting on disk
+// and silently unused, with the default in effect instead.
+var knownSections = []string{"server", "log", "db", "api", "migrate", "lottery", "oracle", "http", "i18n"}
+
+// UnknownSections reports the top-level tables in the loaded config file that no
+// code reads, sorted. It is a report rather than an error because a newer
+// version's key must not stop an older binary from starting.
+func UnknownSections() []string {
+	known := make(map[string]bool, len(knownSections))
+	for _, name := range knownSections {
+		known[name] = true
+	}
+	seen := map[string]bool{}
+	for _, key := range viper.AllKeys() {
+		if at := strings.IndexByte(key, '.'); at > 0 {
+			key = key[:at]
+		}
+		if key == "" || known[key] {
+			continue
+		}
+		seen[key] = true
+	}
+	unknown := make([]string, 0, len(seen))
+	for name := range seen {
+		unknown = append(unknown, name)
+	}
+	sort.Strings(unknown)
+	return unknown
 }

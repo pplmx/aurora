@@ -690,3 +690,38 @@ func TestDurationSeconds_CoversEveryStoredType(t *testing.T) {
 			"%s = %v is not a usable duration; the default must win", tc.key, tc.value)
 	}
 }
+
+// TestUnknownSectionsNamesTablesNothingReads covers a mistake that used to be
+// silent. viper ignores keys no code reads by design, so `[database]` written
+// for `[db]` looked applied while the default path stayed in effect — the file
+// said one thing and the process did another, with nothing in between to say so.
+func TestUnknownSectionsNamesTablesNothingReads(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "aurora.toml")
+	require.NoError(t, os.WriteFile(path, []byte(`
+[db]
+path = "x.db"
+
+[database]
+path = "y.db"
+
+[i18n]
+locale = "zh"
+`), 0o600))
+
+	resetViper()
+	viper.SetConfigFile(path)
+	require.NoError(t, viper.ReadInConfig())
+	t.Cleanup(resetViper)
+
+	require.Equal(t, []string{"database"}, UnknownSections(),
+		"only the section nothing reads is reported, once")
+
+	// A file of known sections reports none, so a correct config stays quiet.
+	resetViper()
+	clean := filepath.Join(dir, "clean.toml")
+	require.NoError(t, os.WriteFile(clean, []byte("[db]\npath = \"x.db\"\n[i18n]\nlocale = \"zh\"\n"), 0o600))
+	viper.SetConfigFile(clean)
+	require.NoError(t, viper.ReadInConfig())
+	require.Empty(t, UnknownSections())
+}
