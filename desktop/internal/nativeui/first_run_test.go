@@ -112,8 +112,10 @@ func TestFirstRecordPageYieldsToWorkInProgress(t *testing.T) {
 func TestFirstRecordGateIgnoresOnlyUntouchedPages(t *testing.T) {
 	app := New(&fakeServices{})
 	// The gate answers "the store is empty" only after a read said so, so the
-	// page has to have read. An unread page is covered by its own test.
+	// pages have to have read. An unread page is covered by its own test.
 	app.token.loaded = true
+	app.nft.loaded = true
+	app.oracle.loaded = true
 	require.True(t, app.nftNeedsFirstRecord())
 	require.True(t, app.oracleNeedsFirstRecord())
 	require.True(t, app.tokenNeedsFirstRecord())

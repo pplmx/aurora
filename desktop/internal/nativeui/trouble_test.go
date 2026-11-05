@@ -518,3 +518,42 @@ func TestAReadEmptyStoreStillSaysSo(t *testing.T) {
 	require.True(t, tester.HasText("No tokens yet"),
 		"a store that was read and is empty still says so")
 }
+
+// TestEveryCollectionPageWaitsInsteadOfClaimingEmpty generalises the token rule
+// to the other two pages that have a first-run guide. The state is the same:
+// navigation is allowed during a background write, the read is skipped, and the
+// new page has neither rows nor an error.
+func TestEveryCollectionPageWaitsInsteadOfClaimingEmpty(t *testing.T) {
+	pages := []struct {
+		name string
+		id   string
+		text string
+	}{
+		{"NFT", "NFT", "No NFTs yet"},
+		{"Oracle", "Oracle", "No sources yet"},
+	}
+	for _, tc := range pages {
+		t.Run(tc.name, func(t *testing.T) {
+			app := New(&fakeServices{})
+			app.SetActions(Actions{Version: "0.0.1", SetPageTitle: func(string) {}, SetBadgeCount: func(int) {}})
+			tester := ui.NewTester(app.View, 1280, 900)
+			app.ShowPage("Dashboard")
+			tester.Frame()
+
+			app.busy = "Creating…"
+			app.ShowPage(tc.id)
+			tester.Frame()
+			require.Falsef(t, tester.HasText(tc.text),
+				"%s must not describe a store it has not read", tc.name)
+			require.True(t, tester.HasText("Waiting for the running write"),
+				"and it says why")
+
+			// The store really is empty here, so the guide is right after a read.
+			app.busy = ""
+			app.refresh()
+			tester.Frame()
+			require.Truef(t, tester.HasText(tc.text),
+				"%s says so once it has actually read", tc.name)
+		})
+	}
+}

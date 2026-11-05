@@ -34,6 +34,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **The NFT and oracle pages wait too**: last round's fix covered the token page, and a probe over every
+  collection found the same state in two more. They now record that their first read completed, and
+  before that they say the running write is what they are waiting for instead of printing "No NFTs yet"
+  or "No sources yet". The lottery and ledger pages were checked and do not claim an empty store, so they
+  were left alone.
+
+### Fixed
+
 - **An unread page no longer claims the store is empty**: navigation is allowed during a background write
   and the read is skipped, so the newly shown page had no rows and no error — the exact shape of an empty
   store. It printed "No tokens yet", a statement about a store it had never looked at. The page now

@@ -75,6 +75,9 @@ type nftState struct {
 	burnOwnerID       string
 
 	loadErr error
+	// loaded records that the first read completed, so an unread page is not
+	// mistaken for an empty collection.
+	loaded bool
 
 	// askBurn gates the irreversible burn, as the CLI's --confirm does.
 	askBurn bool
@@ -162,6 +165,7 @@ func (a *App) loadNFTPage(offset int) bool {
 	if a.nft.hasMore {
 		rows = rows[:limit]
 	}
+	a.nft.loaded = true
 	a.nft.list = rows
 	return true
 }
@@ -207,7 +211,15 @@ func (a *App) nftView(c *ui.Context) {
 // nftNeedsFirstRecord keeps dependent actions off a successful empty
 // collection. A filter, a search or an open operation is a question about an
 // existing collection, so those keep the full workbench.
+//
+// A page nothing has read yet is not an empty collection: the guide invites a
+// mint, and it must not appear for a store this page has not looked at. The
+// state is real — navigation is allowed during a background write and the read
+// is skipped.
 func (a *App) nftNeedsFirstRecord() bool {
+	if !a.nft.loaded {
+		return false
+	}
 	entered := a.nft.filterOwner != "" || a.nft.search != "" || a.nft.appliedSearch != "" ||
 		strings.TrimSpace(a.nft.id) != "" ||
 		strings.TrimSpace(a.nft.transferID) != "" ||

@@ -63,6 +63,9 @@ type oracleState struct {
 	latestLoadedSource string
 
 	loadErr error
+	// loaded records that the first read completed, so an unread page is not
+	// mistaken for an empty registry.
+	loaded bool
 	// templatesErr is the last failure to read the preset catalog; old presets
 	// stay usable with a warning.
 	templatesErr error
@@ -153,6 +156,7 @@ func (a *App) loadOracleSourcePage(offset int) bool {
 	if a.oracle.hasMore {
 		rows = rows[:oraclePageSize]
 	}
+	a.oracle.loaded = true
 	a.oracle.sources = rows
 	return true
 }
@@ -242,6 +246,9 @@ func (a *App) oracleView(c *ui.Context) {
 // Existing sources, an open stage, a filter or a source id all mean the
 // operator is already working with a collection, so the full page stays.
 func (a *App) oracleNeedsFirstRecord() bool {
+	if !a.oracle.loaded {
+		return false
+	}
 	entered := a.oracle.tab != 0 ||
 		strings.TrimSpace(a.oracle.search) != "" || a.oracle.appliedSearch != "" ||
 		a.oracle.selected >= 0 ||
