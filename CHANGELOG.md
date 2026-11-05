@@ -34,6 +34,15 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Added
 
+- **The voting lists gain `--search` and `?search=`**: `voting candidate list` (id, name, party,
+  program), `voting voter list` (name, public key) and `voting session list` (id, title, status) now
+  forward the term to storage from the CLI, and `/voting/candidates`, `/voting/voters` and
+  `/voting/sessions` accept it as a query parameter. Verified against a real database: searching a
+  candidate by party, a voter by name and a session by status each returned exactly the matching rows,
+  and a term matching nothing kept the "no match" sentence rather than claiming an empty store.
+
+### Added
+
 - **The three voting lists search the whole store**: voters (name, public key), candidates (id, name,
   party, program) and sessions (id, title, status) were the last paged collections still filtering the
   page they had loaded, so a voter on page two was invisible to the search box. Each now queries storage

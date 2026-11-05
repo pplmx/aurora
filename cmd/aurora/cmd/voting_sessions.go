@@ -5,6 +5,7 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/pplmx/aurora/internal/app/votingapp"
 	"github.com/pplmx/aurora/internal/domain/voting"
@@ -76,8 +77,13 @@ var sessionListCmd = &cobra.Command{
 			return err
 		}
 
+		search, _ := cmd.Flags().GetString("search")
+		search = strings.TrimSpace(search)
+
 		uc := votingapp.NewListSessionsUseCase(repo)
-		list, err := uc.Execute(&votingapp.ListSessionsRequest{Limit: limit, Offset: offset})
+		list, err := uc.Execute(&votingapp.ListSessionsRequest{
+			Search: search, Limit: limit, Offset: offset,
+		})
 		if err != nil {
 			return wrapCLIError("voting.error.list_sessions", err)
 		}
@@ -89,20 +95,27 @@ var sessionListCmd = &cobra.Command{
 		}
 
 		// An offset alone asks for a page too, so it takes the paged heading:
-		// without it, `--offset 9` on a non-empty store read as an empty one.
-		if limit > 0 || offset > 0 {
+		// without it, `--offset 9` on a non-empty store read as an empty one. A
+		// search is a fourth answer: "Sessions: 0" beside a filter claimed an
+		// empty store when the store may be full.
+		switch {
+		case limit > 0 || offset > 0:
 			fmt.Printf("\n🗳️ %s\n", i18n.Label(i18n.GetText("voting.sessions_page"), i18n.GetTextF("common.page_with_offset", len(list), offset)))
-		} else {
+		case search != "":
+			fmt.Printf("\n🗳️ %s\n", i18n.Label(i18n.GetText("voting.matches"), len(list)))
+		default:
 			fmt.Printf("\n🗳️ %s\n", i18n.Label(i18n.GetText("voting.sessions_total"), len(list)))
 		}
 		if len(list) == 0 {
-			// Three different answers, as Voters gives them: an empty store, a
-			// page past the end, and a page the offset skipped past.
-			if limit > 0 || offset > 0 {
+			switch {
+			case limit > 0 || offset > 0:
 				fmt.Println("   " + i18n.GetText("common.page_empty"))
-				return nil
+			case search != "":
+				fmt.Printf("   "+i18n.GetText("voting.session_no_match")+"\n", search)
+			default:
+				fmt.Println("   " + i18n.GetText("common.none"))
 			}
-			fmt.Println("   " + i18n.GetText("common.none"))
+			return nil
 		}
 		for _, s := range list {
 			fmt.Printf("   - %s [%s]\n", s.Title, localizedVotingStatus(s.Status))

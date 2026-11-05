@@ -156,15 +156,16 @@ aurora lottery reset --confirm       # 清空抽奖记录
 
 ```bash
 aurora voting candidate add -n "Name" -p "Party" -m "Program"
-aurora voting candidate list
 aurora voting candidate list --limit 100 --offset 0
+aurora voting candidate list --search alice      # 按 id、名称、党派或纲领过滤
 aurora voting voter register -n "Name"    # 打印密钥对
 aurora voting voter list                  # 含是否曾经投过票
 aurora voting voter list --limit 100 --offset 0
+aurora voting voter list --search alice   # 按名称或公钥过滤
 aurora voting session create -t "Title" -d "Desc" -c <cand-id> [-c <cand2>] \
   --start-time <t> --end-time <t>
-aurora voting session list
 aurora voting session list --limit 100 --offset 0
+aurora voting session list --search draft  # 按 id、标题或状态过滤
 aurora voting session start -s <session-id>
 aurora voting vote -v <voter-pk> -c <candidate-id> -s <session-id> -k <priv-key>
 aurora voting results -s <session-id>

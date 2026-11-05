@@ -623,4 +623,11 @@ var traditionalMessages = map[string]string{
 	"oracle.sources_matches":                    "匹配",
 	"oracle.source_no_match":                    "沒有數據源匹配 %q。",
 	"nft.list_owner_or_search":                  "--owner 與 --search 回答的是不同問題，只能給其中一個。",
+	"voting.candidate_search":                   "按 id、名稱、黨派或綱領過濾",
+	"voting.voter_search":                       "按名稱或公鑰過濾",
+	"voting.session_search":                     "按 id、標題或狀態過濾",
+	"voting.matches":                            "匹配",
+	"voting.candidate_no_match":                 "沒有候選人匹配 %q。",
+	"voting.voter_no_match":                     "沒有選民匹配 %q。",
+	"voting.session_no_match":                   "沒有會期匹配 %q。",
 }

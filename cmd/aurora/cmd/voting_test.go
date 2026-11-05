@@ -536,3 +536,86 @@ func TestPagedListsSayWhyThePageIsEmpty(t *testing.T) {
 			"a filtered miss is not an empty page")
 	})
 }
+
+// TestVotingListSearchesReachStorage pins the flag on all three voting lists and
+// the fourth answer each needs. Each list is paged, so the term has to reach
+// storage; and "Candidates: 0" beside a filter would claim an empty ballot.
+func TestVotingListSearchesReachStorage(t *testing.T) {
+	withTempDir(t, func(t *testing.T) {
+		runMigrations(t)
+		for _, c := range [][2]string{{"Alice", "Greens"}, {"Bob", "Blues"}} {
+			_, err := runCmd(t, "voting", "candidate", "add", "--name", c[0], "--party", c[1])
+			require.NoError(t, err)
+		}
+
+		byName, err := runCmd(t, "voting", "candidate", "list", "--search", "bob")
+		require.NoError(t, err)
+		assert.Contains(t, byName, "Bob")
+		assert.NotContains(t, byName, "Alice", "a non-match must leave the list")
+		assert.Contains(t, byName, "Matches: 1", "the count names what it counts")
+
+		byParty, err := runCmd(t, "voting", "candidate", "list", "--search", "greens")
+		require.NoError(t, err)
+		assert.Contains(t, byParty, "Alice", "the party column is searchable")
+
+		noMatch, err := runCmd(t, "voting", "candidate", "list", "--search", "zzzz")
+		require.NoError(t, err)
+		assert.Contains(t, noMatch, "Matches: 0")
+		assert.Contains(t, noMatch, `No candidate matches "zzzz".`)
+		assert.NotContains(t, noMatch, "(none)",
+			"a populated ballot must not be described as empty")
+	})
+}
+
+// TestVotingVoterSearchReachesStorage covers the roll: a voter whose row is on
+// an older page has to be reachable by name.
+func TestVotingVoterSearchReachesStorage(t *testing.T) {
+	withTempDir(t, func(t *testing.T) {
+		runMigrations(t)
+		for _, name := range []string{"Alice", "Bob"} {
+			_, err := runCmd(t, "voting", "voter", "register", "--name", name)
+			require.NoError(t, err)
+		}
+
+		out, err := runCmd(t, "voting", "voter", "list", "--search", "bob")
+		require.NoError(t, err)
+		assert.Contains(t, out, "Bob")
+		assert.NotContains(t, out, "Alice")
+		assert.Contains(t, out, "Matches: 1")
+
+		noMatch, err := runCmd(t, "voting", "voter", "list", "--search", "zzzz")
+		require.NoError(t, err)
+		assert.Contains(t, noMatch, `No voter matches "zzzz".`)
+		assert.NotContains(t, noMatch, "(none)")
+	})
+}
+
+// TestVotingSessionSearchReachesStorage covers the sessions, including the
+// status: an operator looking for what is still open types the status.
+func TestVotingSessionSearchReachesStorage(t *testing.T) {
+	withTempDir(t, func(t *testing.T) {
+		runMigrations(t)
+		out, err := runCmd(t, "voting", "candidate", "add", "--name", "Alice", "--party", "P")
+		require.NoError(t, err)
+		candID := extractField(t, out, "ID:")
+		require.NotEmpty(t, candID)
+		for _, title := range []string{"Board election", "Budget vote"} {
+			_, err = runCmd(t, "voting", "session", "create",
+				"--title", title, "--candidates", candID,
+				"--start-time", "1700000000", "--end-time", "9999999999")
+			require.NoError(t, err)
+		}
+
+		out, err = runCmd(t, "voting", "session", "list", "--search", "budget")
+		require.NoError(t, err)
+		assert.Contains(t, out, "Budget vote")
+		assert.NotContains(t, out, "Board election")
+		assert.Contains(t, out, "Matches: 1")
+
+		byStatus, err := runCmd(t, "voting", "session", "list", "--search", "draft")
+		require.NoError(t, err)
+		assert.Contains(t, out, "Matches")
+		assert.Contains(t, byStatus, "Budget vote", "the status column is searchable")
+		assert.Contains(t, byStatus, "Board election")
+	})
+}

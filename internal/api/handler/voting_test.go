@@ -26,6 +26,9 @@ type mockVotingRepo struct {
 	saveSessionErr error
 	getSessionErr  error
 
+	lastCandidateSearch string
+	lastVoterSearch     string
+	lastSessionSearch   string
 	lastCandidateLimit  int
 	lastCandidateOffset int
 	lastSessionLimit    int
@@ -68,6 +71,7 @@ func (m *mockVotingRepo) GetVoter(pk string) (*voting.Voter, error) {
 }
 func (m *mockVotingRepo) UpdateVoter(*voting.Voter) error { return nil }
 func (m *mockVotingRepo) ListMatchingVoters(term string, limit, offset int) ([]*voting.Voter, error) {
+	m.lastVoterSearch = term
 	return m.ListVoters(limit, offset)
 }
 
@@ -94,6 +98,7 @@ func (m *mockVotingRepo) GetCandidate(id string) (*voting.Candidate, error) {
 }
 func (m *mockVotingRepo) IncrementCandidateVoteCount(string) error { return nil }
 func (m *mockVotingRepo) ListMatchingCandidates(term string, limit, offset int) ([]*voting.Candidate, error) {
+	m.lastCandidateSearch = term
 	return m.ListCandidates(limit, offset)
 }
 
@@ -123,6 +128,7 @@ func (m *mockVotingRepo) GetSession(id string) (*voting.Session, error) {
 }
 func (m *mockVotingRepo) UpdateSession(*voting.Session) error { return nil }
 func (m *mockVotingRepo) ListMatchingSessions(term string, limit, offset int) ([]*voting.Session, error) {
+	m.lastSessionSearch = term
 	return m.ListSessions(limit, offset)
 }
 
@@ -612,4 +618,36 @@ func sortedKeys(m map[string]any) []string {
 	}
 	sort.Strings(keys)
 	return keys
+}
+
+// TestVotingListsAcceptSearch pins the query parameter on the three voting
+// collections. Each is paged, so the term has to reach storage; filtering the
+// response would miss the row the caller asked for whenever it is not on the
+// page they got.
+func TestVotingListsAcceptSearch(t *testing.T) {
+	repo := &mockVotingRepo{
+		candidates: map[string]*voting.Candidate{"c-1": {ID: "c-1", Name: "Alice"}},
+		voters:     map[string]*voting.Voter{"pk-alice": {PublicKey: "pk-alice", Name: "Alice"}},
+		sessions:   map[string]*voting.Session{"s-1": {ID: "s-1", Title: "Board election"}},
+	}
+	h := NewVotingHandler(repo, nil)
+
+	for _, path := range []string{
+		"/candidates?search=alice",
+		"/voters?search=alice",
+		"/sessions?search=board",
+	} {
+		req := httptest.NewRequest(http.MethodGet, path, nil)
+		rr := httptest.NewRecorder()
+		r := chi.NewRouter()
+		h.Routes(r)
+		r.ServeHTTP(rr, req)
+		require.Equal(t, http.StatusOK, rr.Code, "%s: a search term is a valid listing", path)
+	}
+
+	// The term must arrive, not merely be accepted: without it the handler would
+	// answer every request with the unfiltered page.
+	assert.Equal(t, "alice", repo.lastCandidateSearch, "candidates: the term must reach storage")
+	assert.Equal(t, "alice", repo.lastVoterSearch, "voters: the term must reach storage")
+	assert.Equal(t, "board", repo.lastSessionSearch, "sessions: the term must reach storage")
 }

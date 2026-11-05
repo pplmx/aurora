@@ -3,6 +3,7 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/pplmx/aurora/internal/app/votingapp"
 	"github.com/pplmx/aurora/internal/i18n"
@@ -67,8 +68,13 @@ var candidateListCmd = &cobra.Command{
 			return err
 		}
 
+		search, _ := cmd.Flags().GetString("search")
+		search = strings.TrimSpace(search)
+
 		uc := votingapp.NewGetCandidatesUseCase(repo)
-		list, err := uc.Execute(&votingapp.ListCandidatesRequest{Limit: limit, Offset: offset})
+		list, err := uc.Execute(&votingapp.ListCandidatesRequest{
+			Search: search, Limit: limit, Offset: offset,
+		})
 		if err != nil {
 			return wrapCLIError("voting.error.list_candidates", err)
 		}
@@ -81,19 +87,26 @@ var candidateListCmd = &cobra.Command{
 
 		// An offset alone asks for a page too, so it takes the paged heading:
 		// without it, `--offset 9` on a non-empty store read as an empty one.
-		if limit > 0 || offset > 0 {
+		// A search is a fourth answer: "Candidates: 0" beside a filter claimed an
+		// empty ballot when the ballot may be full.
+		switch {
+		case limit > 0 || offset > 0:
 			fmt.Printf("\n📋 %s\n", i18n.Label(i18n.GetText("voting.candidates_page"), i18n.GetTextF("common.page_with_offset", len(list), offset)))
-		} else {
+		case search != "":
+			fmt.Printf("\n📋 %s\n", i18n.Label(i18n.GetText("voting.matches"), len(list)))
+		default:
 			fmt.Printf("\n📋 %s\n", i18n.Label(i18n.GetText("voting.candidates_total"), len(list)))
 		}
 		if len(list) == 0 {
-			// Three different answers, as Voters gives them: an empty store, a
-			// page past the end, and a page the offset skipped past.
-			if limit > 0 || offset > 0 {
+			switch {
+			case limit > 0 || offset > 0:
 				fmt.Println("   " + i18n.GetText("common.page_empty"))
-				return nil
+			case search != "":
+				fmt.Printf("   "+i18n.GetText("voting.candidate_no_match")+"\n", search)
+			default:
+				fmt.Println("   " + i18n.GetText("common.none"))
 			}
-			fmt.Println("   " + i18n.GetText("common.none"))
+			return nil
 		}
 		for _, c := range list {
 			fmt.Printf("   - %s [%s] - %s\n", c.Name, c.Party, voteCountText(c.VoteCount))
@@ -152,8 +165,11 @@ var voterListCmd = &cobra.Command{
 			return err
 		}
 
+		search, _ := cmd.Flags().GetString("search")
+		search = strings.TrimSpace(search)
+
 		list, err := votingapp.NewListVotersUseCase(repo).Execute(&votingapp.ListVotersRequest{
-			Limit: limit, Offset: offset,
+			Search: search, Limit: limit, Offset: offset,
 		})
 		if err != nil {
 			return wrapCLIError("voting.error.list_voters", err)
@@ -165,21 +181,27 @@ var voterListCmd = &cobra.Command{
 			return printJSON(list)
 		}
 
-		if limit > 0 || offset > 0 {
+		// Four answers now: the paged case used to print its heading and nothing
+		// else, which reads as a command that failed silently, and a search that
+		// found nothing is not an empty roll.
+		switch {
+		case limit > 0 || offset > 0:
 			fmt.Printf("\n👥 %s\n", i18n.Label(i18n.GetText("voting.page_total"), i18n.GetTextF("common.page_with_offset", len(list), offset)))
-		} else {
+		case search != "":
+			fmt.Printf("\n👥 %s\n", i18n.Label(i18n.GetText("voting.matches"), len(list)))
+		default:
 			fmt.Printf("\n👥 %s\n", i18n.Label(i18n.GetText("voting.voters_total"), len(list)))
 		}
 		if len(list) == 0 {
-			// Three different answers: an empty store, a page past the end, and
-			// a page the offset skipped past. The paged case used to print its
-			// heading and nothing else, which reads as a command that failed
-			// silently rather than as a page with no rows.
-			if limit > 0 || offset > 0 {
+			switch {
+			case limit > 0 || offset > 0:
 				fmt.Println("   " + i18n.GetText("common.page_empty"))
-				return nil
+			case search != "":
+				fmt.Printf("   "+i18n.GetText("voting.voter_no_match")+"\n", search)
+			default:
+				fmt.Println("   " + i18n.GetText("common.none"))
 			}
-			fmt.Println("   " + i18n.GetText("common.none"))
+			return nil
 		}
 		for _, v := range list {
 			status := "✅ " + i18n.GetText("voting.voted")

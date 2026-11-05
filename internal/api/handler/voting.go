@@ -154,7 +154,9 @@ func (h *VotingHandler) Vote(w http.ResponseWriter, r *http.Request) {
 func (h *VotingHandler) ListCandidates(w http.ResponseWriter, r *http.Request) {
 	limit, offset := votingPage(r)
 	uc := votingapp.NewGetCandidatesUseCase(h.repo)
-	result, err := uc.Execute(&votingapp.ListCandidatesRequest{Limit: limit, Offset: offset})
+	result, err := uc.Execute(&votingapp.ListCandidatesRequest{
+		Search: pageSearch(r), Limit: limit, Offset: offset,
+	})
 	if err != nil {
 		writeUseCaseError(w, err)
 		return
@@ -166,7 +168,9 @@ func (h *VotingHandler) ListCandidates(w http.ResponseWriter, r *http.Request) {
 func (h *VotingHandler) ListSessions(w http.ResponseWriter, r *http.Request) {
 	limit, offset := votingPage(r)
 	uc := votingapp.NewListSessionsUseCase(h.repo)
-	result, err := uc.Execute(&votingapp.ListSessionsRequest{Limit: limit, Offset: offset})
+	result, err := uc.Execute(&votingapp.ListSessionsRequest{
+		Search: pageSearch(r), Limit: limit, Offset: offset,
+	})
 	if err != nil {
 		writeUseCaseError(w, err)
 		return
@@ -178,7 +182,9 @@ func (h *VotingHandler) ListSessions(w http.ResponseWriter, r *http.Request) {
 func (h *VotingHandler) ListVoters(w http.ResponseWriter, r *http.Request) {
 	limit, offset := votingPage(r)
 	uc := votingapp.NewListVotersUseCase(h.repo)
-	result, err := uc.Execute(&votingapp.ListVotersRequest{Limit: limit, Offset: offset})
+	result, err := uc.Execute(&votingapp.ListVotersRequest{
+		Search: pageSearch(r), Limit: limit, Offset: offset,
+	})
 	if err != nil {
 		writeUseCaseError(w, err)
 		return
