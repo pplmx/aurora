@@ -142,7 +142,7 @@ container、metrics、scheduler 和 handler 集，构造失败不再散落在 `N
 词表 + 现代字形覆盖 + 生成器里的 `reviewedWords` 人工订正表），
 `zh-Hant`/`zh-TW`/`zh-HK` 选择它；改词句只改简体表，需要推翻 OpenCC 的措辞
 改 `tools/genzhhant` 的 `reviewedWords`，不要手改生成文件——`-check` 与生成器
-比对，手改会让门槛一直失败。
+比对，手改会一直报成漂移。`-check` 是手动诊断，不在 `just verify` 或 CI 里。
 
 ### 6. 领域仍然知道账本实现
 
