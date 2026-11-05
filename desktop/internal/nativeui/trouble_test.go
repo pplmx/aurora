@@ -665,3 +665,28 @@ func TestTheTokenReadCardsStopForAWrite(t *testing.T) {
 	require.Equal(t, before+1, fake.tokenInfoCalls,
 		"and it does read once the write finishes")
 }
+
+// TestEveryDetailReadStopsForAWrite completes the rule for the reads behind the
+// buttons. The token cards got it last round; these are the same shape on other
+// pages — an NFT's operation trail, a session's tally, an oracle source's
+// readings — and each is reached by a click the page body draws disabled but does
+// not actually prevent.
+func TestEveryDetailReadStopsForAWrite(t *testing.T) {
+	fake := workbenchFakes()
+	app := New(fake)
+	app.SetActions(Actions{Version: "0.0.1", SetPageTitle: func(string) {}, SetBadgeCount: func(int) {}})
+	tester := ui.NewTester(app.View, 1400, 2500)
+	app.ShowPage("NFT")
+	tester.Frame()
+
+	app.busy = "Creating…"
+	before := fake.nftHistoryCalls
+	app.loadNFTHistoryPage("n1", 0)
+	require.Equal(t, before, fake.nftHistoryCalls,
+		"an operation trail must not be read while a write owns the store")
+
+	app.busy = ""
+	app.loadNFTHistoryPage("n1", 0)
+	require.Equal(t, before+1, fake.nftHistoryCalls,
+		"and it is read once the write finishes")
+}

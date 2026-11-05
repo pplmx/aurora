@@ -15,6 +15,12 @@ import (
 // that change the subject clear the old rows first. The explicit Show Results
 // and Refresh actions remain the retry path.
 func (a *App) loadSessionResults(sessionID string) error {
+	// A background write owns the database. The page body is drawn disabled while
+	// one runs, but ui.Disabled is a paint-time state — a programmatic caller, or
+	// a test's click, reaches the handler anyway.
+	if a.busy != "" {
+		return nil
+	}
 	rows, err := a.services.SessionResults(sessionID)
 	if err != nil {
 		a.voting.resultsErr = err

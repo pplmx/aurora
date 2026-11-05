@@ -34,6 +34,12 @@ func (a *App) loadNFTHistory(id string) error {
 // successful read. A failed refresh or pager move therefore leaves the visible
 // trail and its position on the page they actually describe.
 func (a *App) loadNFTHistoryPage(id string, offset int) error {
+	// A background write owns the database. The page body is drawn disabled while
+	// one runs, but ui.Disabled is a paint-time state — a programmatic caller, or
+	// a test's click, reaches the handler anyway.
+	if a.busy != "" {
+		return nil
+	}
 	if offset < 0 {
 		offset = 0
 	}

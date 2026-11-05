@@ -122,6 +122,12 @@ func (a *App) refreshOracleReads() {
 // keeps the rows only when the same source and limit produced them; the caller
 // invalidates them when either input changes.
 func (a *App) loadOracleData(sourceID string, limit int) error {
+	// A background write owns the database. The page body is drawn disabled while
+	// one runs, but ui.Disabled is a paint-time state — a programmatic caller, or
+	// a test's click, reaches the handler anyway.
+	if a.busy != "" {
+		return nil
+	}
 	rows, err := a.services.OracleData(sourceID, limit)
 	if err != nil {
 		a.oracle.dataErr = err
@@ -146,6 +152,12 @@ func (a *App) clearOracleDataForAnotherRead(sourceID string, limit int) {
 // loadOracleLatest reads a source's newest value into the Latest card. The
 // source is the key: a failure keeps the value only for the same source.
 func (a *App) loadOracleLatest(sourceID string) error {
+	// A background write owns the database. The page body is drawn disabled while
+	// one runs, but ui.Disabled is a paint-time state — a programmatic caller, or
+	// a test's click, reaches the handler anyway.
+	if a.busy != "" {
+		return nil
+	}
 	data, err := a.services.OracleLatest(sourceID)
 	if err != nil {
 		a.oracle.latestErr = err

@@ -34,6 +34,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **Every detail read stops for a background write**: last round covered the token cards; the same shape
+  exists on other pages — an NFT's operation trail, a session's tally, an oracle source's readings — and
+  each is reached by a click the page body draws disabled but does not actually prevent, because
+  `ui.Disabled` is a paint-time state. The four loaders now check the write themselves.
+
+### Fixed
+
 - **The token read cards stop for a background write**: the page body is drawn disabled while a write runs,
   but `ui.Disabled` is a paint-time state — a programmatic caller, or a test's click, reaches the handler
   anyway, and the read landed on the locked database to record an error for a card nobody had asked for.
