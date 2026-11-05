@@ -47,6 +47,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **`nft list` shows the holder**: the row printed an id and a name and nothing else, while every other
+  list carries the fields its module turns on — `token list` shows an owner, `oracle source list` a URL
+  and a state. An NFT's holder decides every later transfer and burn, so finding it meant reading each
+  asset on its own. The row now carries the holder and the block the mint was recorded at.
+
+### Fixed
+
 - **`lottery history` says its participant field is a count**: the table prints the number and the JSON
   carries the names, which is a reasonable split — twenty names on one line would push every other field
   off the screen. But "Winners" one line above lists names, so a bare "Participants" beside a number read

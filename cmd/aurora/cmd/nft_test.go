@@ -359,3 +359,26 @@ func TestNFTList_RejectsOwnerAndSearchTogether(t *testing.T) {
 		assert.NotContains(t, out, "Star", "and nothing is printed as if it worked")
 	})
 }
+
+// TestTheNFTListShowsTheHolder pins what a reader needs from the collection.
+// The row used to print an id and a name and nothing else, while every other
+// list in the CLI carries the fields its module turns on: `token list` shows an
+// owner, `oracle source list` a URL and a state. An NFT's holder decides every
+// later transfer and burn, so finding it meant reading each asset separately.
+func TestTheNFTListShowsTheHolder(t *testing.T) {
+	withTempDir(t, func(t *testing.T) {
+		runMigrations(t)
+
+		const creator = "AQIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyA="
+		out, err := runCmd(t, "nft", "mint", "-n", "Star", "-c", creator)
+		require.NoError(t, err, "mint")
+		nftID := extractField(t, out, "ID:")
+
+		list, err := runCmd(t, "nft", "list")
+		require.NoError(t, err)
+		require.Contains(t, list, nftID)
+		require.Contains(t, list, "Owner:", "the holder must be on the row")
+		require.Contains(t, list, creator, "and it must be the actual holder")
+		require.Contains(t, list, "Block Height:", "with the block the mint was recorded at")
+	})
+}

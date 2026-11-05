@@ -309,8 +309,17 @@ var listCmd = &cobra.Command{
 				fmt.Println("   " + i18n.GetText("common.none"))
 			}
 		}
+		// The row carries the holder as well as the identity: `token list` shows an
+		// owner and an NFT's holder decides every later write, so a list that gave
+		// only an id and a name left the reader to look each asset up one by one.
 		for _, n := range results {
-			fmt.Printf("   - %s (%s)\n", n.ID, n.Name)
+			printFields(
+				field{i18n.GetText("common.id"), n.ID},
+				field{i18n.GetText("common.name"), n.Name},
+				field{i18n.GetText("common.owner"), n.Owner},
+				field{i18n.GetText("common.block_height"), fmt.Sprintf("#%d", n.BlockHeight)},
+			)
+			fmt.Println()
 		}
 		return nil
 	},
