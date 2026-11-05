@@ -595,3 +595,47 @@ func TestASearchDuringAWriteDoesNotRead(t *testing.T) {
 	require.True(t, app.token.loaded)
 	require.Equal(t, "gold", app.token.appliedSearch, "the pending term is applied")
 }
+
+// TestEveryListReaderStopsForAWrite generalises the token guard. Each page's
+// search field reads on its own when a term changes — it has to show the new
+// query's rows — and every one of those reads used to land on the locked
+// database, reporting a page failure and marking the page as read when the read
+// never happened.
+func TestEveryListReaderStopsForAWrite(t *testing.T) {
+	pages := []struct {
+		name  string
+		id    string
+		setup func(*App)
+	}{
+		{"Token", "Token", func(a *App) { a.token.search = "x" }},
+		{"NFT", "NFT", func(a *App) { a.nft.search = "x" }},
+		{"Oracle", "Oracle", func(a *App) { a.oracle.search = "x" }},
+		{"Voting", "Voting", func(a *App) { a.voting.voterSearch = "x" }},
+	}
+	for _, tc := range pages {
+		t.Run(tc.name, func(t *testing.T) {
+			fake := workbenchFakes()
+			fake.loadErrs = fakeLoadErrors{
+				tokens:  errors.New("database is locked"),
+				nfts:    errors.New("database is locked"),
+				sources: errors.New("database is locked"),
+				voters:  errors.New("database is locked"),
+			}
+			app := New(fake)
+			app.SetActions(Actions{Version: "0.0.1", SetPageTitle: func(string) {}, SetBadgeCount: func(int) {}})
+			tester := ui.NewTester(app.View, 1400, 2500)
+			app.ShowPage("Dashboard")
+			tester.Frame()
+
+			app.busy = "Creating…"
+			tc.setup(app)
+			app.ShowPage(tc.id)
+			tester.Frame()
+
+			require.Emptyf(t, app.loadFailures(),
+				"%s must not read — and therefore must not report — while a write runs", tc.name)
+			require.True(t, tester.HasText("Waiting for the running write"),
+				"and it says what it is waiting for")
+		})
+	}
+}

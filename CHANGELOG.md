@@ -34,6 +34,15 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **Every list reader stops for a background write**: last round's fix covered the token loader; a probe
+  over the rest found the same bypass in four more — the NFT page, the oracle sources and all three
+  voting lists. Each page's search field reads on its own when a term changes, and every one of those
+  reads landed on the locked database, reporting a page failure and marking the page as read when the
+  read never happened. One parameterised test now covers all four pages and dropping any single guard
+  fails that page's subtest.
+
+### Fixed
+
 - **A search during a background write no longer reads**: `refresh` gates on the write, but the search
   field reads on its own when a term changes — it has to show the new query's rows — and that read landed
   on the locked database. It reported a page failure *and* marked the page as read when it had not been,

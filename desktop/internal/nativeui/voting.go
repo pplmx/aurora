@@ -142,6 +142,13 @@ func (a *App) loadVoting() {
 }
 
 func (a *App) loadVoterPage(offset int) bool {
+	// A background write owns the database. refresh guards this, but a page's
+	// search field reads on its own when a term changes, and that read would land
+	// on the locked database — reporting a page failure and marking the page as
+	// read when the read never happened.
+	if a.busy != "" {
+		return false
+	}
 	if a.services == nil {
 		return false
 	}
@@ -173,6 +180,13 @@ func (a *App) loadVoterPage(offset int) bool {
 // failed pager move therefore leaves the rows, offset and highlight on the page
 // they actually describe.
 func (a *App) loadCandidatePage(offset int) bool {
+	// A background write owns the database. refresh guards this, but a page's
+	// search field reads on its own when a term changes, and that read would land
+	// on the locked database — reporting a page failure and marking the page as
+	// read when the read never happened.
+	if a.busy != "" {
+		return false
+	}
 	if a.services == nil {
 		return false
 	}
@@ -199,6 +213,13 @@ func (a *App) loadCandidatePage(offset int) bool {
 }
 
 func (a *App) loadSessionPage(offset int) bool {
+	// A background write owns the database. refresh guards this, but a page's
+	// search field reads on its own when a term changes, and that read would land
+	// on the locked database — reporting a page failure and marking the page as
+	// read when the read never happened.
+	if a.busy != "" {
+		return false
+	}
 	if a.services == nil {
 		return false
 	}

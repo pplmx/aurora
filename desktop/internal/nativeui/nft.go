@@ -119,6 +119,13 @@ func (a *App) loadNFT() {
 // loadNFTPage commits offset only after a successful read, so a failed pager
 // move keeps the previous page and its controls truthful.
 func (a *App) loadNFTPage(offset int) bool {
+	// A background write owns the database. refresh guards this, but a page's
+	// search field reads on its own when a term changes, and that read would land
+	// on the locked database — reporting a page failure and marking the page as
+	// read when the read never happened.
+	if a.busy != "" {
+		return false
+	}
 	if a.services == nil {
 		return false
 	}
