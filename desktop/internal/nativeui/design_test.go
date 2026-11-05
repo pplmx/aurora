@@ -1173,7 +1173,7 @@ func TestThePagingSentenceIsSpokenNotDrawn(t *testing.T) {
 		hint  string
 	}{
 		{"Token", "Search tokens", "Search matches id, name or symbol across the whole collection."},
-		{"Oracle", "Search sources", "Search narrows the current page; use Previous/Next for older sources."},
+		{"Oracle", "Search sources", "Search matches id, name, type or URL across the whole collection."},
 		{"NFT", "Search NFTs", "Search narrows the current page; use Previous/Next for older assets."},
 	}
 	for _, tc := range cases {

@@ -17,24 +17,36 @@ func (a *App) oracleSourcesBody(c *ui.Context) {
 	if a.oracle.loadErr != nil && !loadWarning(c, "Failed to load sources", a.oracle.loadErr, len(a.oracle.sources) > 0) {
 		return
 	}
-	if len(a.oracle.sources) == 0 {
-		// Recorded before the return, as on the other lists: a query cleared
-		// while no source exists must not stay applied, or the first-record
-		// panel stays hidden behind a work bench over nothing.
-		if a.oracle.search != a.oracle.appliedSearch {
-			a.oracle.appliedSearch = a.oracle.search
+	// A new term is a new query over the whole collection, so it re-reads from the
+	// first page. This runs before the empty-state branch, because a search that
+	// matches nothing leaves the previous rows in place and would otherwise be
+	// recorded as applied without ever being read.
+	queryChanged := a.oracle.search != a.oracle.appliedSearch
+	if queryChanged {
+		// A write that clears the search has already chosen the row it created;
+		// clearing the highlight here would throw that choice away in the same
+		// frame that made it. So the selection is kept only when the field changed
+		// from a term back to empty, which is what that write does.
+		previousTerm := a.oracle.appliedSearch
+		a.oracle.appliedSearch = a.oracle.search
+		if previousTerm == "" || a.oracle.search != "" {
 			a.oracle.selected = -1
+		}
+		a.loadOracleSourcePage(0)
+	}
+	if len(a.oracle.sources) == 0 {
+		// An empty result is not always an empty store: a search over a store that
+		// holds feeds needs "no match", because clearing the field is the fix and
+		// the add-source guide's advice would be wrong.
+		if strings.TrimSpace(a.oracle.appliedSearch) != "" {
+			emptyNote(c, fmt.Sprintf(tr("No sources match “%s”."), strings.TrimSpace(a.oracle.appliedSearch)))
+			return
 		}
 		emptyState(c, pageOracle, "No sources yet", "Add an HTTP feed in Add Source to start reading values.")
 		return
 	}
-	queryChanged := a.oracle.search != a.oracle.appliedSearch
-	if queryChanged {
-		a.oracle.appliedSearch = a.oracle.search
-		a.oracle.selected = -1
-	}
 	previous, next := collectionToolbar(c, &a.oracle.search, "Search sources",
-		"Search narrows the current page; use Previous/Next for older sources.",
+		"Search matches id, name, type or URL across the whole collection.",
 		"Sources", a.oracle.offset, len(a.oracle.sources), a.oracle.hasMore)
 	if previous || next {
 		target := a.oracle.offset
@@ -48,12 +60,9 @@ func (a *App) oracleSourcesBody(c *ui.Context) {
 		}
 		return
 	}
-	srcs := a.filteredSources()
+	// The rows already answer the applied term: storage selected them.
+	srcs := a.oracle.sources
 	announceSearchResults(c, queryChanged, len(srcs))
-	if len(srcs) == 0 {
-		emptyNote(c, fmt.Sprintf(tr("No sources match “%s”."), strings.TrimSpace(a.oracle.search)))
-		return
-	}
 	// A source's id is a timestamp plus a hash, so the record keeps it as a
 	// field while the row itself is chosen by name. Choosing the record loads
 	// the exact id into every action and read card below, which is how a

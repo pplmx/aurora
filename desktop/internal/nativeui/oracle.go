@@ -136,7 +136,11 @@ func (a *App) loadOracleSourcePage(offset int) bool {
 	if offset < 0 {
 		offset = 0
 	}
-	rows, err := a.services.OracleSources(oraclePageSize+1, offset)
+	// The search is a storage query, not a filter over the loaded rows: a source
+	// whose row is on an older page must be reachable by typing its name. The
+	// applied term is the one the rows describe, so a paged move keeps matching
+	// what the reader saw when they pressed Next.
+	rows, err := a.services.OracleSourcesMatching(a.oracle.appliedSearch, oraclePageSize+1, offset)
 	a.oracle.loadErr = err
 	if err != nil {
 		return false

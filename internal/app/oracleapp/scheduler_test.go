@@ -21,6 +21,10 @@ type fakeSourceRepo struct {
 	lastOffset int
 }
 
+func (f *fakeSourceRepo) ListMatchingSources(term string, limit, offset int) ([]*oracle.DataSource, error) {
+	return f.ListSources(limit, offset)
+}
+
 func (f *fakeSourceRepo) ListSources(limit, offset int) ([]*oracle.DataSource, error) {
 	f.lastLimit, f.lastOffset = limit, offset
 	return f.sources, f.listErr

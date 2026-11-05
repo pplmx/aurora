@@ -3,6 +3,7 @@ package sqlite
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -227,16 +228,38 @@ func (r *OracleRepository) GetSource(id string) (*oracle.DataSource, error) {
 }
 
 func (r *OracleRepository) ListSources(limit, offset int) ([]*oracle.DataSource, error) {
+	return r.listSources("", nil, limit, offset)
+}
+
+// ListMatchingSources searches the registered feeds by id, name, type and URL, so
+// a search finds a source whose row is not on the loaded page. The escaping and
+// case-folding mirror the token, NFT, lottery and audit searches.
+func (r *OracleRepository) ListMatchingSources(term string, limit, offset int) ([]*oracle.DataSource, error) {
+	term = strings.TrimSpace(term)
+	if term == "" {
+		return r.ListSources(limit, offset)
+	}
+	escaped := strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`).Replace(strings.ToLower(term))
+	like := "%" + escaped + "%"
+	where := `WHERE lower(id) LIKE ? ESCAPE '\' OR lower(name) LIKE ? ESCAPE '\'
+		OR lower(type) LIKE ? ESCAPE '\' OR lower(url) LIKE ? ESCAPE '\'`
+	return r.listSources(where, []any{like, like, like, like}, limit, offset)
+}
+
+// listSources is the one paged read: ListSources and ListMatchingSources differ
+// only in the WHERE clause, and both keep the newest-first order.
+func (r *OracleRepository) listSources(where string, args []any, limit, offset int) ([]*oracle.DataSource, error) {
 	if limit <= 0 {
 		limit = -1
 	}
 	if offset < 0 {
 		offset = 0
 	}
+	queryArgs := append(append([]any{}, args...), limit, offset)
 	rows, err := r.q().Query(
 		`SELECT id, name, url, type, method, headers, path, interval, enabled, created_at
-		 FROM data_sources ORDER BY created_at DESC, id LIMIT ? OFFSET ?`,
-		limit, offset,
+		 FROM data_sources `+where+` ORDER BY created_at DESC, id LIMIT ? OFFSET ?`,
+		queryArgs...,
 	)
 	if err != nil {
 		return nil, err

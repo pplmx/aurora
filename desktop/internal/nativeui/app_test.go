@@ -512,19 +512,34 @@ func (f *fakeServices) TokenHistory(tokenID, owner string, limit, offset int) ([
 }
 
 func (f *fakeServices) OracleSources(limit, offset int) ([]SourceRow, error) {
+	return f.OracleSourcesMatching("", limit, offset)
+}
+
+// OracleSourcesMatching filters the fixture the way storage does, so a test can
+// prove the search spans rows that are not on the loaded page.
+func (f *fakeServices) OracleSourcesMatching(term string, limit, offset int) ([]SourceRow, error) {
 	f.sourceListCalls++
 	f.lastSourceLimit = limit
 	f.lastSourceOffset = offset
 	if f.loadErrs.sources != nil {
 		return nil, f.loadErrs.sources
 	}
+	matching := f.sources
+	if term = strings.TrimSpace(term); term != "" {
+		matching = make([]SourceRow, 0, len(f.sources))
+		for _, row := range f.sources {
+			if containsFold(term, row.ID, row.Name, row.Type, row.URL) {
+				matching = append(matching, row)
+			}
+		}
+	}
 	if offset < 0 {
 		offset = 0
 	}
-	if offset >= len(f.sources) {
+	if offset >= len(matching) {
 		return nil, nil
 	}
-	rows := f.sources[offset:]
+	rows := matching[offset:]
 	if limit > 0 && len(rows) > limit {
 		rows = rows[:limit]
 	}

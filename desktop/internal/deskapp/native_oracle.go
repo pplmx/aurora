@@ -12,7 +12,13 @@ import (
 // --- Oracle --------------------------------------------------------------
 
 func (s *nativeServices) OracleSources(limit, offset int) ([]nativeui.SourceRow, error) {
-	sources, err := s.oracleRepo.ListSources(limit, offset)
+	return s.OracleSourcesMatching("", limit, offset)
+}
+
+// OracleSourcesMatching is the same read with a storage-side search term, so the
+// window's source search spans every feed rather than the loaded page.
+func (s *nativeServices) OracleSourcesMatching(term string, limit, offset int) ([]nativeui.SourceRow, error) {
+	sources, err := s.oracleRepo.ListMatchingSources(term, limit, offset)
 	if err != nil {
 		return nil, err
 	}

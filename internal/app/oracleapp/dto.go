@@ -50,6 +50,9 @@ type DataResponse struct {
 }
 
 type ListSourcesRequest struct {
+	// Search narrows the feeds in storage by id, name, type and URL, so a term
+	// finds a source whose row is not on the loaded page. Empty is the plain list.
+	Search string
 	Limit  int
 	Offset int
 }

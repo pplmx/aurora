@@ -117,6 +117,10 @@ func (m *mockOracleRepo) GetSource(id string) (*oracle.DataSource, error) {
 	return nil, m.sourceErr
 }
 
+func (m *mockOracleRepo) ListMatchingSources(term string, limit, offset int) ([]*oracle.DataSource, error) {
+	return m.ListSources(limit, offset)
+}
+
 func (m *mockOracleRepo) ListSources(limit, offset int) ([]*oracle.DataSource, error) {
 	m.lastSourceLimit = limit
 	m.lastSourceOffset = offset

@@ -1,6 +1,9 @@
 package oracle
 
-import "sort"
+import (
+	"sort"
+	"strings"
+)
 
 type Repository interface {
 	SaveData(data *OracleData) error
@@ -15,6 +18,10 @@ type Repository interface {
 	// remainder from offset; the scheduler uses that form because it must poll
 	// every enabled source.
 	ListSources(limit, offset int) ([]*DataSource, error)
+	// ListMatchingSources searches the registered feeds by id, name, type and URL,
+	// so a term finds a source whose row is not on the loaded page. An empty term
+	// is the plain list.
+	ListMatchingSources(term string, limit, offset int) ([]*DataSource, error)
 	// CountSources returns the exact number of stored feeds without loading
 	// their rows.
 	CountSources() (int, error)
@@ -100,6 +107,39 @@ func (r *InmemRepo) SaveSource(source *DataSource) error {
 
 func (r *InmemRepo) GetSource(id string) (*DataSource, error) {
 	return r.sources[id], nil
+}
+
+// ListMatchingSources filters the in-memory feeds the way storage does, so callers
+// see one behaviour whichever repository backs them.
+func (r *InmemRepo) ListMatchingSources(term string, limit, offset int) ([]*DataSource, error) {
+	term = strings.TrimSpace(term)
+	if term == "" {
+		return r.ListSources(limit, offset)
+	}
+	all, err := r.ListSources(0, 0)
+	if err != nil {
+		return nil, err
+	}
+	matching := make([]*DataSource, 0, len(all))
+	for _, ds := range all {
+		if strings.Contains(strings.ToLower(ds.ID), strings.ToLower(term)) ||
+			strings.Contains(strings.ToLower(ds.Name), strings.ToLower(term)) ||
+			strings.Contains(strings.ToLower(ds.Type), strings.ToLower(term)) ||
+			strings.Contains(strings.ToLower(ds.URL), strings.ToLower(term)) {
+			matching = append(matching, ds)
+		}
+	}
+	if offset < 0 {
+		offset = 0
+	}
+	if offset >= len(matching) {
+		return nil, nil
+	}
+	matching = matching[offset:]
+	if limit > 0 && len(matching) > limit {
+		matching = matching[:limit]
+	}
+	return matching, nil
 }
 
 func (r *InmemRepo) ListSources(limit, offset int) ([]*DataSource, error) {

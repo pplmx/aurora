@@ -132,9 +132,13 @@ func (a *App) addOracleSource() {
 			// it selected would show a preset whose fields were just cleared, and
 			// picking it again would not report a change.
 			a.oracle.template = ""
-			// A new source is newest-first, so try page zero. The loader commits
-			// the offset only after a successful read; if it fails, the old page,
-			// search and highlight remain the rows they actually describe.
+			// A new source is newest-first, so try page zero. The applied term is
+			// cleared first: a search left open would be the query this read runs,
+			// and a source the term does not match would come back missing — the
+			// write would report success while the list showed nothing new.
+			a.oracle.search, a.oracle.appliedSearch = "", ""
+			// The loader commits the offset only after a successful read; if it
+			// fails, the old rows and their own labels stay as they were.
 			if a.loadOracleSourcePage(0) {
 				// The new feed becomes the subject of the actions and read cards,
 				// just as a chosen row does. Otherwise the list highlights it while

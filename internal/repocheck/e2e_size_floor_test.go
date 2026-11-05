@@ -144,7 +144,7 @@ func TestEveryPaginatedListProbesOneExtraRow(t *testing.T) {
 		{"nft.go", "a.services.ListNFTsPage(a.nft.filterOwner, requestLimit, offset)"},
 		{"nft.go", "requestLimit := limit + 1"},
 		{"nft_history.go", "a.services.NFTHistory(id, nftHistoryPageSize+1, offset)"},
-		{"oracle.go", "a.services.OracleSources(oraclePageSize+1, offset)"},
+		{"oracle.go", "a.services.OracleSourcesMatching(a.oracle.appliedSearch, oraclePageSize+1, offset)"},
 		{"token.go", "a.services.ListMatchingTokens(a.token.appliedSearch, tokenPageSize+1, offset)"},
 		{"voting.go", "a.services.Voters(votingPageSize+1, offset)"},
 		{"voting.go", "a.services.Candidates(votingPageSize+1, offset)"},

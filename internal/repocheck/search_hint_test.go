@@ -45,7 +45,7 @@ func TestSearchHintsMatchWhatTheSearchDoes(t *testing.T) {
 	// the voters, candidates, sessions, NFT collection and oracle sources. The
 	// count guards against a list quietly switching to an in-memory filter while
 	// its hint still promises a whole-store search.
-	require.GreaterOrEqual(t, strings.Count(view, "containsFold("), 3,
+	require.GreaterOrEqual(t, strings.Count(view, "containsFold("), 2,
 		"the page-local lists must still filter in memory")
 
 	// Every hint is one of the two sentences, and the whole-store hint appears
@@ -62,10 +62,10 @@ func TestSearchHintsMatchWhatTheSearchDoes(t *testing.T) {
 			wholeStore++
 		}
 	}
-	// The draws and the ledger always queried storage; the token collection and the
-	// NFT collection now do too, so four hints may promise it. A new one must come
+	// The draws and the ledger always queried storage; the token, NFT and oracle
+	// collections now do too, so five hints may promise it. A new one must come
 	// with its own storage-side read, which is what this count is here to notice.
-	assert.Equal(t, 4, wholeStore,
+	assert.Equal(t, 5, wholeStore,
 		"exactly the lists that query storage may promise a whole-store search")
 }
 

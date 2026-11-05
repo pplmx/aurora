@@ -30,6 +30,10 @@ func newBlockingOracleRepo() *blockingOracleRepo {
 	}
 }
 
+func (r *blockingOracleRepo) ListMatchingSources(term string, limit, offset int) ([]*oracle.DataSource, error) {
+	return r.ListSources(limit, offset)
+}
+
 func (r *blockingOracleRepo) ListSources(limit, offset int) ([]*oracle.DataSource, error) {
 	r.enteredOnce.Do(func() {
 		close(r.entered)

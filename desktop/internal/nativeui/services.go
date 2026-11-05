@@ -69,6 +69,9 @@ type Services interface {
 
 	// Oracle surface.
 	OracleSources(limit, offset int) ([]SourceRow, error)
+	// OracleSourcesMatching searches the registered feeds by id, name, type and URL
+	// in storage, so a search finds a source whose row is not on the loaded page.
+	OracleSourcesMatching(term string, limit, offset int) ([]SourceRow, error)
 	// OracleSource resolves one source by id, including sources outside the
 	// currently visible collection page.
 	OracleSource(id string) (SourceRow, error)

@@ -709,3 +709,58 @@ func TestAnNFTSearchThatMatchesNothingIsNotAnEmptyCollection(t *testing.T) {
 	require.False(t, tester.HasText("No NFTs yet"),
 		"a populated collection must not be described as empty")
 }
+
+// TestTheSourceSearchSpansTheWholeStore completes the rule for the last paged
+// collection. A registered feed whose row is on an older page was unreachable by
+// name, which for a source — an id nobody reads in full — meant the only way back
+// to it was to remember its URL.
+func TestTheSourceSearchSpansTheWholeStore(t *testing.T) {
+	rows := make([]SourceRow, 120)
+	for i := range rows {
+		rows[i] = SourceRow{
+			ID: "s" + strconv.Itoa(i), Name: "feed " + strconv.Itoa(i),
+			URL: "https://example.com/" + strconv.Itoa(i), Type: "json",
+		}
+	}
+	rows[110].Name = "needle"
+	fake := &fakeServices{sources: rows}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 3000)
+	app.ShowPage("Oracle")
+	tester.Frame()
+	require.False(t, tester.HasText("needle"), "the row is not on the loaded page")
+
+	app.oracle.search = "needle"
+	tester.Frame()
+
+	require.True(t, tester.HasText("needle"), "the search must find a row outside the loaded page")
+	require.Len(t, app.oracle.sources, 1)
+}
+
+// TestANewSourceAppearsEvenWithASearchOpen covers the write that follows a search.
+// The read after a create must not carry the old term: a source the term does not
+// match would come back missing, so the write would report success while the list
+// showed nothing new — and the highlight would point at nothing.
+func TestANewSourceAppearsEvenWithASearchOpen(t *testing.T) {
+	fake := workbenchFakes()
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 2600)
+	app.ShowPage("Oracle")
+	tester.Frame()
+	app.oracle.search, app.oracle.appliedSearch = "nothing-matches", "nothing-matches"
+	tester.Frame()
+
+	fake.addSource = func(SourceInput) (SourceRow, error) {
+		row := SourceRow{ID: "new", Name: "New source", Type: "json", URL: "https://example.com/new"}
+		fake.sources = append([]SourceRow{row}, fake.sources...)
+		return row, nil
+	}
+	app.oracle.addName, app.oracle.addURL = "New source", "https://example.com/new"
+	app.addOracleSource()
+	tester.Frame()
+
+	require.Zero(t, app.oracle.offset, "the new row is newest-first, so it is on page zero")
+	require.Equal(t, 0, app.oracle.selected, "and it is the chosen row")
+	require.Empty(t, app.oracle.appliedSearch, "the search was cleared by the write")
+	require.True(t, tester.HasText("New source"))
+}

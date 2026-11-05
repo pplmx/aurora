@@ -34,6 +34,17 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Added
 
+- **The oracle source search spans the whole store, completing the set**: every paged collection in the
+  window now searches storage rather than the loaded page, so a feed whose row sits on an older page is
+  reachable by name. It matters most here: a source's id is a timestamp plus a hash that nobody reads in
+  full, so an unreachable row left its URL as the only way back.
+- **A new source appears even with a search open**: the read after a create used to carry the term that
+  was still in the field, so a source the term did not match came back missing — the write reported
+  success while the list showed nothing new and the highlight pointed at nothing. The term is cleared
+  before that read.
+
+### Added
+
 - **The NFT collection's search spans the whole store**: the same rule and the same shape as the token
   list — a paged collection means an asset on an older page is not in memory, so a page-local filter
   concluded it did not exist. The repository gained a matching read with the same escaping, and the

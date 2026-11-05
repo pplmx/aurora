@@ -264,7 +264,7 @@ func (uc *ListSourcesUseCase) Execute(req *ListSourcesRequest) (*ListSourcesResp
 	if req == nil {
 		req = &ListSourcesRequest{}
 	}
-	sources, err := uc.repo.ListSources(req.Limit, req.Offset)
+	sources, err := uc.repo.ListMatchingSources(req.Search, req.Limit, req.Offset)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list sources: %w", err)
 	}
