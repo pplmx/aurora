@@ -590,7 +590,7 @@ func TestLotteryResultsLocalizeChinese(t *testing.T) {
 		out, err = runCmd(t, "lottery", "verify", "1")
 		require.NoError(t, err)
 		assert.Contains(t, out, "区块高度：#1")
-		assert.Contains(t, out, "参与者：3")
+		assert.Contains(t, out, "参与者人数：3")
 		assert.Contains(t, out, "抽奖记录已验证！")
 		assert.Contains(t, out, "VRF 公钥：")
 

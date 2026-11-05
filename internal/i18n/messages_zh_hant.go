@@ -315,7 +315,7 @@ var traditionalMessages = map[string]string{
 	"lottery.no_records":                        "暫無抽獎記錄",
 	"lottery.page_total":                        "本頁抽獎數",
 	"lottery.participants":                      "參與者名單（逗號分隔）",
-	"lottery.participants_label":                "參與者",
+	"lottery.participants_label":                "參與者人數",
 	"lottery.reset":                             "重置數據庫",
 	"lottery.reset_done":                        "數據庫重置完成！",
 	"lottery.seed":                              "隨機種子",

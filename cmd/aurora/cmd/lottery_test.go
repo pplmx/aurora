@@ -860,3 +860,28 @@ func TestLotteryImportRejectsOversizedFile(t *testing.T) {
 		assert.Contains(t, err.Error(), "import file is larger than 64.0 MiB")
 	})
 }
+
+// TestTheHistoryCountsParticipantsWhileJSONListsThem pins the one place the two
+// output modes show a different shape. The table is a summary: twenty names on
+// one line would push every other field off the screen, so it prints the count —
+// and its label says so, because "Winners" one line above it lists names, which
+// is what made a bare "Participants" read as a list.
+func TestTheHistoryCountsParticipantsWhileJSONListsThem(t *testing.T) {
+	withTempDir(t, func(t *testing.T) {
+		runMigrations(t)
+		_, err := runCmd(t, "lottery", "create", "-p", "A,B,C", "-s", "participant-count-seed", "-c", "1")
+		require.NoError(t, err)
+
+		out, err := runCmd(t, "lottery", "history")
+		require.NoError(t, err)
+		require.Contains(t, out, "Participants (count): 3",
+			"the table shows how many, and says that is what it is")
+		require.NotContains(t, out, "Participants: 3",
+			"a bare label beside a number reads as a truncated list")
+
+		jsonOut, err := runCmd(t, "lottery", "history", "--json")
+		require.NoError(t, err)
+		require.Contains(t, jsonOut, `"A"`, "the document carries the names themselves")
+		require.Contains(t, jsonOut, `"C"`)
+	})
+}

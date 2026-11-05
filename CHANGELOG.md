@@ -45,6 +45,14 @@ The milestone notes under `.planning/` are history, not current instructions.
   the same file, so a mistake the CLI points out passed without a trace there. A packaged app has no
   console, so it writes the same report to its log, where its startup facts already go.
 
+### Fixed
+
+- **`lottery history` says its participant field is a count**: the table prints the number and the JSON
+  carries the names, which is a reasonable split — twenty names on one line would push every other field
+  off the screen. But "Winners" one line above lists names, so a bare "Participants" beside a number read
+  as a list that had been truncated rather than a count. The label says "(count)" now, in all three
+  catalogs, and a test pins both modes so the split cannot quietly change.
+
 ### Added
 
 - **A prose reading is shown whole**: every other latest-value test uses a number, but a source may answer
