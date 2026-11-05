@@ -3,11 +3,17 @@ package main
 import (
 	"bytes"
 	"net"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
+	"github.com/spf13/viper"
+	"github.com/stretchr/testify/require"
+
 	"github.com/pplmx/aurora/internal/config"
 	"github.com/pplmx/aurora/internal/i18n"
+	"github.com/pplmx/aurora/internal/logger"
 )
 
 // TestParseFlags locks the cmd/api flag surface (TASK-267, ISS-263, extended
@@ -195,4 +201,39 @@ func TestParseFlagsConfigPath(t *testing.T) {
 	if _, _, err := parseFlags([]string{"--config"}); err == nil {
 		t.Fatal("--config without a value must be rejected")
 	}
+}
+
+// TestTheServerReportsAConfigSectionNothingReads matches the CLI and the window.
+// All three read the same file, so a misspelled section must not pass without a
+// trace in any of them; a server started by a unit file has only its log to say
+// what it ignored.
+func TestTheServerReportsAConfigSectionNothingReads(t *testing.T) {
+	dir := t.TempDir()
+	require.NoError(t, os.MkdirAll(filepath.Join(dir, "logs"), 0o700))
+	configPath := filepath.Join(dir, "aurora.toml")
+	require.NoError(t, os.WriteFile(configPath,
+		[]byte("[db]\npath = \"x.db\"\n[database]\npath = \"y.db\"\n"), 0o600))
+
+	viper.Reset()
+	t.Cleanup(viper.Reset)
+	viper.SetConfigFile(configPath)
+	require.NoError(t, viper.ReadInConfig())
+	viper.Set("log.path", filepath.Join(dir, "logs"))
+
+	logger.Init()
+	t.Cleanup(logger.Close)
+
+	var stderr bytes.Buffer
+	reportUnknownSections(&stderr)
+	logger.Close()
+
+	require.Contains(t, stderr.String(), "database",
+		"the terminal should name the section nothing reads")
+	require.Contains(t, stderr.String(), "Ignoring",
+		"and say what happened to it")
+
+	body, err := os.ReadFile(filepath.Join(dir, "logs", "aurora.log"))
+	require.NoError(t, err)
+	require.Contains(t, string(body), "database",
+		"the log should carry the same report for a server nobody is watching")
 }

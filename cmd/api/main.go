@@ -239,6 +239,8 @@ func main() {
 
 	logger.Init()
 
+	reportUnknownSections(os.Stderr)
+
 	srv, err := api.NewServer()
 	if err != nil {
 		// The logger is up by now, and a start-up failure is exactly the thing an
@@ -309,4 +311,18 @@ func main() {
 	}
 
 	logger.Info().Msg("Server stopped")
+}
+
+// reportUnknownSections names the config tables nothing reads. The CLI prints
+// this report and the window logs it; the server reads the same file, so a
+// misspelled section must not pass without a trace here either. Both paths stay:
+// the log for the record, stderr for the terminal that launched it, as the
+// start-up failure below does.
+func reportUnknownSections(stderr io.Writer) {
+	unknown := config.UnknownSections()
+	if len(unknown) == 0 {
+		return
+	}
+	logger.Warn().Strs("sections", unknown).Msg("Config sections nothing reads were ignored")
+	fmt.Fprintf(stderr, "Ignoring config sections nothing reads: %s\n", strings.Join(unknown, ", "))
 }

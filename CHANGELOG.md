@@ -34,6 +34,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **The API server reports it as well**: it reads the same config file, so a misspelled section passed without a
+  trace there too. A server started by a unit file has only its log, so the report goes to both the log and
+  stderr. All three entry points are now held to this by one repo check — a helper with its own test proves
+  nothing if its caller stops calling it.
+
+### Fixed
+
 - **The window reports it too**: the CLI warns about a config section nothing reads, and the window reads
   the same file, so a mistake the CLI points out passed without a trace there. A packaged app has no
   console, so it writes the same report to its log, where its startup facts already go.

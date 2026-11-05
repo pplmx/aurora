@@ -256,3 +256,25 @@ func TestKeyLabelsInErrorSentencesAreOneWord(t *testing.T) {
 		walk(dir)
 	}
 }
+
+// TestEveryEntryPointReportsUnknownConfigSections holds the three ways Aurora
+// starts to the same standard. They read the same file, so a misspelled section
+// must not pass silently in one of them: the CLI prints the report, the window
+// logs it, and the server does both. A helper with its own test proves nothing if
+// its caller stops calling it, which is why this checks the call sites.
+func TestEveryEntryPointReportsUnknownConfigSections(t *testing.T) {
+	root := repoRoot(t)
+	for _, entry := range []struct {
+		path string
+		want string
+	}{
+		{"cmd/aurora/cmd/root.go", "config.UnknownSections()"},
+		{"desktop/internal/deskapp/deskapp.go", "warnUnknownSections()"},
+		{"cmd/api/main.go", "reportUnknownSections(os.Stderr)"},
+	} {
+		body, err := os.ReadFile(filepath.Join(root, entry.path))
+		require.NoError(t, err)
+		require.Containsf(t, string(body), entry.want,
+			"%s must report the config sections nothing reads, as the other entry points do", entry.path)
+	}
+}
