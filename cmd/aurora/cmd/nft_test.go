@@ -382,3 +382,28 @@ func TestTheNFTListShowsTheHolder(t *testing.T) {
 		require.Contains(t, list, "Block Height:", "with the block the mint was recorded at")
 	})
 }
+
+// TestTheNFTHistoryDatesEachOperation pins what a history is read for. The row
+// used to print an operation type and a block number, which dates nothing and
+// names no holder: an asset's whole past read as a list of block heights.
+func TestTheNFTHistoryDatesEachOperation(t *testing.T) {
+	withTempDir(t, func(t *testing.T) {
+		runMigrations(t)
+
+		const creator = "AQIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyA="
+		out, err := runCmd(t, "nft", "mint", "-n", "Star", "-c", creator)
+		require.NoError(t, err, "mint")
+		nftID := extractField(t, out, "ID:")
+
+		hist, err := runCmd(t, "nft", "history", "--nft", nftID)
+		require.NoError(t, err)
+		require.Contains(t, hist, "mint", "the operation type")
+		require.Contains(t, hist, "Block #", "the block it was recorded at")
+		// The layout is YYYY-MM-DD, so a row with a date is distinguishable from
+		// one with only a block number.
+		require.Regexp(t, `\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}`, hist,
+			"a history row must carry the time it happened, not only where")
+		require.Contains(t, hist, "Holder after",
+			"and a mint names who holds the asset afterwards")
+	})
+}

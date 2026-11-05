@@ -47,6 +47,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **Both histories carry the time an entry happened**: `token history` printed from, to, amount and block
+  height, and `nft history` an operation type and a block number — what moved and where, but never when.
+  The time is the fact a history is read for after the amount, and it was in the JSON all along.
+  `nft history` also names the holder each operation left the asset with, since a mint has no sender and a
+  burn no recipient, and folding that into one line would need two formats for the same fact.
+
+### Fixed
+
 - **`nft list` shows the holder**: the row printed an id and a name and nothing else, while every other
   list carries the fields its module turns on — `token list` shows an owner, `oracle source list` a URL
   and a state. An NFT's holder decides every later transfer and burn, so finding it meant reading each

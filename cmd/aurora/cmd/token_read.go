@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/pplmx/aurora/internal/app/tokenapp"
 	"github.com/pplmx/aurora/internal/i18n"
@@ -144,6 +145,9 @@ var tokenHistoryCmd = &cobra.Command{
 				truncateBase64(t.To),
 				t.Amount,
 				t.BlockHeight,
+				// A transfer's time is the fact a history is read for after the
+				// amount: without it the row says what moved but not when.
+				time.Unix(t.Timestamp, 0).Format(blockTimeLayout),
 			))
 		}
 		return nil

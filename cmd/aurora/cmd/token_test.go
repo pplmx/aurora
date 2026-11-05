@@ -548,3 +548,23 @@ func TestTokenList_SearchSpansTheStoreAndNamesItself(t *testing.T) {
 			"a populated store must not be described as empty")
 	})
 }
+
+// TestTheTransferHistoryDatesEachEntry pins the same fact for tokens. A transfer
+// row carried from, to, amount and height — what moved, but not when.
+func TestTheTransferHistoryDatesEachEntry(t *testing.T) {
+	withTempDir(t, func(t *testing.T) {
+		runMigrations(t)
+
+		tokenID, pub, priv := tokenFixture(t, "Gold", "GLD", "1000")
+		const other = "AgMEBQYHCAkKCwwNDg8QERITFBUWFxgZGhscHR4fICE="
+		_, err := runCmd(t, "token", "transfer", "-t", tokenID, "-f", pub,
+			"--to", other, "--amount", "10", "-k", priv)
+		require.NoError(t, err, "transfer")
+
+		hist, err := runCmd(t, "token", "history", "-t", tokenID)
+		require.NoError(t, err)
+		require.Contains(t, hist, "Amount: 10")
+		require.Regexp(t, `\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}`, hist,
+			"a transfer row must carry the time it happened")
+	})
+}

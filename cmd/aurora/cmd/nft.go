@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/pplmx/aurora/internal/app/nftapp"
 	"github.com/pplmx/aurora/internal/domain/nft"
@@ -373,11 +374,25 @@ var nftHistoryCmd = &cobra.Command{
 			fmt.Println("   " + i18n.GetText("common.none"))
 		}
 		for _, op := range results {
+			// A history is read for when an operation happened: without the time
+			// the row dates nothing, and an asset's whole past reads as a list of
+			// block numbers.
 			fmt.Printf("   - %s\n", i18n.GetTextF(
 				"nft.operation_line",
 				localizedNFTOperationType(op.Type),
 				op.BlockHeight,
+				time.Unix(op.Timestamp, 0).Format(blockTimeLayout),
 			))
+			// The counterparty is its own labelled line: a mint has no sender and
+			// a burn has no recipient, so folding it into the line above would
+			// need two formats for the same fact.
+			counterpart, label := op.To, "nft.holder_after"
+			if counterpart == "" {
+				counterpart, label = op.From, "nft.holder_before"
+			}
+			if counterpart != "" {
+				fmt.Printf("     %s\n", i18n.Label(i18n.GetText(label), truncateBase64(counterpart)))
+			}
 		}
 		return nil
 	},
