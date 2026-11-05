@@ -32,6 +32,17 @@ The milestone notes under `.planning/` are history, not current instructions.
   module. The hue is resolved per frame, because which palette answers depends on the appearance being
   painted; pages and commands keep the accent, since they belong to no module.
 
+### Changed
+
+- **One LIKE escaper for every search**: seven repositories each spelled out the same trim/lower/escape
+  expression, and the escaping is the part that matters — `%` and `_` are wildcards, so a symbol or seed
+  containing one would match rows it has nothing to do with. `likeContains` now holds it with a unit test
+  for the three characters that need it, and all seven call sites route through it. Behaviour is
+  unchanged: the existing token, NFT, oracle and lottery search tests pass untouched.
+- **The ledger's payload view is pinned too**: the backlog card and the ledger record share the capped
+  payload view, and "it is the same function" is the kind of reasoning that stops being true the day
+  someone inlines one of the two call sites, so the ledger side has its own test.
+
 ### Fixed
 
 - **A large audit payload no longer stalls the window**: the payload view laid out every recorded byte,
