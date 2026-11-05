@@ -32,6 +32,13 @@ The milestone notes under `.planning/` are history, not current instructions.
   module. The hue is resolved per frame, because which palette answers depends on the appearance being
   painted; pages and commands keep the accent, since they belong to no module.
 
+### Added
+
+- **A source check keeps format verbs translated before they are formatted**: last round's hint was built
+  with `fmt.Sprintf` outside `tr`, and nothing failed — the fallback is a correct English sentence, so only
+  the captured window showed it. The check is at the source for the same reason the other translation
+  audits are: a window test cannot see the difference.
+
 ### Fixed
 
 - **The candidate limits hint is translated**: it was built with the format applied outside `tr`, so a

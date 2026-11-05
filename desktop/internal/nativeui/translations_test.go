@@ -457,3 +457,33 @@ func TestDesktopTranslationKeepsThePlaceholders(t *testing.T) {
 			"%q keeps a different number of placeholders\n  zh: %q", english, chinese)
 	}
 }
+
+// TestFormatVerbsAreTranslatedThenFormatted pins how a sentence with
+// placeholders reaches the translator. The template has to pass through tr
+// first, and the values are substituted into the result: a sentence built the
+// other way round formats the English text and hands the finished string to the
+// translator, which finds no entry and shows English in a Chinese window.
+//
+// Nothing failed when the candidate limits hint did this. The fallback is a
+// correct English sentence, so the tests passed and only the captured window
+// showed it; that is why the rule is checked at the source.
+func TestFormatVerbsAreTranslatedThenFormatted(t *testing.T) {
+	files := []string{"voting_setup.go", "chrome.go", "blockchain.go", "token_write.go", "oracle_readings.go"}
+	for _, name := range files {
+		body := readFile(t, name)
+		for _, line := range strings.Split(body, "\n") {
+			// A template with a verb, handed straight to a formatter: the tr call
+			// must sit inside it, not outside.
+			trimmed := strings.TrimSpace(line)
+			if !strings.Contains(trimmed, `fmt.Sprintf("`) {
+				continue
+			}
+			if !strings.Contains(trimmed, "%") {
+				continue
+			}
+			require.Containsf(t, trimmed, "tr(",
+				"%s: a formatted line with a placeholder must translate its template first: %s",
+				name, trimmed)
+		}
+	}
+}
