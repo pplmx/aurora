@@ -187,8 +187,9 @@ aurora nft mint -n "MyNFT" -d "Description" -c "<creator-key>" \
   --image <url> -t <token-uri>          # image/token-uri 可选
 aurora nft transfer --nft <id> --from <owner> --to <address> -k "<private-key>"
 aurora nft get --nft <id>
-aurora nft list                        # 全部 NFT
-aurora nft list --owner <pubkey>       # 只看某个持有者
+aurora nft list                                         # 全部 NFT
+aurora nft list --owner <pubkey>                        # 只看某个持有者
+aurora nft list --search star                           # 按 id 或名称过滤（与 --owner 互斥）
 aurora nft history --nft <id>
 aurora nft history --nft <id> --limit 100 --offset 0
 aurora nft burn --nft <id> --owner <owner> -k "<private-key>" --confirm
@@ -230,6 +231,7 @@ aurora token burn -t <token-id> --from <addr> --amount 10 -k "<key>" --confirm
 ```bash
 aurora oracle source list
 aurora oracle source list --limit 100 --offset 0
+aurora oracle source list --search weather   # 按 id、名称、类型或 URL 过滤
 aurora oracle source add -n "btc" -u "https://api.example.com/price" \
   -t json -m GET -p "data.price" -i 60        # -t/-m/-p/-i 可选
 aurora oracle source add -n "private" -u "https://api.example.com/private" \

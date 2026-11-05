@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/pplmx/aurora/internal/app/nftapp"
@@ -250,17 +251,31 @@ var listCmd = &cobra.Command{
 		}
 
 		owner, _ := cmd.Flags().GetString("owner")
+		search, _ := cmd.Flags().GetString("search")
+		search = strings.TrimSpace(search)
+		// One read answers one question. Answering the owner and dropping the
+		// term would print rows the operator did not ask for, and the count
+		// would still say "matches".
+		if owner != "" && search != "" {
+			return fmt.Errorf("%s", i18n.GetText("nft.list_owner_or_search"))
+		}
 
 		// The CLI lists the full collection (0,0 = unbounded); only the REST
 		// list is paged/bounded (TASK-101, ISS-093).
 		var results []*nftapp.NFTResponse
-		if owner == "" {
-			// Without an owner this is the whole collection: an owner key is
-			// what a caller who did not mint the asset does not have.
-			results, err = nftapp.NewListAll(service).Execute(&nftapp.ListNFTsRequest{})
-		} else {
+		switch {
+		case owner != "":
 			results, err = nftapp.NewListByOwner(service).Execute(
 				&nftapp.ListNFTsByOwnerRequest{Owner: owner})
+		case search != "":
+			// The term goes to storage, so it finds an asset whose row is on an
+			// older page rather than filtering the list already read.
+			results, err = nftapp.NewListAll(service).Execute(
+				&nftapp.ListNFTsRequest{Search: search})
+		default:
+			// Without an owner or a term this is the whole collection: an owner
+			// key is what a caller who did not mint the asset does not have.
+			results, err = nftapp.NewListAll(service).Execute(&nftapp.ListNFTsRequest{})
 		}
 		if err != nil {
 			return wrapCLIError("nft.error.list", err)
@@ -272,13 +287,27 @@ var listCmd = &cobra.Command{
 			return printJSON(results)
 		}
 
-		label := i18n.GetText("nft.list_owned")
-		if owner == "" {
+		var label string
+		switch {
+		case owner != "":
+			label = i18n.GetText("nft.list_owned")
+		case search != "":
+			// "All NFTs" beside a filter would read as the store's count; name
+			// what the number is, as `token list` and `lottery history` do.
+			label = i18n.GetText("nft.matches")
+		default:
 			label = i18n.GetText("nft.list_all")
 		}
 		fmt.Printf("\n🎨 %s\n", i18n.Label(label, len(results)))
 		if len(results) == 0 {
-			fmt.Println("   " + i18n.GetText("common.none"))
+			// A term that matches nothing is not an empty collection: saying
+			// "none" beside a filter would send the operator off to mint what
+			// already exists.
+			if search != "" && owner == "" {
+				fmt.Printf("   "+i18n.GetText("nft.no_match")+"\n", search)
+			} else {
+				fmt.Println("   " + i18n.GetText("common.none"))
+			}
 		}
 		for _, n := range results {
 			fmt.Printf("   - %s (%s)\n", n.ID, n.Name)
@@ -407,6 +436,7 @@ func init() {
 	// The owner is optional: without it the command lists every NFT, which is
 	// the only way to reach an asset whose owner key the caller never had.
 	listCmd.Flags().StringP("owner", "o", "", i18n.GetText("nft.owner"))
+	listCmd.Flags().StringP("search", "s", "", i18n.GetText("nft.list_search"))
 
 	nftHistoryCmd.Flags().StringP("nft", "i", "", i18n.GetText("nft.nft_id"))
 	nftHistoryCmd.Flags().IntP("limit", "l", 0, i18n.GetText("common.list_limit"))

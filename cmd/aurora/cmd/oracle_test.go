@@ -379,3 +379,35 @@ func TestOracleTemplateAdd_SecondTemplate(t *testing.T) {
 	require.NoError(t, err)
 	assert.Contains(t, out, "Ethereum Price")
 }
+
+// TestOracleSourceList_SearchSpansTheStore pins the term and the fourth answer.
+// A source's id is a timestamp plus a hash that nobody reads in full, so a
+// search is the only practical way back to a feed by name.
+func TestOracleSourceList_SearchSpansTheStore(t *testing.T) {
+	withTempDir(t, func(t *testing.T) {
+		for _, src := range [][2]string{
+			{"price", "https://api.example.com/price"},
+			{"weather", "https://api.example.com/weather"},
+		} {
+			_, err := runCmd(t, "oracle", "source", "add", "--name", src[0], "--url", src[1])
+			require.NoError(t, err)
+		}
+
+		out, err := runCmd(t, "oracle", "source", "list", "--search", "weather")
+		require.NoError(t, err)
+		assert.Contains(t, out, "- weather", "the name column is searchable")
+		assert.NotContains(t, out, "- price", "a non-match must leave the list")
+		assert.Contains(t, out, "Matches: 1")
+
+		byURL, err := runCmd(t, "oracle", "source", "list", "--search", "api.example.com/price")
+		require.NoError(t, err)
+		assert.Contains(t, byURL, "- price", "so is the URL")
+
+		noMatch, err := runCmd(t, "oracle", "source", "list", "--search", "zzzz")
+		require.NoError(t, err)
+		assert.Contains(t, noMatch, "Matches: 0")
+		assert.Contains(t, noMatch, `No source matches "zzzz".`)
+		assert.NotContains(t, noMatch, "(none)",
+			"a populated registry must not be described as empty")
+	})
+}

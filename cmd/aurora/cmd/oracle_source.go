@@ -5,6 +5,7 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/pplmx/aurora/internal/app/oracleapp"
 	"github.com/pplmx/aurora/internal/i18n"
@@ -73,8 +74,11 @@ var sourceListCmd = &cobra.Command{
 			return err
 		}
 
+		search, _ := cmd.Flags().GetString("search")
+		search = strings.TrimSpace(search)
+
 		uc := oracleapp.NewListSourcesUseCase(repo)
-		resp, err := uc.Execute(&oracleapp.ListSourcesRequest{Limit: limit, Offset: offset})
+		resp, err := uc.Execute(&oracleapp.ListSourcesRequest{Search: search, Limit: limit, Offset: offset})
 		if err != nil {
 			return wrapCLIError("oracle.error.list_sources", err)
 		}
@@ -86,20 +90,29 @@ var sourceListCmd = &cobra.Command{
 		}
 
 		// An offset alone asks for a page too: without it, `--offset 9` on a
-		// non-empty store kept the plain heading and answered "(none)".
-		if limit > 0 || offset > 0 {
+		// non-empty store kept the plain heading and answered "(none)". A search
+		// is a fourth answer: "Sources: 0" beside a filter claimed an empty
+		// registry, when the registry may be full.
+		switch {
+		case limit > 0 || offset > 0:
 			fmt.Printf("\n📡 %s\n", i18n.Label(i18n.GetText("oracle.sources_page"), i18n.GetTextF("common.page_with_offset", len(resp.Sources), offset)))
-		} else {
+		case search != "":
+			fmt.Printf("\n📡 %s\n", i18n.Label(i18n.GetText("oracle.sources_matches"), len(resp.Sources)))
+		default:
 			fmt.Printf("\n📡 %s\n", i18n.Label(i18n.GetText("oracle.sources_total"), len(resp.Sources)))
 		}
 		if len(resp.Sources) == 0 {
-			// Three different answers: an empty store, a page past the end, and
-			// a page the offset skipped past.
-			if limit > 0 || offset > 0 {
+			// Four different answers: an empty store, a page past the end, a
+			// page the offset skipped past, and a term that matched nothing.
+			switch {
+			case limit > 0 || offset > 0:
 				fmt.Println("   " + i18n.GetText("common.page_empty"))
-				return nil
+			case search != "":
+				fmt.Printf("   "+i18n.GetText("oracle.source_no_match")+"\n", search)
+			default:
+				fmt.Println("   " + i18n.GetText("common.none"))
 			}
-			fmt.Println("   " + i18n.GetText("common.none"))
+			return nil
 		}
 		for _, ds := range resp.Sources {
 			status := "✅ " + i18n.GetText("common.enabled")

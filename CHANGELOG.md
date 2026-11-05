@@ -34,6 +34,15 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Added
 
+- **`nft list --search` and `oracle source list --search` complete the CLI**: the same storage-side
+  search the window uses, with the same four-way answer — an empty store, a term that found nothing, a
+  page past the end, and a real result each get their own heading and sentence.
+- **`nft list` rejects `--owner` together with `--search`**: they answer different questions, and
+  answering the owner while dropping the term printed rows nobody asked for while the heading still
+  said "matches".
+
+### Added
+
 - **`token list --search` reaches the whole store**: the app-layer search the window already used was
   not reachable from the CLI, so a script had to page through everything to find one token. The flag
   follows `lottery history --search`, which has queried storage since it was added.

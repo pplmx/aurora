@@ -67,6 +67,7 @@ func init() {
 	_ = sourceAddCmd.MarkFlagRequired("url")
 	sourceListCmd.Flags().IntP("limit", "l", 0, i18n.GetText("common.list_limit"))
 	sourceListCmd.Flags().IntP("offset", "p", 0, i18n.GetText("token.offset"))
+	sourceListCmd.Flags().StringP("search", "s", "", i18n.GetText("oracle.source.list_search"))
 
 	sourceDeleteCmd.Flags().StringP("id", "i", "", i18n.GetText("oracle.source_id"))
 	addConfirmFlag(sourceDeleteCmd, "cli.confirm.oracle_del")

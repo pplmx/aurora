@@ -616,4 +616,11 @@ var traditionalMessages = map[string]string{
 	"voting.voter_registered":                   "選民註冊成功！",
 	"voting.voters_total":                       "選民總數",
 	"voting.votes":                              "%d 票",
+	"nft.list_search":                           "按 id 或名稱過濾",
+	"nft.matches":                               "匹配",
+	"nft.no_match":                              "沒有 NFT 匹配 %q。",
+	"oracle.source.list_search":                 "按 id、名稱、類型或 URL 過濾",
+	"oracle.sources_matches":                    "匹配",
+	"oracle.source_no_match":                    "沒有數據源匹配 %q。",
+	"nft.list_owner_or_search":                  "--owner 與 --search 回答的是不同問題，只能給其中一個。",
 }

@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"crypto/ed25519"
+	"encoding/base64"
 	"encoding/json"
 	"strings"
 	"testing"
@@ -313,5 +314,48 @@ func TestNFTHistory_AfterBurn(t *testing.T) {
 		assert.Contains(t, hout, "Total operations: 2")
 		assert.Contains(t, hout, "mint")
 		assert.Contains(t, hout, "burn")
+	})
+}
+
+// TestNFTList_SearchSpansTheStore pins the flag and the two messages it needs.
+// The collection is unbounded for the CLI, so "the whole store" is the only
+// reading of a term here; what matters is that a term reaches storage at all and
+// that a term matching nothing is not reported as an empty collection.
+func TestNFTList_SearchSpansTheStore(t *testing.T) {
+	withTempDir(t, func(t *testing.T) {
+		key := base64.StdEncoding.EncodeToString([]byte("0123456789abcdef0123456789abcdef"))
+		for _, name := range []string{"Star", "Moon", "Comet"} {
+			_, err := runCmd(t, "nft", "mint", "-n", name, "-c", key)
+			require.NoError(t, err)
+		}
+
+		out, err := runCmd(t, "nft", "list", "--search", "mo")
+		require.NoError(t, err)
+		assert.Contains(t, out, "Moon")
+		assert.NotContains(t, out, "Comet", "a non-match must leave the list")
+		assert.Contains(t, out, "Matches: 1",
+			"the count names what it counts when a filter is applied")
+
+		noMatch, err := runCmd(t, "nft", "list", "--search", "zzzz")
+		require.NoError(t, err)
+		assert.Contains(t, noMatch, "Matches: 0")
+		assert.Contains(t, noMatch, `No NFT matches "zzzz".`)
+		assert.NotContains(t, noMatch, "(none)",
+			"a populated collection must not be described as empty")
+	})
+}
+
+// TestNFTList_RejectsOwnerAndSearchTogether keeps one read to one question.
+// Answering the owner and dropping the term printed rows nobody asked for while
+// the heading still said "matches".
+func TestNFTList_RejectsOwnerAndSearchTogether(t *testing.T) {
+	withTempDir(t, func(t *testing.T) {
+		key := base64.StdEncoding.EncodeToString([]byte("0123456789abcdef0123456789abcdef"))
+		_, err := runCmd(t, "nft", "mint", "-n", "Star", "-c", key)
+		require.NoError(t, err)
+
+		out, err := runCmd(t, "nft", "list", "--owner", key, "--search", "star")
+		require.Error(t, err, "the two flags answer different questions")
+		assert.NotContains(t, out, "Star", "and nothing is printed as if it worked")
 	})
 }
