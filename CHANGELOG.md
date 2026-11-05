@@ -34,6 +34,17 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **Every write amount is parsed under its own field**: last round covered the create supply; the five
+  write forms (mint, transfer, approve, transfer from, burn) took whatever was typed and sent it, so a
+  decimal reached storage and came back as a status line naming no control. Each now runs the store's
+  parser and draws its refusal under the Amount field, keyed by form so a Mint refusal cannot appear under
+  Transfer.
+- **A corrected amount does not keep its old sentence**: the check runs after the other validations, so a
+  reader who fixed the amount but still had another field to fill kept seeing the stale refusal. Each
+  handler clears its form's message on entry.
+
+### Fixed
+
 - **A decimal supply is refused under its own field**: the create form validated the name and symbol with
   the domain's sentences, but not the supply — the one create field the store parses as a number — so a
   decimal travelled to storage and came back as a status line naming no control. The form now runs the

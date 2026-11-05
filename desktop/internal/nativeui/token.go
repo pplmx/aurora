@@ -91,7 +91,12 @@ type tokenState struct {
 	fromPriv     string
 	// fromSpender is optional: it is not sent to the service, but lets a
 	// remembered signer key be offered for Transfer From.
-	fromSpender    string
+	fromSpender string
+	// amountErrs hold the parser's refusal for each write form's Amount field,
+	// keyed by form. These fields are the other place a decimal can be typed, and
+	// like the create supply they used to travel to storage, which named no
+	// control when it refused them.
+	amountErrs     map[string]string
 	burnFrom       string
 	burnAmount     string
 	burnPriv       string
@@ -634,4 +639,41 @@ func wrapErr(err error) statusLine {
 		return errStatus(err)
 	}
 	return okStatus("Done.")
+}
+
+// checkAmount runs the store's own parser on one write form's Amount field and
+// keeps its refusal keyed by form, so the sentence can be drawn under the control
+// that needs fixing. It reports whether the value may be sent.
+//
+// The write forms share the state, so the key is the form's id rather than the
+// field: a refusal for Mint must not appear under Transfer's amount.
+func (a *App) checkAmount(form, value string) bool {
+	if a.token.amountErrs == nil {
+		a.token.amountErrs = map[string]string{}
+	}
+	delete(a.token.amountErrs, form)
+	if _, err := token.NewAmountFromString(strings.TrimSpace(value)); err != nil {
+		a.token.amountErrs[form] = err.Error()
+		return false
+	}
+	return true
+}
+
+// amountField draws one write form's Amount control with its own refusal under it,
+// so the sentence sits where the fix belongs instead of in the status line.
+func (a *App) amountField(c *ui.Context, form string, value *string) {
+	message := ""
+	if kept, ok := a.token.amountErrs[form]; ok {
+		message = kept
+	}
+	fieldWithError(c, "Amount", message, func() {
+		ui.TextInput(c, value)
+	})
+}
+
+// clearAmountErr drops a form's previous refusal when the handler runs again. The
+// check happens after the other validations, so without this a reader who fixed
+// the amount but still has another field to fill keeps seeing the old sentence.
+func (a *App) clearAmountErr(form string) {
+	delete(a.token.amountErrs, form)
 }

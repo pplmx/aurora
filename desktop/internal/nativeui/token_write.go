@@ -28,7 +28,7 @@ func (a *App) tokenWrites(c *ui.Context) {
 	case 0:
 		formCard(c, "Mint", "Only the token owner can mint, and only for a mintable token.", func() {
 			field(c, "To (base64 public key)", &a.token.mintTo)
-			field(c, "Amount", &a.token.mintAmount)
+			a.amountField(c, "mint", &a.token.mintAmount)
 			field(c, "Owner Private Key", &a.token.mintPriv)
 			a.useOwnerKeyButton(c, &a.token.mintPriv, true)
 			a.useSavedKeyButton(c, a.selectedTokenOwner(), &a.token.mintPriv)
@@ -43,7 +43,7 @@ func (a *App) tokenWrites(c *ui.Context) {
 		formCard(c, "Transfer", "Move tokens from one account to another.", func() {
 			field(c, "From (base64 public key)", &a.token.xFrom)
 			field(c, "To (base64 public key)", &a.token.xTo)
-			field(c, "Amount", &a.token.xAmount)
+			a.amountField(c, "transfer", &a.token.xAmount)
 			field(c, "From Private Key", &a.token.xPriv)
 			a.useOwnerKeyButton(c, &a.token.xPriv,
 				strings.TrimSpace(a.token.xFrom) == a.selectedTokenOwner())
@@ -59,7 +59,7 @@ func (a *App) tokenWrites(c *ui.Context) {
 		formCard(c, "Approve", "Let a spender move up to an amount on the owner's behalf.", func() {
 			field(c, "Owner (base64 public key)", &a.token.approveOwner)
 			field(c, "Spender (base64 public key)", &a.token.approveTo)
-			field(c, "Amount", &a.token.approveAmt)
+			a.amountField(c, "approve", &a.token.approveAmt)
 			field(c, "Owner Private Key", &a.token.approvePriv)
 			a.useOwnerKeyButton(c, &a.token.approvePriv,
 				strings.TrimSpace(a.token.approveOwner) == a.selectedTokenOwner())
@@ -75,7 +75,7 @@ func (a *App) tokenWrites(c *ui.Context) {
 		formCard(c, "Transfer From", "Spend an allowance the owner granted.", func() {
 			field(c, "Owner (base64 public key)", &a.token.fromOwner)
 			field(c, "To (base64 public key)", &a.token.fromTo)
-			field(c, "Amount", &a.token.fromAmount)
+			a.amountField(c, "transfer_from", &a.token.fromAmount)
 			fieldHint(c, "Spender public key (optional)", "Used only to find a key saved for this session.", &a.token.fromSpender)
 			field(c, "Spender Private Key", &a.token.fromPriv)
 			a.useSavedKeyButton(c, a.token.fromSpender, &a.token.fromPriv)
@@ -89,7 +89,7 @@ func (a *App) tokenWrites(c *ui.Context) {
 	case 4:
 		formCard(c, "Burn", "Destroy tokens from an account. This cannot be undone.", func() {
 			field(c, "From (base64 public key)", &a.token.burnFrom)
-			field(c, "Amount", &a.token.burnAmount)
+			a.amountField(c, "burn", &a.token.burnAmount)
 			field(c, "Owner Private Key", &a.token.burnPriv)
 			a.useOwnerKeyButton(c, &a.token.burnPriv,
 				strings.TrimSpace(a.token.burnFrom) == a.selectedTokenOwner())
@@ -114,10 +114,14 @@ func (a *App) tokenWrites(c *ui.Context) {
 // Approve and Allowance) signs for an account the operator typed somewhere
 // else and cannot see from the form they used.
 func (a *App) mintToken() {
+	a.clearAmountErr("mint")
 	privateKey := strings.TrimSpace(a.token.mintPriv)
 	tokenID, to := strings.TrimSpace(a.token.tokenID), strings.TrimSpace(a.token.mintTo)
 	amount := strings.TrimSpace(a.token.mintAmount)
 	if rejectIncomplete(&a.token.status, "Token ID, recipient, amount, and private key are required.", tokenID, to, amount, privateKey) {
+		return
+	}
+	if !a.checkAmount("mint", a.token.mintAmount) {
 		return
 	}
 	owner := a.selectedTokenOwner()
@@ -138,11 +142,15 @@ func (a *App) mintToken() {
 }
 
 func (a *App) transferToken() {
+	a.clearAmountErr("transfer")
 	privateKey := strings.TrimSpace(a.token.xPriv)
 	tokenID := strings.TrimSpace(a.token.tokenID)
 	from, to := strings.TrimSpace(a.token.xFrom), strings.TrimSpace(a.token.xTo)
 	amount := strings.TrimSpace(a.token.xAmount)
 	if rejectIncomplete(&a.token.status, "Token ID, sender, recipient, amount, and private key are required.", tokenID, from, to, amount, privateKey) {
+		return
+	}
+	if !a.checkAmount("transfer", a.token.xAmount) {
 		return
 	}
 	a.runWrite("Transferring…", func() func() {
@@ -159,11 +167,15 @@ func (a *App) transferToken() {
 }
 
 func (a *App) approveToken() {
+	a.clearAmountErr("approve")
 	privateKey := strings.TrimSpace(a.token.approvePriv)
 	tokenID := strings.TrimSpace(a.token.tokenID)
 	owner, spender := strings.TrimSpace(a.token.approveOwner), strings.TrimSpace(a.token.approveTo)
 	amount := strings.TrimSpace(a.token.approveAmt)
 	if rejectIncomplete(&a.token.status, "Token ID, owner, spender, amount, and private key are required.", tokenID, owner, spender, amount, privateKey) {
+		return
+	}
+	if !a.checkAmount("approve", a.token.approveAmt) {
 		return
 	}
 	a.runWrite("Approving…", func() func() {
@@ -180,6 +192,7 @@ func (a *App) approveToken() {
 }
 
 func (a *App) transferFromToken() {
+	a.clearAmountErr("transfer_from")
 	privateKey := strings.TrimSpace(a.token.fromPriv)
 	tokenID := strings.TrimSpace(a.token.tokenID)
 	owner, to := strings.TrimSpace(a.token.fromOwner), strings.TrimSpace(a.token.fromTo)
@@ -188,6 +201,9 @@ func (a *App) transferFromToken() {
 		return
 	}
 	spender := a.token.fromSpender
+	if !a.checkAmount("transfer_from", a.token.fromAmount) {
+		return
+	}
 	a.runWrite("Transferring…", func() func() {
 		err := a.services.TransferFromToken(tokenID, owner, to, amount, privateKey)
 		return func() {
@@ -222,10 +238,14 @@ func (a *App) renderBurnDialog(c *ui.Context) {
 	switch destructiveConfirm(c, &a.token.askBurn, "Burn tokens?", detail, "Burn",
 		a.token.burnTrigger, a.token.burnTrigger) {
 	case destructiveConfirmed:
+		a.clearAmountErr("burn")
 		tokenID := strings.TrimSpace(a.token.tokenID)
 		privateKey := strings.TrimSpace(a.token.burnPriv)
 		if !allSet(tokenID, owner, amount, privateKey) {
 			a.token.status = errorStatus("Token ID, source account, amount, and private key are required.")
+			return
+		}
+		if !a.checkAmount("burn", a.token.burnAmount) {
 			return
 		}
 		a.runWrite("Burning…", func() func() {

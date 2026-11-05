@@ -721,3 +721,33 @@ func TestADecimalSupplyIsRefusedUnderItsOwnField(t *testing.T) {
 	require.Empty(t, app.token.supplyErr, "a corrected value clears the refusal")
 	require.False(t, app.token.status.isErr, "and the write proceeds")
 }
+
+// TestEveryWriteAmountIsParsedUnderItsOwnField extends last round's create-form
+// rule to the five write forms. Each takes an Amount the store parses as a whole
+// number of base units, and each used to send whatever was typed: a decimal
+// reached storage, which refused it in a status line naming no control.
+func TestEveryWriteAmountIsParsedUnderItsOwnField(t *testing.T) {
+	app := New(workbenchFakes())
+	app.SetActions(Actions{Version: "0.0.1", SetPageTitle: func(string) {}, SetBadgeCount: func(int) {}})
+	tester := ui.NewTester(app.View, 1280, 2000)
+	app.ShowPage("Token")
+	tester.Frame()
+
+	app.token.tokenID, app.token.mintTo = "GLD", "pk"
+	app.token.mintAmount, app.token.mintPriv = "100.5", "priv"
+	app.mintToken()
+	tester.Frame()
+	require.Contains(t, app.token.amountErrs["mint"], "whole number",
+		"the mint amount is parsed with the store's own rule")
+	require.True(t, tester.HasText("whole number"), "and the refusal is drawn")
+	require.False(t, app.token.status.isErr,
+		"the write never ran, so the status line says nothing about it")
+
+	// A refusal belongs to its form: fixing the amount clears it even when
+	// another field still blocks the write.
+	app.token.mintAmount, app.token.mintPriv = "100", ""
+	app.mintToken()
+	require.Empty(t, app.token.amountErrs["mint"],
+		"a corrected amount does not keep the old sentence")
+	require.True(t, app.token.status.isErr, "the missing key is what blocks it now")
+}
