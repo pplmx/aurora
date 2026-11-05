@@ -641,3 +641,25 @@ func TestCandidatePartyIsOptional(t *testing.T) {
 		require.Error(t, err, "an over-long party is still refused")
 	})
 }
+
+// TestTheResultsHeadingCarriesTheTurnOut pins the count every other collection
+// heading in the CLI carries. Per-candidate figures with no total left the
+// reader to add them up to answer "how many voted", and the JSON had the number
+// as total_votes all along.
+func TestTheResultsHeadingCarriesTheTurnOut(t *testing.T) {
+	withTempDir(t, func(t *testing.T) {
+		runMigrations(t)
+
+		cand, err := runCmd(t, "voting", "candidate", "add", "--name", "Alice", "--party", "Greens")
+		require.NoError(t, err, "candidate add")
+		session, err := runCmd(t, "voting", "session", "create", "-t", "Election",
+			"-c", extractField(t, cand, "ID:"),
+			"--start-time", "1700000000", "--end-time", "1800000000")
+		require.NoError(t, err, "session create")
+
+		out, err := runCmd(t, "voting", "results", "--session", extractField(t, session, "ID:"))
+		require.NoError(t, err)
+		require.Contains(t, out, "Results: 0 votes",
+			"the heading states the turn-out, not just the word Results")
+	})
+}

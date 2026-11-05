@@ -411,3 +411,22 @@ func TestOracleSourceList_SearchSpansTheStore(t *testing.T) {
 			"a populated registry must not be described as empty")
 	})
 }
+
+// TestTheReadingsHeadingCarriesTheCount is the same fact for the oracle page:
+// "Oracle Data:" read the same whether it held one reading or a hundred, while
+// the document carried the array all along.
+func TestTheReadingsHeadingCarriesTheCount(t *testing.T) {
+	withTempDir(t, func(t *testing.T) {
+		runMigrations(t)
+
+		out, err := runCmd(t, "oracle", "source", "add", "-n", "zen",
+			"-u", "https://example.invalid/feed")
+		require.NoError(t, err, "source add")
+		sourceID := extractField(t, out, "ID:")
+
+		data, err := runCmd(t, "oracle", "data", "-i", sourceID)
+		require.NoError(t, err)
+		require.Contains(t, data, "Oracle Data: 0 readings",
+			"an empty page still says how many it holds")
+	})
+}

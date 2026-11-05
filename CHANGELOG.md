@@ -47,6 +47,16 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **The results and readings headings carry their count**: `voting results` printed `📊 Results:` and
+  `oracle data` printed `📊 Oracle Data:` with nothing beside either, while every other collection heading
+  in the CLI states its size — `Total lotteries: 1`, `NFTs: 3`, `Entries 1–1`. A reader wanting the turn-out
+  had to add the per-candidate figures up, and the number was in `total_votes` all along.
+- **`oracle data` is documented as a page of readings**: the `--json` shape table filed it under "single
+  read", but it answers `{"data":[…]}` — one page from one source — while `oracle latest` is the single
+  read. A script that expected the single-read shape would look for the fields one level too high.
+
+### Fixed
+
 - **Both histories carry the time an entry happened**: `token history` printed from, to, amount and block
   height, and `nft history` an operation type and a block number — what moved and where, but never when.
   The time is the fact a history is read for after the amount, and it was in the JSON all along.

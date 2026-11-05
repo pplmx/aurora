@@ -217,7 +217,11 @@ var resultsCmd = &cobra.Command{
 			return printJSON(resp)
 		}
 
-		fmt.Println("\n📊 " + i18n.GetText("voting.results_heading") + i18n.Colon())
+		// The heading carries the turn-out, as every other collection heading in
+		// the CLI carries its count: a list of per-candidate figures leaves the
+		// reader to add them up to answer "how many voted".
+		fmt.Printf("\n📊 %s\n", i18n.Label(
+			i18n.GetText("voting.results_heading"), voteCountText(resp.TotalVotes)))
 		for _, cand := range resp.Candidates {
 			name := cand.ID
 			if cand.Name != "" {

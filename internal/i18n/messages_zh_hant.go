@@ -406,6 +406,8 @@ var traditionalMessages = map[string]string{
 	"oracle.data.list":                          "查詢預言機數據",
 	"oracle.data_entry":                         "[%d] %s - 區塊 #%d",
 	"oracle.data_heading":                       "預言機數據",
+	"oracle.readings_count":                     "%d 條讀數",
+	"oracle.readings_count_one":                 "1 條讀數",
 	"oracle.error.add_template":                 "添加模板失敗",
 	"oracle.error.delete_source":                "刪除數據源失敗",
 	"oracle.error.disable_source":               "禁用數據源失敗",

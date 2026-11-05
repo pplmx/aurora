@@ -78,7 +78,11 @@ var dataCmd = &cobra.Command{
 			return printJSON(resp)
 		}
 
-		fmt.Printf("\n📊 %s\n", i18n.GetText("oracle.data_heading")+i18n.Colon())
+		// The heading carries the row count, as every other collection heading in
+		// the CLI does: "Oracle Data:" with nothing beside it reads the same
+		// whether the page holds one reading or a hundred.
+		fmt.Printf("\n📊 %s\n", i18n.Label(i18n.GetText("oracle.data_heading"),
+			readingsCountText(len(resp.Data))))
 		if len(resp.Data) == 0 {
 			fmt.Println("   " + i18n.GetText("common.none"))
 		}
@@ -87,6 +91,14 @@ var dataCmd = &cobra.Command{
 		}
 		return nil
 	},
+}
+
+// readingsCountText keeps a single reading from reading as "1 readings".
+func readingsCountText(count int) string {
+	if count == 1 {
+		return i18n.GetText("oracle.readings_count_one")
+	}
+	return i18n.GetTextF("oracle.readings_count", count)
 }
 
 var latestCmd = &cobra.Command{
