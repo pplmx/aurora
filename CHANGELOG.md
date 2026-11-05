@@ -34,6 +34,17 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Added
 
+- **`token list --search` reaches the whole store**: the app-layer search the window already used was
+  not reachable from the CLI, so a script had to page through everything to find one token. The flag
+  follows `lottery history --search`, which has queried storage since it was added.
+- **The filtered list names its own count**: with a term applied, the heading says `Matches` instead of
+  `Total tokens`, and a term that finds nothing says no match rather than "No tokens yet". The store may
+  be full; claiming it is empty is the kind of sentence that starts someone creating what already
+  exists. Both messages and the paged one now differ, which is the same four-way answer `lottery
+  history` gives.
+
+### Added
+
 - **The three new repository searches are pinned at the storage layer, with assertions that can fail**:
   the token, NFT and oracle reads each get a test proving the filter runs over stored columns
   case-insensitively, pages inside the match set, treats a blank term as the plain list, and — the part

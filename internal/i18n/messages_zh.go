@@ -293,9 +293,12 @@ nft、token）和运维命令（migrate、backup、version）。`,
 	"token.info.cmd":          "查询代币信息",
 	"token.list.cmd":          "列出全部代币",
 	"token.list_limit":        "最多列出的代币数（0 表示全部）",
+	"token.list_search":       "按 id、名称或符号过滤",
 	"common.list_limit":       "最多列出的条数（0 表示全部）",
 	"token.list_page":         "本页代币",
 	"token.no_tokens":         "暂无代币",
+	"token.no_match":          "没有代币匹配 %q。",
+	"token.matches":           "匹配",
 
 	// Flags
 	"token.name":        "代币名称，最多 100 字节",

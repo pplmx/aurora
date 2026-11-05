@@ -515,3 +515,36 @@ func TestFieldBlocksLineUpTheirValues(t *testing.T) {
 		}
 	}
 }
+
+// TestTokenList_SearchSpansTheStoreAndNamesItself pins the flag and the fourth
+// answer it needs. A filter over the requested page cannot find a token that is
+// not on it, so the term goes to storage; and "Total tokens: 0" beside a filter
+// claimed an empty store when the store was merely not matching.
+func TestTokenList_SearchSpansTheStoreAndNamesItself(t *testing.T) {
+	withTempDir(t, func(t *testing.T) {
+		tokenFixture(t, "Gold Standard", "GLD", "100")
+		tokenFixture(t, "Silver Coin", "SLV", "200")
+
+		byName, err := runCmd(t, "token", "list", "--search", "gold")
+		require.NoError(t, err)
+		assert.Contains(t, byName, "Gold Standard")
+		assert.NotContains(t, byName, "Silver Coin", "a non-match must leave the list")
+		assert.Contains(t, byName, "Matches: 1",
+			"the count names what it counts when a filter is applied")
+
+		bySymbol, err := runCmd(t, "token", "list", "--search", "SLV")
+		require.NoError(t, err)
+		assert.Contains(t, bySymbol, "Silver Coin")
+		assert.NotContains(t, bySymbol, "Gold Standard")
+
+		// A search that matches nothing is not an empty store: the sentence and
+		// the count both have to say "no match", or a reader concludes the
+		// store is empty and starts creating what already exists.
+		noMatch, err := runCmd(t, "token", "list", "--search", "zzzz")
+		require.NoError(t, err)
+		assert.Contains(t, noMatch, "Matches: 0")
+		assert.Contains(t, noMatch, `No token matches "zzzz".`)
+		assert.NotContains(t, noMatch, "No tokens yet",
+			"a populated store must not be described as empty")
+	})
+}

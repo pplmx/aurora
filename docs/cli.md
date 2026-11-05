@@ -203,6 +203,7 @@ aurora nft burn --nft <id> --owner <owner> -k "<private-key>" --confirm
 aurora token create -n "MyToken" -s "SYMBOL" --supply 1000000 [-d 8]  # 打印 owner 密钥对
 aurora token list
 aurora token list --limit 100 --offset 0
+aurora token list --search gold           # 按 id、名称或符号过滤
 aurora token info -t <token-id>
 aurora token mint -t <token-id> --to <address> --amount 100 -k "<private-key>"
 aurora token transfer -t <token-id> --from <addr> --to <address> --amount 50 -k "<key>"
@@ -217,7 +218,9 @@ aurora token burn -t <token-id> --from <addr> --amount 10 -k "<key>" --confirm
 
 `-d/--decimals` 默认 8，取值 0..127；显式传 `0` 会被尊重。
 `token list` 的 `--limit` 默认 0（列出 offset 之后的全部记录），大于 0 时只
-读取该页并打印本页数量与偏移；`--offset` 默认 0。
+读取该页并打印本页数量与偏移；`--offset` 默认 0。`--search` 在存储层按 id、
+名称或符号过滤，所以能找到不在当前页的代币；带过滤时表头改用「匹配」而不是
+「总计」，避免把「没匹配上」说成「库里没有」。
 `token history` 省略 `--owner` 时分页读取整个代币的转账流水；提供该参数时只
 返回该账户发出或收到的转账。它的 `--limit` 默认 **50**（与其他列表的 0 不同：
 流水按代币累计，通常只会越读越多），`--offset` 默认 0。

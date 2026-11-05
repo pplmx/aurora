@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math"
 	"strconv"
+	"strings"
 
 	"github.com/pplmx/aurora/internal/app/tokenapp"
 	"github.com/pplmx/aurora/internal/domain/token"
@@ -199,6 +200,7 @@ func init() {
 
 	tokenListCmd.Flags().IntP("limit", "l", 0, i18n.GetText("token.list_limit"))
 	tokenListCmd.Flags().IntP("offset", "p", 0, i18n.GetText("token.offset"))
+	tokenListCmd.Flags().StringP("search", "s", "", i18n.GetText("token.list_search"))
 }
 
 var tokenCreateCmd = &cobra.Command{
@@ -267,10 +269,15 @@ var tokenListCmd = &cobra.Command{
 			return err
 		}
 
+		search, _ := cmd.Flags().GetString("search")
+		search = strings.TrimSpace(search)
+
 		// The app-layer use case builds the same DTO the REST list returns, so
-		// the table and --json output share one shape with the API.
+		// the table and --json output share one shape with the API. The search is
+		// carried in the request because it runs in storage: a page-local filter
+		// would only find the tokens that happened to land on the requested page.
 		tokens, err := tokenapp.NewListTokensUseCase(service).Execute(
-			&tokenapp.ListTokensRequest{Limit: limit, Offset: offset})
+			&tokenapp.ListTokensRequest{Search: search, Limit: limit, Offset: offset})
 		if err != nil {
 			return wrapCLIError("token.error.list", err)
 		}
@@ -281,19 +288,30 @@ var tokenListCmd = &cobra.Command{
 			// The heading and its count come before the empty line, as every
 			// other list does: a bare sentence drops the total that tells a
 			// script and a reader whether the store is empty or the page is.
-			// An offset alone asks for a page too, so it takes the paged
-			// heading — Total: 0 on `--offset 9` claimed an empty store.
-			if limit > 0 || offset > 0 {
+			// A search is a fourth answer: "Total tokens: 0" beside a filter
+			// claimed an empty store, when the store may be full.
+			switch {
+			case limit > 0 || offset > 0:
 				fmt.Printf("\n🪙 %s\n", i18n.Label(i18n.GetText("token.list_page"),
 					fmt.Sprintf("%s\n", i18n.GetTextF("common.page_with_offset", 0, offset))))
-			} else {
+			case search != "":
+				fmt.Printf("\n🪙 %s\n", i18n.Label(i18n.GetText("token.matches"), "0\n"))
+			default:
 				fmt.Printf("\n🪙 %s\n", i18n.Label(i18n.GetText("token.total"), "0\n"))
 			}
-			// Paged and empty is "this page", not "the store": the same three
+			// Paged and empty is "this page", not "the store"; a search that
+			// matches nothing is "no match", not "no tokens yet". The same
 			// answers `lottery history` and the voting lists give.
-			if limit > 0 || offset > 0 {
-				fmt.Println("   " + i18n.GetText("common.page_empty"))
-			} else {
+			switch {
+			case limit > 0 || offset > 0:
+				if search != "" {
+					fmt.Printf("   "+i18n.GetText("token.no_match")+"\n", search)
+				} else {
+					fmt.Println("   " + i18n.GetText("common.page_empty"))
+				}
+			case search != "":
+				fmt.Printf("   "+i18n.GetText("token.no_match")+"\n", search)
+			default:
 				fmt.Println("   " + i18n.GetText("token.no_tokens"))
 			}
 			return nil
@@ -301,6 +319,10 @@ var tokenListCmd = &cobra.Command{
 
 		if limit > 0 || offset > 0 {
 			fmt.Printf("\n🪙 %s\n", i18n.Label(i18n.GetText("token.list_page"), fmt.Sprintf("%s\n", i18n.GetTextF("common.page_with_offset", len(tokens), offset))))
+		} else if search != "" {
+			// "Total tokens" beside a filter would read as the store's count;
+			// name what the number is.
+			fmt.Printf("\n🪙 %s\n", i18n.Label(i18n.GetText("token.matches"), fmt.Sprintf("%d\n", len(tokens))))
 		} else {
 			fmt.Printf("\n🪙 %s\n", i18n.Label(i18n.GetText("token.total"), fmt.Sprintf("%d\n", len(tokens))))
 		}
