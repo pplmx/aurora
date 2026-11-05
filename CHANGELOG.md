@@ -34,6 +34,16 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Added
 
+- **The three new repository searches are pinned at the storage layer, with assertions that can fail**:
+  the token, NFT and oracle reads each get a test proving the filter runs over stored columns
+  case-insensitively, pages inside the match set, treats a blank term as the plain list, and — the part
+  that needed a second pass — matches `%` and `_` literally. The first version of those assertions
+  passed with the escaping deleted, because no fixture row could have been matched by the wildcard; a
+  distractor row (`Iron 1000` beside `Bronze 100%`, `CloudX9` beside `Cloud_9`) is what makes the
+  claim measurable. Removing the escape now fails all three.
+
+### Added
+
 - **The oracle source search spans the whole store, completing the set**: every paged collection in the
   window now searches storage rather than the loaded page, so a feed whose row sits on an older page is
   reachable by name. It matters most here: a source's id is a timestamp plus a hash that nobody reads in
