@@ -825,4 +825,5 @@ var desktopMessages = map[string]string{
 	"Needs attention":                             "需要注意",
 	"Aurora couldn't read a page":                 "Aurora 无法读取某个页面",
 	"%s has not loaded. Open it to retry.":        "%s 尚未載入，開啟後重試。",
+	"Waiting for the running write to finish before reading this page.": "等待正在运行的写入完成后再读取此页。",
 }

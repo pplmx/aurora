@@ -111,6 +111,9 @@ func TestFirstRecordPageYieldsToWorkInProgress(t *testing.T) {
 // search, and typing a query is work inside a collection, not a first write.
 func TestFirstRecordGateIgnoresOnlyUntouchedPages(t *testing.T) {
 	app := New(&fakeServices{})
+	// The gate answers "the store is empty" only after a read said so, so the
+	// page has to have read. An unread page is covered by its own test.
+	app.token.loaded = true
 	require.True(t, app.nftNeedsFirstRecord())
 	require.True(t, app.oracleNeedsFirstRecord())
 	require.True(t, app.tokenNeedsFirstRecord())

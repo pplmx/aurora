@@ -469,3 +469,52 @@ func TestAReloadDuringAWriteIsNotAPageFailure(t *testing.T) {
 	require.Len(t, app.loadFailures(), 1,
 		"a reload with no write running still reads and reports")
 }
+
+// TestAnUnreadPageDoesNotClaimTheStoreIsEmpty covers the state a page switch
+// creates during a background write. Navigation is allowed while a write owns the
+// database and the read is skipped, so the new page has no rows and no error —
+// exactly the shape of an empty store. Printing "No tokens yet" there is a
+// statement about a store the page never looked at.
+func TestAnUnreadPageDoesNotClaimTheStoreIsEmpty(t *testing.T) {
+	// A plain fake holds no tokens, so "No tokens yet" is exactly what an unread
+	// page would say if the two states were not told apart.
+	app := New(&fakeServices{})
+	app.SetActions(Actions{Version: "0.0.1", SetPageTitle: func(string) {}, SetBadgeCount: func(int) {}})
+	tester := ui.NewTester(app.View, 1280, 900)
+	app.ShowPage("Dashboard")
+	tester.Frame()
+
+	app.busy = "Creating token…"
+	app.ShowPage("Token")
+	tester.Frame()
+
+	require.False(t, tester.HasText("No tokens yet"),
+		"an unread page must not describe the store it has not read")
+	require.True(t, tester.HasText("Waiting for the running write"),
+		"and it says why it is empty, which is the write holding the database")
+	require.True(t, tester.HasText("Creating token…"),
+		"the busy bar names the write that owns the database")
+
+	// Once the write finishes the page reads, and the real state shows.
+	app.busy = ""
+	app.refresh()
+	tester.Frame()
+	require.True(t, app.token.loaded, "the read happened")
+	require.True(t, tester.HasText("No tokens yet"),
+		"and the store really is empty, so the guide is right to say so")
+}
+
+// TestAReadEmptyStoreStillSaysSo guards the other side: the change must not hide
+// the empty state for a store that really is empty.
+func TestAReadEmptyStoreStillSaysSo(t *testing.T) {
+	// A plain fake holds no tokens, so the page's first read really is empty.
+	app := New(&fakeServices{})
+	app.SetActions(Actions{Version: "0.0.1", SetPageTitle: func(string) {}, SetBadgeCount: func(int) {}})
+	tester := ui.NewTester(app.View, 1280, 900)
+	app.ShowPage("Token")
+	tester.Frame()
+
+	require.True(t, app.token.loaded)
+	require.True(t, tester.HasText("No tokens yet"),
+		"a store that was read and is empty still says so")
+}

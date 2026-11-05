@@ -34,6 +34,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **An unread page no longer claims the store is empty**: navigation is allowed during a background write
+  and the read is skipped, so the newly shown page had no rows and no error — the exact shape of an empty
+  store. It printed "No tokens yet", a statement about a store it had never looked at. The page now
+  records that its first read completed, and before that it says the running write is what it is waiting
+  for. A store that really is empty still says so, which has its own test.
+
+### Fixed
+
 - **A read during a background write is no longer recorded as a page failure**: navigation is
   deliberately allowed while a write runs — a reader may switch pages — and doing so reads the new page.
   A read landing on the locked database was recorded as "this page could not be read", which then showed

@@ -142,6 +142,11 @@ type tokenState struct {
 	burnTrigger     ui.Handle
 	generateControl ui.Handle
 	ownerKeyCopy    ui.Handle
+	// loaded records that the first read completed, so an unread page is not
+	// mistaken for an empty store. A page switch during a background write skips
+	// the read, and the empty-state copy would otherwise claim the store is empty
+	// without having looked.
+	loaded bool
 	// storeEmpty records whether a term-less read found nothing, so an empty
 	// result for a search is told apart from an empty store. storeChecked records
 	// that the question has been asked, which a query restored from an earlier
@@ -176,6 +181,7 @@ func (a *App) loadTokenPage(offset int) bool {
 	if len(tokens) == 0 && offset > 0 {
 		return a.loadTokenPage(0)
 	}
+	a.token.loaded = true
 	a.token.offset = offset
 	// A term-less read says whether the store has anything at all; a term that
 	// matches nothing must not be mistaken for an empty store.
@@ -246,6 +252,13 @@ func (a *App) tokenNeedsFirstRecord() bool {
 		a.token.info != nil || a.token.infoLoadedID != "" ||
 		a.token.balanceLoadedToken != "" || a.token.historyLoadedToken != "" ||
 		a.token.allowanceLoadedToken != "" || a.token.chosen >= 0
+	// A page nothing has read yet is not an empty store: the first-run guide
+	// invites a create, and it must not appear for a store this page has not
+	// looked at. The state is real: navigation is allowed during a background
+	// write, and the read is skipped.
+	if !a.token.loaded {
+		return false
+	}
 	return firstRecordOnly(a.token.loadErr, len(a.token.tokens), entered)
 }
 
@@ -275,6 +288,13 @@ func (a *App) tokenList(c *ui.Context) {
 		// answer a screen reader needs, and it is the same fact the empty note
 		// states visually.
 		announceSearchResults(c, searchChanged, len(a.token.tokens))
+		if len(a.token.tokens) == 0 && !a.token.loaded {
+			// Unread is not empty. The busy bar names the write that owns the
+			// database; claiming there are no tokens would be a statement about a
+			// store this page has not looked at.
+			hint(c, "Waiting for the running write to finish before reading this page.")
+			return
+		}
 		if len(a.token.tokens) == 0 {
 			// An empty result is not always an empty store, and the store's state is
 			// what decides which sentence is true. A store with no tokens gets the
