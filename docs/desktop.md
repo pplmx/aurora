@@ -721,9 +721,12 @@ just check && just test
 - **数据库备份同样只对当前用户开放**：File 或 Settings → Back Up Database 新建的备份
   目录为 `0700`，SQLite 快照和 `metadata.json` 固定为 `0600`。如果用户明确
   选择一个已存在的备份目录，该目录自身的权限保持不变，但其中的新文件仍是
-  owner-only；这样 Oracle Bearer 头不会随备份暴露给同机其他账号。Restore
-  生成的隐藏 `.pre_restore` 撤销快照同样收紧为 `0700/0600`，恢复后写回的
-  活动数据库也保持 `0600`。
+  owner-only；这样 Oracle Bearer 头不会随备份暴露给同机其他账号。
+- **窗口只能备份，恢复属于 CLI**：窗口里没有 Restore 入口，菜单、命令面板和
+  快捷键都只调用 `BackupService.Create`；恢复会覆盖活动数据库并需要一个可回滚的
+  撤销快照，因此只在 `aurora backup restore <备份目录> --confirm` 提供。那句话的
+  权限承诺（`.pre_restore` 为 `0700/0600`、写回的活动数据库为 `0600`）属于 CLI
+  路径，见 [cli.md](cli.md) 的「备份」一节，窗口本身不生成撤销快照。
 - **界面语言跟随系统**：MyGo 翻译带 role 的平台菜单项（应用/编辑/窗口、
   原生对话框的“好/取消”）；Aurora 自己的页面标题、按钮、字段、提示、
   空状态、guide、弹窗和 `--help`/`--version` 都由 `internal/i18n` 提供。

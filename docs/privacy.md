@@ -28,7 +28,7 @@ operator names another path. On Unix-like systems the defaults are owner-only:
 | `desktop-settings.json`             | `0600`          | Live-updates, appearance, zoom, language and last-opened page choices                                  |
 | `backup directory (new)`            | `0700`          | A backup set created by File → Back Up Database                                                        |
 | `files inside a backup`             | `0600`          | The database copy and its metadata                                                                     |
-| `restore undo snapshot`             | `0700` / `0600` | The temporary pre-restore copy; removed when the restore settles                                       |
+| `restore undo snapshot`             | `0700` / `0600` | The pre-restore copy, kept as an undo archive until the operator removes it                            |
 | `window-state.json`                 | MyGo's choice   | Window geometry; written by the UI toolkit, not by Aurora                                              |
 
 The last row is the one Aurora does not set: MyGo writes `window-state.json`

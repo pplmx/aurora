@@ -48,6 +48,17 @@ func TestPrivacyTableMatchesTheHardeningCode(t *testing.T) {
 	restore := readRepoFile(t, "internal", "infra", "backup", "restore.go")
 	assertMode(t, rows, "restore undo snapshot", firstMode(t, restore, "mkdirAllDurable"), restore)
 
+	// The undo snapshot is the operator's rollback path, not scratch space, so
+	// the row must not promise it disappears on its own. Restore never removes
+	// the directory — a reader who believed "removed when the restore settles"
+	// would not know a second restore could undo the first. The claim lives in
+	// the description column, which the row map does not keep, so it is read
+	// from the table line itself.
+	assert.NotContains(t, strings.ToLower(privacyDescription(t, text, "restore undo snapshot")), "removed",
+		"the undo snapshot survives the restore; docs/privacy.md must not say it is removed")
+	assert.NotContains(t, restore, "RemoveAll",
+		"restore.go removing the undo directory would invalidate the row's wording")
+
 	// Aurora does not choose the toolkit's window-state mode, and the document
 	// says so rather than claiming a number it does not set.
 	require.Contains(t, rows["window-state.json"], "MyGo",
@@ -71,6 +82,24 @@ func firstMode(t *testing.T, source, helper string) uint64 {
 	match := pattern.FindStringSubmatch(source)
 	require.NotNilf(t, match, "%s must take an explicit mode", helper)
 	return parseMode(t, match[1])
+}
+
+// privacyDescription returns the third cell of the table row for path — the
+// "What it holds" column. privacyRow captures only the mode, so a claim about
+// what the file is (rather than what mode it gets) has to be read here.
+func privacyDescription(t *testing.T, text, path string) string {
+	t.Helper()
+	for _, line := range strings.Split(text, "\n") {
+		prefix := "| `" + path + "`"
+		if !strings.HasPrefix(line, prefix) {
+			continue
+		}
+		cells := strings.Split(line, "|")
+		require.GreaterOrEqualf(t, len(cells), 4, "row for %q has no description cell", path)
+		return strings.TrimSpace(cells[3])
+	}
+	require.Failf(t, "no row", "docs/privacy.md has no row for %q", path)
+	return ""
 }
 
 func parseMode(t *testing.T, literal string) uint64 {
