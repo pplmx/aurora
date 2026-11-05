@@ -183,10 +183,7 @@ func (a *App) liveRefresh(c *ui.Context, reload func()) {
 	if !a.liveUpdates || reload == nil {
 		return
 	}
-	now := time.Now()
-	if a.liveNow != nil {
-		now = a.liveNow()
-	}
+	now := a.clockNow()
 	// A background write owns the database. Every other read path already waits
 	// for it — Refresh and the file commands are disabled, the palette drops
 	// them — but the timer used to fire regardless, so a write that landed at
@@ -497,10 +494,7 @@ func (a *App) liveFreshnessText(now time.Time) string {
 // liveFreshness resolves the stamp against the window's clock. The view calls
 // it every frame, so the injected clock keeps a test's expectation stable.
 func (a *App) liveFreshness() (string, bool) {
-	now := time.Now()
-	if a.liveNow != nil {
-		now = a.liveNow()
-	}
+	now := a.clockNow()
 	text := a.liveFreshnessText(now)
 	return text, text != ""
 }

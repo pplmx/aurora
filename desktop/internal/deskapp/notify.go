@@ -111,3 +111,13 @@ func (s *Shell) OpenNotification(id string) {
 		win.Invalidate()
 	}
 }
+
+// SetBadgeCount mirrors a count onto the application icon. Before the app runs
+// there is no icon to write to, and the call would post to a main thread that is
+// not pumping yet — the same hazard the other app-level calls are guarded for.
+func (s *Shell) SetBadgeCount(n int) {
+	if !appReady() {
+		return
+	}
+	mygo.App.SetBadgeCount(n)
+}

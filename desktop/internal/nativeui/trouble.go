@@ -140,3 +140,19 @@ func (a *App) syncWindowTitle() {
 	a.windowTitle = title
 	a.actions.SetPageTitle(title)
 }
+
+// syncBadgeCount mirrors the number of failing pages onto the application icon,
+// so a reader whose window is completely hidden still sees that something needs
+// them. Zero clears it, which is how the platform spells "nothing to report".
+func (a *App) syncBadgeCount() {
+	if a.actions.SetBadgeCount == nil {
+		return
+	}
+	count := len(a.loadFailures())
+	if count == a.badgeCount && a.badgePushed {
+		return
+	}
+	a.badgeCount = count
+	a.badgePushed = true
+	a.actions.SetBadgeCount(count)
+}

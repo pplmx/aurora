@@ -386,3 +386,55 @@ func TestANoticeForAnotherPageRestartsTheClock(t *testing.T) {
 	assert.Equal(t, "token", recorder.shown[0].Page,
 		"and the notice still names the topmost failing page")
 }
+
+// TestTheApplicationIconCountsFailingPages carries the count to the one surface a
+// reader sees with the window completely hidden. The sidebar, the title and the
+// palette all need the window to be somewhere visible; the application icon does
+// not.
+func TestTheApplicationIconCountsFailingPages(t *testing.T) {
+	var pushes []int
+	app := New(workbenchFakes())
+	app.SetActions(Actions{
+		Version: "0.0.1", SetPageTitle: func(string) {},
+		SetBadgeCount: func(n int) { pushes = append(pushes, n) },
+	})
+	tester := ui.NewTester(app.View, 1280, 900)
+	app.ShowPage("Token")
+	tester.Frame()
+	require.Equal(t, []int{0}, pushes, "a healthy window clears the count")
+
+	app.token.loadErr = errors.New("database is locked")
+	tester.Frame()
+	require.Equal(t, []int{0, 1}, pushes)
+
+	// A second failing page leaves the title unchanged — it is already prefixed —
+	// so a count that rode on the title's change check would freeze at one.
+	app.nft.loadErr = errors.New("database is locked")
+	tester.Frame()
+	require.Equal(t, []int{0, 1, 2}, pushes,
+		"the count follows the failures, not the title")
+
+	for i := 0; i < 3; i++ {
+		tester.Frame()
+	}
+	require.Equal(t, []int{0, 1, 2}, pushes,
+		"an unchanged count is not pushed again, however many times the frame runs")
+
+	app.token.loadErr, app.nft.loadErr = nil, nil
+	tester.Frame()
+	require.Equal(t, []int{0, 1, 2, 0}, pushes, "recovery clears it")
+}
+
+// TestTheBadgeIsSilentWithoutAShell keeps the view usable on its own: the hook is
+// optional, and a view test (or a window built before the shell is wired) must not
+// panic without it.
+func TestTheBadgeIsSilentWithoutAShell(t *testing.T) {
+	app := New(workbenchFakes())
+	app.SetActions(Actions{Version: "0.0.1"})
+	tester := ui.NewTester(app.View, 1280, 900)
+	app.token.loadErr = errors.New("database is locked")
+	app.ShowPage("Dashboard")
+	require.NotPanics(t, func() { tester.Frame() })
+	require.True(t, tester.HasText("Couldn't read Token"),
+		"and the in-window report still works")
+}

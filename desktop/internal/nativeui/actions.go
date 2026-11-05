@@ -93,6 +93,10 @@ type Actions struct {
 	// that needs the app handle.
 	Notify func(NotifyOptions)
 	Active func() bool
+	// SetBadgeCount shows a count on the application icon; zero clears it. It is
+	// the task switcher's answer to "does this window need me" once the window is
+	// behind something else, which is what the sidebar answers once it is open.
+	SetBadgeCount func(int)
 	// PageChanged reports a page switch by its stable id (the one the sidebar
 	// chooses by, not the title). The shell records it so the next launch can
 	// open the same page; optional for view tests.
@@ -263,7 +267,8 @@ func versionBadge(version string) string {
 func (a Actions) empty() bool {
 	return a.BackUpDatabase == nil && a.ExportLotteries == nil && a.ImportLotteries == nil &&
 		a.ShowDataFolder == nil && a.ShowAbout == nil && a.RecentDocuments == nil &&
-		a.SetLanguage == nil && a.SetThemeMode == nil && a.OutboxPending == nil && a.OutboxList == nil
+		a.SetLanguage == nil && a.SetThemeMode == nil && a.OutboxPending == nil && a.OutboxList == nil &&
+		a.SetBadgeCount == nil
 }
 
 // actionShortcuts keeps the file shortcuts that used to come from the native

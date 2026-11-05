@@ -34,6 +34,15 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Added
 
+- **The application icon counts the failing pages**: the sidebar, the window title and the palette all need
+  the window to be somewhere visible; the application icon is the one surface a reader sees with it
+  completely hidden. MyGo exposes `SetBadgeCount`, which the shell now wires.
+- **The badge is its own signal**: a second page failing leaves the title unchanged — it is already
+  prefixed — so a count that rode on the title's change check froze at one. A probe caught that before it
+  shipped; the count now follows the failures and is pushed only when it changes.
+
+### Added
+
 - **A page that stays unreadable raises one notification**: without live updates a failed page does not
   retry itself, so it stays failed until the reader comes back — and the reader may not come back soon.
   The notice waits 30 seconds, because a page that recovers on the next read heals itself and a notice

@@ -282,6 +282,7 @@ func main() {
 		Zoom:            shell.Zoom,
 		SetContentZoom:  shell.SetContentZoom,
 		Notify:          shell.Notify,
+		SetBadgeCount:   shell.SetBadgeCount,
 		Active:          shell.Active,
 		Version:         meta.Version,
 		BuildTime:       meta.BuildTime,

@@ -39,6 +39,11 @@ type App struct {
 	// windowTitle is the last title pushed to the native window, so the frame can
 	// skip a redundant platform call on every repaint.
 	windowTitle string
+	// badgeCount is the count last pushed to the application icon, and badgePushed
+	// records that it has been pushed at all — zero is a real value to send, so
+	// the zero value of the field cannot stand in for "not yet".
+	badgeCount  int
+	badgePushed bool
 	// trouble tracks how long a page has been unreadable, so a notice is raised
 	// for an outage that lasted rather than for a read that failed once.
 	trouble troubleNotice
@@ -196,6 +201,10 @@ func (a *App) View(c *ui.Context) {
 	// error: a comparison against the last pushed value covers all of them,
 	// including the ones a future page adds.
 	a.syncWindowTitle()
+	// The badge is its own signal: a second failing page leaves the title
+	// unchanged (it is already prefixed), so riding on the title's change check
+	// would freeze the count at one.
+	a.syncBadgeCount()
 	a.maybeNotifyTrouble(a.clockNow())
 	paletteWasOpen := a.paletteOpen
 	if a.pageAnnouncement != "" {
@@ -213,10 +222,7 @@ func (a *App) View(c *ui.Context) {
 	// The footer draws the audit backlog, and its facts are storage reads. They
 	// are refreshed on the same slow tick the live pages use, and never while a
 	// write owns the database.
-	now := time.Now()
-	if a.liveNow != nil {
-		now = a.liveNow()
-	}
+	now := a.clockNow()
 	if a.busy == "" {
 		a.refreshOutbox(now)
 	}
