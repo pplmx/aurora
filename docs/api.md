@@ -739,3 +739,8 @@ path 与 query 都可能包含凭据，因此 `/oracle/health` 的 `last_error` 
 `[log]` 控制，默认 `./logs/`（桌面端默认落在数据库旁的 `logs/`）。Unix-like
 系统上日志目录固定为 `0700`、`aurora.log` 固定为 `0600`；旧版本留下的宽松
 权限会在下一次启动时自动收紧。
+
+调度器是**轮询式**的：它每隔 `oracle.scheduler.checkInterval`（默认 1 秒）扫一遍
+到期的源，所以两次抓取的实际间隔是 `interval` 加上最多一个检查周期——实测
+`interval = 2` 时相邻读数相差 2–3 秒。这个检查周期既是抓取节奏的精度上限，
+也是「到期」判定的粒度；要更贴近 `interval` 就把它调小。

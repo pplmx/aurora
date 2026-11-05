@@ -47,6 +47,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **The scheduler's cadence is documented as polling, not exact**: the reference said it fetches "per each
+  source's `interval`", but the scheduler scans for due sources every `oracle.scheduler.checkInterval`
+  (1s by default), so a real gap is `interval` plus up to one scan. Measured against a live source with
+  `interval = 2`: consecutive readings 2–3 seconds apart. Measured rather than read: the same run also
+  showed a disabled source stopping cleanly and resuming on re-enable.
+
+### Fixed
+
 - **A refused source names the address it resolved to**: a public name that a poisoned or split-horizon
   resolver points at an internal address was reported as `host "api.coingecko.com" resolves to a blocked
   (private/internal) address` — no address in it, so it read as a rule the operator broke rather than a DNS
