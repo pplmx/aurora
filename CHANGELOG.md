@@ -32,6 +32,13 @@ The milestone notes under `.planning/` are history, not current instructions.
   module. The hue is resolved per frame, because which palette answers depends on the appearance being
   painted; pages and commands keep the accent, since they belong to no module.
 
+### Added
+
+- **The command palette offers the page that failed**: the sidebar line reports a failure, but the palette
+  is where a reader goes when they cannot find something, and "the page is failing" answers a surprising
+  number of those searches. The entry names the page and opens it, so it reads as a destination rather
+  than a warning, and it is absent from a healthy window.
+
 ### Changed
 
 - **The sidebar's visibility is one predicate**: the block at the bottom of the sidebar now carries four

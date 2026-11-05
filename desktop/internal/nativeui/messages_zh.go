@@ -820,4 +820,6 @@ var desktopMessages = map[string]string{
 	"Couldn't read %s":                            "无法读取 %s",
 	"%d pages couldn't be read":                   "%d 个页面读取失败",
 	"Open the first page that could not be read.": "打开第一个读取失败的页面。",
+	"Open %s, which could not be read":            "打开 %s，它读取失败",
+	"Open %s; %d pages could not be read":         "打开 %s；共有 %d 个页面读取失败",
 }

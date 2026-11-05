@@ -783,4 +783,6 @@ var desktopMessagesHant = map[string]string{
 	"Couldn't read %s":                            "無法讀取 %s",
 	"%d pages couldn't be read":                   "%d 個頁面讀取失敗",
 	"Open the first page that could not be read.": "開啟第一個讀取失敗的頁面。",
+	"Open %s, which could not be read":            "開啟 %s，它讀取失敗",
+	"Open %s; %d pages could not be read":         "開啟 %s；共有 %d 個頁面讀取失敗",
 }

@@ -188,3 +188,42 @@ func TestTheTroubleLineFitsANarrowWindow(t *testing.T) {
 	require.False(t, tester.HasText("Couldn't read Token"),
 		"naming one would hide the other two")
 }
+
+// TestThePaletteOffersTheFailingPage completes the discovery story. The sidebar
+// line reports a failure, but the palette is where a reader goes when they cannot
+// find something — and "the page is failing" answers a surprising number of those
+// searches. The entry opens the page, so it reads as a destination.
+func TestThePaletteOffersTheFailingPage(t *testing.T) {
+	app := New(workbenchFakes())
+	app.SetActions(Actions{Version: "0.0.1"})
+	tester := ui.NewTester(app.View, 1280, 900)
+	app.token.loadErr = errors.New("database is locked")
+	app.ShowPage("Dashboard")
+	tester.Frame()
+
+	tester.Key(platformRefreshModifier(), ui.KeyK)
+	tester.Frame()
+	require.True(t, tester.HasText("Open Token"),
+		"the failing page is offered by name")
+	require.True(t, tester.HasText("which could not be read"),
+		"and the detail says why it is there")
+
+	require.NoError(t, tester.Click("Open Token"))
+	tester.Frame()
+	require.Equal(t, pageToken, app.page, "the entry navigates to the page")
+}
+
+// TestThePaletteSaysNothingWhenEveryPageLoads keeps the entry out of a healthy
+// window: an "open nothing" action would be noise in a list of commands.
+func TestThePaletteSaysNothingWhenEveryPageLoads(t *testing.T) {
+	app := New(workbenchFakes())
+	app.SetActions(Actions{Version: "0.0.1"})
+	tester := ui.NewTester(app.View, 1280, 900)
+	app.ShowPage("Dashboard")
+	tester.Frame()
+
+	tester.Key(platformRefreshModifier(), ui.KeyK)
+	tester.Frame()
+	require.False(t, tester.HasText("could not be read"),
+		"a healthy window offers no failing page")
+}

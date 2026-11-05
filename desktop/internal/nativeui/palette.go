@@ -147,6 +147,22 @@ func (a *App) paletteMatches() []paletteEntry {
 	// import may well want the page larger. Its description carries the current
 	// ratio, so opening the palette answers "how big is it now" without
 	// Settings.
+	// A page that could not be read belongs here, and near the top: the palette
+	// is where a reader goes when they cannot find something, and "the page is
+	// failing" is the answer to a surprising number of those searches. It names
+	// the page so the entry reads as a destination rather than a warning.
+	if failures := a.loadFailures(); len(failures) > 0 {
+		target := pageTitles[failures[0].Page]
+		detail := fmt.Sprintf(tr("Open %s, which could not be read"), tr(target))
+		if len(failures) > 1 {
+			detail = fmt.Sprintf(tr("Open %s; %d pages could not be read"), tr(target), len(failures))
+		}
+		entries = append(entries, paletteEntry{
+			title: fmt.Sprintf(tr("Open %s"), tr(target)), detail: detail,
+			icon: warningIcon, action: func(*ui.Context) { a.openFirstFailure() },
+		})
+	}
+
 	zoom := zoomLabel(a.contentZoom)
 	entries = append(entries,
 		paletteEntry{
