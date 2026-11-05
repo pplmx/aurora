@@ -47,6 +47,12 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **The oracle source row repeats its own comment**: the note explaining why the type is translated only when
+  the catalog has an entry was pasted twice above the same field. Found by reading the row's source to
+  explain its layout on a 900×600 capture.
+
+### Fixed
+
 - **The scheduler's cadence is documented as polling, not exact**: the reference said it fetches "per each
   source's `interval`", but the scheduler scans for due sources every `oracle.scheduler.checkInterval`
   (1s by default), so a real gap is `interval` plus up to one scan. Measured against a live source with
