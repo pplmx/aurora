@@ -709,3 +709,59 @@ func TestBackupService_Create_AbortLeavesPreviousSetIntact(t *testing.T) {
 	require.NoError(t, svc.Verify(context.Background(), output))
 	require.NoError(t, err, "aborted Create must not corrupt the previous backup set")
 }
+
+// TestBackupService_CreateReportsTheRealSizeOnARelativePath covers the size the
+// CLI prints. The walk builds its paths from the output it was given, and the
+// rollback directory is absolute, so a relative output — what `aurora backup
+// create ./dir` passes — never matched the skip. The previous snapshots are
+// hard-linked into that directory before they are replaced, so the comparison
+// failing counted every byte twice: the second create into the same directory
+// reported exactly double.
+func TestBackupService_CreateReportsTheRealSizeOnARelativePath(t *testing.T) {
+	src := t.TempDir()
+	dbPath := filepath.Join(src, "blockchain.db")
+	db, err := sql.Open("sqlite", dbPath)
+	require.NoError(t, err)
+	_, err = db.Exec("CREATE TABLE t (id INTEGER PRIMARY KEY, pad BLOB)")
+	require.NoError(t, err)
+	pad := make([]byte, 4096)
+	for i := 0; i < 100; i++ {
+		_, err = db.Exec("INSERT INTO t (pad) VALUES (?)", pad)
+		require.NoError(t, err)
+	}
+	require.NoError(t, db.Close())
+
+	svc := NewBackupService(map[string]string{"blockchain": dbPath})
+
+	out := filepath.Join(src, "bk")
+	wd, err := os.Getwd()
+	require.NoError(t, err)
+	require.NoError(t, os.Chdir(src))
+	t.Cleanup(func() { require.NoError(t, os.Chdir(wd)) })
+
+	var first int64
+	for i := 0; i < 2; i++ {
+		res, err := svc.Create(context.Background(), "./bk")
+		require.NoError(t, err)
+
+		// The size the report claims must equal what the directory holds.
+		var actual int64
+		entries, err := os.ReadDir(out)
+		require.NoError(t, err)
+		for _, entry := range entries {
+			info, err := entry.Info()
+			require.NoError(t, err)
+			if !info.IsDir() {
+				actual += info.Size()
+			}
+		}
+		require.Equalf(t, actual, res.Size,
+			"create %d reported a size the directory does not hold", i+1)
+		if i == 0 {
+			first = res.Size
+		} else {
+			require.Equal(t, first, res.Size,
+				"a second create over the same directory reports the same size, not double")
+		}
+	}
+}

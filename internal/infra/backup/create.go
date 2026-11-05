@@ -234,13 +234,25 @@ func (s *BackupService) Create(ctx context.Context, output string) (result *Back
 		return nil, fmt.Errorf("sync output directory: %w", err)
 	}
 
+	// The walk sees the paths it builds from output, so a relative output — which
+	// is what the CLI passes — never equals the absolute rollback directory. The
+	// previous files are hard-linked into that directory before the snapshots are
+	// promoted, so a comparison that silently fails counts every byte twice: a
+	// second `backup create ./dir` reported twice the backup's real size.
+	rollbackDir, absErr := filepath.Abs(rollback.dir)
+	if absErr != nil {
+		return nil, fmt.Errorf("resolve rollback dir: %w", absErr)
+	}
 	totalSize := int64(0)
 	walkErr := filepath.Walk(output, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
-		if path == rollback.dir && info.IsDir() {
-			return filepath.SkipDir
+		if info.IsDir() {
+			if abs, absErr := filepath.Abs(path); absErr == nil && abs == rollbackDir {
+				return filepath.SkipDir
+			}
+			return nil
 		}
 		if !info.IsDir() {
 			totalSize += info.Size()

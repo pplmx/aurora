@@ -34,6 +34,15 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **`backup create` reports the backup's real size**: the walk that totals the output built its paths
+  from the output it was given, while the rollback directory it means to skip is absolute — so a relative
+  output, which is what `aurora backup create ./dir` passes, never matched. The previous snapshots are
+  hard-linked into that directory before they are replaced, so the failed comparison counted every byte
+  twice: a second create into the same directory printed exactly double the size on disk. Found by
+  walking the backup flow, the last operational command this series had not exercised.
+
+### Fixed
+
 - **A missing URL scheme is not reported as a disallowed one**: `example.com/x` parses as a path, so its
   scheme is empty and the message read `disallowed scheme ""` — true, but it named neither what was
   missing nor what to add. A missing scheme and a scheme that is not allowed are different mistakes and
