@@ -788,4 +788,5 @@ var desktopMessagesHant = map[string]string{
 	"Aurora couldn't read a page":                 "Aurora 無法讀取某個頁面",
 	"%s has not loaded. Open it to retry.":        "%s 尚未載入，開啟後重試。",
 	"Waiting for the running write to finish before reading this page.": "等待正在執行的寫入完成後再讀取此頁。",
+	"Up to %d characters for the name and party, %d for the program.":   "姓名與黨派最多 %d 個字元，綱領最多 %d 個。",
 }

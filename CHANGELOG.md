@@ -34,6 +34,9 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **The candidate limits hint is translated**: it was built with the format applied outside `tr`, so a
+  Chinese window showed the English sentence. Every other formatted label in the window wraps the template
+  and formats the result, which is what this one does now.
 - **Every voting field is refused under its own field**: the candidate name and session title already used
   the domain's validators; the voter name, party and program did not, so an over-long value travelled to
   storage and came back as a sentence naming no control. All three now run the domain's own check and draw

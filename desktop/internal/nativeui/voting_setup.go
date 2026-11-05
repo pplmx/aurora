@@ -129,7 +129,7 @@ func (a *App) votingRegisterCandidateBody(c *ui.Context) {
 	// The store bounds all three fields, and the refusal names no number. The
 	// limits come from the domain constants the store enforces, so this sentence
 	// cannot describe a different rule than the one applied.
-	hint(c, fmt.Sprintf("Up to %d characters for the name and party, %d for the program.",
+	hint(c, fmt.Sprintf(tr("Up to %d characters for the name and party, %d for the program."),
 		voting.MaxCandidateNameLength, voting.MaxCandidateProgramLength))
 	ui.Row(c).Children(func() {
 		if primaryButton(c, "Register Candidate", allSet(a.voting.candName)).Clicked() {
