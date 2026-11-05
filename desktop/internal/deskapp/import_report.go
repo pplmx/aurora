@@ -22,13 +22,31 @@ func importReport(result lotteryapp.ImportResult, path string) (title, message, 
 		if result.Imported == 0 {
 			return T("desktop.dialog.import_rejected_title"),
 				TFormat("desktop.dialog.import_rejected_message", result.Total),
-				TFormat("desktop.dialog.import_rejected_detail", result.Rejected, path)
+				importRejectedDetail(result, path)
 		}
 		return T("desktop.dialog.import_partial_title"),
 			TFormat("desktop.dialog.import_partial_message", result.Imported, result.Total, len(result.Rejected)),
-			TFormat("desktop.dialog.import_rejected_detail", result.Rejected, path)
+			importRejectedDetail(result, path)
 	}
 	return T("desktop.dialog.imported_title"), TFormat("desktop.dialog.imported_message", result.Imported), path
+}
+
+// importRejectedDetail spells the refused records and why each was refused. The
+// prose in the catalog explains the possible causes; this says which one applied
+// to which record, so re-importing the same file reads differently from
+// importing a file whose proof was edited.
+func importRejectedDetail(result lotteryapp.ImportResult, path string) string {
+	detail := TFormat("desktop.dialog.import_rejected_detail", result.Rejected, path)
+	for _, r := range result.Rejections {
+		detail += "\n" + TFormat("desktop.dialog.import_rejected_record",
+			r.Index, rejectedReasonText(r.Reason))
+	}
+	return detail
+}
+
+// rejectedReasonText names one refusal cause in the window's language.
+func rejectedReasonText(reason string) string {
+	return T("desktop.dialog.import_reject." + reason)
 }
 
 // importReportType is the dialog severity matching importReport: a partial

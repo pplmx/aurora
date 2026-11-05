@@ -546,7 +546,7 @@ func TestDesktopCopyStaysOutOfTheCoreCatalog(t *testing.T) {
 // hide a word nobody translated.
 func TestEveryCoreKeyIsUsed(t *testing.T) {
 	root := filepath.Join("..", "..")
-	dynamicPrefixes := []string{"doctor.check.", "voting.status.", "nft.operation.", "record."}
+	dynamicPrefixes := []string{"doctor.check.", "voting.status.", "nft.operation.", "record.", "lottery.reject.", "desktop.dialog.import_reject."}
 
 	var source strings.Builder
 	for _, dir := range []string{"cmd", "internal", "tools", "desktop"} {

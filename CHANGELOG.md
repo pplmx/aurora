@@ -45,6 +45,15 @@ The milestone notes under `.planning/` are history, not current instructions.
   the same file, so a mistake the CLI points out passed without a trace there. A packaged app has no
   console, so it writes the same report to its log, where its startup facts already go.
 
+### Added
+
+- **A refused import says which record was refused and why**: five different causes reach the rejected list —
+  a record that will not validate, a proof that does not verify, an id already stored, a failed read, a
+  failed write — and the CLI reported all of them as `failed record indices (0-based): [0]`. A tampered
+  export and a file imported twice read identically, though one is an integrity failure and the other is
+  the ordinary case. `ImportResult` carries `rejections` now, keyed by the same index, and the CLI and the
+  window's import dialog name the cause. `rejected` is unchanged, so scripts that read it still work.
+
 ### Fixed
 
 - **The oracle source row repeats its own comment**: the note explaining why the type is translated only when

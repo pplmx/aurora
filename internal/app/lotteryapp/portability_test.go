@@ -127,7 +127,8 @@ func TestImportRecords_RejectsAnInvalidKeyedProof(t *testing.T) {
 
 	result, err := ImportRecords(repo, document)
 	require.NoError(t, err)
-	assert.Equal(t, ImportResult{Total: 1, Rejected: []int{0}}, result)
+	assert.Equal(t, ImportResult{Total: 1, Rejected: []int{0},
+		Rejections: []ImportRejection{{Index: 0, Reason: ImportRejectProof}}}, result)
 	assert.Empty(t, repo.records, "an invalid proof must not be persisted")
 }
 
@@ -140,7 +141,8 @@ func TestImportRecords_RejectsATamperedWinnerAddress(t *testing.T) {
 
 	result, err := ImportRecords(repo, document)
 	require.NoError(t, err)
-	assert.Equal(t, ImportResult{Total: 1, Rejected: []int{0}}, result)
+	assert.Equal(t, ImportResult{Total: 1, Rejected: []int{0},
+		Rejections: []ImportRejection{{Index: 0, Reason: ImportRejectProof}}}, result)
 	assert.Empty(t, repo.records, "a tampered payout address must not be imported")
 }
 
@@ -153,7 +155,8 @@ func TestImportRecords_RejectsRecordIDNotDerivedFromEvidence(t *testing.T) {
 
 	result, err := ImportRecords(repo, document)
 	require.NoError(t, err)
-	assert.Equal(t, ImportResult{Total: 1, Rejected: []int{0}}, result)
+	assert.Equal(t, ImportResult{Total: 1, Rejected: []int{0},
+		Rejections: []ImportRejection{{Index: 0, Reason: ImportRejectProof}}}, result)
 	assert.Empty(t, repo.records, "a forged ID must not bypass duplicate-draw detection")
 }
 
@@ -344,4 +347,59 @@ func TestWriteRecordsToFile_RefusesAHardLinkAlias(t *testing.T) {
 		require.Equal(t, "not really sqlite", string(data),
 			"a refused export must leave %s alone", filepath.Base(path))
 	}
+}
+
+// TestEveryRefusalSaysWhy covers the reason that travels with a rejected index.
+// Five different causes reach Rejected, and an index alone left the reader
+// unable to tell a tampered proof from a file imported twice — the CLI said
+// only "failed record indices (0-based): [0]" for the first and the second
+// alike.
+func TestEveryRefusalSaysWhy(t *testing.T) {
+	cases := []struct {
+		name   string
+		mutate func(*lottery.LotteryRecord)
+		reason string
+	}{
+		{"tampered proof", func(r *lottery.LotteryRecord) {
+			r.VRFProof = ""
+			r.Verified = true
+		}, ImportRejectProof},
+		{"tampered payout", func(r *lottery.LotteryRecord) {
+			r.WinnerAddresses[0] = lottery.NameToAddress("Mallory")
+		}, ImportRejectProof},
+		{"invalid record", func(r *lottery.LotteryRecord) {
+			r.Seed = ""
+		}, ImportRejectInvalid},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			record := genuinePortableRecord(t)
+			tc.mutate(&record)
+			document, err := json.Marshal([]lottery.LotteryRecord{record})
+			require.NoError(t, err)
+
+			repo := &mockLotteryRepo{}
+			result, err := ImportRecords(repo, document)
+			require.NoError(t, err)
+			require.Len(t, result.Rejections, 1, "one refusal, one reason")
+			require.Equal(t, 0, result.Rejections[0].Index)
+			require.Equal(t, tc.reason, result.Rejections[0].Reason,
+				"the reason names what the reader has to fix")
+		})
+	}
+
+	// A draw already stored is the one refusal a reader must not read as
+	// tampering: re-importing the same file is the ordinary case.
+	t.Run("already stored", func(t *testing.T) {
+		record := genuinePortableRecord(t)
+		document, err := json.Marshal([]lottery.LotteryRecord{record})
+		require.NoError(t, err)
+
+		stored := &lottery.LotteryRecord{ID: record.ID}
+		repo := &mockLotteryRepo{records: []*lottery.LotteryRecord{stored}}
+		result, err := ImportRecords(repo, document)
+		require.NoError(t, err)
+		require.Len(t, result.Rejections, 1)
+		require.Equal(t, ImportRejectExists, result.Rejections[0].Reason)
+	})
 }

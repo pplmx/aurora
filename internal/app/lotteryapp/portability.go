@@ -196,6 +196,36 @@ type ImportResult struct {
 	// it failed validation, collided with an existing draw, or could not
 	// be written.
 	Rejected []int `json:"rejected"`
+	// Rejections says why each of those was refused, keyed by the same index.
+	// Five different causes reach Rejected — a record that will not validate, a
+	// proof that does not verify, an id already stored, a failed read, a failed
+	// write — and an index alone leaves the reader unable to tell a tampered
+	// file from one they imported twice.
+	Rejections []ImportRejection `json:"rejections,omitempty"`
+}
+
+// ImportRejection is one refused record and the reason it was refused.
+type ImportRejection struct {
+	Index  int    `json:"index"`
+	Reason string `json:"reason"`
+}
+
+// Reasons a record is refused, as stable identifiers the CLI and the window
+// translate. They are separate values because a reader acts on them
+// differently: fix the file, re-check the draw, or re-run against a store that
+// answers.
+const (
+	ImportRejectInvalid = "invalid"
+	ImportRejectProof   = "proof"
+	ImportRejectExists  = "exists"
+	ImportRejectRead    = "read"
+	ImportRejectWrite   = "write"
+)
+
+// reject records one refused record and its cause.
+func (r *ImportResult) reject(index int, reason string) {
+	r.Rejected = append(r.Rejected, index)
+	r.Rejections = append(r.Rejections, ImportRejection{Index: index, Reason: reason})
 }
 
 // importDetail turns a decode failure into the sentence a reader needs. A
@@ -248,24 +278,24 @@ func ImportRecords(repo lottery.Repository, document []byte) (ImportResult, erro
 	result := ImportResult{Total: len(records)}
 	for i, record := range records {
 		if err := record.Validate(); err != nil {
-			result.Rejected = append(result.Rejected, i)
+			result.reject(i, ImportRejectInvalid)
 			continue
 		}
 		report := VerifyRecord(&record)
 		if !report.IntegrityOK {
-			result.Rejected = append(result.Rejected, i)
+			result.reject(i, ImportRejectProof)
 			continue
 		}
 		record.Verified = report.ProofVerified
 		if existing, err := repo.GetByID(record.ID); err == nil && existing != nil {
-			result.Rejected = append(result.Rejected, i)
+			result.reject(i, ImportRejectExists)
 			continue
 		} else if err != nil && !errors.Is(err, lottery.ErrNotFound) {
-			result.Rejected = append(result.Rejected, i)
+			result.reject(i, ImportRejectRead)
 			continue
 		}
 		if err := repo.Save(&record); err != nil {
-			result.Rejected = append(result.Rejected, i)
+			result.reject(i, ImportRejectWrite)
 			continue
 		}
 		result.Imported++

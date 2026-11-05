@@ -103,7 +103,12 @@ var importCmd = &cobra.Command{
 		// failure via $?, instead of silently treating it as success.
 		fmt.Printf("⚠️  %s\n",
 			i18n.GetTextF("lottery.import_partial", result.Imported, result.Total, len(result.Rejected)))
-		fmt.Printf("   %s\n", i18n.GetTextF("lottery.failed_indices", result.Rejected))
+		// The index alone says a record was refused, not why: a tampered proof, a
+		// draw already stored and a failed write all look the same.
+		for _, r := range result.Rejections {
+			fmt.Printf("   %s\n", i18n.GetTextF("lottery.rejected_record",
+				r.Index, i18n.GetText("lottery.reject."+r.Reason)))
+		}
 		return newCLIError("lottery.import_partial_error", len(result.Rejected), result.Total)
 	},
 }

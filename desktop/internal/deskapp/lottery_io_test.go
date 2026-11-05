@@ -69,7 +69,8 @@ func TestExportImport_RoundTripThroughSharedAppLayer(t *testing.T) {
 	// this as a warning, exactly like the CLI's non-zero "partial failure".
 	again, err := lotteryapp.ImportRecords(dst, document)
 	require.NoError(t, err)
-	assert.Equal(t, lotteryapp.ImportResult{Total: 1, Imported: 0, Rejected: []int{0}}, again)
+	assert.Equal(t, lotteryapp.ImportResult{Total: 1, Imported: 0, Rejected: []int{0},
+		Rejections: []lotteryapp.ImportRejection{{Index: 0, Reason: lotteryapp.ImportRejectExists}}}, again)
 }
 
 // TestImportRecords_RejectsMalformedDocument keeps a corrupt file from being
@@ -142,7 +143,8 @@ func TestImportRecords_PartialFailureMatchesCLIContract(t *testing.T) {
 
 	result, err := lotteryapp.ImportRecords(repo, document)
 	require.NoError(t, err)
-	assert.Equal(t, lotteryapp.ImportResult{Total: 2, Imported: 1, Rejected: []int{1}}, result)
+	assert.Equal(t, lotteryapp.ImportResult{Total: 2, Imported: 1, Rejected: []int{1},
+		Rejections: []lotteryapp.ImportRejection{{Index: 1, Reason: lotteryapp.ImportRejectInvalid}}}, result)
 }
 
 // TestExportLotteriesReplacesTheDocumentAtomically pins the menu path, not
