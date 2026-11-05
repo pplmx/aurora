@@ -227,3 +227,52 @@ func TestThePaletteSaysNothingWhenEveryPageLoads(t *testing.T) {
 	require.False(t, tester.HasText("could not be read"),
 		"a healthy window offers no failing page")
 }
+
+// TestTheWindowTitleSaysSomethingNeedsAttention carries the failure state out of
+// the window. The sidebar line is only visible to a reader looking at the window;
+// the native title is what a task switcher shows, so it is the one place a reader
+// in another app can learn that something needs them.
+func TestTheWindowTitleSaysSomethingNeedsAttention(t *testing.T) {
+	var pushed []string
+	app := New(workbenchFakes())
+	app.SetActions(Actions{SetPageTitle: func(s string) { pushed = append(pushed, s) }})
+	tester := ui.NewTester(app.View, 1280, 900)
+
+	app.ShowPage("Token")
+	tester.Frame()
+	require.Equal(t, "Token", app.windowTitle, "a healthy window names the page alone")
+
+	app.token.loadErr = errors.New("database is locked")
+	tester.Frame()
+	require.Equal(t, tr("Needs attention")+" — Token", app.windowTitle,
+		"a failing page says so before the page name")
+
+	app.token.loadErr = nil
+	tester.Frame()
+	require.Equal(t, "Token", app.windowTitle, "a recovered page drops the prefix")
+}
+
+// TestTheWindowTitleIsNotRepushedEveryFrame keeps a platform call off the repaint
+// path. The frame runs for a hover or a caret blink as readily as for new data,
+// and a task switcher does not need the same string set sixty times a second.
+func TestTheWindowTitleIsNotRepushedEveryFrame(t *testing.T) {
+	var pushes int
+	app := New(workbenchFakes())
+	app.SetActions(Actions{SetPageTitle: func(string) { pushes++ }})
+	tester := ui.NewTester(app.View, 1280, 900)
+
+	app.ShowPage("Token")
+	tester.Frame()
+	settled := pushes
+	require.Positive(t, settled, "the first push happens")
+
+	for i := 0; i < 5; i++ {
+		tester.Frame()
+	}
+	require.Equal(t, settled, pushes,
+		"an unchanged title is not pushed again, however many times the frame runs")
+
+	app.token.loadErr = errors.New("database is locked")
+	tester.Frame()
+	require.Equal(t, settled+1, pushes, "a change is pushed exactly once")
+}

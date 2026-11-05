@@ -34,6 +34,17 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Added
 
+- **The window title says something needs attention**: the sidebar line is only visible to a reader looking
+  at the window, and the native title is what a task switcher shows — the one place someone working in
+  another app can learn that a page failed. A failing page reads "Needs attention — Token"; recovery drops
+  the prefix.
+- **The title is pushed only when it changes**: the frame runs for a hover or a caret blink as readily as
+  for new data, and a per-frame platform call to re-set the same string is waste. The comparison also
+  covers every one of the seven places that record a load error, including ones a future page adds, which
+  a notification per call site would not.
+
+### Added
+
 - **The command palette offers the page that failed**: the sidebar line reports a failure, but the palette
   is where a reader goes when they cannot find something, and "the page is failing" answers a surprising
   number of those searches. The entry names the page and opens it, so it reads as a destination rather

@@ -36,6 +36,9 @@ type App struct {
 	// page from one that stopped updating: a stalled drainer, a busy write and a
 	// healthy quiet system all look identical.
 	liveReadAt time.Time
+	// windowTitle is the last title pushed to the native window, so the frame can
+	// skip a redundant platform call on every repaint.
+	windowTitle string
 	// guides holds each page's "How this works" disclosure. They start closed
 	// so the page stays task-first, but the explanation is one click away.
 	guides guideState
@@ -184,6 +187,12 @@ func (a *App) Services() Services { return a.services }
 func (a *App) View(c *ui.Context) {
 	a.invalidate = c.Invalidate
 	a.pollAsync(c)
+	// The native title carries the failure state as well as the page, so a reader
+	// who has switched to another window sees that something needs them. Pushed
+	// from here rather than from each of the seven places that record a load
+	// error: a comparison against the last pushed value covers all of them,
+	// including the ones a future page adds.
+	a.syncWindowTitle()
 	paletteWasOpen := a.paletteOpen
 	if a.pageAnnouncement != "" {
 		c.Announce(a.pageAnnouncement)

@@ -66,3 +66,26 @@ func (a *App) openFirstFailure() {
 	}
 	a.ShowPage(pageTitles[failures[0].Page])
 }
+
+// syncWindowTitle pushes the native title when it changes, and only then. The
+// title carries the failure state so a reader in another window sees that
+// something needs them — the reference apps built on MyGo make the window answer
+// "which one needs me" rather than leaving it to the pane.
+//
+// It compares against the last value pushed because the frame runs on every
+// repaint: setting the title each time would be a platform call per frame, and
+// a task switcher does not need the same string re-set sixty times a second.
+func (a *App) syncWindowTitle() {
+	if a.actions.SetPageTitle == nil {
+		return
+	}
+	title := a.PageTitle()
+	if len(a.loadFailures()) > 0 {
+		title = tr("Needs attention") + " — " + title
+	}
+	if title == a.windowTitle {
+		return
+	}
+	a.windowTitle = title
+	a.actions.SetPageTitle(title)
+}

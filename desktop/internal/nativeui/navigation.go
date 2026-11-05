@@ -64,9 +64,9 @@ func (a *App) setPage(p page) {
 	a.liveNext = time.Time{}
 	a.sidebarReveal = true
 	a.pageAnnouncement = a.PageTitle()
-	if a.actions.SetPageTitle != nil {
-		a.actions.SetPageTitle(a.PageTitle())
-	}
+	// syncWindowTitle pushes the title, so a page switch and a failure that
+	// appears later reach the native title through the same call.
+	a.syncWindowTitle()
 	// The shell records the page so the next launch can open it again. It is
 	// told only when the page really changed — this function returns early
 	// otherwise — because a frame rebuilds the view many times and must not
