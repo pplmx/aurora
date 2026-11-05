@@ -61,7 +61,7 @@ func (u *TransferNFTUseCase) Execute(req *TransferNFTRequest) (*OperationRespons
 		return nil, err
 	}
 
-	privateKey, err := decodeKey("privatekey", req.PrivateKey, privKeyLen, nft.ErrInvalidPrivateKey)
+	privateKey, err := decodeKey("private key", req.PrivateKey, privKeyLen, nft.ErrInvalidPrivateKey)
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +89,7 @@ func (u *BurnNFTUseCase) Execute(req *BurnNFTRequest) error {
 		return err
 	}
 
-	privateKey, err := decodeKey("privatekey", req.PrivateKey, privKeyLen, nft.ErrInvalidPrivateKey)
+	privateKey, err := decodeKey("private key", req.PrivateKey, privKeyLen, nft.ErrInvalidPrivateKey)
 	if err != nil {
 		return err
 	}

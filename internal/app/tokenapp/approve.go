@@ -25,7 +25,7 @@ func (uc *ApproveUseCase) Execute(req *ApproveRequest) (*ApproveResponse, error)
 		return nil, err
 	}
 
-	privKey, err := decodeKey("privateKey", req.PrivateKey)
+	privKey, err := decodeKey("private key", req.PrivateKey)
 	if err != nil {
 		return nil, err
 	}

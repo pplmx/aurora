@@ -34,6 +34,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **The private-key label is one field name in every message**: `decodeKey` builds "invalid %s encoding", so
+  the label is read by a person, and the NFT layer passed `privatekey` while the token layer passed
+  `privateKey` — two misspellings of the same field in two different errors. The Chinese rewriter matched
+  all three spellings, so nothing failed; only the English reader saw it. Found by walking the NFT transfer
+  flow and reading what a bad key produces.
+
+### Fixed
+
 - **`voting candidate add` no longer requires `--party`**: the domain allows an empty party
   (`ValidateCandidateParty` exists only to bound its length) and the window labels the field
   "(optional)", so the CLI was the one surface that demanded a value the rest did not — a reader with no

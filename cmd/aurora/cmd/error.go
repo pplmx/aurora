@@ -171,7 +171,7 @@ func localizeInputField(field string) string {
 		return "转出方"
 	case "to":
 		return "接收方"
-	case "privatekey", "private_key":
+	case "private key", "privatekey", "private_key":
 		return "私钥"
 	case "spender":
 		return "授权方"

@@ -218,3 +218,41 @@ func TestTheSupplyFlagDoesNotPromiseDecimals(t *testing.T) {
 	require.Contains(t, string(entity), "new(big.Int).SetString(s, 10)",
 		"a base-ten integer parse is what makes the help text accurate")
 }
+
+// TestKeyLabelsInErrorSentencesAreOneWord pins the label each app layer splices
+// into an English sentence. decodeKey builds "invalid %s encoding", so the label
+// is read by a person: the NFT layer passed "privatekey" and the token layer
+// "privateKey", which produced two different misspellings of the same field in
+// two different messages. The Chinese rewriter matched all three spellings, so
+// nothing failed — only the English reader saw the defect.
+func TestKeyLabelsInErrorSentencesAreOneWord(t *testing.T) {
+	// The spellings that reach a sentence, once per label the layers share.
+	bad := []string{`"privatekey"`, `"privateKey"`, `"private_key"`}
+	for _, dir := range []string{"app", "domain"} {
+		root := repoRoot(t)
+		var walk func(string)
+		walk = func(rel string) {
+			entries, err := os.ReadDir(filepath.Join(root, "internal", rel))
+			require.NoError(t, err)
+			for _, entry := range entries {
+				name := entry.Name()
+				path := filepath.Join(root, "internal", rel, name)
+				if entry.IsDir() {
+					walk(filepath.Join(rel, name))
+					continue
+				}
+				if !strings.HasSuffix(name, ".go") || strings.HasSuffix(name, "_test.go") {
+					continue
+				}
+				body, err := os.ReadFile(path)
+				require.NoError(t, err)
+				for _, spelling := range bad {
+					require.NotContainsf(t, string(body), "decodeKey("+spelling,
+						"internal/%s/%s passes %s into a sentence; write it as \"private key\"",
+						rel, name, spelling)
+				}
+			}
+		}
+		walk(dir)
+	}
+}

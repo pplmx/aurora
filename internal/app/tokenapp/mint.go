@@ -20,7 +20,7 @@ func (uc *MintUseCase) Execute(req *MintRequest) (*MintResponse, error) {
 		return nil, err
 	}
 
-	privKey, err := decodeKey("privateKey", req.PrivateKey)
+	privKey, err := decodeKey("private key", req.PrivateKey)
 	if err != nil {
 		return nil, err
 	}

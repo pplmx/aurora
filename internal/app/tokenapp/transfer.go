@@ -25,7 +25,7 @@ func (uc *TransferUseCase) Execute(req *TransferRequest) (*TransferResponse, err
 		return nil, err
 	}
 
-	privKey, err := decodeKey("privateKey", req.PrivateKey)
+	privKey, err := decodeKey("private key", req.PrivateKey)
 	if err != nil {
 		return nil, err
 	}
