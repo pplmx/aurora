@@ -3,6 +3,7 @@
 package token
 
 import (
+	"fmt"
 	"math/big"
 	"time"
 )
@@ -27,13 +28,22 @@ func NewAmount(value int64) *Amount {
 	return &Amount{big.NewInt(value)}
 }
 
+// NewAmountFromString parses an amount written as a whole number of base units.
+//
+// The message says what is expected because the callers pass through whatever
+// was typed: a form, a CLI flag, a JSON field. "invalid amount" alone left a
+// reader who typed a decimal — or a grouped "1,000" — unable to tell which part
+// was wrong, and the amount is stored as an integer, so a decimal is refused
+// rather than rounded.
 func NewAmountFromString(s string) (*Amount, error) {
 	if s == "" {
-		return nil, ErrInvalidAmount
+		return nil, fmt.Errorf("%w: expected a whole number of base units", ErrInvalidAmount)
 	}
 	v, ok := new(big.Int).SetString(s, 10)
 	if !ok {
-		return nil, ErrInvalidAmount
+		return nil, fmt.Errorf(
+			"%w: %q is not a whole number; write digits only, with no decimal point or grouping",
+			ErrInvalidAmount, s)
 	}
 	return &Amount{v}, nil
 }

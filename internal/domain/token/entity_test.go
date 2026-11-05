@@ -5,6 +5,8 @@ import (
 	"math/big"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewTokenFromRecord(t *testing.T) {
@@ -402,4 +404,26 @@ func TestApproval_ExpiresAt(t *testing.T) {
 	if !approval.ExpiresAt().IsZero() {
 		t.Errorf("Approval.ExpiresAt() = %v, want zero time", approval.ExpiresAt())
 	}
+}
+
+// TestNewAmountFromStringSaysWhatItExpects pins the message a reader sees.
+//
+// The parse error is the only feedback a form or CLI flag gets when the value
+// cannot be stored, and the amount is a whole number of base units: a decimal or
+// a grouped "1,000" is refused rather than rounded. "invalid amount" alone left
+// the reader unable to tell which part of the value was wrong.
+func TestNewAmountFromStringSaysWhatItExpects(t *testing.T) {
+	for _, input := range []string{"1.5", "1,000", "abc"} {
+		_, err := NewAmountFromString(input)
+		require.ErrorIs(t, err, ErrInvalidAmount, "callers still match the sentinel")
+		require.Contains(t, err.Error(), input,
+			"the message quotes what was typed, so the reader can see which field is wrong")
+		require.Contains(t, err.Error(), "whole number",
+			"and says what is expected instead")
+	}
+
+	_, err := NewAmountFromString("")
+	require.ErrorIs(t, err, ErrInvalidAmount)
+	require.Contains(t, err.Error(), "whole number of base units",
+		"an empty value gets the rule, not a quote of nothing")
 }

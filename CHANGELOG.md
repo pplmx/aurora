@@ -32,6 +32,14 @@ The milestone notes under `.planning/` are history, not current instructions.
   module. The hue is resolved per frame, because which palette answers depends on the appearance being
   painted; pages and commands keep the accent, since they belong to no module.
 
+### Fixed
+
+- **A refused amount says what it expected**: the parse error is the only feedback a form or CLI flag gets
+  when a value cannot be stored, and an amount is a whole number of base units. `"invalid amount"` alone
+  left a reader who typed `1.5` or a grouped `1,000` unable to tell which part was wrong — the reader that
+  a decimal input would have produced. The error now quotes what was typed and states the rule, and still
+  wraps `ErrInvalidAmount` so every `errors.Is` caller is unaffected.
+
 ### Changed
 
 - **MyGo 0.7.4**: the desktop module moves from 0.7.3. The build and the whole suite pass unchanged, and
