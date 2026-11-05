@@ -37,7 +37,7 @@ func (a *App) loadNFTHistoryPage(id string, offset int) error {
 	// A background write owns the database. The page body is drawn disabled while
 	// one runs, but ui.Disabled is a paint-time state — a programmatic caller, or
 	// a test's click, reaches the handler anyway.
-	if a.busy != "" {
+	if a.readBlocked() {
 		return nil
 	}
 	if offset < 0 {

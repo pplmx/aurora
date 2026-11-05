@@ -191,7 +191,7 @@ func (a *App) liveRefresh(c *ui.Context, reload func()) {
 	// once the write applied its own reload, by a second one. The tick is
 	// pushed out rather than dropped: the page is meant to stay current, and
 	// the write's own reload usually covers this interval anyway.
-	if a.busy != "" {
+	if a.readBlocked() {
 		// Wake up again in one interval: the write's own reload usually brings a
 		// frame anyway, but a write that fails before applying one would leave
 		// the timer with nothing scheduled.

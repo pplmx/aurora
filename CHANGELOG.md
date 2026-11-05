@@ -32,6 +32,15 @@ The milestone notes under `.planning/` are history, not current instructions.
   module. The hue is resolved per frame, because which palette answers depends on the appearance being
   painted; pages and commands keep the accent, since they belong to no module.
 
+### Changed
+
+- **One answer to "may this window read right now"**: sixteen read paths each wrote `a.busy != ""` for
+  themselves, which is why three rounds were spent finding the ones that had been missed — a list read, a
+  search-triggered read, four detail buttons. They all ask `readBlocked` now, and a source-level test
+  names the ten files that must call it plus the two that legitimately keep their own check (`async.go`
+  stops a second write; `actions.go` suppresses the file shortcuts). Neither is a read of the database,
+  and the test says so, so a new exception has to be argued for rather than added quietly.
+
 ### Fixed
 
 - **Every detail read stops for a background write**: last round covered the token cards; the same shape

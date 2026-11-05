@@ -52,3 +52,39 @@ func TestThePageBodyIsDisabledNotJustTheButtons(t *testing.T) {
 	require.True(t, tester.HasText("Token"), "the page still names itself while busy")
 	require.NotEmpty(t, app.busy, "and the banner names the running write")
 }
+
+// TestEveryReadAsksTheSameQuestion covers the class of bug three rounds were
+// spent on. Every read taken while a background write runs lands on a locked
+// database, and what the window then says depended on which path it was: a list
+// recorded the page as failed and showed it in the sidebar, the title and the
+// icon; a search marked the page as read when it had not been; a detail button
+// recorded an error for a card nobody had asked for.
+//
+// The rule is that a read asks readBlocked, and the check is at the source
+// because the alternative — clicking each control in a window test — cannot see
+// ui.Disabled and would pass either way. The two remaining `a.busy != ""` checks
+// are different questions and are named here so a new one has to be justified.
+func TestEveryReadAsksTheSameQuestion(t *testing.T) {
+	// Packages that read storage and must gate on the write.
+	guarded := []string{
+		"app.go", "chrome.go", "nft.go", "nft_history.go", "oracle.go",
+		"oracle_readings.go", "token.go", "token_read.go", "voting.go",
+		"voting_results.go",
+	}
+	for _, name := range guarded {
+		body := readFile(t, name)
+		require.Containsf(t, body, "a.readBlocked()",
+			"%s must ask readBlocked before it reads storage", name)
+	}
+
+	// The two that legitimately keep their own check. async.go is the gate that
+	// stops a second write starting; actions.go suppresses the file shortcuts
+	// while a write runs. Neither is a read of the database.
+	for _, name := range []string{"async.go", "actions.go"} {
+		body := readFile(t, name)
+		require.Containsf(t, body, `a.busy != ""`,
+			"%s keeps its own write check", name)
+		require.NotContainsf(t, body, "a.readBlocked()",
+			"%s is not a read path and must not claim to be one", name)
+	}
+}

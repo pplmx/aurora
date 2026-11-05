@@ -123,7 +123,7 @@ func (a *App) loadNFTPage(offset int) bool {
 	// search field reads on its own when a term changes, and that read would land
 	// on the locked database — reporting a page failure and marking the page as
 	// read when the read never happened.
-	if a.busy != "" {
+	if a.readBlocked() {
 		return false
 	}
 	if a.services == nil {

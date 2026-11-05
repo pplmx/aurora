@@ -320,7 +320,7 @@ func (a *App) refresh() {
 	// which then shows in the sidebar, the window title and the icon: a transient
 	// lock would be reported as a broken page. Guarding the one place every read
 	// starts covers all of them, including a future caller that forgets.
-	if a.busy != "" {
+	if a.readBlocked() {
 		return
 	}
 	switch a.page {

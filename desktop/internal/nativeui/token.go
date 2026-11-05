@@ -169,7 +169,7 @@ func (a *App) loadTokenPage(offset int) bool {
 	// database and report a page failure. The guard sits here, where every list
 	// read starts, for the same reason it sits in refresh: a caller that forgets
 	// is silent otherwise.
-	if a.busy != "" {
+	if a.readBlocked() {
 		return false
 	}
 	// The list is the page's entry point: without it a token created in an

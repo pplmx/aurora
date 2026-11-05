@@ -87,7 +87,7 @@ func (a *App) loadTokenInfo(id string) error {
 	// one runs, but ui.Disabled is a paint-time state — a programmatic caller, or
 	// a test's click, reaches the handler anyway. A read that landed on the locked
 	// database would record an error for a card that was never really asked.
-	if a.busy != "" {
+	if a.readBlocked() {
 		return nil
 	}
 	subjectChanged := a.token.resolvedOwnerID != id
@@ -125,7 +125,7 @@ func (a *App) clearTokenInfoForAnotherSubject(id string) {
 func (a *App) loadTokenBalance(tokenID, owner string) error {
 	// A background write owns the database; see loadTokenInfo for why the
 	// painted-disabled page body is not enough.
-	if a.busy != "" {
+	if a.readBlocked() {
 		return nil
 	}
 	balance, err := a.services.TokenBalance(tokenID, owner)
@@ -155,7 +155,7 @@ func (a *App) clearTokenBalanceForAnotherRead(tokenID, owner string) {
 func (a *App) loadTokenHistory(tokenID, owner string, limit, offset int) error {
 	// A background write owns the database; see loadTokenInfo for why the
 	// painted-disabled page body is not enough.
-	if a.busy != "" {
+	if a.readBlocked() {
 		return nil
 	}
 	rows, err := a.services.TokenHistory(tokenID, owner, limit, offset)
@@ -264,7 +264,7 @@ func (a *App) loadAllowance() {
 func (a *App) loadTokenAllowance(tokenID, owner, spender string) error {
 	// A background write owns the database; see loadTokenInfo for why the
 	// painted-disabled page body is not enough.
-	if a.busy != "" {
+	if a.readBlocked() {
 		return nil
 	}
 	amount, err := a.services.TokenAllowance(tokenID, owner, spender)
