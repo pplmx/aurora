@@ -139,7 +139,9 @@ func init() {
 	candidateAddCmd.Flags().StringP("party", "p", "", i18n.GetText("voting.party"))
 	candidateAddCmd.Flags().StringP("program", "m", "", i18n.GetText("voting.program"))
 	_ = candidateAddCmd.MarkFlagRequired("name")
-	_ = candidateAddCmd.MarkFlagRequired("party")
+	// Party is optional in the domain (voting.ValidateCandidateParty bounds its
+	// length and allows empty) and the window labels it that way, so requiring it
+	// here made the CLI the one surface that demanded a value the rest did not.
 	candidateListCmd.Flags().IntP("limit", "l", 0, i18n.GetText("common.list_limit"))
 	candidateListCmd.Flags().IntP("offset", "p", 0, i18n.GetText("token.offset"))
 	candidateListCmd.Flags().StringP("search", "s", "", i18n.GetText("voting.candidate_search"))

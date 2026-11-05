@@ -168,7 +168,7 @@ nft、token）和运维命令（migrate、backup、version）。`,
 
 	// Flags
 	"voting.name":         "姓名",
-	"voting.party":        "党派/组织",
+	"voting.party":        "党派/组织（可选）",
 	"voting.program":      "竞选纲领",
 	"voting.public_key":   "公钥（base64）",
 	"voting.private_key":  "私钥（base64）",

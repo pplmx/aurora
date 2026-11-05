@@ -34,6 +34,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **`voting candidate add` no longer requires `--party`**: the domain allows an empty party
+  (`ValidateCandidateParty` exists only to bound its length) and the window labels the field
+  "(optional)", so the CLI was the one surface that demanded a value the rest did not — a reader with no
+  party to name could not register a candidate from the command line at all. Found by walking the voting
+  flow end to end and reaching for a candidate outside the session roster.
+
+### Fixed
+
 - **A rejected private key says it is the wrong key**: `token.ErrUnauthorized` read "unauthorized", which told a
   reader their key was refused but not that it was the wrong one — the single fact that points at the fix.
   The NFT module already worded its equivalent `KEY_MISMATCH` this way; the token sentence now matches it,

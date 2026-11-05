@@ -155,7 +155,7 @@ aurora lottery reset --confirm       # 清空抽奖记录
 ## 投票（Ed25519）
 
 ```bash
-aurora voting candidate add -n "Name" -p "Party" -m "Program"
+aurora voting candidate add -n "Name"              # -p 党派、-m 纲领均可省略
 aurora voting candidate list --limit 100 --offset 0
 aurora voting candidate list --search alice      # 按 id、名称、党派或纲领过滤
 aurora voting voter register -n "Name"    # 打印密钥对

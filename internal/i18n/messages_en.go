@@ -171,7 +171,7 @@ nft, token) and operational commands (migrate, backup, version).`,
 
 	// Flags
 	"voting.name":         "Name",
-	"voting.party":        "Party/Organization",
+	"voting.party":        "Party/Organization (optional)",
 	"voting.program":      "Campaign program",
 	"voting.public_key":   "Public key (base64)",
 	"voting.private_key":  "Private key (base64)",

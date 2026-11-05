@@ -3,6 +3,8 @@ package cmd
 import (
 	"encoding/json"
 	"strings"
+
+	"github.com/pplmx/aurora/internal/domain/voting"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -617,5 +619,25 @@ func TestVotingSessionSearchReachesStorage(t *testing.T) {
 		assert.Contains(t, out, "Matches")
 		assert.Contains(t, byStatus, "Budget vote", "the status column is searchable")
 		assert.Contains(t, byStatus, "Board election")
+	})
+}
+
+// TestCandidatePartyIsOptional matches the domain and the window. Party was the
+// one surface the CLI required: voting.ValidateCandidateParty allows it empty and
+// the window labels the field "(optional)", so a reader who did not have a party
+// to name could not register a candidate from the command line at all.
+func TestCandidatePartyIsOptional(t *testing.T) {
+	withTempDir(t, func(t *testing.T) {
+		runMigrations(t)
+
+		out, err := runCmd(t, "voting", "candidate", "add", "--name", "NoParty")
+		require.NoError(t, err, "a candidate without a party registers")
+		candID := extractField(t, out, "ID:")
+		require.NotEmpty(t, candID)
+
+		// And the domain still honours the bound on a party that is given.
+		_, err = runCmd(t, "voting", "candidate", "add", "--name", "TooLong",
+			"--party", strings.Repeat("p", voting.MaxCandidatePartyLength+1))
+		require.Error(t, err, "an over-long party is still refused")
 	})
 }
