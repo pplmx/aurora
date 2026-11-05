@@ -1206,3 +1206,44 @@ func TestBlankParticipantEntriesAreIgnored(t *testing.T) {
 		"blank entries between commas must not become participants")
 	require.Contains(t, app.lottery.status.text, "recorded")
 }
+
+// TestTheCreateButtonReachesItsHandler clicks the control a reader clicks.
+//
+// Every other create test calls app.createToken() directly, which proves the
+// handler and skips the button entirely: a wrong allSet argument or a broken
+// wiring between the control and the handler would pass all of them. The click
+// is placed by coordinate because Tester.Find returns the first element showing
+// the text, which here is the whole card, and clicking a card's centre lands on
+// a form field.
+func TestTheCreateButtonReachesItsHandler(t *testing.T) {
+	app := New(&fakeServices{})
+	app.SetActions(Actions{Version: "0.0.1", SetPageTitle: func(string) {}, SetBadgeCount: func(int) {}})
+	tester := ui.NewTester(app.View, 1280, 1400)
+	app.ShowPage("Token")
+	app.token.name, app.token.symbol = "Gold", "GLD"
+	app.token.supply, app.token.owner = "100.5", "pk"
+	tester.Frame()
+
+	card, ok := tester.Find("Create Token")
+	require.True(t, ok, "the create card should be on screen")
+
+	// The button is the card's last row, aligned to its left edge, so the search
+	// walks that row rather than the card's centre. A decimal supply is refused
+	// under the field, which is the visible sign that the handler ran at all.
+	clicked := false
+	for offset := card.H - 10; offset > card.H*0.5 && !clicked; offset -= 6 {
+		for _, x := range []float32{card.X + 40, card.X + 80, card.X + 120} {
+			app.token.supplyErr = ""
+			tester.ClickAt(x, card.Y+offset)
+			tester.Frame()
+			if app.token.supplyErr != "" {
+				clicked = true
+				break
+			}
+		}
+	}
+	require.True(t, clicked,
+		"clicking the Create Token button must reach createToken(); no other test proves the control is wired")
+	require.Contains(t, app.token.supplyErr, "whole number",
+		"and the refusal is the one the handler produces")
+}

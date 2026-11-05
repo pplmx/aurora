@@ -47,6 +47,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Added
 
+- **A test clicks the Create Token button**: every other create test calls `app.createToken()` directly, which
+  proves the handler and skips the control entirely — a wrong `allSet` argument or a broken wiring between
+  button and handler would pass all of them. The click is placed by coordinate because `Tester.Find`
+  returns the first element showing the text, which here is the whole card. Dropping the button's handler
+  makes it fail, which no existing test did.
+
+### Added
+
 - **A config section nothing reads is reported**: viper ignores unknown keys by design, so `[database]`
   written for `[db]` looked applied while the default path stayed in effect — the file said one thing and
   the process did another, with nothing in between. The CLI now names the sections it skipped. It is a
