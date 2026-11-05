@@ -18,6 +18,7 @@ import (
 	"github.com/pplmx/aurora/internal/i18n"
 	"github.com/pplmx/aurora/internal/infra/blockchain"
 	"github.com/pplmx/aurora/internal/ledger"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -426,4 +427,33 @@ func TestLedgerSearchFindsVotingAndOracleModules(t *testing.T) {
 	require.Equal(t, 1, feeds.Total)
 	require.Len(t, feeds.Rows, 1)
 	require.Equal(t, "oracle", feeds.Rows[0].Module)
+}
+
+// TestSetBadgeCountIsSilentBeforeTheAppRuns covers the guard every app-level call
+// in this package needs. Before Run there is no icon to write to, and MyGo's
+// call would post to a main thread that is not pumping yet — which hangs rather
+// than fails, so the guard has to be asserted rather than noticed.
+func TestSetBadgeCountIsSilentBeforeTheAppRuns(t *testing.T) {
+	originalReady := appReady
+	originalSet := setAppBadgeCount
+	t.Cleanup(func() {
+		appReady = originalReady
+		setAppBadgeCount = originalSet
+	})
+
+	var calls []int
+	setAppBadgeCount = func(n int) { calls = append(calls, n) }
+
+	shell := &Shell{}
+	appReady = func() bool { return false }
+	require.NotPanics(t, func() { shell.SetBadgeCount(3) },
+		"a window built before Run must not reach the platform")
+	assert.Empty(t, calls, "and nothing is pushed")
+
+	appReady = func() bool { return true }
+	require.NotPanics(t, func() { shell.SetBadgeCount(3) })
+	assert.Equal(t, []int{3}, calls, "once the app runs the count is pushed")
+
+	require.NotPanics(t, func() { shell.SetBadgeCount(0) })
+	assert.Equal(t, []int{3, 0}, calls, "zero is a real value to send, not a no-op")
 }

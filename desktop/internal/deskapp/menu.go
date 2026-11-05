@@ -57,6 +57,9 @@ var (
 	// TestShell_FileIsImportedOnceFromTheCommandLine) and would hang a
 	// command-line import that ran too early.
 	appReady = mygo.App.IsReady
+	// setAppBadgeCount is the icon badge, indirected so a test can assert the
+	// guard without an application handle.
+	setAppBadgeCount = mygo.App.SetBadgeCount
 )
 
 // rememberDocument feeds File → Open Recent. A failure to record the file is

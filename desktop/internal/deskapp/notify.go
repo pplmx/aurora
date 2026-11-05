@@ -119,5 +119,5 @@ func (s *Shell) SetBadgeCount(n int) {
 	if !appReady() {
 		return
 	}
-	mygo.App.SetBadgeCount(n)
+	setAppBadgeCount(n)
 }
