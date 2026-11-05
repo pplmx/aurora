@@ -34,6 +34,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **The voting page waits as well, and so do its three lists**: it has its own first-run guide plus a
+  voters, candidates and sessions list, so it had four empty sentences to withhold rather than one. All
+  four now stay off until a read completes, and the page says it is waiting for the running write. Every
+  collection page in the window is now covered by one parameterised test, and dropping any single guard
+  fails that page's subtest.
+
+### Fixed
+
 - **The NFT and oracle pages wait too**: last round's fix covered the token page, and a probe over every
   collection found the same state in two more. They now record that their first read completed, and
   before that they say the running write is what they are waiting for instead of printing "No NFTs yet"

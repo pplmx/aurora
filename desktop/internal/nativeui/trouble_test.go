@@ -531,6 +531,9 @@ func TestEveryCollectionPageWaitsInsteadOfClaimingEmpty(t *testing.T) {
 	}{
 		{"NFT", "NFT", "No NFTs yet"},
 		{"Oracle", "Oracle", "No sources yet"},
+		// The voting page has its own first-run guide and three lists, so it
+		// had three empty sentences to withhold rather than one.
+		{"Voting", "Voting", "No voters yet"},
 	}
 	for _, tc := range pages {
 		t.Run(tc.name, func(t *testing.T) {
@@ -545,6 +548,8 @@ func TestEveryCollectionPageWaitsInsteadOfClaimingEmpty(t *testing.T) {
 			tester.Frame()
 			require.Falsef(t, tester.HasText(tc.text),
 				"%s must not describe a store it has not read", tc.name)
+			require.False(t, tester.HasText("No voters registered yet."),
+				"nor may a list inside it")
 			require.True(t, tester.HasText("Waiting for the running write"),
 				"and it says why")
 

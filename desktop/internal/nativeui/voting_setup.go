@@ -80,7 +80,13 @@ func (a *App) votingView(c *ui.Context) {
 // read returned no voters, candidates or sessions, and nothing is filtered or
 // selected. The registration forms lead because a session needs a roster, and
 // the empty lists would only repeat what the forms do.
+// votingNeedsFirstRecord answers "the store has nobody in it". A page nothing
+// has read yet is not that: the guide invites registrations, and it must not
+// appear for a store this page has not looked at.
 func (a *App) votingNeedsFirstRecord() bool {
+	if !a.voting.loaded {
+		return false
+	}
 	entered := a.voting.tab != 0 ||
 		a.voting.voterSearch != "" || a.voting.voterApplied != "" ||
 		a.voting.candSearch != "" || a.voting.candApplied != "" ||

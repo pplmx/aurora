@@ -75,6 +75,13 @@ func (a *App) votingVoterList(c *ui.Context) {
 		}
 		a.loadVoterPage(0)
 	}
+	if len(a.voting.voters) == 0 && !a.voting.loaded {
+		// Unread is not empty: the busy bar names the write that owns the
+		// database, and claiming nobody is registered would describe a store this
+		// page has not looked at.
+		hint(c, "Waiting for the running write to finish before reading this page.")
+		return
+	}
 	if len(a.voting.voters) == 0 {
 		if a.voting.loadErr == nil {
 			emptyStateIcon(c, usersIcon, pageAccent(c, pageVoting), "No voters registered yet.",
@@ -171,6 +178,11 @@ func (a *App) votingSessionList(c *ui.Context) {
 			a.clearSessionRoster()
 		}
 		a.loadSessionPage(0)
+	}
+	if len(a.voting.sessions) == 0 && !a.voting.loaded {
+		// Unread is not empty; see the voter list.
+		hint(c, "Waiting for the running write to finish before reading this page.")
+		return
 	}
 	if len(a.voting.sessions) == 0 {
 		// A failed load is reported once, above the cards; with no rows there
@@ -322,6 +334,11 @@ func (a *App) votingCandidateList(c *ui.Context) {
 			a.voting.candChoice = -1
 		}
 		a.loadCandidatePage(0)
+	}
+	if len(a.voting.candidates) == 0 && !a.voting.loaded {
+		// Unread is not empty; see the voter list.
+		hint(c, "Waiting for the running write to finish before reading this page.")
+		return
 	}
 	if len(a.voting.candidates) == 0 {
 		if a.voting.loadErr == nil {

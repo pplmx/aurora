@@ -104,6 +104,9 @@ type votingState struct {
 	voterNameErr string
 	candNameErr  string
 	loadErr      error
+	// loaded records that a read completed, so an unread page is not mistaken for
+	// an empty store. Any of the three lists counts: each is a read of the store.
+	loaded bool
 
 	// tab is the stage shown: 0 setup (register/create), 1 ballot (controls and
 	// cast), 2 results. The page used to stack all four areas at once, so a
@@ -161,6 +164,7 @@ func (a *App) loadVoterPage(offset int) bool {
 	if a.voting.voterHasMore {
 		rows = rows[:votingPageSize]
 	}
+	a.voting.loaded = true
 	a.voting.voters = rows
 	return true
 }
@@ -189,6 +193,7 @@ func (a *App) loadCandidatePage(offset int) bool {
 	if a.voting.candHasMore {
 		rows = rows[:votingPageSize]
 	}
+	a.voting.loaded = true
 	a.voting.candidates = rows
 	return true
 }
@@ -214,6 +219,7 @@ func (a *App) loadSessionPage(offset int) bool {
 	if a.voting.sessionHasMore {
 		rows = rows[:votingPageSize]
 	}
+	a.voting.loaded = true
 	a.voting.sessions = rows
 	return true
 }
