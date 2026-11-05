@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/pplmx/aurora/internal/domain/nft"
 	"github.com/pplmx/aurora/internal/utils"
@@ -327,12 +326,10 @@ func (r *NFTRepository) ListNFTs(limit, offset int) ([]*nft.NFT, error) {
 // NFT whose row is not on the loaded page. The escaping and case-folding mirror the
 // token, lottery and audit searches.
 func (r *NFTRepository) ListMatchingNFTs(term string, limit, offset int) ([]*nft.NFT, error) {
-	term = strings.TrimSpace(term)
-	if term == "" {
+	like, ok := likeContains(term)
+	if !ok {
 		return r.ListNFTs(limit, offset)
 	}
-	escaped := strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`).Replace(strings.ToLower(term))
-	like := "%" + escaped + "%"
 	where := `WHERE lower(id) LIKE ? ESCAPE '\' OR lower(name) LIKE ? ESCAPE '\'`
 	return r.listNFTs(where, []any{like, like}, limit, offset)
 }

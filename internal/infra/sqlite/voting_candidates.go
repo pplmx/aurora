@@ -5,7 +5,6 @@ package sqlite
 import (
 	"database/sql"
 	"fmt"
-	"strings"
 
 	"github.com/pplmx/aurora/internal/domain/voting"
 )
@@ -68,12 +67,10 @@ func (r *VotingRepository) ListCandidates(limit, offset int) ([]*voting.Candidat
 // ListMatchingCandidates searches the ballot by id, name, party and program, so a
 // search finds a candidate whose row is not on the loaded page.
 func (r *VotingRepository) ListMatchingCandidates(term string, limit, offset int) ([]*voting.Candidate, error) {
-	term = strings.TrimSpace(term)
-	if term == "" {
+	like, ok := likeContains(term)
+	if !ok {
 		return r.ListCandidates(limit, offset)
 	}
-	escaped := strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`).Replace(strings.ToLower(term))
-	like := "%" + escaped + "%"
 	where := `WHERE lower(id) LIKE ? ESCAPE '\' OR lower(name) LIKE ? ESCAPE '\'
 		OR lower(party) LIKE ? ESCAPE '\' OR lower(program) LIKE ? ESCAPE '\'`
 	return r.listCandidates(where, []any{like, like, like, like}, limit, offset)

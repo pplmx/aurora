@@ -320,3 +320,26 @@ func TestAShortPayloadIsShownWhole(t *testing.T) {
 	require.False(t, tester.HasText("Copy payload takes all of it"),
 		"and nothing claims bytes were withheld")
 }
+
+// TestALedgerRecordAlsoCapsItsPayload covers the other caller of the payload
+// view. The backlog card and the ledger record share recordPayloadBody, so the
+// cap applies to both — but "it is the same function" is the kind of reasoning
+// that stops being true the day someone inlines one of the two call sites.
+func TestALedgerRecordAlsoCapsItsPayload(t *testing.T) {
+	big := `{"participants":["` + strings.Repeat("participant-name,", 6000) + `alice"]}`
+	require.Greater(t, len(big), payloadPreviewLen, "the fixture must exceed the cap")
+
+	fake := &fakeServices{blocks: []BlockRow{
+		{Height: 1, Module: "lottery", Action: "draw", Summary: "Run draw", Payload: big},
+	}}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 2000)
+	app.ShowPage("Blockchain")
+	tester.Frame()
+	require.NoError(t, tester.Click("Payload"))
+	tester.Frame()
+
+	require.True(t, tester.HasText("Copy payload takes all of it"),
+		"a ledger record with a large payload must disclose the cut too")
+	require.False(t, tester.HasText(big), "the whole payload is not laid out")
+}

@@ -756,8 +756,15 @@ func TestTheThreeSurfacesShareOneDrawSearch(t *testing.T) {
 	for _, field := range []string{"l.id", "l.seed", "l.participants", "l.winners"} {
 		require.Containsf(t, search, field, "the search must match %s", field)
 	}
-	// A term carrying LIKE's own wildcards must match literally.
-	require.Contains(t, search, `%`, "and escape the wildcards a seed can contain")
+	// A term carrying LIKE's own wildcards must match literally. The escaping
+	// moved into likeContains when seven repositories each spelled it out, so the
+	// assertion follows it there and also checks that this search still routes
+	// through it — two facts, both needed: a call to a helper nobody uses would
+	// pass the first alone.
+	require.Contains(t, search, "likeContains(",
+		"and route the term through the shared escaper")
+	helper := readRepoFile(t, "internal", "infra", "sqlite", "search.go")
+	require.Contains(t, helper, `%`, "which exists to escape the wildcards a seed can contain")
 }
 
 // TestTheExportPathChecksBothHalvesOfARecord covers the two-layer validation an

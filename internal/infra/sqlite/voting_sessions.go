@@ -6,7 +6,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"strings"
 
 	"github.com/pplmx/aurora/internal/domain/voting"
 )
@@ -60,12 +59,10 @@ func (r *VotingRepository) ListSessions(limit, offset int) ([]*voting.Session, e
 // ListMatchingSessions searches the sessions by id, title and status, so a search
 // finds a session whose row is not on the loaded page.
 func (r *VotingRepository) ListMatchingSessions(term string, limit, offset int) ([]*voting.Session, error) {
-	term = strings.TrimSpace(term)
-	if term == "" {
+	like, ok := likeContains(term)
+	if !ok {
 		return r.ListSessions(limit, offset)
 	}
-	escaped := strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`).Replace(strings.ToLower(term))
-	like := "%" + escaped + "%"
 	where := `WHERE lower(id) LIKE ? ESCAPE '\' OR lower(title) LIKE ? ESCAPE '\'
 		OR lower(status) LIKE ? ESCAPE '\'`
 	return r.listSessions(where, []any{like, like, like}, limit, offset)

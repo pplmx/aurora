@@ -10,7 +10,6 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/pplmx/aurora/internal/domain/token"
@@ -212,12 +211,10 @@ func (r *TokenRepository) ListTokens(limit, offset int) ([]*token.Token, error) 
 // case-folding mirror the lottery and audit searches: a symbol containing % or _
 // must still match literally.
 func (r *TokenRepository) ListMatchingTokens(term string, limit, offset int) ([]*token.Token, error) {
-	term = strings.TrimSpace(term)
-	if term == "" {
+	like, ok := likeContains(term)
+	if !ok {
 		return r.ListTokens(limit, offset)
 	}
-	escaped := strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`).Replace(strings.ToLower(term))
-	like := "%" + escaped + "%"
 	where := `WHERE lower(id) LIKE ? ESCAPE '\' OR lower(name) LIKE ? ESCAPE '\'
 		OR lower(symbol) LIKE ? ESCAPE '\'`
 	return r.listTokens(where, []any{like, like, like}, limit, offset)

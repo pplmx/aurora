@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"strings"
 
 	"github.com/pplmx/aurora/internal/domain/lottery"
 	"github.com/pplmx/aurora/internal/utils"
@@ -267,14 +266,12 @@ func (r *LotteryRepository) List(limit, offset int) ([]*lottery.LotteryRecord, e
 // The two arrays live as JSON text, so a LIKE over the column matches a name
 // the way a reader typing it expects.
 func (r *LotteryRepository) ListMatching(term string, limit, offset int) ([]*lottery.LotteryRecord, error) {
-	term = strings.TrimSpace(term)
-	if term == "" {
+	// The escaping lives in likeContains: a seed with a percent sign must match
+	// literally, like the audit trail's search.
+	like, ok := likeContains(term)
+	if !ok {
 		return r.List(limit, offset)
 	}
-	// LIKE treats % and _ as wildcards; a term containing them (a seed with a
-	// percent sign) must still match literally, like the audit trail's search.
-	escaped := strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`).Replace(strings.ToLower(term))
-	like := "%" + escaped + "%"
 	where := `WHERE lower(l.id) LIKE ? ESCAPE '\' OR lower(l.seed) LIKE ? ESCAPE '\'
 		OR lower(l.participants) LIKE ? ESCAPE '\' OR lower(l.winners) LIKE ? ESCAPE '\'`
 	return r.list(where, []any{like, like, like, like}, limit, offset)

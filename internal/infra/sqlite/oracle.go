@@ -3,7 +3,6 @@ package sqlite
 import (
 	"database/sql"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -235,12 +234,10 @@ func (r *OracleRepository) ListSources(limit, offset int) ([]*oracle.DataSource,
 // a search finds a source whose row is not on the loaded page. The escaping and
 // case-folding mirror the token, NFT, lottery and audit searches.
 func (r *OracleRepository) ListMatchingSources(term string, limit, offset int) ([]*oracle.DataSource, error) {
-	term = strings.TrimSpace(term)
-	if term == "" {
+	like, ok := likeContains(term)
+	if !ok {
 		return r.ListSources(limit, offset)
 	}
-	escaped := strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`).Replace(strings.ToLower(term))
-	like := "%" + escaped + "%"
 	where := `WHERE lower(id) LIKE ? ESCAPE '\' OR lower(name) LIKE ? ESCAPE '\'
 		OR lower(type) LIKE ? ESCAPE '\' OR lower(url) LIKE ? ESCAPE '\'`
 	return r.listSources(where, []any{like, like, like, like}, limit, offset)

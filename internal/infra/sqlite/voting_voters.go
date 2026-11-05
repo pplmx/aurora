@@ -4,7 +4,6 @@ package sqlite
 
 import (
 	"database/sql"
-	"strings"
 
 	"github.com/pplmx/aurora/internal/domain/voting"
 )
@@ -82,12 +81,10 @@ func (r *VotingRepository) ListVoters(limit, offset int) ([]*voting.Voter, error
 // a voter whose row is not on the loaded page. The escaping and case-folding
 // mirror the token, NFT, oracle, lottery and audit searches.
 func (r *VotingRepository) ListMatchingVoters(term string, limit, offset int) ([]*voting.Voter, error) {
-	term = strings.TrimSpace(term)
-	if term == "" {
+	like, ok := likeContains(term)
+	if !ok {
 		return r.ListVoters(limit, offset)
 	}
-	escaped := strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`).Replace(strings.ToLower(term))
-	like := "%" + escaped + "%"
 	where := `WHERE lower(name) LIKE ? ESCAPE '\' OR lower(public_key) LIKE ? ESCAPE '\'`
 	return r.listVoters(where, []any{like, like}, limit, offset)
 }
