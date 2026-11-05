@@ -1281,3 +1281,57 @@ func TestEveryPrimaryButtonReachesItsHandler(t *testing.T) {
 		})
 	}
 }
+
+// TestTheSessionAndMintButtonsReachTheirHandlers covers the two primary buttons a
+// test can reach without a key pair. Both were missed by the earlier sweep: the
+// session button was clicked all along, but the test watched the wrong field for
+// the result, and the mint card's subtitle is not a text node that Find answers
+// with, so the field above the button is used as the anchor instead.
+func TestTheSessionAndMintButtonsReachTheirHandlers(t *testing.T) {
+	t.Run("create session", func(t *testing.T) {
+		app := New(workbenchFakes())
+		app.SetActions(Actions{Version: "0.0.1", SetPageTitle: func(string) {}, SetBadgeCount: func(int) {}})
+		tester := ui.NewTester(app.View, 1400, 2400)
+		app.ShowPage("Voting")
+		app.voting.sessionTitle = "Election"
+		tester.Frame()
+
+		// An empty roster is refused, which is this handler's own first step.
+		clickPrimaryButton(t, tester, "Create Session",
+			func() bool { return app.voting.sessionResult.text != "" },
+			func() { app.voting.sessionResult = statusLine{} })
+		require.Contains(t, app.voting.sessionResult.text, "candidate",
+			"and the refusal is the one the handler produces")
+	})
+
+	t.Run("mint", func(t *testing.T) {
+		app := New(workbenchFakes())
+		app.SetActions(Actions{Version: "0.0.1", SetPageTitle: func(string) {}, SetBadgeCount: func(int) {}})
+		tester := ui.NewTester(app.View, 1400, 2400)
+		app.ShowPage("Token")
+		tester.Frame()
+		// Selecting a token fills the recipient and keeps the fields on screen;
+		// a subject change resets the write forms by design.
+		app.token.tokenID = "GLD"
+		app.rememberTokenSubjectOwner("GLD", "owner-pk")
+		tester.Frame()
+		app.token.mintAmount, app.token.mintPriv = "100.5", "priv"
+		tester.Frame()
+
+		// The card's subtitle is not a text node Find can answer with, so the
+		// search starts from the field above the button.
+		field, ok := tester.Find("To (base64 public key)")
+		require.True(t, ok)
+		require.Equal(t, "", app.token.amountErrs["mint"])
+
+		landed := false
+		for y := field.Y + 40; y < field.Y+220 && !landed; y += 6 {
+			app.clearAmountErr("mint")
+			tester.ClickAt(field.X+40, y)
+			tester.Frame()
+			landed = app.token.amountErrs["mint"] != ""
+		}
+		require.True(t, landed, "clicking Mint must reach mintToken()")
+		require.Contains(t, app.token.amountErrs["mint"], "whole number")
+	})
+}

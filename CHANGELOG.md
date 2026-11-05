@@ -47,6 +47,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Added
 
+- **Create Session and Mint are clicked by their tests**: the earlier sweep missed both, and for two
+  different reasons worth recording. The session button was receiving the click all along — the test watched
+  `sessionStartErr`, which the handler only sets when the time is missing, while the refusal it actually
+  produces lives in `sessionResult`. The mint card's subtitle is not a text node `Find` answers with, so the
+  field above the button anchors the search. Dropping either button's handler makes its subtest fail.
+
+### Added
+
 - **Three more primary buttons are clicked by their tests**: Create Draw, Register Voter and Register
   Candidate follow Create Token, and the search for the button is now one helper the four share. Their
   existing tests call the handlers directly, which proves the handler and skips the control; dropping the
