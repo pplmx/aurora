@@ -34,6 +34,16 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Added
 
+- **A page that stays unreadable raises one notification**: without live updates a failed page does not
+  retry itself, so it stays failed until the reader comes back — and the reader may not come back soon.
+  The notice waits 30 seconds, because a page that recovers on the next read heals itself and a notice
+  for it is noise, and it stays silent when the window is in front, where the sidebar line and the page's
+  own warning already say it. A long outage notifies once.
+- **Failure notices have their own ID**: a completion and a failure for the same page are different news,
+  so one no longer replaces the other; a click on either opens the page it names.
+
+### Added
+
 - **The window title says something needs attention**: the sidebar line is only visible to a reader looking
   at the window, and the native title is what a task switcher shows — the one place someone working in
   another app can learn that a page failed. A failing page reads "Needs attention — Token"; recovery drops

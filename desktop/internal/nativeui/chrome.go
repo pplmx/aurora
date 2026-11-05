@@ -504,3 +504,13 @@ func (a *App) liveFreshness() (string, bool) {
 	text := a.liveFreshnessText(now)
 	return text, text != ""
 }
+
+// clockNow resolves the window's clock: the injected one in a test, the system
+// one otherwise. Several decisions are time-based — the live tick, the failure
+// notice — and each has to read the same clock or a test cannot drive them.
+func (a *App) clockNow() time.Time {
+	if a.liveNow != nil {
+		return a.liveNow()
+	}
+	return time.Now()
+}

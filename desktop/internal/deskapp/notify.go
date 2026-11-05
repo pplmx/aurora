@@ -31,6 +31,12 @@ var (
 // for a notice raised by an earlier run, so the ID has to be self-describing.
 const notificationPagePrefix = "write-done:"
 
+// notificationFailurePrefix marks a notice about a page that stayed unreadable.
+// It shares the page plumbing with the completion notice — a click brings the
+// window forward and opens the page — but has its own ID so a failure and a
+// completion for the same page do not replace each other.
+const notificationFailurePrefix = "page-failed:"
+
 // Notify shows a task's completion while the window is in the background. The
 // view decides when it is worth it; the shell owns the call because showing a
 // notification needs the app handle.
@@ -45,7 +51,13 @@ func (s *Shell) Notify(opts nativeui.NotifyOptions) {
 	}
 	id := opts.ID
 	if opts.Page != "" {
-		id = notificationPagePrefix + opts.Page
+		// A failure notice and a completion notice for the same page are
+		// different news and must not replace each other.
+		prefix := notificationPagePrefix
+		if strings.HasPrefix(opts.ID, notificationFailurePrefix) {
+			prefix = notificationFailurePrefix
+		}
+		id = prefix + opts.Page
 	}
 	_ = showNotification(mygo.NotificationOptions{
 		ID:    id,
@@ -83,7 +95,12 @@ func (s *Shell) OpenNotification(id string) {
 	if hasWindow {
 		win.Focus()
 	}
+	// Both notice kinds name a page; which prefix carried it does not change
+	// where the click goes.
 	page, ok := strings.CutPrefix(id, notificationPagePrefix)
+	if !ok {
+		page, ok = strings.CutPrefix(id, notificationFailurePrefix)
+	}
 	if !ok || page == "" {
 		return
 	}

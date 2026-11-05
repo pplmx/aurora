@@ -1,6 +1,9 @@
 package nativeui
 
-import "fmt"
+import (
+	"fmt"
+	"time"
+)
 
 // Reporting which pages could not be read, from anywhere in the window.
 //
@@ -41,6 +44,54 @@ func (a *App) loadFailures() []pageLoadFailure {
 	add(pageNFT, a.nft.loadErr)
 	add(pageBlockchain, a.blockchain.loadErr)
 	return out
+}
+
+// troubleNoticeAfter is how long a page must stay unreadable before its failure is
+// worth a system notification. A page that recovers on the next read — a locked
+// database, a transient write — heals itself, and a notification for it would be
+// noise; the sidebar line already reports it for anyone at the window.
+const troubleNoticeAfter = 30 * time.Second
+
+// troubleNotice tracks one page's failure across frames, so a notice is raised
+// when it has lasted rather than when it first appeared.
+type troubleNotice struct {
+	page  page
+	since time.Time
+	// notified records that the notice for this failure has been raised, so a
+	// long outage notifies once instead of every frame past the threshold.
+	notified bool
+}
+
+// maybeNotifyTrouble raises a notice for a failure that has outlasted the
+// threshold while the window is in the background. Without live updates a failed
+// page does not retry itself, so it stays failed until the reader comes back and
+// presses Refresh — which is exactly the case worth a notification.
+func (a *App) maybeNotifyTrouble(now time.Time) {
+	failures := a.loadFailures()
+	if len(failures) == 0 {
+		a.trouble = troubleNotice{}
+		return
+	}
+	first := failures[0]
+	if a.trouble.page != first.Page || a.trouble.since.IsZero() {
+		a.trouble = troubleNotice{page: first.Page, since: now}
+		return
+	}
+	if a.trouble.notified || now.Sub(a.trouble.since) < troubleNoticeAfter {
+		return
+	}
+	if a.actions.Notify == nil || a.actions.Active == nil || a.actions.Active() {
+		// Not a notification opportunity: the window is in front, where the
+		// sidebar line and the page's own warning already say this.
+		return
+	}
+	a.trouble.notified = true
+	a.actions.Notify(NotifyOptions{
+		ID:    "page-failed:" + pageIDs[first.Page],
+		Page:  pageIDs[first.Page],
+		Title: tr("Aurora couldn't read a page"),
+		Body:  fmt.Sprintf(tr("%s has not loaded. Open it to retry."), tr(pageTitles[first.Page])),
+	})
 }
 
 // troubleLine is the sidebar sentence, or "" when nothing is failing. One page

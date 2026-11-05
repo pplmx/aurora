@@ -39,6 +39,9 @@ type App struct {
 	// windowTitle is the last title pushed to the native window, so the frame can
 	// skip a redundant platform call on every repaint.
 	windowTitle string
+	// trouble tracks how long a page has been unreadable, so a notice is raised
+	// for an outage that lasted rather than for a read that failed once.
+	trouble troubleNotice
 	// guides holds each page's "How this works" disclosure. They start closed
 	// so the page stays task-first, but the explanation is one click away.
 	guides guideState
@@ -193,6 +196,7 @@ func (a *App) View(c *ui.Context) {
 	// error: a comparison against the last pushed value covers all of them,
 	// including the ones a future page adds.
 	a.syncWindowTitle()
+	a.maybeNotifyTrouble(a.clockNow())
 	paletteWasOpen := a.paletteOpen
 	if a.pageAnnouncement != "" {
 		c.Announce(a.pageAnnouncement)

@@ -276,3 +276,113 @@ func TestTheWindowTitleIsNotRepushedEveryFrame(t *testing.T) {
 	tester.Frame()
 	require.Equal(t, settled+1, pushes, "a change is pushed exactly once")
 }
+
+// notifyRecorder captures the notices the view would raise.
+type notifyRecorder struct {
+	shown []NotifyOptions
+}
+
+func (r *notifyRecorder) actions(active bool) Actions {
+	return Actions{
+		Notify: func(o NotifyOptions) { r.shown = append(r.shown, o) },
+		Active: func() bool { return active },
+	}
+}
+
+// TestAFailureThatLastsRaisesOneNotice covers the case a notification is worth:
+// without live updates a failed page does not retry itself, so it stays failed
+// until the reader comes back — and the reader may not come back soon.
+func TestAFailureThatLastsRaisesOneNotice(t *testing.T) {
+	recorder := &notifyRecorder{}
+	now := time.Date(2026, 11, 5, 12, 0, 0, 0, time.UTC)
+	app := New(workbenchFakes())
+	app.liveNow = func() time.Time { return now }
+	app.SetActions(recorder.actions(false))
+	tester := ui.NewTester(app.View, 1280, 900)
+	app.token.loadErr = errors.New("database is locked")
+	app.ShowPage("Dashboard")
+
+	tester.Frame()
+	require.Empty(t, recorder.shown, "a failure that just appeared is not worth a notice")
+
+	now = now.Add(troubleNoticeAfter - time.Second)
+	tester.Frame()
+	require.Empty(t, recorder.shown, "and it is still inside the threshold")
+
+	now = now.Add(2 * time.Second)
+	tester.Frame()
+	require.Len(t, recorder.shown, 1, "a failure that outlasted the threshold is")
+	require.Equal(t, "token", recorder.shown[0].Page,
+		"the notice names the page so a click can open it")
+	assert.Contains(t, recorder.shown[0].Body, "Token")
+
+	// The outage continues; the notice must not.
+	now = now.Add(time.Minute)
+	tester.Frame()
+	assert.Len(t, recorder.shown, 1, "a long outage notifies once, not every frame")
+}
+
+// TestAQuickFailureStaysQuiet guards the other half. A page that recovers on the
+// next read — a locked database, a transient write — heals itself, and a notice
+// for it is noise that trains the operator to ignore notices.
+func TestAQuickFailureStaysQuiet(t *testing.T) {
+	recorder := &notifyRecorder{}
+	now := time.Date(2026, 11, 5, 12, 0, 0, 0, time.UTC)
+	app := New(workbenchFakes())
+	app.liveNow = func() time.Time { return now }
+	app.SetActions(recorder.actions(false))
+	tester := ui.NewTester(app.View, 1280, 900)
+	app.token.loadErr = errors.New("database is locked")
+	app.ShowPage("Dashboard")
+	tester.Frame()
+
+	now = now.Add(troubleNoticeAfter + time.Second)
+	app.token.loadErr = nil
+	tester.Frame()
+	assert.Empty(t, recorder.shown, "a failure that healed before the threshold says nothing")
+}
+
+// TestAFailureInFrontIsNotNotified keeps the notice from competing with the
+// window it belongs to: the sidebar line and the page's own warning are already
+// in front of the reader.
+func TestAFailureInFrontIsNotNotified(t *testing.T) {
+	recorder := &notifyRecorder{}
+	now := time.Date(2026, 11, 5, 12, 0, 0, 0, time.UTC)
+	app := New(workbenchFakes())
+	app.liveNow = func() time.Time { return now }
+	app.SetActions(recorder.actions(true))
+	tester := ui.NewTester(app.View, 1280, 900)
+	app.token.loadErr = errors.New("database is locked")
+	app.ShowPage("Dashboard")
+	tester.Frame()
+
+	now = now.Add(troubleNoticeAfter + time.Second)
+	tester.Frame()
+	assert.Empty(t, recorder.shown, "the front window already shows the failure")
+}
+
+// TestANoticeForAnotherPageRestartsTheClock keeps one outage from borrowing
+// another's age: a second page failing is a new condition, and it has to outlast
+// the threshold on its own.
+func TestANoticeForAnotherPageRestartsTheClock(t *testing.T) {
+	recorder := &notifyRecorder{}
+	now := time.Date(2026, 11, 5, 12, 0, 0, 0, time.UTC)
+	app := New(workbenchFakes())
+	app.liveNow = func() time.Time { return now }
+	app.SetActions(recorder.actions(false))
+	tester := ui.NewTester(app.View, 1280, 900)
+	app.token.loadErr = errors.New("database is locked")
+	app.ShowPage("Dashboard")
+	tester.Frame()
+
+	now = now.Add(troubleNoticeAfter - time.Second)
+	app.nft.loadErr = errors.New("database is locked")
+	tester.Frame()
+	require.Empty(t, recorder.shown, "the first page's age does not carry over")
+
+	now = now.Add(2 * time.Second)
+	tester.Frame()
+	require.Len(t, recorder.shown, 1)
+	assert.Equal(t, "token", recorder.shown[0].Page,
+		"and the notice still names the topmost failing page")
+}

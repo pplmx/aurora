@@ -786,4 +786,6 @@ var desktopMessagesHant = map[string]string{
 	"Open %s, which could not be read":            "開啟 %s，它讀取失敗",
 	"Open %s; %d pages could not be read":         "開啟 %s；共有 %d 個頁面讀取失敗",
 	"Needs attention":                             "需要處理",
+	"Aurora couldn't read a page":                 "Aurora 無法讀取某個頁面",
+	"%s has not loaded. Open it to retry.":        "%s 尚未載入，開啟後重試。",
 }
