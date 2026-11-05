@@ -125,6 +125,12 @@ func validateSourceURL(raw string) error {
 		return fmt.Errorf("parse url: %w", err)
 	}
 	scheme := strings.ToLower(u.Scheme)
+	// A URL with no scheme parses as a path, so "disallowed scheme \"\"" told a
+	// reader who typed "example.com/x" nothing about what to add. Missing and
+	// disallowed are different mistakes and get different sentences.
+	if scheme == "" {
+		return fmt.Errorf("missing scheme: write the URL as http://host or https://host")
+	}
 	if _, ok := allowedSourceSchemes[scheme]; !ok {
 		return fmt.Errorf("disallowed scheme %q (only http/https allowed)", u.Scheme)
 	}

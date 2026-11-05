@@ -34,6 +34,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **A missing URL scheme is not reported as a disallowed one**: `example.com/x` parses as a path, so its
+  scheme is empty and the message read `disallowed scheme ""` — true, but it named neither what was
+  missing nor what to add. A missing scheme and a scheme that is not allowed are different mistakes and
+  now read differently; the empty one suggests `http://host`. Found by walking the oracle flow, the last
+  module this series had not exercised.
+
+### Fixed
+
 - **The private-key label is one field name in every message**: `decodeKey` builds "invalid %s encoding", so
   the label is read by a person, and the NFT layer passed `privatekey` while the token layer passed
   `privateKey` — two misspellings of the same field in two different errors. The Chinese rewriter matched

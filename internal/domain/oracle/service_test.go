@@ -767,3 +767,28 @@ func TestAddSource_OverflowInterval_Rejected(t *testing.T) {
 		t.Fatalf("MaxSourceIntervalSeconds must be accepted, got %v", err)
 	}
 }
+
+// TestAMissingSchemeIsNotADisallowedOne pins the sentence a reader gets for each
+// malformed URL. "example.com/x" parses as a path, so its scheme is empty, and
+// the old message said `disallowed scheme ""` — true but useless: it named
+// neither what was missing nor what to add. A missing scheme and a scheme that
+// is not allowed are different mistakes and now read differently.
+func TestAMissingSchemeIsNotADisallowedOne(t *testing.T) {
+	for _, raw := range []string{"not-a-url", "example.com/x", "//example.com/x"} {
+		err := ValidateSourceURL(raw)
+		require.Error(t, err)
+		require.Containsf(t, err.Error(), "missing scheme",
+			"ValidateSourceURL(%q) should say the scheme is missing, got %v", raw, err)
+		require.Contains(t, err.Error(), "http://host",
+			"and should show what a complete URL looks like")
+		require.NotContains(t, err.Error(), `scheme ""`,
+			"an empty scheme is not a value worth quoting back")
+	}
+
+	err := ValidateSourceURL("ftp://example.com/x")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), `disallowed scheme "ftp"`,
+		"a scheme that is present but not allowed is still quoted")
+	require.NotContains(t, err.Error(), "missing scheme",
+		"the two mistakes must not share a sentence")
+}
