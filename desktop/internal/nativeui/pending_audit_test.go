@@ -197,3 +197,74 @@ func TestAWaitingListThatFitsKeepsThePlainDescription(t *testing.T) {
 		"a list showing every parked copy needs no ratio")
 	require.True(t, tester.HasText("Audit copies of blocks that are already on the chain"))
 }
+
+// TestAParkedCopyShowsItsPayload closes the gap the backlog card had: it named
+// the operation and the retry state but never said which record was parked, so
+// two mints of the same token read identically. The payload opens on request for
+// the same reason the ledger's records do — JSON in every row would bury the
+// retry state the rows are scanned for.
+func TestAParkedCopyShowsItsPayload(t *testing.T) {
+	app := New(workbenchFakes())
+	tester := ui.NewTester(app.View, 1280, 2600)
+	app.SetActions(Actions{
+		OutboxPending: func() (int, bool) { return 2, true },
+		OutboxList: func() []PendingEvent {
+			return []PendingEvent{
+				{EventType: "token.Minted", Module: "token", Aggregate: "Mint GLD",
+					Payload: `{"token_id":"GLD","amount":"100"}`},
+				{EventType: "nft.Minted", Module: "nft", Aggregate: "Mint Star",
+					Payload: `{"nft_id":"n-1"}`},
+			}
+		},
+	})
+	app.ShowPage("Blockchain")
+	tester.Frame()
+
+	require.True(t, tester.HasText("Mint GLD"), "the operation is listed")
+	require.False(t, tester.HasText(`{"token_id"`),
+		"the payload stays closed until asked for, so the retry facts stay readable")
+
+	require.NoError(t, tester.Click("Payload"))
+	tester.Frame()
+	require.Equal(t, 0, app.blockchain.pendingExpanded, "the first row is the one opened")
+	require.True(t, tester.HasText(`{"token_id":"GLD","amount":"100"}`),
+		"the exact recorded bytes are what says which record is parked")
+
+	// Only one payload is open at a time: comparing two is a toggle, not a scroll.
+	require.True(t, tester.HasText("Hide payload"))
+}
+
+// TestClosingTheOpenPayloadRestoresTheRow covers the other half of the toggle,
+// and the reset that keeps an index from outliving the list it points into.
+func TestClosingTheOpenPayloadRestoresTheRow(t *testing.T) {
+	app := New(workbenchFakes())
+	tester := ui.NewTester(app.View, 1280, 2600)
+	list := []PendingEvent{
+		{EventType: "token.Minted", Module: "token", Aggregate: "Mint GLD",
+			Payload: `{"token_id":"GLD"}`},
+	}
+	app.SetActions(Actions{
+		OutboxPending: func() (int, bool) { return 1, true },
+		OutboxList:    func() []PendingEvent { return list },
+	})
+	app.ShowPage("Blockchain")
+	tester.Frame()
+	require.NoError(t, tester.Click("Payload"))
+	tester.Frame()
+	require.True(t, tester.HasText(`{"token_id":"GLD"}`))
+
+	require.NoError(t, tester.Click("Hide payload"))
+	tester.Frame()
+	require.Equal(t, -1, app.blockchain.pendingExpanded)
+	require.False(t, tester.HasText(`{"token_id":"GLD"}`))
+
+	// The queue draining under an open row must close it rather than leave the
+	// toggle naming a payload that is no longer there.
+	require.NoError(t, tester.Click("Payload"))
+	tester.Frame()
+	list = nil
+	app.refresh()
+	tester.Frame()
+	require.Equal(t, -1, app.blockchain.pendingExpanded,
+		"an index past the end of the re-read list must be cleared")
+}

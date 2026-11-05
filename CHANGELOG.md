@@ -34,6 +34,15 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Added
 
+- **A parked audit copy shows its payload**: the backlog card under the ledger named the operation and
+  the retry state but never said *which* record was parked, so two mints of the same token read
+  identically. Each row can now open the exact recorded bytes, reusing the ledger record's own toggle
+  and payload view rather than growing a second one. It stays closed by default — JSON in every row
+  would bury the retry facts the card is scanned for — and only one payload is open at a time, so
+  comparing two is a toggle instead of a scroll.
+
+### Added
+
 - **The voting lists gain `--search` and `?search=`**: `voting candidate list` (id, name, party,
   program), `voting voter list` (name, public key) and `voting session list` (id, title, status) now
   forward the term to storage from the CLI, and `/voting/candidates`, `/voting/voters` and

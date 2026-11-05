@@ -73,6 +73,10 @@ type blockchainState struct {
 	// expanded is the index of the record whose exact payload is open, or -1
 	// when every record shows its decoded sentence only.
 	expanded int
+	// pendingExpanded is the same idea for the backlog rows under the ledger, and
+	// is a separate index because the two lists scroll independently: one open
+	// payload per list keeps a reader comparing two of them a click apart.
+	pendingExpanded int
 }
 
 func (a *App) loadDashboard() {

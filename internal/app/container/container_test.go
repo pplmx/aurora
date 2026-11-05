@@ -327,6 +327,8 @@ func TestPendingAuditListReportsWhatIsStuck(t *testing.T) {
 	require.Equal(t, parked.Timestamp().Unix(), pending[0].ParkedAt.Unix(),
 		"the wait a reader is shown starts when the copy was parked")
 	require.Zero(t, pending[0].Attempts, "a fresh copy has not been retried")
+	require.JSONEq(t, `{"agg_id":"agg-42"}`, pending[0].Payload,
+		"the exact recorded bytes are what say which record is parked; two mints of the same token read alike without them")
 
 	// A closed database is a read failure, not an empty outbox.
 	require.NoError(t, c.Close())

@@ -313,6 +313,7 @@ func main() {
 				out = append(out, nativeui.PendingEvent{
 					EventType: e.EventType, Module: e.Module, Aggregate: e.Aggregate,
 					ParkedAt: e.ParkedAt, Attempts: e.Attempts, NextTryAt: e.NextTryAt,
+					Payload: e.Payload,
 				})
 			}
 			return out

@@ -103,6 +103,11 @@ type PendingAuditEvent struct {
 	// stops moving is visible as a growing attempts count.
 	Attempts  int
 	NextTryAt time.Time
+	// Payload is the exact recorded bytes the drainer will read. The window shows
+	// it on request rather than by default: it is the one fact that says which
+	// record is parked, but it is JSON, and a wall of it in every row would bury
+	// the operation name and the retry state that the row is scanned for.
+	Payload string
 }
 
 // PendingAuditList reads the outbox newest-first, capped at limit. The window
@@ -113,7 +118,7 @@ func (c *Container) PendingAuditList(ctx context.Context, limit int) ([]PendingA
 		limit = 20
 	}
 	rows, err := c.DB.QueryContext(ctx, `
-		SELECT event_type, module, agg_id, timestamp, attempts, next_attempt_at
+		SELECT event_type, module, agg_id, timestamp, attempts, next_attempt_at, payload
 		FROM pending_events
 		ORDER BY timestamp DESC, id ASC
 		LIMIT ?`, limit)
@@ -126,7 +131,8 @@ func (c *Container) PendingAuditList(ctx context.Context, limit int) ([]PendingA
 		var eventType, module, aggregate string
 		var timestamp int64
 		var attempts, nextTryAt int64
-		if err := rows.Scan(&eventType, &module, &aggregate, &timestamp, &attempts, &nextTryAt); err != nil {
+		var payload []byte
+		if err := rows.Scan(&eventType, &module, &aggregate, &timestamp, &attempts, &nextTryAt, &payload); err != nil {
 			return nil, fmt.Errorf("scan pending audit event: %w", err)
 		}
 		out = append(out, PendingAuditEvent{
@@ -136,6 +142,7 @@ func (c *Container) PendingAuditList(ctx context.Context, limit int) ([]PendingA
 			ParkedAt:  time.Unix(timestamp, 0),
 			Attempts:  int(attempts),
 			NextTryAt: time.Unix(nextTryAt, 0),
+			Payload:   string(payload),
 		})
 	}
 	if err := rows.Err(); err != nil {

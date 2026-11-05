@@ -62,6 +62,11 @@ type PendingEvent struct {
 	ParkedAt  time.Time
 	Attempts  int
 	NextTryAt time.Time
+	// Payload is the exact recorded bytes the drainer will retry. It is shown on
+	// request rather than inline: it is the one fact that says which record is
+	// parked, but it is JSON, and a wall of it in every row would bury the
+	// operation name and the retry state the rows are scanned for.
+	Payload string
 }
 
 // readOutbox returns the backlog the sidebar draws. The footer renders on every
@@ -163,7 +168,7 @@ func outboxLine(state OutboxState) (string, bool) {
 // the facts that say whether the drainer is making progress. The payload is
 // deliberately absent — the block for the same operation is on the page with its
 // exact bytes, and this list exists to say *which* copies are stuck.
-func pendingEventRow(c *ui.Context, event PendingEvent, now time.Time) {
+func pendingEventRow(c *ui.Context, event PendingEvent, now time.Time, expanded bool, onToggle func()) {
 	tone := pendingEventTone(c, event, now)
 	ui.Column(c).FillWidth().Padding(space2+1, space3+2).Gap(2).Radius(radiusSmall).
 		Background(c.Theme().Background.Mix(c.Theme().Surface, 0.3)).
@@ -183,7 +188,18 @@ func pendingEventRow(c *ui.Context, event PendingEvent, now time.Time) {
 				// them do the subtraction against now.
 				pendingFact(c, "Next try", nextTryText(event.NextTryAt, now), c.Theme().TextMuted)
 			}
+			if event.Payload != "" {
+				// The payload is the one fact that says *which* record is parked:
+				// the operation column names the verb, and two mints of the same
+				// token read identically without it. It opens on request for the
+				// reason the ledger's records do — JSON in every row would bury
+				// the retry state these rows are scanned for.
+				recordPayloadToggle(c, expanded, onToggle)
+			}
 		})
+		if expanded {
+			recordPayloadBody(c, event.Payload)
+		}
 	})
 }
 
@@ -285,8 +301,15 @@ func (a *App) pendingAuditCard(c *ui.Context) {
 	panel := card(c, func() {
 		sectionHeading(c, "Waiting to be delivered", purpose)
 		ui.Column(c).FillWidth().Gap(space2).Role(ui.RoleList).Label(tr("Pending audit events")).Children(func() {
-			for _, event := range events {
-				pendingEventRow(c, event, now)
+			for i, event := range events {
+				index := i
+				pendingEventRow(c, event, now, a.blockchain.pendingExpanded == index, func() {
+					if a.blockchain.pendingExpanded == index {
+						a.blockchain.pendingExpanded = -1
+						return
+					}
+					a.blockchain.pendingExpanded = index
+				})
 			}
 		})
 	})

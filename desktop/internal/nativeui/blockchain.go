@@ -57,6 +57,9 @@ func (a *App) loadBlockchainAt(search string, rawLimit float64, offset int) bool
 	// the record to stay open.
 	if previousOffset != offset || previousSearch != search || previousLimit != limit {
 		a.blockchain.expanded = -1
+		// The backlog list is re-read below and the open row is an index into it,
+		// so a page move closes it for the same reason a block's payload closes.
+		a.blockchain.pendingExpanded = -1
 	}
 	a.blockchain.rows = page.Rows
 	a.blockchain.blockTotal = page.Total
@@ -69,6 +72,11 @@ func (a *App) loadBlockchainAt(search string, rawLimit float64, offset int) bool
 		a.blockchain.pending = a.actions.OutboxList()
 	} else {
 		a.blockchain.pending = nil
+	}
+	if a.blockchain.pendingExpanded >= len(a.blockchain.pending) {
+		// The queue drained or shrank under the open row: an index past the end
+		// would leave the toggle claiming a payload that is no longer there.
+		a.blockchain.pendingExpanded = -1
 	}
 	return true
 }
