@@ -815,6 +815,9 @@ var desktopMessages = map[string]string{
 	"Search matches id, name, party or program across the whole ballot.": "搜索会在所有候选人中按 ID、名称、党派或竞选纲领匹配。",
 	"Search matches id, title or status across the whole schedule.":      "搜索会在所有会期中按 ID、标题或状态匹配。",
 	"Showing the first %d of %d bytes; Copy payload takes all of it.":    "显示前 %d 字节（共 %d）；「复制载荷」会取走全部内容。",
-	"Updated %ds ago": "%d 秒前更新",
-	"Updated %dm ago": "%d 分钟前更新",
+	"Updated %ds ago":                             "%d 秒前更新",
+	"Updated %dm ago":                             "%d 分钟前更新",
+	"Couldn't read %s":                            "无法读取 %s",
+	"%d pages couldn't be read":                   "%d 个页面读取失败",
+	"Open the first page that could not be read.": "打开第一个读取失败的页面。",
 }

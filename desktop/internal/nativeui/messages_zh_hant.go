@@ -778,6 +778,9 @@ var desktopMessagesHant = map[string]string{
 	"Search matches id, name, party or program across the whole ballot.": "搜索會在所有人中按 ID、名稱、黨派或競選綱領匹配。",
 	"Search matches id, title or status across the whole schedule.":      "搜索會在所有會期中按 ID、標題或狀態匹配。",
 	"Showing the first %d of %d bytes; Copy payload takes all of it.":    "顯示前 %d 位元組（共 %d）；「複製載荷」會取走全部內容。",
-	"Updated %ds ago": "%d 秒前更新",
-	"Updated %dm ago": "%d 分鐘前更新",
+	"Updated %ds ago":                             "%d 秒前更新",
+	"Updated %dm ago":                             "%d 分鐘前更新",
+	"Couldn't read %s":                            "無法讀取 %s",
+	"%d pages couldn't be read":                   "%d 個頁面讀取失敗",
+	"Open the first page that could not be read.": "開啟第一個讀取失敗的頁面。",
 }

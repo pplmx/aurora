@@ -143,10 +143,10 @@ func (a *App) SetSystemDark(dark bool) {
 // a permanent window menu bar: file operations stay one click away instead of
 // hiding behind Alt, while application configuration lives on Settings.
 func (a *App) sidebarActions(c *ui.Context) {
-	// The block also carries the freshness stamp, so a window with actions but
-	// no File menu still has a reason to draw it.
+	// The block also carries the freshness stamp and the read-failure line, so a
+	// window with no File menu still has a reason to draw it.
 	_, fresh := a.liveFreshness()
-	if a.actions.empty() && !fresh {
+	if a.actions.empty() && !fresh && len(a.loadFailures()) == 0 {
 		return
 	}
 	ui.Column(c).FillWidth().Padding(space3, space5, space4, space2).Gap(space2).Children(func() {
@@ -179,6 +179,23 @@ func (a *App) sidebarActions(c *ui.Context) {
 		// minutes, so it belongs where the ledger's own health already sits and
 		// must be visible without opening anything. It is shown only when there
 		// is one — an empty outbox is healthy and has nothing to say.
+		// A page whose read failed is a condition the reader cannot see from
+		// another page. It sits above the backlog line because it is the one that
+		// says the window may be showing less than it claims.
+		if failures := a.loadFailures(); len(failures) > 0 {
+			line := troubleLine(failures)
+			row := ui.Row(c).FillWidth().Gap(space2).AlignItems(ui.Center).Padding(space1, 2).
+				Radius(radiusSmall - 2).Cursor(ui.CursorPointer)
+			row.Children(func() {
+				statusDot(c, c.Theme().Danger, 5)
+				ui.Text(c, line).FontSize(textSize(c, 10)).TextColor(c.Theme().Danger).
+					Grow(1).Shrink(1).MinWidth(0).SingleLine().Ellipsis("…")
+			})
+			row.Description(tr("Open the first page that could not be read."))
+			if row.Clicked() {
+				a.openFirstFailure()
+			}
+		}
 		if line, stuck := outboxLine(a.readOutbox()); line != "" {
 			tone := c.Theme().Warning
 			if stuck {

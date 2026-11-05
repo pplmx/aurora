@@ -34,6 +34,15 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Added
 
+- **A failing page is reported from wherever the reader is**: each page warns inside its own cards, which
+  is right where that reader is looking — but a reader on Dashboard could not see that the token page
+  failed to load, and a page failing quietly looked exactly like a page with nothing to report. The
+  sidebar now names it ("Couldn't read Token"), counts several ("2 pages couldn't be read") rather than
+  listing names that would wrap, and opens the first failing page — in sidebar order, so the same state
+  always leads to the same place. The line is silent when every page is healthy.
+
+### Added
+
 - **The sidebar says how fresh the page is**: with live updates on, the window refreshes itself, so a
   still page was ambiguous — a stalled timer, a write holding the database and a healthy quiet system
   all looked the same. The footer now carries "Updated 3s ago", and stays silent when live updates are
