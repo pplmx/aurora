@@ -765,3 +765,48 @@ func TestBackupService_CreateReportsTheRealSizeOnARelativePath(t *testing.T) {
 		}
 	}
 }
+
+// TestRestoringTheSameBackupTwiceReusesOneUndoSnapshot pins what the reference
+// now promises. The undo snapshot's path is derived from the source directory,
+// so restoring one backup again rewrites one .pre_restore instead of laying
+// down another full copy of the database. Only walking the undo chain — restore
+// bk, then bk.pre_restore — leaves snapshots behind, one per step, because each
+// step is the reader asking for the state before it.
+func TestRestoringTheSameBackupTwiceReusesOneUndoSnapshot(t *testing.T) {
+	dir := t.TempDir()
+	backupDir := filepath.Join(dir, "backup")
+	makeValidBackup(t, backupDir, "blockchain")
+
+	dest := filepath.Join(dir, "dest")
+	require.NoError(t, os.MkdirAll(dest, 0755))
+	svc := NewBackupService(map[string]string{
+		"blockchain": filepath.Join(dest, "blockchain.db"),
+	})
+	ctx := context.Background()
+
+	// The first restore finds no live database to snapshot, so the undo directory
+	// is created empty. The second one has a database to preserve.
+	require.NoError(t, svc.Restore(ctx, backupDir))
+	require.NoError(t, svc.Restore(ctx, backupDir))
+
+	entries, err := os.ReadDir(backupDir + ".pre_restore")
+	require.NoError(t, err)
+	require.NotEmpty(t, entries,
+		"the second restore must have snapshotted the live database")
+
+	// Restoring the same source again rewrites that one snapshot rather than
+	// adding another: no sibling directory appears.
+	require.NoError(t, svc.Restore(ctx, backupDir))
+	again, err := os.ReadDir(backupDir + ".pre_restore")
+	require.NoError(t, err)
+	require.Len(t, again, len(entries),
+		"restoring the same backup must rewrite one snapshot, not add a second")
+	_, err = os.Stat(backupDir + ".pre_restore.pre_restore")
+	require.True(t, os.IsNotExist(err),
+		"restoring the same source must not start an undo chain")
+
+	// A different source does get its own snapshot: that is the chain, and each
+	// link is one step the reader asked for.
+	require.NoError(t, svc.Restore(ctx, backupDir+".pre_restore"))
+	require.DirExists(t, backupDir+".pre_restore.pre_restore")
+}

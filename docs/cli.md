@@ -366,6 +366,12 @@ SQLite `file:` URI，备份与恢复会先解码到真实文件路径；`:memory
 完整备份；恢复错了用 `aurora backup restore <备份目录>.pre_restore --confirm`
 回滚，命令结束时会打印这条路径。
 
+撤销快照**按源目录名占位，不按次数累积**：反复恢复同一个备份只会覆盖同一个
+`.pre_restore`（实测连做 5 次，磁盘占用与目录数都不变）。只有沿着撤销链逐级回溯
+——恢复 `bk.pre_restore`，再恢复 `bk.pre_restore.pre_restore`——才会一层层留下
+快照，每层是一份完整数据库大小。不再需要那条链时，删掉对应的
+`<备份目录>.pre_restore*` 目录即可，它们不是恢复路径的一部分。
+
 `backup create` 的 `--json` 输出 `{"dir","size","checksum","schema_version"}`
 （`dir` 是输出目录，里面固定是 `aurora.db` 与 `metadata.json`），`backup verify`
 输出 `{"path","status":"verified"}`。

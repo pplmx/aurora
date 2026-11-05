@@ -45,6 +45,15 @@ The milestone notes under `.planning/` are history, not current instructions.
   the same file, so a mistake the CLI points out passed without a trace there. A packaged app has no
   console, so it writes the same report to its log, where its startup facts already go.
 
+### Changed
+
+- **The undo snapshot's growth is documented and pinned**: `backup restore` snapshots the live database to
+  `<dir>.pre_restore` first, and the reference did not say whether repeating a restore grows that. Measured
+  against a real database: restoring the same backup five more times left the directory count and the disk
+  usage unchanged, because the path is derived from the source. Only walking the undo chain leaves one
+  snapshot per step, which is what asking for the state before each step means. A test now pins both halves,
+  and the reference says how to drop a chain nobody needs.
+
 ### Added
 
 - **A refused import says which record was refused and why**: five different causes reach the rejected list —
