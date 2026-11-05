@@ -666,3 +666,35 @@ func TestTheDefaultLogDirectorySitsBesideTheDatabase(t *testing.T) {
 	require.NotEqual(t, "./logs", viper.GetString("log.path"),
 		"the launch directory's ./logs must never be the answer")
 }
+
+// TestTheWindowReportsAConfigSectionNothingReads matches the CLI. Both read the
+// same file, so a mistake the CLI prints must not pass without a trace in the
+// window: a packaged app has no console, and its log is where a reader looks.
+// The report itself is checked at its source in internal/config; this pins that
+// the window asks for it and writes a line rather than staying silent.
+func TestTheWindowReportsAConfigSectionNothingReads(t *testing.T) {
+	dir := t.TempDir()
+	require.NoError(t, os.MkdirAll(filepath.Join(dir, "logs"), 0o700))
+	configPath := filepath.Join(dir, "aurora.toml")
+	require.NoError(t, os.WriteFile(configPath,
+		[]byte("[db]\npath = \"x.db\"\n[database]\npath = \"y.db\"\n"), 0o600))
+
+	viper.Reset()
+	t.Cleanup(viper.Reset)
+	viper.SetConfigFile(configPath)
+	require.NoError(t, viper.ReadInConfig())
+	viper.Set("log.path", filepath.Join(dir, "logs"))
+
+	logger.Init()
+	t.Cleanup(logger.Close)
+
+	warnUnknownSections()
+	logger.Close()
+
+	body, err := os.ReadFile(filepath.Join(dir, "logs", "aurora.log"))
+	require.NoError(t, err)
+	require.Contains(t, string(body), "database",
+		"the log should name the section nothing reads")
+	require.Contains(t, string(body), "ignored",
+		"and say what happened to it")
+}

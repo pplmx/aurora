@@ -120,6 +120,11 @@ func Start(ctx context.Context, opts Options) (*Runtime, error) {
 	if _, err := config.Load(); err != nil {
 		return nil, err
 	}
+	// The CLI warns about a config section nothing reads; the window reads the
+	// same file, so it must not ignore the mistake the CLI points out. Logged
+	// rather than shown: the window has no console, and the log is where its
+	// startup facts already go.
+	warnUnknownSections()
 
 	dbPath, err := prepareDataDir(opts.DataDir, opts.DataDirDefault)
 	if err != nil {
@@ -277,4 +282,14 @@ func platformUserDataDir() (string, error) {
 // BackupStamp is the directory-name suffix for a menu-triggered backup.
 func BackupStamp(now time.Time) string {
 	return now.Format("20060102-150405")
+}
+
+// warnUnknownSections logs the config tables nothing reads. The CLI prints the
+// same report for the same file; the window writes it to its log, which is where
+// its startup facts already go and the only place a packaged app can put them.
+func warnUnknownSections() {
+	if unknown := config.UnknownSections(); len(unknown) > 0 {
+		logger.Warn().Strs("sections", unknown).
+			Msg("config sections nothing reads were ignored")
+	}
 }

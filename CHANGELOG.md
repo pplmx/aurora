@@ -32,6 +32,12 @@ The milestone notes under `.planning/` are history, not current instructions.
   module. The hue is resolved per frame, because which palette answers depends on the appearance being
   painted; pages and commands keep the accent, since they belong to no module.
 
+### Fixed
+
+- **The window reports it too**: the CLI warns about a config section nothing reads, and the window reads
+  the same file, so a mistake the CLI points out passed without a trace there. A packaged app has no
+  console, so it writes the same report to its log, where its startup facts already go.
+
 ### Added
 
 - **A config section nothing reads is reported**: viper ignores unknown keys by design, so `[database]`
