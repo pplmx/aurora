@@ -32,6 +32,15 @@ The milestone notes under `.planning/` are history, not current instructions.
   module. The hue is resolved per frame, because which palette answers depends on the appearance being
   painted; pages and commands keep the accent, since they belong to no module.
 
+### Fixed
+
+- **A read during a background write is no longer recorded as a page failure**: navigation is
+  deliberately allowed while a write runs — a reader may switch pages — and doing so reads the new page.
+  A read landing on the locked database was recorded as "this page could not be read", which then showed
+  in the sidebar, the window title and the application icon: a transient lock was reported as a broken
+  page. The guard now sits where every read starts rather than on each caller, which covers the Refresh
+  button, its shortcut, the palette entry, `Reload` and any future caller that forgets.
+
 ### Added
 
 - **The application icon counts the failing pages**: the sidebar, the window title and the palette all need

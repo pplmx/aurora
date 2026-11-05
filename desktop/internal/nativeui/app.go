@@ -313,6 +313,16 @@ func (a *App) clearPageStatus() {
 // refresh reloads the current page's data. Every page implements it so the
 // header button and a page switch behave the same.
 func (a *App) refresh() {
+	// A background write owns the database. The Refresh button, its shortcut and
+	// the palette entry each gate on that, but navigation does not — a reader may
+	// switch pages during a write, and doing so reads the new page. A read that
+	// lands on a locked database is recorded as a page that could not be read,
+	// which then shows in the sidebar, the window title and the icon: a transient
+	// lock would be reported as a broken page. Guarding the one place every read
+	// starts covers all of them, including a future caller that forgets.
+	if a.busy != "" {
+		return
+	}
 	switch a.page {
 	case pageDashboard:
 		a.loadDashboard()

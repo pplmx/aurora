@@ -438,3 +438,34 @@ func TestTheBadgeIsSilentWithoutAShell(t *testing.T) {
 	require.True(t, tester.HasText("Couldn't read Token"),
 		"and the in-window report still works")
 }
+
+// TestAReloadDuringAWriteIsNotAPageFailure covers the guard Reload now shares with
+// every in-window read path. A background write owns the database, so a reload
+// landing on a locked one recorded the failure as a page that could not be read —
+// and that failure then shows in the sidebar, the window title and the icon, so a
+// transient lock would be reported as a broken page.
+func TestAReloadDuringAWriteIsNotAPageFailure(t *testing.T) {
+	fake := workbenchFakes()
+	app := New(fake)
+	app.SetActions(Actions{Version: "0.0.1", SetPageTitle: func(string) {}, SetBadgeCount: func(int) {}})
+	tester := ui.NewTester(app.View, 1280, 900)
+	// Start from a page that read cleanly, so a failure recorded below can only
+	// come from the reload under test.
+	app.ShowPage("Token")
+	tester.Frame()
+	require.Empty(t, app.loadFailures(), "the baseline page loads")
+
+	fake.loadErrs.tokens = errors.New("database is locked")
+	app.busy = "Importing…"
+	app.Reload()
+	tester.Frame()
+	require.Empty(t, app.loadFailures(),
+		"a reload during a write must not be recorded as a page failure")
+
+	// Once the write finishes, the same reload does read — and does report.
+	app.busy = ""
+	app.Reload()
+	tester.Frame()
+	require.Len(t, app.loadFailures(), 1,
+		"a reload with no write running still reads and reports")
+}
