@@ -144,3 +144,35 @@ func TestAPIDocJSONExamplesParse(t *testing.T) {
 			"example %d in docs/api.md does not parse:\n%s", i+1, block[1])
 	}
 }
+
+// TestAPIDocsDescribeAmountsAsWholeNumbers pins the sentence a client reads
+// before sending a write. Amounts are parsed with token.NewAmountFromString,
+// which takes a base-ten integer: a decimal or a grouped "1,000" is refused with
+// INVALID_AMOUNT. The reference used to call them "decimal strings", so a client
+// that followed it got a 400.
+func TestAPIDocsDescribeAmountsAsWholeNumbers(t *testing.T) {
+	docs := readAPIDocs(t)
+
+	require.Falsef(t, strings.Contains(docs, "金额是十进制字符串"),
+		"docs/api.md still calls amounts decimal strings; the parser takes base-ten integers")
+
+	// The token section's paragraph, not the voting one that shares the opening
+	// words.
+	start := strings.Index(docs, "写接口的请求体字段（")
+	require.GreaterOrEqual(t, start, 0, "the write-fields paragraph should exist")
+	end := strings.Index(docs[start:], "\n\n")
+	require.Greater(t, end, 0)
+	paragraph := docs[start : start+end]
+
+	require.Contains(t, paragraph, "整数字符串",
+		"the paragraph should say what an amount is")
+	require.Contains(t, paragraph, "INVALID_AMOUNT",
+		"and name the code a rejected value produces")
+
+	// The code side of the same fact, so the sentence cannot outlive the parser
+	// it describes.
+	entity, err := os.ReadFile(filepath.Join("..", "domain", "token", "entity.go"))
+	require.NoError(t, err)
+	require.Contains(t, string(entity), "new(big.Int).SetString(s, 10)",
+		"a base-ten integer parse is what makes the paragraph accurate")
+}

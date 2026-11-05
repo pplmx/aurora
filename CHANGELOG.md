@@ -34,6 +34,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **The API reference describes amounts correctly**: it called them "decimal strings", but
+  `token.NewAmountFromString` parses with `big.Int.SetString(s, 10)`, so `"100.5"` and `"1,000"` are
+  refused with `INVALID_AMOUNT` — verified against a running server. The paragraph now says amounts are
+  whole-number strings in base units and names the error code, and a test pins both the sentence and the
+  parser it describes.
+
+### Fixed
+
 - **The supply flag no longer promises decimals**: `aurora token create --supply` parses with
   `token.NewAmountFromString`, which takes a whole number of base units, while the flag's help said
   "positive decimal amount" — a reader who followed the help got a parse error. The English and both
