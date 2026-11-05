@@ -454,6 +454,10 @@ SQLite 事务内提交。上一会期的选票不会阻止该选民参加下一�
 | `/oracle/sources`                                          | 20           | 100          | 10000         |
 | `/oracle/query`                                            | 10           | 100          | —             |
 
+`/token/list`、`/nft/list` 与 `/oracle/sources` 接受可选的 `search` 查询参数：它在
+存储层按字段过滤（代币为 id/名称/符号，NFT 为 id/名称，数据源为 id/名称/类型/URL），
+所以能命中不在当前页的记录；空白值等同于不传。过滤后仍照常受分页上限约束。
+
 `/nft/list` 与 `/token/history` 的上限是 1000：这两个查询要连表拼出每一行的当前
 状态，翻到一万条之外的代价远高于读一条流水。`/oracle/query` 只按 `limit` 取最近
 的若干条，没有 `offset`。

@@ -3,6 +3,7 @@ package handler
 import (
 	"net/http"
 	"strconv"
+	"strings"
 )
 
 // pageParams parses the limit/offset pair every list endpoint accepts. A
@@ -32,4 +33,13 @@ func pageOffset(r *http.Request, maxOffset int) int {
 		}
 	}
 	return 0
+}
+
+// pageSearch is the optional `search` query parameter. It is returned as the
+// caller wrote it (minus surrounding space) and passed to the use case, which
+// hands it to storage: a filter applied to the returned page would only find
+// what that page happened to contain. A blank value is the plain list, so a
+// client that always sends the parameter keeps working.
+func pageSearch(r *http.Request) string {
+	return strings.TrimSpace(r.URL.Query().Get("search"))
 }

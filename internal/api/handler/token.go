@@ -61,7 +61,9 @@ func (h *TokenHandler) List(w http.ResponseWriter, r *http.Request) {
 	limit, offset := pageParams(r, defaultTokenListLimit, maxTokenListLimit, maxTokenListOffset)
 
 	uc := tokenapp.NewListTokensUseCase(h.service)
-	results, err := uc.Execute(&tokenapp.ListTokensRequest{Limit: limit, Offset: offset})
+	results, err := uc.Execute(&tokenapp.ListTokensRequest{
+		Search: pageSearch(r), Limit: limit, Offset: offset,
+	})
 	if err != nil {
 		writeUseCaseError(w, err)
 		return

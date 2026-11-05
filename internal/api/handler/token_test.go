@@ -470,9 +470,13 @@ type tokenListService struct {
 	tokens     []*token.Token
 	lastLimit  int
 	lastOffset int
+	lastSearch string
 }
 
 func (f *tokenListService) ListMatchingTokens(term string, limit, offset int) ([]*token.Token, error) {
+	// The term is recorded so a test can prove the handler forwarded it: the
+	// fake returns the same rows either way.
+	f.lastSearch = term
 	return f.ListTokens(limit, offset)
 }
 func (f *tokenListService) ListTokens(limit, offset int) ([]*token.Token, error) {
@@ -526,4 +530,31 @@ func TestTokenHandler_List_Paged(t *testing.T) {
 	require.Len(t, list("?limit=5000"), 3, "an oversized limit is capped, not rejected")
 	require.Equal(t, maxTokenListLimit, service.lastLimit, "the handler must cap the page size before storage")
 	require.Empty(t, list("?offset=99"))
+}
+
+// TestTokenHandler_List_SearchReachesStorage pins the query parameter and the
+// fact that it is forwarded rather than applied to the returned page. A filter
+// over the response would only find what that page happened to contain, which
+// is exactly the behaviour the desktop and CLI already avoid.
+func TestTokenHandler_List_SearchReachesStorage(t *testing.T) {
+	service := &tokenListService{tokens: []*token.Token{
+		token.NewToken("t1", "Gold", "GLD", token.NewAmount(1), []byte{1}),
+	}}
+	h := NewTokenHandler(service)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/token/list?search=gold&limit=5&offset=2", nil)
+	rr := httptest.NewRecorder()
+	h.List(rr, req)
+	require.Equal(t, http.StatusOK, rr.Code)
+	assert.Equal(t, "gold", service.lastSearch, "the term must reach the use case")
+	assert.Equal(t, 5, service.lastLimit)
+	assert.Equal(t, 2, service.lastOffset)
+
+	// Whitespace is trimmed rather than forwarded, so a client that always
+	// sends the parameter with a blank value is the plain list.
+	req = httptest.NewRequest(http.MethodGet, "/api/v1/token/list?search=%20%20", nil)
+	rr = httptest.NewRecorder()
+	h.List(rr, req)
+	require.Equal(t, http.StatusOK, rr.Code)
+	assert.Empty(t, service.lastSearch, "a blank term is no term")
 }

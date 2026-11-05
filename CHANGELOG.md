@@ -34,6 +34,15 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Added
 
+- **The REST collection endpoints accept `?search=`**: `/token/list`, `/nft/list` and `/oracle/sources`
+  now forward the term to storage, matching what the window and the CLI already did. A filter applied to
+  the returned page would only find what that page happened to contain, which is the failure this whole
+  line of work started from. Blank values are trimmed and mean the plain list, so a client that always
+  sends the parameter keeps working, and the paging caps are unchanged. Verified against a running
+  server: the collection returned two tokens, `?search=gold` returned one, `?search=zzzz` returned `[]`.
+
+### Added
+
 - **`nft list --search` and `oracle source list --search` complete the CLI**: the same storage-side
   search the window uses, with the same four-way answer — an empty store, a term that found nothing, a
   page past the end, and a real result each get their own heading and sentence.

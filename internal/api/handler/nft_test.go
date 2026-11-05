@@ -405,3 +405,25 @@ func newTestNFTHandler(repo nft.TransactableRepository, txManager nft.Transactio
 type testBlockWriter struct{}
 
 func (testBlockWriter) AddBlock(string) (int64, error) { return 1, nil }
+
+// TestNFTHandler_List_SearchReachesStorage pins the term on the collection
+// endpoint. Without an owner the list is the whole collection, so a search has
+// to be answered by storage; filtering the page would miss the asset the caller
+// is looking for whenever it is not on that page.
+func TestNFTHandler_List_SearchReachesStorage(t *testing.T) {
+	repo := nft.NewInmemRepo()
+	creator := bytes.Repeat([]byte{0x41}, 32)
+	// Two assets, so a search that quietly returned everything would be visible.
+	require.NoError(t, repo.SaveNFT(&nft.NFT{ID: "nft-1", Name: "Star", Owner: creator, Creator: creator}))
+	require.NoError(t, repo.SaveNFT(&nft.NFT{ID: "nft-2", Name: "Comet", Owner: creator, Creator: creator}))
+
+	h := newTestNFTHandler(repo, nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/nft/list?search=star", nil)
+	rr := httptest.NewRecorder()
+	h.List(rr, req)
+
+	require.Equal(t, http.StatusOK, rr.Code, "a search term is a valid listing")
+	assert.Contains(t, rr.Body.String(), "Star")
+	assert.NotContains(t, rr.Body.String(), "Comet",
+		"the term must reach storage rather than being ignored")
+}

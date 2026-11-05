@@ -85,7 +85,9 @@ func (h *OracleHandler) Routes(r chi.Router) {
 func (h *OracleHandler) Sources(w http.ResponseWriter, r *http.Request) {
 	limit, offset := oracleSourcePage(r)
 	uc := oracleapp.NewListSourcesUseCase(h.repo)
-	result, err := uc.Execute(&oracleapp.ListSourcesRequest{Limit: limit, Offset: offset})
+	result, err := uc.Execute(&oracleapp.ListSourcesRequest{
+		Search: pageSearch(r), Limit: limit, Offset: offset,
+	})
 	if err != nil {
 		writeUseCaseError(w, err)
 		return

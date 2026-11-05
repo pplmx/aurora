@@ -157,7 +157,7 @@ func (h *NFTHandler) List(w http.ResponseWriter, r *http.Request) {
 	// requiring it made every NFT unreachable unless its id was already known.
 	if owner == "" {
 		all, err := nftapp.NewListAll(h.service).Execute(&nftapp.ListNFTsRequest{
-			Limit: limit, Offset: offset,
+			Search: pageSearch(r), Limit: limit, Offset: offset,
 		})
 		if err != nil {
 			writeUseCaseError(w, err)
