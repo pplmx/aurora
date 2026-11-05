@@ -343,3 +343,65 @@ func TestALedgerRecordAlsoCapsItsPayload(t *testing.T) {
 		"a ledger record with a large payload must disclose the cut too")
 	require.False(t, tester.HasText(big), "the whole payload is not laid out")
 }
+
+// TestTheSidebarSaysHowFreshThePageIs covers the question a timer-driven window
+// leaves open. With live updates on, the page refreshes itself, so a still page
+// is ambiguous: a stalled timer, a write holding the database and a healthy
+// quiet system all look the same. The stamp answers it, and stays silent when
+// live updates are off, because then the page is not claiming to be fresh.
+func TestTheSidebarSaysHowFreshThePageIs(t *testing.T) {
+	app := New(workbenchFakes())
+	now := time.Date(2026, 11, 5, 12, 0, 0, 0, time.UTC)
+	app.liveNow = func() time.Time { return now }
+	app.SetActions(Actions{Version: "0.0.1"})
+	tester := ui.NewTester(app.View, 1280, 900)
+	app.ShowPage("Dashboard")
+	tester.Frame()
+
+	require.False(t, tester.HasText("Updated"),
+		"with live updates off the page makes no freshness claim")
+
+	app.liveUpdates = true
+	tester.Frame()
+	require.False(t, tester.HasText("Updated"),
+		"and it stays silent until a read has actually completed")
+
+	app.liveReadAt = now.Add(-3 * time.Second)
+	tester.Frame()
+	require.True(t, tester.HasText("Updated 3s ago"),
+		"a recent read is reported in seconds")
+
+	// A stamp that keeps counting is the point: past a minute the interval has
+	// clearly stopped, and saying so is what a reader needs.
+	app.liveReadAt = now.Add(-90 * time.Second)
+	tester.Frame()
+	require.True(t, tester.HasText("Updated 1m ago"))
+
+	app.liveUpdates = false
+	tester.Frame()
+	require.False(t, tester.HasText("Updated"))
+}
+
+// TestTheFreshnessStampFollowsARealTick guards the bug the first version had:
+// the stamp was written at the top of the frame routine, which runs on every
+// repaint, so the sidebar claimed "0s ago" forever — including while the timer
+// was stalled, which is exactly the state the stamp exists to reveal.
+func TestTheFreshnessStampFollowsARealTick(t *testing.T) {
+	app := New(workbenchFakes())
+	now := time.Date(2026, 11, 5, 12, 0, 0, 0, time.UTC)
+	app.liveNow = func() time.Time { return now }
+	app.liveUpdates = true
+	tester := ui.NewTester(app.View, 1280, 900)
+	app.ShowPage("Dashboard")
+
+	// A repaint that is not a tick must not stamp anything.
+	tester.Frame()
+	require.True(t, app.liveReadAt.IsZero(), "a plain repaint is not a read")
+
+	// A due tick reads. The page reload runs, and only then is the time recorded.
+	app.liveNext = now.Add(-time.Second)
+	app.refresh()
+	tester.Frame()
+	require.False(t, app.liveReadAt.IsZero(), "a due tick is what stamps the read")
+	require.WithinDuration(t, now, app.liveReadAt, time.Second)
+}

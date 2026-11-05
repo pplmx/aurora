@@ -32,6 +32,16 @@ The milestone notes under `.planning/` are history, not current instructions.
   module. The hue is resolved per frame, because which palette answers depends on the appearance being
   painted; pages and commands keep the accent, since they belong to no module.
 
+### Added
+
+- **The sidebar says how fresh the page is**: with live updates on, the window refreshes itself, so a
+  still page was ambiguous — a stalled timer, a write holding the database and a healthy quiet system
+  all looked the same. The footer now carries "Updated 3s ago", and stays silent when live updates are
+  off, because then the page is not claiming to be fresh.
+- **The stamp follows a real tick, not a repaint**: the first version wrote it at the top of the frame
+  routine, which runs on every repaint, so the line claimed "0s ago" forever — including while the timer
+  was stalled, which is exactly the state it exists to reveal. It is now recorded after a read.
+
 ### Changed
 
 - **One LIKE escaper for every search**: seven repositories each spelled out the same trim/lower/escape

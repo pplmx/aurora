@@ -1,6 +1,7 @@
 package nativeui
 
 import (
+	"fmt"
 	"runtime"
 	"time"
 
@@ -207,6 +208,10 @@ func (a *App) liveRefresh(c *ui.Context, reload func()) {
 	if !now.Before(a.liveNext) {
 		a.liveNext = now.Add(liveRefreshInterval)
 		reload()
+		// Stamped after the read, and only on a tick that actually read: the
+		// frame runs on every repaint, so stamping at the top made the sidebar
+		// claim "0s ago" forever, including while the timer was stalled.
+		a.liveReadAt = now
 		c.Invalidate()
 	}
 	c.After(a.liveNext.Sub(now))
@@ -466,4 +471,36 @@ func sidebarContentWidth(c *ui.Context) float32 {
 		section+sidebarSectionChrome,
 		brand+sidebarBrandChrome,
 	) + sidebarMeasureSlack
+}
+
+// liveFreshnessText is how long ago the last live read finished, as the sidebar
+// shows it. It returns "" when live updates are off or when no read has
+// completed yet, so the line never claims a freshness it does not have.
+func (a *App) liveFreshnessText(now time.Time) string {
+	if !a.liveUpdates || a.liveReadAt.IsZero() {
+		return ""
+	}
+	age := now.Sub(a.liveReadAt)
+	if age < 0 {
+		age = 0
+	}
+	// Whole seconds up to a minute: a reader asking "is this current?" wants an
+	// order of magnitude, and "3s ago" answers it where a timestamp makes them
+	// subtract. Past a minute the interval has clearly stopped, and a count in
+	// minutes says so without pretending precision.
+	if age < time.Minute {
+		return fmt.Sprintf(tr("Updated %ds ago"), int(age.Seconds()))
+	}
+	return fmt.Sprintf(tr("Updated %dm ago"), int(age.Minutes()))
+}
+
+// liveFreshness resolves the stamp against the window's clock. The view calls
+// it every frame, so the injected clock keeps a test's expectation stable.
+func (a *App) liveFreshness() (string, bool) {
+	now := time.Now()
+	if a.liveNow != nil {
+		now = a.liveNow()
+	}
+	text := a.liveFreshnessText(now)
+	return text, text != ""
 }

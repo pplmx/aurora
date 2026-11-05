@@ -31,6 +31,11 @@ type App struct {
 	liveUpdates bool
 	liveNext    time.Time
 	liveNow     func() time.Time
+	// liveReadAt is when the last live tick actually completed a read. The
+	// window refreshes on a timer, so without it a reader cannot tell a current
+	// page from one that stopped updating: a stalled drainer, a busy write and a
+	// healthy quiet system all look identical.
+	liveReadAt time.Time
 	// guides holds each page's "How this works" disclosure. They start closed
 	// so the page stays task-first, but the explanation is one click away.
 	guides guideState

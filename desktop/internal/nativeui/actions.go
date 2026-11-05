@@ -143,7 +143,10 @@ func (a *App) SetSystemDark(dark bool) {
 // a permanent window menu bar: file operations stay one click away instead of
 // hiding behind Alt, while application configuration lives on Settings.
 func (a *App) sidebarActions(c *ui.Context) {
-	if a.actions.empty() {
+	// The block also carries the freshness stamp, so a window with actions but
+	// no File menu still has a reason to draw it.
+	_, fresh := a.liveFreshness()
+	if a.actions.empty() && !fresh {
 		return
 	}
 	ui.Column(c).FillWidth().Padding(space3, space5, space4, space2).Gap(space2).Children(func() {
@@ -159,6 +162,15 @@ func (a *App) sidebarActions(c *ui.Context) {
 				statusDot(c, c.Theme().Success, 5)
 				ui.Text(c, tr("Local ledger")).FontSize(textSize(c, 10)).
 					TextColor(c.Theme().TextMuted).Grow(1).Shrink(1).MinWidth(0).SingleLine()
+				// While live updates are on, the stamp answers "is this page
+				// current?". Without it a stalled timer, a write holding the
+				// database and a healthy quiet system all look the same: a still
+				// page. It is silent when live updates are off, because then the
+				// page is not claiming to be fresh.
+				if age, ok := a.liveFreshness(); ok {
+					ui.Text(c, age).FontSize(textSize(c, 10)).
+						TextColor(c.Theme().TextMuted).SingleLine()
+				}
 				ui.Text(c, versionBadge(a.actions.Version)).FontSize(textSize(c, 10)).
 					TextColor(c.Theme().TextMuted).SingleLine()
 			})
