@@ -34,6 +34,18 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Added
 
+- **The three voting lists search the whole store**: voters (name, public key), candidates (id, name,
+  party, program) and sessions (id, title, status) were the last paged collections still filtering the
+  page they had loaded, so a voter on page two was invisible to the search box. Each now queries storage
+  through the same repository pattern as the token, NFT and oracle lists, and the window keeps the
+  ordering that pattern requires: re-read first, then the empty-state branch.
+- **A create still selects its own row with a search open**: the read after a registration carried the
+  term still in the field, so a new candidate the term did not match came back missing — the write
+  reported success while the list showed nothing new and the highlight pointed at nothing. The term is
+  cleared before that read, and only a term the reader typed clears the highlight.
+
+### Added
+
 - **The REST collection endpoints accept `?search=`**: `/token/list`, `/nft/list` and `/oracle/sources`
   now forward the term to storage, matching what the window and the CLI already did. A filter applied to
   the returned page would only find what that page happened to contain, which is the failure this whole

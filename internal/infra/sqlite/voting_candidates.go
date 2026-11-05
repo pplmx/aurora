@@ -5,6 +5,7 @@ package sqlite
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 
 	"github.com/pplmx/aurora/internal/domain/voting"
 )
@@ -61,16 +62,37 @@ func (r *VotingRepository) IncrementCandidateVoteCount(candidateID string) error
 }
 
 func (r *VotingRepository) ListCandidates(limit, offset int) ([]*voting.Candidate, error) {
+	return r.listCandidates("", nil, limit, offset)
+}
+
+// ListMatchingCandidates searches the ballot by id, name, party and program, so a
+// search finds a candidate whose row is not on the loaded page.
+func (r *VotingRepository) ListMatchingCandidates(term string, limit, offset int) ([]*voting.Candidate, error) {
+	term = strings.TrimSpace(term)
+	if term == "" {
+		return r.ListCandidates(limit, offset)
+	}
+	escaped := strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`).Replace(strings.ToLower(term))
+	like := "%" + escaped + "%"
+	where := `WHERE lower(id) LIKE ? ESCAPE '\' OR lower(name) LIKE ? ESCAPE '\'
+		OR lower(party) LIKE ? ESCAPE '\' OR lower(program) LIKE ? ESCAPE '\'`
+	return r.listCandidates(where, []any{like, like, like, like}, limit, offset)
+}
+
+// listCandidates is the one paged read: ListCandidates and ListMatchingCandidates
+// differ only in the WHERE clause, and both keep the newest-first order.
+func (r *VotingRepository) listCandidates(where string, args []any, limit, offset int) ([]*voting.Candidate, error) {
 	if limit <= 0 {
 		limit = -1
 	}
 	if offset < 0 {
 		offset = 0
 	}
+	queryArgs := append(append([]any{}, args...), limit, offset)
 	rows, err := r.q().Query(
 		`SELECT id, name, party, program, description, image_url, vote_count, created_at
-		 FROM candidates ORDER BY created_at DESC, id LIMIT ? OFFSET ?`,
-		limit, offset,
+		 FROM candidates `+where+` ORDER BY created_at DESC, id LIMIT ? OFFSET ?`,
+		queryArgs...,
 	)
 	if err != nil {
 		return nil, err

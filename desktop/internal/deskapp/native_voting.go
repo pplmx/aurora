@@ -65,8 +65,14 @@ func (s *nativeServices) SessionResults(sessionID string) ([]nativeui.ResultRow,
 }
 
 func (s *nativeServices) Candidates(limit, offset int) ([]nativeui.CandidateRow, error) {
+	return s.CandidatesMatching("", limit, offset)
+}
+
+// CandidatesMatching is the same read with a storage-side search term, so the
+// window's ballot search spans every candidate rather than the loaded page.
+func (s *nativeServices) CandidatesMatching(term string, limit, offset int) ([]nativeui.CandidateRow, error) {
 	uc := votingapp.NewGetCandidatesUseCase(s.votingRepo)
-	resp, err := uc.Execute(&votingapp.ListCandidatesRequest{Limit: limit, Offset: offset})
+	resp, err := uc.Execute(&votingapp.ListCandidatesRequest{Search: term, Limit: limit, Offset: offset})
 	if err != nil {
 		return nil, err
 	}
@@ -78,8 +84,13 @@ func (s *nativeServices) Candidates(limit, offset int) ([]nativeui.CandidateRow,
 }
 
 func (s *nativeServices) Voters(limit, offset int) ([]nativeui.VoterRow, error) {
+	return s.VotersMatching("", limit, offset)
+}
+
+// VotersMatching is the same read with a storage-side search term.
+func (s *nativeServices) VotersMatching(term string, limit, offset int) ([]nativeui.VoterRow, error) {
 	uc := votingapp.NewListVotersUseCase(s.votingRepo)
-	resp, err := uc.Execute(&votingapp.ListVotersRequest{Limit: limit, Offset: offset})
+	resp, err := uc.Execute(&votingapp.ListVotersRequest{Search: term, Limit: limit, Offset: offset})
 	if err != nil {
 		return nil, err
 	}
@@ -121,8 +132,13 @@ func (s *nativeServices) CandidateNames(ids []string) (map[string]string, error)
 }
 
 func (s *nativeServices) Sessions(limit, offset int) ([]nativeui.SessionRow, error) {
+	return s.SessionsMatching("", limit, offset)
+}
+
+// SessionsMatching is the same read with a storage-side search term.
+func (s *nativeServices) SessionsMatching(term string, limit, offset int) ([]nativeui.SessionRow, error) {
 	uc := votingapp.NewListSessionsUseCase(s.votingRepo)
-	resp, err := uc.Execute(&votingapp.ListSessionsRequest{Limit: limit, Offset: offset})
+	resp, err := uc.Execute(&votingapp.ListSessionsRequest{Search: term, Limit: limit, Offset: offset})
 	if err != nil {
 		return nil, err
 	}

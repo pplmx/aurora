@@ -55,6 +55,10 @@ type Repository interface {
 	// ListVoters returns one newest-first page. limit <= 0 returns the
 	// remainder from offset, preserving the CLI's full-list form.
 	ListVoters(limit, offset int) ([]*Voter, error)
+	// ListMatchingVoters searches the roll by name and public key, so a term
+	// finds a voter whose row is not on the loaded page. An empty term is the
+	// plain list.
+	ListMatchingVoters(term string, limit, offset int) ([]*Voter, error)
 
 	SaveCandidate(candidate *Candidate) error
 	GetCandidate(id string) (*Candidate, error)
@@ -68,6 +72,8 @@ type Repository interface {
 	// ListCandidates returns one page newest first. limit <= 0 returns the
 	// remainder from offset, preserving the CLI's unbounded form.
 	ListCandidates(limit, offset int) ([]*Candidate, error)
+	// ListMatchingCandidates searches the ballot by id, name, party and program.
+	ListMatchingCandidates(term string, limit, offset int) ([]*Candidate, error)
 
 	SaveSession(session *Session) error
 	GetSession(id string) (*Session, error)
@@ -75,6 +81,8 @@ type Repository interface {
 	// ListSessions returns one page newest first. limit <= 0 returns the
 	// remainder from offset, preserving the CLI's unbounded form.
 	ListSessions(limit, offset int) ([]*Session, error)
+	// ListMatchingSessions searches the sessions by id, title and status.
+	ListMatchingSessions(term string, limit, offset int) ([]*Session, error)
 	// Counts returns exact stored totals without materialising candidates or
 	// sessions.
 	Counts() (Counts, error)

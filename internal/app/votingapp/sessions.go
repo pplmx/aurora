@@ -85,7 +85,7 @@ func (uc *ListSessionsUseCase) Execute(req *ListSessionsRequest) ([]*SessionResp
 	if req == nil {
 		req = &ListSessionsRequest{}
 	}
-	sessions, err := uc.repo.ListSessions(req.Limit, req.Offset)
+	sessions, err := uc.repo.ListMatchingSessions(req.Search, req.Limit, req.Offset)
 	if err != nil {
 		return nil, err
 	}

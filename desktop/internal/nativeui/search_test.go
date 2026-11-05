@@ -764,3 +764,67 @@ func TestANewSourceAppearsEvenWithASearchOpen(t *testing.T) {
 	require.Empty(t, app.oracle.appliedSearch, "the search was cleared by the write")
 	require.True(t, tester.HasText("New source"))
 }
+
+// TestVotingSearchesSpanTheWholeStore closes the rule for the last three paged
+// lists. Each is a storage query now, so a row on an older page is reachable by
+// typing the name the reader remembers.
+func TestVotingSearchesSpanTheWholeStore(t *testing.T) {
+	voters := make([]VoterRow, 130)
+	for i := range voters {
+		voters[i] = VoterRow{PublicKey: "pk" + strconv.Itoa(i), Name: "Voter " + strconv.Itoa(i)}
+	}
+	voters[120].Name = "Needle"
+	fake := &fakeServices{voterRows: voters}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 3000)
+	app.ShowPage("Voting")
+	tester.Frame()
+	require.False(t, tester.HasText("Needle"), "the row is not on the loaded page")
+
+	app.voting.voterSearch = "needle"
+	tester.Frame()
+	require.True(t, tester.HasText("Needle"), "the voter search must reach an older page")
+	require.Equal(t, "needle", fake.lastVoterSearch, "and the term must reach storage")
+}
+
+// TestCandidateSearchSpansTheWholeStore does the same for the ballot.
+func TestCandidateSearchSpansTheWholeStore(t *testing.T) {
+	candidates := make([]CandidateRow, 130)
+	for i := range candidates {
+		candidates[i] = CandidateRow{ID: "c" + strconv.Itoa(i), Name: "Candidate " + strconv.Itoa(i)}
+	}
+	candidates[125].Name = "Needle"
+	fake := &fakeServices{candidates: candidates}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 3000)
+	app.ShowPage("Voting")
+	tester.Frame()
+	require.False(t, tester.HasText("Needle"), "the row is not on the loaded page")
+
+	app.voting.candSearch = "needle"
+	tester.Frame()
+	require.True(t, tester.HasText("Needle"), "the ballot search must reach an older page")
+	require.Equal(t, "needle", fake.lastCandidateSearch, "and the term must reach storage")
+}
+
+// TestSessionSearchSpansTheWholeStore does the same for the sessions, whose
+// status is searchable too: an operator looking for what is still open types
+// "active" rather than remembering a title.
+func TestSessionSearchSpansTheWholeStore(t *testing.T) {
+	sessions := make([]SessionRow, 130)
+	for i := range sessions {
+		sessions[i] = SessionRow{ID: "s" + strconv.Itoa(i), Title: "Session " + strconv.Itoa(i), Status: "closed"}
+	}
+	sessions[127].Title = "Needle"
+	fake := &fakeServices{sessions: sessions}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 3000)
+	app.ShowPage("Voting")
+	tester.Frame()
+	require.False(t, tester.HasText("Needle"), "the row is not on the loaded page")
+
+	app.voting.sessionSearch = "needle"
+	tester.Frame()
+	require.True(t, tester.HasText("Needle"), "the session search must reach an older page")
+	require.Equal(t, "needle", fake.lastSessionSearch, "and the term must reach storage")
+}

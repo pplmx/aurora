@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/pplmx/aurora/internal/domain/voting"
 )
@@ -53,16 +54,37 @@ func (r *VotingRepository) UpdateSession(session *voting.Session) error {
 }
 
 func (r *VotingRepository) ListSessions(limit, offset int) ([]*voting.Session, error) {
+	return r.listSessions("", nil, limit, offset)
+}
+
+// ListMatchingSessions searches the sessions by id, title and status, so a search
+// finds a session whose row is not on the loaded page.
+func (r *VotingRepository) ListMatchingSessions(term string, limit, offset int) ([]*voting.Session, error) {
+	term = strings.TrimSpace(term)
+	if term == "" {
+		return r.ListSessions(limit, offset)
+	}
+	escaped := strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`).Replace(strings.ToLower(term))
+	like := "%" + escaped + "%"
+	where := `WHERE lower(id) LIKE ? ESCAPE '\' OR lower(title) LIKE ? ESCAPE '\'
+		OR lower(status) LIKE ? ESCAPE '\'`
+	return r.listSessions(where, []any{like, like, like}, limit, offset)
+}
+
+// listSessions is the one paged read: ListSessions and ListMatchingSessions differ
+// only in the WHERE clause, and both keep the newest-first order.
+func (r *VotingRepository) listSessions(where string, args []any, limit, offset int) ([]*voting.Session, error) {
 	if limit <= 0 {
 		limit = -1
 	}
 	if offset < 0 {
 		offset = 0
 	}
+	queryArgs := append(append([]any{}, args...), limit, offset)
 	rows, err := r.q().Query(
 		`SELECT id, title, description, start_time, end_time, status, candidates, created_at
-		 FROM voting_sessions ORDER BY created_at DESC, id LIMIT ? OFFSET ?`,
-		limit, offset,
+		 FROM voting_sessions `+where+` ORDER BY created_at DESC, id LIMIT ? OFFSET ?`,
+		queryArgs...,
 	)
 	if err != nil {
 		return nil, err

@@ -18,6 +18,9 @@ type RegisterVoterRequest struct {
 }
 
 type ListVotersRequest struct {
+	// Search narrows the roll in storage by name and public key, so a term
+	// finds a voter whose row is not on the loaded page. Empty is the plain list.
+	Search string
 	Limit  int
 	Offset int
 }
@@ -37,11 +40,15 @@ type CreateSessionRequest struct {
 }
 
 type ListCandidatesRequest struct {
+	// Search narrows the ballot in storage by id, name, party and program.
+	Search string
 	Limit  int
 	Offset int
 }
 
 type ListSessionsRequest struct {
+	// Search narrows the sessions in storage by id, title and status.
+	Search string
 	Limit  int
 	Offset int
 }

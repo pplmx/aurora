@@ -100,6 +100,12 @@ func (r *voterSummaryRepo) ListVoters(limit, offset int) ([]*voting.Voter, error
 	return r.rows, nil
 }
 
+// ListMatchingVoters delegates: the window reads through the search path, and
+// this fake keeps one row set rather than implementing matching twice.
+func (r *voterSummaryRepo) ListMatchingVoters(term string, limit, offset int) ([]*voting.Voter, error) {
+	return r.ListVoters(limit, offset)
+}
+
 func TestVoterListRowsOmitTheRegistrationPrivateKey(t *testing.T) {
 	repo := &voterSummaryRepo{rows: []*voting.Voter{{
 		PublicKey: "pk-alice",

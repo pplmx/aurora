@@ -35,12 +35,18 @@ type Services interface {
 	// the remainder from offset, which the desktop only uses when a write
 	// needs every candidate for an empty session roster.
 	Voters(limit, offset int) ([]VoterRow, error)
+	// VotersMatching searches the roll by name and public key in storage.
+	VotersMatching(term string, limit, offset int) ([]VoterRow, error)
 	Candidates(limit, offset int) ([]CandidateRow, error)
+	// CandidatesMatching searches the ballot by id, name, party and program.
+	CandidatesMatching(term string, limit, offset int) ([]CandidateRow, error)
 	// CandidateNames resolves the names needed by a selected session's roster.
 	// A session stores ids only, and its roster may include candidates outside
 	// the currently visible page.
 	CandidateNames(ids []string) (map[string]string, error)
 	Sessions(limit, offset int) ([]SessionRow, error)
+	// SessionsMatching searches the sessions by id, title and status.
+	SessionsMatching(term string, limit, offset int) ([]SessionRow, error)
 	StartSession(id string) error
 	EndSession(id string) error
 

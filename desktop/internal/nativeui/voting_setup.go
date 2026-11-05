@@ -169,6 +169,11 @@ func (a *App) registerCandidate() {
 			a.voting.candCopyID = cand.ID
 			a.voting.candName, a.voting.candParty, a.voting.candProgram = "", "", ""
 			a.voting.candChoice = -1
+			// The applied term is cleared first: a search left open would be the
+			// query this read runs, and a candidate the term does not match would
+			// come back missing — the write would report success while the list
+			// showed nothing new.
+			a.voting.candSearch, a.voting.candApplied = "", ""
 			a.loadCandidatePage(0)
 			// The new candidate is the context: highlight it, clear a search that
 			// would hide it, and aim the ballot at it. The operator can still change
@@ -402,6 +407,10 @@ func (a *App) createVotingSession() {
 			a.voting.sessionTitle, a.voting.sessionDesc, a.voting.sessionIDs = "", "", ""
 			a.voting.sessionStart, a.voting.sessionEnd = defaultSessionWindow(time.Now())
 			a.voting.sessionChoice = -1
+			// The applied term is cleared first, for the reason the candidate list
+			// records: a search left open would be the query this read runs, and a
+			// session the term does not match would come back missing.
+			a.voting.sessionSearch, a.voting.sessionApplied = "", ""
 			a.loadSessionPage(0)
 			// The new session becomes the context for controls, ballot and tally;
 			// highlight its row so a successful create has a visible result even

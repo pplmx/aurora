@@ -4,6 +4,7 @@ package sqlite
 
 import (
 	"database/sql"
+	"strings"
 
 	"github.com/pplmx/aurora/internal/domain/voting"
 )
@@ -74,16 +75,37 @@ func (r *VotingRepository) UpdateVoter(voter *voting.Voter) error {
 }
 
 func (r *VotingRepository) ListVoters(limit, offset int) ([]*voting.Voter, error) {
+	return r.listVoters("", nil, limit, offset)
+}
+
+// ListMatchingVoters searches the roll by name and public key, so a search finds
+// a voter whose row is not on the loaded page. The escaping and case-folding
+// mirror the token, NFT, oracle, lottery and audit searches.
+func (r *VotingRepository) ListMatchingVoters(term string, limit, offset int) ([]*voting.Voter, error) {
+	term = strings.TrimSpace(term)
+	if term == "" {
+		return r.ListVoters(limit, offset)
+	}
+	escaped := strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`).Replace(strings.ToLower(term))
+	like := "%" + escaped + "%"
+	where := `WHERE lower(name) LIKE ? ESCAPE '\' OR lower(public_key) LIKE ? ESCAPE '\'`
+	return r.listVoters(where, []any{like, like}, limit, offset)
+}
+
+// listVoters is the one paged read: ListVoters and ListMatchingVoters differ only
+// in the WHERE clause, and both keep the newest-first order.
+func (r *VotingRepository) listVoters(where string, args []any, limit, offset int) ([]*voting.Voter, error) {
 	if limit <= 0 {
 		limit = -1
 	}
 	if offset < 0 {
 		offset = 0
 	}
+	queryArgs := append(append([]any{}, args...), limit, offset)
 	rows, err := r.q().Query(
 		`SELECT public_key, name, has_voted, COALESCE(vote_hash, ''), registered_at
-		 FROM voters ORDER BY registered_at DESC, public_key LIMIT ? OFFSET ?`,
-		limit, offset,
+		 FROM voters `+where+` ORDER BY registered_at DESC, public_key LIMIT ? OFFSET ?`,
+		queryArgs...,
 	)
 	if err != nil {
 		return nil, err

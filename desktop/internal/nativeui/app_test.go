@@ -89,6 +89,9 @@ type fakeServices struct {
 	lastTokenListLimit     int
 	lastTokenSearch        string
 	lastNFTSearch          string
+	lastSessionSearch      string
+	lastCandidateSearch    string
+	lastVoterSearch        string
 	lastTokenListOffset    int
 	voterListCalls         int
 	candidateRegisterCalls int
@@ -326,6 +329,24 @@ func (f *fakeServices) SessionResults(sessionID string) ([]ResultRow, error) {
 	}
 	return f.resultsByID[sessionID], nil
 }
+
+// VotersMatching filters the fixture the way storage does, so a test can prove
+// the search spans rows that are not on the loaded page.
+func (f *fakeServices) VotersMatching(term string, limit, offset int) ([]VoterRow, error) {
+	f.lastVoterSearch = term
+	if term = strings.TrimSpace(term); term != "" {
+		all := f.voterRows
+		f.voterRows = nil
+		for _, row := range all {
+			if containsFold(term, row.Name, row.PublicKey) {
+				f.voterRows = append(f.voterRows, row)
+			}
+		}
+		defer func(saved []VoterRow) { f.voterRows = saved }(all)
+	}
+	return f.Voters(limit, offset)
+}
+
 func (f *fakeServices) Voters(limit, offset int) ([]VoterRow, error) {
 	f.voterListCalls++
 	f.lastVoterLimit = limit
@@ -345,6 +366,21 @@ func (f *fakeServices) Voters(limit, offset int) ([]VoterRow, error) {
 	}
 	return rows, nil
 }
+func (f *fakeServices) CandidatesMatching(term string, limit, offset int) ([]CandidateRow, error) {
+	f.lastCandidateSearch = term
+	if term = strings.TrimSpace(term); term != "" {
+		all := f.candidates
+		f.candidates = nil
+		for _, row := range all {
+			if containsFold(term, row.ID, row.Name, row.Party, row.Program) {
+				f.candidates = append(f.candidates, row)
+			}
+		}
+		defer func(saved []CandidateRow) { f.candidates = saved }(all)
+	}
+	return f.Candidates(limit, offset)
+}
+
 func (f *fakeServices) Candidates(limit, offset int) ([]CandidateRow, error) {
 	f.candidateListCalls++
 	f.lastCandidateLimit = limit
@@ -379,6 +415,21 @@ func (f *fakeServices) CandidateNames(ids []string) (map[string]string, error) {
 	}
 	return names, nil
 }
+func (f *fakeServices) SessionsMatching(term string, limit, offset int) ([]SessionRow, error) {
+	f.lastSessionSearch = term
+	if term = strings.TrimSpace(term); term != "" {
+		all := f.sessions
+		f.sessions = nil
+		for _, row := range all {
+			if containsFold(term, row.ID, row.Title, row.Status) {
+				f.sessions = append(f.sessions, row)
+			}
+		}
+		defer func(saved []SessionRow) { f.sessions = saved }(all)
+	}
+	return f.Sessions(limit, offset)
+}
+
 func (f *fakeServices) Sessions(limit, offset int) ([]SessionRow, error) {
 	f.sessionListCalls++
 	f.lastSessionLimit = limit

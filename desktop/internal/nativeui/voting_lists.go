@@ -1,7 +1,6 @@
 package nativeui
 
 import (
-	"fmt"
 	"strconv"
 	"strings"
 
@@ -63,8 +62,18 @@ func (a *App) votingVoterList(c *ui.Context) {
 	// the next read as a search result.
 	queryChanged := a.voting.voterSearch != a.voting.voterApplied
 	if queryChanged {
+		// A new term is a new query over the whole roll, so it re-reads from the
+		// first page. This runs before the empty-state branch: a search that
+		// matches nothing leaves the previous rows in place and would otherwise be
+		// recorded as applied without ever being read. A write that clears the
+		// field has already chosen the row it created, so only a term the reader
+		// typed clears the highlight.
+		previousTerm := a.voting.voterApplied
 		a.voting.voterApplied = a.voting.voterSearch
-		a.voting.voterChoice = -1
+		if previousTerm == "" || a.voting.voterSearch != "" {
+			a.voting.voterChoice = -1
+		}
+		a.loadVoterPage(0)
 	}
 	if len(a.voting.voters) == 0 {
 		if a.voting.loadErr == nil {
@@ -74,7 +83,7 @@ func (a *App) votingVoterList(c *ui.Context) {
 		return
 	}
 	previous, next := collectionToolbar(c, &a.voting.voterSearch, "Search voters",
-		"Search narrows the current page; use Previous/Next for older voters.",
+		"Search matches name or public key across the whole roll.",
 		"Voters", a.voting.voterOffset, len(a.voting.voters), a.voting.voterHasMore)
 	if previous || next {
 		target := a.voting.voterOffset
@@ -88,12 +97,9 @@ func (a *App) votingVoterList(c *ui.Context) {
 		}
 		return
 	}
-	voters := a.filteredVoters()
+	// The rows already answer the applied term: storage selected them.
+	voters := a.voting.voters
 	announceSearchResults(c, queryChanged, len(voters))
-	if len(voters) == 0 {
-		emptyNote(c, fmt.Sprintf(tr("No voters match “%s”."), strings.TrimSpace(a.voting.voterSearch)))
-		return
-	}
 	collectionList(c, "Voters",
 		collectionRecords(voters, func(voter VoterRow) collectionRecord {
 			return voterCollectionRecord(c, voter)
@@ -155,9 +161,16 @@ func (a *App) votingSessionList(c *ui.Context) {
 	// list: a cleared query must not stay applied just because no row survived.
 	queryChanged := a.voting.sessionSearch != a.voting.sessionApplied
 	if queryChanged {
+		// A new term re-reads from the first page; see the voter list for why
+		// this runs before the empty-state branch and why a cleared field keeps
+		// the write's own choice.
+		previousTerm := a.voting.sessionApplied
 		a.voting.sessionApplied = a.voting.sessionSearch
-		a.voting.sessionChoice = -1
-		a.clearSessionRoster()
+		if previousTerm == "" || a.voting.sessionSearch != "" {
+			a.voting.sessionChoice = -1
+			a.clearSessionRoster()
+		}
+		a.loadSessionPage(0)
 	}
 	if len(a.voting.sessions) == 0 {
 		// A failed load is reported once, above the cards; with no rows there
@@ -170,7 +183,7 @@ func (a *App) votingSessionList(c *ui.Context) {
 		return
 	}
 	previous, next := collectionToolbar(c, &a.voting.sessionSearch, "Search sessions",
-		"Search narrows the current page; use Previous/Next for older sessions.",
+		"Search matches id, title or status across the whole schedule.",
 		"Sessions", a.voting.sessionOffset, len(a.voting.sessions), a.voting.sessionHasMore)
 	if previous || next {
 		target := a.voting.sessionOffset
@@ -185,12 +198,9 @@ func (a *App) votingSessionList(c *ui.Context) {
 		}
 		return
 	}
-	sessions := a.filteredSessions()
+	// The rows already answer the applied term: storage selected them.
+	sessions := a.voting.sessions
 	announceSearchResults(c, queryChanged, len(sessions))
-	if len(sessions) == 0 {
-		emptyNote(c, fmt.Sprintf(tr("No sessions match “%s”."), strings.TrimSpace(a.voting.sessionSearch)))
-		return
-	}
 	collectionList(c, "Sessions",
 		collectionRecords(sessions, sessionCollectionRecord),
 		a.voting.sessionChoice, func(i int) { a.chooseSession(sessions, i) })
@@ -306,8 +316,12 @@ func (a *App) votingCandidateList(c *ui.Context) {
 	// two lists: the field's state must not depend on whether rows survived.
 	queryChanged := a.voting.candSearch != a.voting.candApplied
 	if queryChanged {
+		previousTerm := a.voting.candApplied
 		a.voting.candApplied = a.voting.candSearch
-		a.voting.candChoice = -1
+		if previousTerm == "" || a.voting.candSearch != "" {
+			a.voting.candChoice = -1
+		}
+		a.loadCandidatePage(0)
 	}
 	if len(a.voting.candidates) == 0 {
 		if a.voting.loadErr == nil {
@@ -317,7 +331,7 @@ func (a *App) votingCandidateList(c *ui.Context) {
 		return
 	}
 	previous, next := collectionToolbar(c, &a.voting.candSearch, "Search candidates",
-		"Search narrows the current page; use Previous/Next for older candidates.",
+		"Search matches id, name, party or program across the whole ballot.",
 		"Candidates", a.voting.candOffset, len(a.voting.candidates), a.voting.candHasMore)
 	if previous || next {
 		target := a.voting.candOffset
@@ -331,12 +345,9 @@ func (a *App) votingCandidateList(c *ui.Context) {
 		}
 		return
 	}
-	candidates := a.filteredCandidates()
+	// The rows already answer the applied term: storage selected them.
+	candidates := a.voting.candidates
 	announceSearchResults(c, queryChanged, len(candidates))
-	if len(candidates) == 0 {
-		emptyNote(c, fmt.Sprintf(tr("No candidates match “%s”."), strings.TrimSpace(a.voting.candSearch)))
-		return
-	}
 	collectionList(c, "Candidates",
 		collectionRecords(candidates, candidateCollectionRecord),
 		a.voting.candChoice, func(i int) { a.chooseCandidate(candidates, i) })

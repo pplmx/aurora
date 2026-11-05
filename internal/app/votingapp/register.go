@@ -56,7 +56,7 @@ func (uc *ListVotersUseCase) Execute(req *ListVotersRequest) ([]*VoterSummaryRes
 	if req == nil {
 		req = &ListVotersRequest{}
 	}
-	voters, err := uc.repo.ListVoters(req.Limit, req.Offset)
+	voters, err := uc.repo.ListMatchingVoters(req.Search, req.Limit, req.Offset)
 	if err != nil {
 		return nil, err
 	}
@@ -117,7 +117,7 @@ func (uc *GetCandidatesUseCase) Execute(req *ListCandidatesRequest) ([]*Candidat
 	if req == nil {
 		req = &ListCandidatesRequest{}
 	}
-	candidates, err := uc.repo.ListCandidates(req.Limit, req.Offset)
+	candidates, err := uc.repo.ListMatchingCandidates(req.Search, req.Limit, req.Offset)
 	if err != nil {
 		return nil, err
 	}

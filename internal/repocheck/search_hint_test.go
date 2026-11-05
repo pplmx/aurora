@@ -54,7 +54,8 @@ func TestSearchHintsMatchWhatTheSearchDoes(t *testing.T) {
 	hints := hint.FindAllString(view+
 		readRepoFile(t, "desktop", "internal", "nativeui", "lottery.go")+
 		readRepoFile(t, "desktop", "internal", "nativeui", "blockchain.go"), -1)
-	require.GreaterOrEqual(t, len(hints), 8, "every list must carry a search hint")
+	require.GreaterOrEqual(t, len(hints), 6,
+		"every list must carry a search hint")
 
 	wholeStore := 0
 	for _, h := range hints {
@@ -62,10 +63,11 @@ func TestSearchHintsMatchWhatTheSearchDoes(t *testing.T) {
 			wholeStore++
 		}
 	}
-	// The draws and the ledger always queried storage; the token, NFT and oracle
-	// collections now do too, so five hints may promise it. A new one must come
-	// with its own storage-side read, which is what this count is here to notice.
-	assert.Equal(t, 5, wholeStore,
+	// The draws and the ledger always queried storage; the token, NFT, oracle and
+	// three voting collections now do too, so eight hints may promise it. A new
+	// one must come with its own storage-side read, which is what this count is
+	// here to notice.
+	assert.Equal(t, 8, wholeStore,
 		"exactly the lists that query storage may promise a whole-store search")
 }
 

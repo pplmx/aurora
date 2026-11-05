@@ -146,9 +146,9 @@ func TestEveryPaginatedListProbesOneExtraRow(t *testing.T) {
 		{"nft_history.go", "a.services.NFTHistory(id, nftHistoryPageSize+1, offset)"},
 		{"oracle.go", "a.services.OracleSourcesMatching(a.oracle.appliedSearch, oraclePageSize+1, offset)"},
 		{"token.go", "a.services.ListMatchingTokens(a.token.appliedSearch, tokenPageSize+1, offset)"},
-		{"voting.go", "a.services.Voters(votingPageSize+1, offset)"},
-		{"voting.go", "a.services.Candidates(votingPageSize+1, offset)"},
-		{"voting.go", "a.services.Sessions(votingPageSize+1, offset)"},
+		{"voting.go", "a.services.VotersMatching(a.voting.voterApplied, votingPageSize+1, offset)"},
+		{"voting.go", "a.services.CandidatesMatching(a.voting.candApplied, votingPageSize+1, offset)"},
+		{"voting.go", "a.services.SessionsMatching(a.voting.sessionApplied, votingPageSize+1, offset)"},
 	}
 	byFile := map[string]string{}
 	for _, r := range reads {

@@ -160,6 +160,10 @@ func (m *mockVotingRepo) GetCandidate(id string) (*voting.Candidate, error) {
 	return nil, nil
 }
 
+func (m *mockVotingRepo) ListMatchingCandidates(term string, limit, offset int) ([]*voting.Candidate, error) {
+	return m.ListCandidates(limit, offset)
+}
+
 func (m *mockVotingRepo) ListCandidates(limit, offset int) ([]*voting.Candidate, error) {
 	m.lastListCandidatesLimit = limit
 	m.lastListCandidatesOffset = offset
@@ -286,6 +290,10 @@ func (m *mockVotingRepo) GetSession(id string) (*voting.Session, error) {
 	return nil, nil
 }
 
+func (m *mockVotingRepo) ListMatchingVoters(term string, limit, offset int) ([]*voting.Voter, error) {
+	return m.ListVoters(limit, offset)
+}
+
 func (m *mockVotingRepo) ListVoters(limit, offset int) ([]*voting.Voter, error) {
 	m.lastListVotersLimit, m.lastListVotersOffset = limit, offset
 	if offset < 0 {
@@ -303,6 +311,10 @@ func (m *mockVotingRepo) ListVoters(limit, offset int) ([]*voting.Voter, error) 
 
 func (m *mockVotingRepo) UpdateVoter(v *voting.Voter) error {
 	return nil
+}
+
+func (m *mockVotingRepo) ListMatchingSessions(term string, limit, offset int) ([]*voting.Session, error) {
+	return m.ListSessions(limit, offset)
 }
 
 func (m *mockVotingRepo) ListSessions(limit, offset int) ([]*voting.Session, error) {

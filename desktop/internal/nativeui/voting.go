@@ -145,7 +145,9 @@ func (a *App) loadVoterPage(offset int) bool {
 	if offset < 0 {
 		offset = 0
 	}
-	rows, err := a.services.Voters(votingPageSize+1, offset)
+	// The search is a storage query, not a filter over the loaded rows: a voter
+	// whose row is on an older page must be reachable by typing their name.
+	rows, err := a.services.VotersMatching(a.voting.voterApplied, votingPageSize+1, offset)
 	a.voting.voterLoadErr = err
 	a.syncVotingLoadErr()
 	if err != nil {
@@ -173,7 +175,7 @@ func (a *App) loadCandidatePage(offset int) bool {
 	if offset < 0 {
 		offset = 0
 	}
-	rows, err := a.services.Candidates(votingPageSize+1, offset)
+	rows, err := a.services.CandidatesMatching(a.voting.candApplied, votingPageSize+1, offset)
 	a.voting.candLoadErr = err
 	a.syncVotingLoadErr()
 	if err != nil {
@@ -198,7 +200,7 @@ func (a *App) loadSessionPage(offset int) bool {
 	if offset < 0 {
 		offset = 0
 	}
-	rows, err := a.services.Sessions(votingPageSize+1, offset)
+	rows, err := a.services.SessionsMatching(a.voting.sessionApplied, votingPageSize+1, offset)
 	a.voting.sessionLoadErr = err
 	a.syncVotingLoadErr()
 	if err != nil {
