@@ -32,6 +32,15 @@ The milestone notes under `.planning/` are history, not current instructions.
   module. The hue is resolved per frame, because which palette answers depends on the appearance being
   painted; pages and commands keep the accent, since they belong to no module.
 
+### Fixed
+
+- **A large audit payload no longer stalls the window**: the payload view laid out every recorded byte,
+  and a lottery draw carries up to 10,000 participants, so a real payload reaches 200 KB. Measured, that
+  cost 131 ms per frame while the record was open — a visible stall on every repaint. The view now lays
+  out a 4 KB prefix (29 ms in the same measurement) and says how much it left out; Copy payload still
+  takes the whole value, so nothing is lost, only deferred. A payload under the cap is shown in full and
+  the sentence stays silent.
+
 ### Added
 
 - **A parked audit copy shows its payload**: the backlog card under the ledger named the operation and

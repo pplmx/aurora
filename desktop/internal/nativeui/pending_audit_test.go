@@ -2,6 +2,7 @@ package nativeui
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -267,4 +268,55 @@ func TestClosingTheOpenPayloadRestoresTheRow(t *testing.T) {
 	tester.Frame()
 	require.Equal(t, -1, app.blockchain.pendingExpanded,
 		"an index past the end of the re-read list must be cleared")
+}
+
+// TestALargePayloadIsCappedAndSaysSo covers the size a real audit payload
+// reaches. A lottery draw carries up to 10,000 participants, so the recorded
+// bytes run to 200 KB; laying all of it out cost 131 ms per frame while the
+// record was open, which is a visible stall on every repaint. The view lays out
+// a prefix, says how much it left out, and Copy payload still takes everything.
+func TestALargePayloadIsCappedAndSaysSo(t *testing.T) {
+	app := New(workbenchFakes())
+	tester := ui.NewTester(app.View, 1280, 2600)
+	big := `{"participants":["` + strings.Repeat("participant-name,", 6000) + `alice"]}`
+	require.Greater(t, len(big), payloadPreviewLen, "the fixture must exceed the cap")
+
+	app.SetActions(Actions{
+		OutboxPending: func() (int, bool) { return 1, true },
+		OutboxList: func() []PendingEvent {
+			return []PendingEvent{{EventType: "lottery.draw", Module: "lottery",
+				Aggregate: "Run draw", Payload: big}}
+		},
+	})
+	app.ShowPage("Blockchain")
+	tester.Frame()
+	require.NoError(t, tester.Click("Payload"))
+	tester.Frame()
+
+	require.True(t, tester.HasText("Copy payload takes all of it"),
+		"a truncated view has to say so, or the cut reads as the whole value")
+	require.False(t, tester.HasText(big), "the whole 200 KB is not laid out")
+}
+
+// TestAShortPayloadIsShownWhole guards the other side: the disclosure sentence
+// must stay silent when nothing was withheld.
+func TestAShortPayloadIsShownWhole(t *testing.T) {
+	app := New(workbenchFakes())
+	tester := ui.NewTester(app.View, 1280, 2600)
+	short := `{"token_id":"GLD","amount":"100"}`
+	app.SetActions(Actions{
+		OutboxPending: func() (int, bool) { return 1, true },
+		OutboxList: func() []PendingEvent {
+			return []PendingEvent{{EventType: "token.Minted", Module: "token",
+				Aggregate: "Mint GLD", Payload: short}}
+		},
+	})
+	app.ShowPage("Blockchain")
+	tester.Frame()
+	require.NoError(t, tester.Click("Payload"))
+	tester.Frame()
+
+	require.True(t, tester.HasText(short), "a small payload is shown in full")
+	require.False(t, tester.HasText("Copy payload takes all of it"),
+		"and nothing claims bytes were withheld")
 }

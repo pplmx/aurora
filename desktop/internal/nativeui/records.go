@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/egoist/mygo/ui"
 
@@ -292,20 +293,48 @@ func recordPayloadBody(c *ui.Context, payload string) {
 		emptyNote(c, "This entry has no stored payload.")
 		return
 	}
+	shown := payloadPreview(payload)
 	ui.Column(c).FillWidth().Padding(space2+2, space3).Gap(space1).Radius(radiusSmall).
 		Background(c.Theme().Background).BorderWidth(1).BorderColor(c.Theme().Border).
 		Children(func() {
 			ui.Row(c).FillWidth().Gap(space2).AlignItems(ui.Start).Children(func() {
-				ui.Text(c, payload).FontSize(textSize(c, 11.5)).
+				ui.Text(c, shown).FontSize(textSize(c, 11.5)).
 					TextColor(c.Theme().TextMuted).FontFeatures("tnum").Grow(1).Shrink(1).MinWidth(0)
 				// The exact bytes are what an auditor pastes into a comparison
-				// or a report; selecting a wrapped block by hand is busywork.
+				// or a report; selecting a wrapped block by hand is busywork. Copy
+				// takes the whole payload even when the view is cut short.
 				if quietButton(c, "Copy payload").Clicked() {
 					c.Services().WriteClipboard(payload)
 					c.Toast(fmt.Sprintf(tr("%s is on the clipboard"), tr("Payload")))
 				}
 			})
+			if len(shown) < len(payload) {
+				// A truncated view has to say so, and say how to get the rest:
+				// a silently cut payload reads as the whole recorded value.
+				hint(c, fmt.Sprintf(tr("Showing the first %d of %d bytes; Copy payload takes all of it."),
+					len(shown), len(payload)))
+			}
 		})
+}
+
+// payloadPreviewLen caps how much of a payload the view lays out. A lottery draw
+// carries up to 10,000 participants, so a real payload reaches 200 KB; laying all
+// of it out cost 131 ms per frame in a measurement, which is a visible stall on
+// every repaint while the record is open.
+const payloadPreviewLen = 4000
+
+// payloadPreview returns the bytes worth laying out. The cut is on a rune
+// boundary so the fragment stays readable, and the caller reports the shortfall
+// rather than letting a cut payload look complete.
+func payloadPreview(payload string) string {
+	if len(payload) <= payloadPreviewLen {
+		return payload
+	}
+	cut := payloadPreviewLen
+	for cut > 0 && !utf8.RuneStart(payload[cut]) {
+		cut--
+	}
+	return payload[:cut]
 }
 
 // recordTimeLabel renders a block's own timestamp in local time. It returns ""

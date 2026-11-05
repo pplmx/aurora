@@ -777,4 +777,5 @@ var desktopMessagesHant = map[string]string{
 	"Search matches name or public key across the whole roll.":           "搜索會在整個名冊中按名稱或公鑰匹配。",
 	"Search matches id, name, party or program across the whole ballot.": "搜索會在所有人中按 ID、名稱、黨派或競選綱領匹配。",
 	"Search matches id, title or status across the whole schedule.":      "搜索會在所有會期中按 ID、標題或狀態匹配。",
+	"Showing the first %d of %d bytes; Copy payload takes all of it.":    "顯示前 %d 位元組（共 %d）；「複製載荷」會取走全部內容。",
 }
