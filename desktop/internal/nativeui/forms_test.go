@@ -1224,26 +1224,60 @@ func TestTheCreateButtonReachesItsHandler(t *testing.T) {
 	app.token.supply, app.token.owner = "100.5", "pk"
 	tester.Frame()
 
-	card, ok := tester.Find("Create Token")
-	require.True(t, ok, "the create card should be on screen")
-
-	// The button is the card's last row, aligned to its left edge, so the search
-	// walks that row rather than the card's centre. A decimal supply is refused
-	// under the field, which is the visible sign that the handler ran at all.
-	clicked := false
-	for offset := card.H - 10; offset > card.H*0.5 && !clicked; offset -= 6 {
-		for _, x := range []float32{card.X + 40, card.X + 80, card.X + 120} {
-			app.token.supplyErr = ""
-			tester.ClickAt(x, card.Y+offset)
-			tester.Frame()
-			if app.token.supplyErr != "" {
-				clicked = true
-				break
-			}
-		}
-	}
-	require.True(t, clicked,
-		"clicking the Create Token button must reach createToken(); no other test proves the control is wired")
+	// A decimal supply is refused under the field, which is the visible sign
+	// that the handler ran at all.
+	clickPrimaryButton(t, tester, "Create Token",
+		func() bool { return app.token.supplyErr != "" },
+		func() { app.token.supplyErr = "" })
 	require.Contains(t, app.token.supplyErr, "whole number",
 		"and the refusal is the one the handler produces")
+}
+
+// TestEveryPrimaryButtonReachesItsHandler covers the controls a reader clicks.
+// Their tests call the handlers directly, which proves the handler and skips the
+// control: a wrong allSet argument or a broken wiring between button and handler
+// passes every one of them. Each case fills the form, clicks the button by
+// coordinate, and states the change only its handler makes.
+func TestEveryPrimaryButtonReachesItsHandler(t *testing.T) {
+	cases := []struct {
+		name   string
+		page   string
+		label  string
+		fill   func(*App)
+		reset  func(*App)
+		landed func(*App) bool
+	}{
+		{
+			name: "create draw", page: "Lottery", label: "Create Draw",
+			fill:   func(a *App) { a.lottery.participants, a.lottery.seed = "A,B", "seed-value" },
+			reset:  func(a *App) { a.lottery.status = statusLine{} },
+			landed: func(a *App) bool { return a.lottery.status.text != "" },
+		},
+		{
+			name: "register voter", page: "Voting", label: "Register Voter",
+			fill:   func(a *App) { a.voting.voterName = "Ada" },
+			reset:  func(a *App) { a.voting.voterNameErr = "" },
+			landed: func(a *App) bool { return a.voting.voterNameErr == "" && a.voting.voterName == "" },
+		},
+		{
+			name: "register candidate", page: "Voting", label: "Register Candidate",
+			fill:   func(a *App) { a.voting.candName = "Alice" },
+			reset:  func(a *App) { a.voting.candNameErr = "" },
+			landed: func(a *App) bool { return a.voting.candNameErr == "" && a.voting.candName == "" },
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			app := New(workbenchFakes())
+			app.SetActions(Actions{Version: "0.0.1", SetPageTitle: func(string) {}, SetBadgeCount: func(int) {}})
+			tester := ui.NewTester(app.View, 1400, 2000)
+			app.ShowPage(tc.page)
+			tc.fill(app)
+			tester.Frame()
+
+			clickPrimaryButton(t, tester, tc.label,
+				func() bool { return tc.landed(app) },
+				func() { tc.reset(app) })
+		})
+	}
 }

@@ -47,6 +47,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Added
 
+- **Three more primary buttons are clicked by their tests**: Create Draw, Register Voter and Register
+  Candidate follow Create Token, and the search for the button is now one helper the four share. Their
+  existing tests call the handlers directly, which proves the handler and skips the control; dropping the
+  button's handler from any of them makes its subtest fail.
+
+### Added
+
 - **A test clicks the Create Token button**: every other create test calls `app.createToken()` directly, which
   proves the handler and skips the control entirely — a wrong `allSet` argument or a broken wiring between
   button and handler would pass all of them. The click is placed by coordinate because `Tester.Find`
