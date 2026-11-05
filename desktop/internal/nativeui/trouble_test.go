@@ -3,6 +3,7 @@ package nativeui
 import (
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/egoist/mygo/ui"
 	"github.com/stretchr/testify/assert"
@@ -86,4 +87,104 @@ func TestAHealthyWindowHasNoTroubleLine(t *testing.T) {
 	assert.Empty(t, app.loadFailures())
 	assert.Equal(t, "", troubleLine(nil))
 	assert.False(t, tester.HasText("Couldn't read"))
+}
+
+// TestTheSidebarDrawsItselfForEachSignal covers the guard as one predicate. The
+// block carries four unrelated signals now — the File menu, the version badge,
+// the freshness stamp and the read-failure line — and each new one used to have
+// to remember to widen the condition. Forgetting is silent: the feature simply
+// never appeared in a window built without the shell, which is the window a view
+// test builds.
+func TestTheSidebarDrawsItselfForEachSignal(t *testing.T) {
+	fresh := time.Date(2026, 11, 5, 12, 0, 0, 0, time.UTC)
+
+	t.Run("nothing to say", func(t *testing.T) {
+		app := New(workbenchFakes())
+		app.liveNow = func() time.Time { return fresh }
+		assert.False(t, app.sidebarHasContent(),
+			"an empty window with no stamp and no failure draws nothing")
+	})
+
+	t.Run("version badge", func(t *testing.T) {
+		app := New(workbenchFakes())
+		app.liveNow = func() time.Time { return fresh }
+		app.SetActions(Actions{Version: "0.0.1"})
+		assert.True(t, app.sidebarHasContent(),
+			"the version line is content even when the File menu is not wired")
+	})
+
+	t.Run("file menu", func(t *testing.T) {
+		app := New(workbenchFakes())
+		app.liveNow = func() time.Time { return fresh }
+		app.SetActions(Actions{ShowAbout: func() {}})
+		assert.True(t, app.sidebarHasContent())
+	})
+
+	t.Run("freshness stamp", func(t *testing.T) {
+		app := New(workbenchFakes())
+		app.liveNow = func() time.Time { return fresh }
+		app.liveUpdates = true
+		app.liveReadAt = fresh.Add(-3 * time.Second)
+		assert.True(t, app.sidebarHasContent(),
+			"a stamp with no File menu action is still content")
+	})
+
+	t.Run("read failure", func(t *testing.T) {
+		app := New(workbenchFakes())
+		app.liveNow = func() time.Time { return fresh }
+		app.token.loadErr = errors.New("database is locked")
+		assert.True(t, app.sidebarHasContent(),
+			"a failing page must be able to draw the line that reports it")
+	})
+}
+
+// TestEachSignalIsActuallyDrawn proves the predicate is not merely consulted: the
+// block is on screen for a window with no actions at all, which is the case the
+// separate conditions each used to drop.
+func TestEachSignalIsActuallyDrawn(t *testing.T) {
+	fresh := time.Date(2026, 11, 5, 12, 0, 0, 0, time.UTC)
+
+	t.Run("freshness stamp", func(t *testing.T) {
+		app := New(workbenchFakes())
+		app.liveNow = func() time.Time { return fresh }
+		app.SetActions(Actions{Version: "0.0.1"})
+		tester := ui.NewTester(app.View, 1280, 900)
+		app.liveUpdates = true
+		app.liveReadAt = fresh.Add(-3 * time.Second)
+		app.ShowPage("Dashboard")
+		tester.Frame()
+		assert.True(t, tester.HasText("Updated 3s ago"))
+	})
+
+	t.Run("read failure", func(t *testing.T) {
+		app := New(workbenchFakes())
+		app.liveNow = func() time.Time { return fresh }
+		app.SetActions(Actions{Version: "0.0.1"})
+		tester := ui.NewTester(app.View, 1280, 900)
+		app.token.loadErr = errors.New("database is locked")
+		app.ShowPage("Dashboard")
+		tester.Frame()
+		assert.True(t, tester.HasText("Couldn't read Token"))
+	})
+}
+
+// TestTheTroubleLineFitsANarrowWindow covers the sidebar's smallest real width.
+// The line is the one signal that has to be readable at a glance, and the
+// counting choice exists because a list of names in this width would wrap.
+func TestTheTroubleLineFitsANarrowWindow(t *testing.T) {
+	app := New(workbenchFakes())
+	app.liveNow = func() time.Time { return time.Date(2026, 11, 5, 12, 0, 0, 0, time.UTC) }
+	app.SetActions(Actions{Version: "0.0.1"})
+	tester := ui.NewTester(app.View, 900, 600)
+	app.token.loadErr = errors.New("database is locked")
+	app.nft.loadErr = errors.New("database is locked")
+	app.oracle.loadErr = errors.New("database is locked")
+	app.ShowPage("Dashboard")
+	tester.Frame()
+
+	require.Len(t, app.loadFailures(), 3)
+	require.True(t, tester.HasText("3 pages couldn't be read"),
+		"three failures are counted, and the count survives the narrow sidebar")
+	require.False(t, tester.HasText("Couldn't read Token"),
+		"naming one would hide the other two")
 }

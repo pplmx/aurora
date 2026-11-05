@@ -32,6 +32,15 @@ The milestone notes under `.planning/` are history, not current instructions.
   module. The hue is resolved per frame, because which palette answers depends on the appearance being
   painted; pages and commands keep the accent, since they belong to no module.
 
+### Changed
+
+- **The sidebar's visibility is one predicate**: the block at the bottom of the sidebar now carries four
+  unrelated signals — the File menu, the version badge, the freshness stamp and the read-failure line —
+  and each new one used to have to remember to widen the guard. Forgetting was silent: the feature
+  simply never appeared in a window built without the shell, which is exactly the window a view test
+  builds. `sidebarHasContent` is now the single answer, with a subtest per signal, and dropping one from
+  it fails that signal's own assertion.
+
 ### Added
 
 - **A failing page is reported from wherever the reader is**: each page warns inside its own cards, which

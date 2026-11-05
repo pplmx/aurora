@@ -139,14 +139,28 @@ func (a *App) SetSystemDark(dark bool) {
 	a.systemDark = dark
 }
 
+// sidebarHasContent reports whether the bottom of the sidebar has anything to
+// draw. It is one predicate rather than a condition per feature because the
+// block now carries four unrelated signals — the File menu, the version badge,
+// the freshness stamp and the read-failure line — and each new one used to have
+// to remember to widen the guard. Forgetting is silent: the feature simply never
+// appeared for a window built without the shell, which is exactly the window a
+// view test builds.
+func (a *App) sidebarHasContent() bool {
+	if !a.actions.empty() || a.actions.Version != "" {
+		return true
+	}
+	if _, fresh := a.liveFreshness(); fresh {
+		return true
+	}
+	return len(a.loadFailures()) > 0
+}
+
 // sidebarActions draws the File menu at the bottom of the sidebar. It replaces
 // a permanent window menu bar: file operations stay one click away instead of
 // hiding behind Alt, while application configuration lives on Settings.
 func (a *App) sidebarActions(c *ui.Context) {
-	// The block also carries the freshness stamp and the read-failure line, so a
-	// window with no File menu still has a reason to draw it.
-	_, fresh := a.liveFreshness()
-	if a.actions.empty() && !fresh && len(a.loadFailures()) == 0 {
+	if !a.sidebarHasContent() {
 		return
 	}
 	ui.Column(c).FillWidth().Padding(space3, space5, space4, space2).Gap(space2).Children(func() {
