@@ -45,6 +45,13 @@ The milestone notes under `.planning/` are history, not current instructions.
   the same file, so a mistake the CLI points out passed without a trace there. A packaged app has no
   console, so it writes the same report to its log, where its startup facts already go.
 
+### Added
+
+- **A prose reading is shown whole**: every other latest-value test uses a number, but a source may answer
+  with a sentence — a real fetch against `api.github.com/zen` returned "Avoid administrative distraction."
+  for this series to read. That is the first time the oracle path was exercised against a live feed rather
+  than a fixture; the window shows the sentence and the block it was recorded at.
+
 ### Fixed
 
 - **The reference no longer claims both ends format a timestamp the same way**: it said the CLI and the

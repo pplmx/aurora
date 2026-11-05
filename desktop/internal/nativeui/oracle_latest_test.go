@@ -67,3 +67,22 @@ func TestReadingTheLatestValueNeedsASource(t *testing.T) {
 	require.True(t, app.oracle.status.isErr)
 	require.Contains(t, app.oracle.status.text, "Source ID is required for this read.")
 }
+
+// TestAProseReadingIsShownWhole covers the shape a real feed returns. The other
+// latest tests use numeric values, but a source may answer with a sentence, and
+// the readout has to show it as it came — a real fetch against
+// api.github.com/zen returned "Avoid administrative distraction." for this
+// series to read.
+func TestAProseReadingIsShownWhole(t *testing.T) {
+	const prose = "Avoid administrative distraction."
+	app, _ := oracleLatestApp(t, &DataRow{ID: "d1", Value: prose, BlockHeight: 1}, nil)
+	app.oracle.tab = 2 // Readings
+	app.oracle.latestID = "src-1"
+	app.readOracleLatest()
+
+	tester := ui.NewTester(app.View, 1400, 2400)
+	tester.Frame()
+	require.True(t, tester.HasText(prose),
+		"a feed that answers with a sentence must show it, not only numbers")
+	require.True(t, tester.HasText("Block"), "and the block it was recorded at")
+}
