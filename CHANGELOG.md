@@ -34,6 +34,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **An over-long mint field is refused under its own field**: the NFT form's four bounded fields (name,
+  description, image URL, token URI) used to reach storage, which refused them in a status line naming no
+  control. Each is now checked against the domain's own length constant and reports the domain's own
+  error, so the window cannot describe a limit the store does not apply. A value exactly at the limit is
+  accepted, which the test pins.
+
+### Fixed
+
 - **Every write amount is parsed under its own field**: last round covered the create supply; the five
   write forms (mint, transfer, approve, transfer from, burn) took whatever was typed and sent it, so a
   decimal reached storage and came back as a status line naming no control. Each now runs the store's

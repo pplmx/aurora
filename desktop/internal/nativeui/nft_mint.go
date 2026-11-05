@@ -4,6 +4,8 @@ import (
 	"strings"
 
 	"github.com/egoist/mygo/ui"
+
+	"github.com/pplmx/aurora/internal/domain/nft"
 )
 
 func (a *App) nftMint(c *ui.Context) {
@@ -14,11 +16,17 @@ func (a *App) nftMint(c *ui.Context) {
 
 func (a *App) nftMintBody(c *ui.Context) {
 	generated := false
-	field(c, "Name", &a.nft.name)
+	fieldWithError(c, "Name", a.nft.mintErrs["name"], func() {
+		ui.TextInput(c, &a.nft.name)
+	})
 	ui.Collapsible(c, tr("Optional details"), &a.nft.mintAdvanced, func() {
-		textArea(c, "Description (optional)", &a.nft.description)
-		field(c, "Image URL (optional)", &a.nft.imageURL)
-		field(c, "Token URI (optional)", &a.nft.tokenURI)
+		textAreaWithError(c, "Description (optional)", a.nft.mintErrs["description"], &a.nft.description)
+		fieldWithError(c, "Image URL (optional)", a.nft.mintErrs["image_url"], func() {
+			ui.TextInput(c, &a.nft.imageURL)
+		})
+		fieldWithError(c, "Token URI (optional)", a.nft.mintErrs["token_uri"], func() {
+			ui.TextInput(c, &a.nft.tokenURI)
+		})
 	})
 	fieldHint(c, "Creator (base64 public key)", "The creator becomes the first owner.", &a.nft.creator)
 	ui.Row(c).Gap(space2).Children(func() {
@@ -68,6 +76,26 @@ func (a *App) mintNFT() {
 	imageURL, tokenURI := strings.TrimSpace(a.nft.imageURL), strings.TrimSpace(a.nft.tokenURI)
 	creator, creatorPriv := strings.TrimSpace(a.nft.creator), a.nft.creatorPriv
 	if rejectIncomplete(&a.nft.status, "NFT name and creator are required.", name, creator) {
+		return
+	}
+	// The store bounds these four fields and its refusal names none of them. The
+	// bounds below are the domain's own constants and the sentences are its own
+	// errors, so the window cannot describe a limit the store does not apply.
+	a.nft.mintErrs = nil
+	if err := checkMintField("name", name, nft.MaxNFTNameLength, nft.ErrNameTooLong); err != nil {
+		a.nft.mintErrs = err
+		return
+	}
+	if err := checkMintField("description", description, nft.MaxNFTDescriptionLength, nft.ErrDescriptionTooLong); err != nil {
+		a.nft.mintErrs = err
+		return
+	}
+	if err := checkMintField("image_url", imageURL, nft.MaxNFTImageURLLength, nft.ErrImageURLTooLong); err != nil {
+		a.nft.mintErrs = err
+		return
+	}
+	if err := checkMintField("token_uri", tokenURI, nft.MaxNFTTokenURILength, nft.ErrTokenURITooLong); err != nil {
+		a.nft.mintErrs = err
 		return
 	}
 	a.runWrite("Minting NFT…", func() func() {

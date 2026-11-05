@@ -33,7 +33,7 @@ var translatedCallArgs = map[string][]int{
 	"fieldWithError":       {1},
 	"validatedField":       {1},
 	"fieldHint":            {1, 2},
-	"textArea":             {1},
+	"textAreaWithError":    {1},
 	"textAreaHint":         {1, 2},
 	"hint":                 {1},
 	"emptyNote":            {1},

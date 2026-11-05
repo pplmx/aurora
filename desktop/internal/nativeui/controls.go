@@ -531,8 +531,8 @@ func fieldHint(c *ui.Context, label, hintText string, value *string) {
 
 // textArea builds a labelled multi-line input, for values that are naturally
 // longer than one line (JSON headers, a description).
-func textArea(c *ui.Context, label string, value *string) {
-	ui.Field(c, tr(label), func() {
+func textAreaWithError(c *ui.Context, label, message string, value *string) {
+	fieldWithError(c, label, message, func() {
 		textAreaControl(c, value)
 	})
 }

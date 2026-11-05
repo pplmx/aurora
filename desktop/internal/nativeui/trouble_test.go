@@ -2,6 +2,9 @@ package nativeui
 
 import (
 	"errors"
+	"strings"
+
+	"github.com/pplmx/aurora/internal/domain/nft"
 	"testing"
 	"time"
 
@@ -750,4 +753,32 @@ func TestEveryWriteAmountIsParsedUnderItsOwnField(t *testing.T) {
 	require.Empty(t, app.token.amountErrs["mint"],
 		"a corrected amount does not keep the old sentence")
 	require.True(t, app.token.status.isErr, "the missing key is what blocks it now")
+}
+
+// TestAnOverLongMintFieldIsRefusedUnderItsOwnField extends the amount rule to the
+// NFT mint form. Its four bounded fields used to reach storage, which refused them
+// in a status line naming no control. The bounds and the sentences are the
+// domain's own, so the window cannot describe a limit the store does not apply.
+func TestAnOverLongMintFieldIsRefusedUnderItsOwnField(t *testing.T) {
+	app := New(workbenchFakes())
+	app.SetActions(Actions{Version: "0.0.1", SetPageTitle: func(string) {}, SetBadgeCount: func(int) {}})
+	tester := ui.NewTester(app.View, 1400, 2500)
+	app.ShowPage("NFT")
+	tester.Frame()
+
+	app.nft.name = strings.Repeat("x", nft.MaxNFTNameLength+1)
+	app.nft.creator = "pk"
+	app.mintNFT()
+	tester.Frame()
+	require.Equal(t, nft.ErrNameTooLong.Error(), app.nft.mintErrs["name"],
+		"the refusal is the domain's own sentence")
+	require.True(t, tester.HasText(nft.ErrNameTooLong.Error()),
+		"and it is drawn under the field")
+
+	// Exactly at the limit is accepted: the bound is a maximum, not an exclusive
+	// one, and an off-by-one here would reject a name the store would take.
+	app.nft.name = strings.Repeat("x", nft.MaxNFTNameLength)
+	app.mintNFT()
+	tester.Frame()
+	require.Empty(t, app.nft.mintErrs, "a name at the limit is accepted")
 }
