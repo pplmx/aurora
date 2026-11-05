@@ -45,6 +45,15 @@ The milestone notes under `.planning/` are history, not current instructions.
   the same file, so a mistake the CLI points out passed without a trace there. A packaged app has no
   console, so it writes the same report to its log, where its startup facts already go.
 
+### Fixed
+
+- **`decimals` is documented as metadata, not a conversion**: the reference gave its range and nothing
+  else, so a reader who saw `decimals: 8` beside `total_supply: "1235067"` would take the service to have
+  converted it. Nothing divides by 10^8 anywhere — verified against a running server and by reading the
+  domain — so the value is in base units and the client does the conversion. The API reference and the
+  window's Tokens card now say so; the window is where the number is read most often, and it showed only
+  the raw value.
+
 ### Changed
 
 - **A dead assignment is gone from the pager**: `pagerInline` assigns `pagerLabel` to the group and then

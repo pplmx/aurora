@@ -298,7 +298,7 @@ var desktopMessages = map[string]string{
 	"Tokens":                 "代币",
 	"Token collection":       "代币列表",
 	"Token transfer history": "代币转账历史",
-	"Browse stored tokens newest first and choose one as the subject of the cards here.": "按最新优先浏览已存储代币，并选择一个作为本页卡片的操作对象。",
+	"Browse stored tokens newest first and choose one as the subject of the cards here. Supplies and amounts are stored in base units; the decimals are metadata, not a conversion.": "按最新优先浏览已存储代币，并选择一个作为本页卡片的操作对象。供应量与金额都以最小单位存储；精度只是记录用的元数据，不是换算。",
 	"Search tokens":              "搜索代币",
 	"Symbol":                     "符号",
 	"Supply":                     "供应量",

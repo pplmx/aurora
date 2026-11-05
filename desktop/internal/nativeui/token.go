@@ -283,7 +283,11 @@ func (a *App) tokenNeedsFirstRecord() bool {
 // choice fills the id every other card acts on, so a token created in an
 // earlier session is reachable without remembering its id.
 func (a *App) tokenList(c *ui.Context) {
-	formCard(c, "Tokens", "Browse stored tokens newest first and choose one as the subject of the cards here.", func() {
+	// The supply column shows the stored value, which is in base units: the
+	// decimals beside it are recorded metadata the store never divides by, so a
+	// reader who assumed the service had converted would misread "1000000" as a
+	// millionth of its real amount.
+	formCard(c, "Tokens", "Browse stored tokens newest first and choose one as the subject of the cards here. Supplies and amounts are stored in base units; the decimals are metadata, not a conversion.", func() {
 		if a.token.loadErr != nil && !loadWarning(c, "Failed to load tokens", a.token.loadErr, len(a.token.tokens) > 0) {
 			return
 		}

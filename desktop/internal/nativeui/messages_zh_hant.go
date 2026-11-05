@@ -75,7 +75,7 @@ var desktopMessagesHant = map[string]string{
 	"Blockchain":        "賬本",
 	"Blockchain ledger": "區塊鏈賬本",
 	"Blocks":            "區塊數",
-	"Browse stored tokens newest first and choose one as the subject of the cards here.": "按最新優先瀏覽已存儲代幣，並選擇一個作為本頁卡片的操作對象。",
+	"Browse stored tokens newest first and choose one as the subject of the cards here. Supplies and amounts are stored in base units; the decimals are metadata, not a conversion.": "按最新優先瀏覽已儲存代幣，並選擇一個作為本頁卡片的操作對象。供應量與金額都以最小單位儲存；精度只是記錄用的數據，不是換算。",
 	"Build time": "構建時間",
 	"Burn":       "銷毀",
 	"Burn %s from %s? The tokens are destroyed permanently and cannot be recovered.": "從 %[2]s 銷毀 %[1]s？代幣會被永久銷毀且無法恢復。",
