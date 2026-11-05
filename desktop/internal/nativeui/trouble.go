@@ -3,6 +3,8 @@ package nativeui
 import (
 	"fmt"
 	"time"
+
+	"github.com/egoist/mygo/ui"
 )
 
 // Reporting which pages could not be read, from anywhere in the window.
@@ -155,4 +157,21 @@ func (a *App) syncBadgeCount() {
 	a.badgeCount = count
 	a.badgePushed = true
 	a.actions.SetBadgeCount(count)
+}
+
+// waitForWrite draws the line a page shows while it has read nothing: the busy
+// bar names the write that owns the database, and this says the page is waiting
+// for it rather than reporting on a store it has not looked at. It reports
+// whether it drew, so a caller returns without repeating the check.
+//
+// It is one function rather than a string each page keeps because the condition
+// and the sentence belong together: five lists across four pages show it, and a
+// page that got the wording without the condition — or the reverse — would claim
+// something about a store nothing has read.
+func (a *App) waitForWrite(c *ui.Context, rows int, loaded bool) bool {
+	if rows > 0 || loaded {
+		return false
+	}
+	hint(c, "Waiting for the running write to finish before reading this page.")
+	return true
 }

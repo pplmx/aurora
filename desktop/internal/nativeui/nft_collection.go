@@ -136,11 +136,7 @@ func (a *App) nftListBody(c *ui.Context) {
 		a.nft.selected = -1
 		a.loadNFTPage(0)
 	}
-	if len(a.nft.list) == 0 && !a.nft.loaded {
-		// Unread is not empty. The busy bar names the write that owns the
-		// database; claiming the collection is empty would be a statement about a
-		// store this page has not looked at.
-		hint(c, "Waiting for the running write to finish before reading this page.")
+	if a.waitForWrite(c, len(a.nft.list), a.nft.loaded) {
 		return
 	}
 	if len(a.nft.list) == 0 {

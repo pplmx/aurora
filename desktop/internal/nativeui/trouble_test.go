@@ -562,3 +562,36 @@ func TestEveryCollectionPageWaitsInsteadOfClaimingEmpty(t *testing.T) {
 		})
 	}
 }
+
+// TestASearchDuringAWriteDoesNotRead covers the path that bypassed the guard.
+// refresh gates on the write, but the search field reads on its own when a term
+// changes — the page has to show the new query's rows — and that read landed on
+// the locked database, which reported a page failure and marked the page as read
+// when it had not been.
+func TestASearchDuringAWriteDoesNotRead(t *testing.T) {
+	fake := workbenchFakes()
+	app := New(fake)
+	app.SetActions(Actions{Version: "0.0.1", SetPageTitle: func(string) {}, SetBadgeCount: func(int) {}})
+	tester := ui.NewTester(app.View, 1280, 900)
+	app.ShowPage("Dashboard")
+	tester.Frame()
+
+	app.busy = "Creating…"
+	app.token.search = "gold"
+	app.ShowPage("Token")
+	tester.Frame()
+
+	require.False(t, app.token.loaded,
+		"the page did not read, so it must not claim it did")
+	require.Empty(t, app.loadFailures(),
+		"and a read the write forbade is not a failure to report")
+	require.True(t, tester.HasText("Waiting for the running write"),
+		"the page says what it is waiting for")
+
+	// With no write running the same term reads and applies.
+	app.busy = ""
+	app.refresh()
+	tester.Frame()
+	require.True(t, app.token.loaded)
+	require.Equal(t, "gold", app.token.appliedSearch, "the pending term is applied")
+}

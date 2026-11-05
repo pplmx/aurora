@@ -75,11 +75,7 @@ func (a *App) votingVoterList(c *ui.Context) {
 		}
 		a.loadVoterPage(0)
 	}
-	if len(a.voting.voters) == 0 && !a.voting.loaded {
-		// Unread is not empty: the busy bar names the write that owns the
-		// database, and claiming nobody is registered would describe a store this
-		// page has not looked at.
-		hint(c, "Waiting for the running write to finish before reading this page.")
+	if a.waitForWrite(c, len(a.voting.voters), a.voting.loaded) {
 		return
 	}
 	if len(a.voting.voters) == 0 {
@@ -179,9 +175,7 @@ func (a *App) votingSessionList(c *ui.Context) {
 		}
 		a.loadSessionPage(0)
 	}
-	if len(a.voting.sessions) == 0 && !a.voting.loaded {
-		// Unread is not empty; see the voter list.
-		hint(c, "Waiting for the running write to finish before reading this page.")
+	if a.waitForWrite(c, len(a.voting.sessions), a.voting.loaded) {
 		return
 	}
 	if len(a.voting.sessions) == 0 {
@@ -335,9 +329,7 @@ func (a *App) votingCandidateList(c *ui.Context) {
 		}
 		a.loadCandidatePage(0)
 	}
-	if len(a.voting.candidates) == 0 && !a.voting.loaded {
-		// Unread is not empty; see the voter list.
-		hint(c, "Waiting for the running write to finish before reading this page.")
+	if a.waitForWrite(c, len(a.voting.candidates), a.voting.loaded) {
 		return
 	}
 	if len(a.voting.candidates) == 0 {

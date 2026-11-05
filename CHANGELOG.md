@@ -34,6 +34,17 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **A search during a background write no longer reads**: `refresh` gates on the write, but the search
+  field reads on its own when a term changes — it has to show the new query's rows — and that read landed
+  on the locked database. It reported a page failure *and* marked the page as read when it had not been,
+  so the waiting state added last round was bypassed. The guard now sits in the list reader where every
+  such read starts.
+- **The waiting line is one helper**: five lists across four pages drew the same sentence under the same
+  condition. `waitForWrite` now holds both, so a page cannot get the wording without the condition — or
+  the reverse.
+
+### Fixed
+
 - **The voting page waits as well, and so do its three lists**: it has its own first-run guide plus a
   voters, candidates and sessions list, so it had four empty sentences to withhold rather than one. All
   four now stay off until a read completes, and the page says it is waiting for the running write. Every

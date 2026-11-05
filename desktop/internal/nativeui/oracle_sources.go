@@ -34,9 +34,7 @@ func (a *App) oracleSourcesBody(c *ui.Context) {
 		}
 		a.loadOracleSourcePage(0)
 	}
-	if len(a.oracle.sources) == 0 && !a.oracle.loaded {
-		// Unread is not empty; see the NFT list for the same state.
-		hint(c, "Waiting for the running write to finish before reading this page.")
+	if a.waitForWrite(c, len(a.oracle.sources), a.oracle.loaded) {
 		return
 	}
 	if len(a.oracle.sources) == 0 {

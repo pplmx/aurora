@@ -164,6 +164,14 @@ func (a *App) loadTokenPage(offset int) bool {
 	if a.services == nil {
 		return false
 	}
+	// A background write owns the database. refresh guards this, but the search
+	// field reads on its own when a term changes, which would land on the locked
+	// database and report a page failure. The guard sits here, where every list
+	// read starts, for the same reason it sits in refresh: a caller that forgets
+	// is silent otherwise.
+	if a.busy != "" {
+		return false
+	}
 	// The list is the page's entry point: without it a token created in an
 	// earlier session could not be reached at all.
 	if offset < 0 {
@@ -288,11 +296,7 @@ func (a *App) tokenList(c *ui.Context) {
 		// answer a screen reader needs, and it is the same fact the empty note
 		// states visually.
 		announceSearchResults(c, searchChanged, len(a.token.tokens))
-		if len(a.token.tokens) == 0 && !a.token.loaded {
-			// Unread is not empty. The busy bar names the write that owns the
-			// database; claiming there are no tokens would be a statement about a
-			// store this page has not looked at.
-			hint(c, "Waiting for the running write to finish before reading this page.")
+		if a.waitForWrite(c, len(a.token.tokens), a.token.loaded) {
 			return
 		}
 		if len(a.token.tokens) == 0 {
