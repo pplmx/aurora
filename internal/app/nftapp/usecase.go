@@ -128,6 +128,9 @@ type ListNFTsByOwnerRequest struct {
 
 // ListNFTsRequest pages the whole collection.
 type ListNFTsRequest struct {
+	// Search narrows the collection in storage by id and name, so a term finds an
+	// asset whose row is not on the loaded page. Empty is the plain list.
+	Search string
 	Limit  int
 	Offset int
 }
@@ -169,7 +172,7 @@ func NewListAll(service nft.Service) *ListAllNFTsUseCase {
 }
 
 func (u *ListAllNFTsUseCase) Execute(req *ListNFTsRequest) ([]*NFTResponse, error) {
-	results, err := u.service.ListNFTs(req.Limit, req.Offset)
+	results, err := u.service.ListMatchingNFTs(req.Search, req.Limit, req.Offset)
 	if err != nil {
 		return nil, err
 	}

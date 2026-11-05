@@ -88,6 +88,7 @@ type fakeServices struct {
 	listTokensCalls        int
 	lastTokenListLimit     int
 	lastTokenSearch        string
+	lastNFTSearch          string
 	lastTokenListOffset    int
 	voterListCalls         int
 	candidateRegisterCalls int
@@ -630,8 +631,36 @@ func (f *fakeServices) ListNFTsPage(owner string, limit, offset int) ([]NFTRow, 
 }
 
 func (f *fakeServices) ListAllNFTsPage(limit, offset int) ([]NFTRow, error) {
+	return f.ListMatchingNFTs("", limit, offset)
+}
+
+// ListMatchingNFTs filters the fixture the way storage does — id or name
+// contains the term — so a test can prove the search spans rows that are not on
+// the loaded page.
+func (f *fakeServices) ListMatchingNFTs(term string, limit, offset int) ([]NFTRow, error) {
 	f.listAllNFTsCalls++
-	return f.ListNFTsPage("", limit, offset)
+	f.lastNFTSearch = term
+	if f.loadErrs.nfts != nil {
+		return nil, f.loadErrs.nfts
+	}
+	rows := f.nftRows
+	if term = strings.TrimSpace(term); term != "" {
+		matching := make([]NFTRow, 0, len(rows))
+		for _, row := range rows {
+			if containsFold(term, row.ID, row.Name) {
+				matching = append(matching, row)
+			}
+		}
+		rows = matching
+	}
+	if offset > len(rows) {
+		return nil, nil
+	}
+	rows = rows[offset:]
+	if limit > 0 && len(rows) > limit {
+		rows = rows[:limit]
+	}
+	return rows, nil
 }
 
 func (f *fakeServices) ListNFTs(owner string) ([]NFTRow, error) {

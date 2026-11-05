@@ -138,9 +138,16 @@ func (a *App) loadNFTPage(offset int) bool {
 	}
 	requestLimit := limit + 1
 	if a.nft.filterOwner != "" {
+		// An owner filter is its own query: the collection narrowed to one holder
+		// answers a different question than a text search, and combining them
+		// would need a rule for what an owner string does to a name match.
 		rows, err = a.services.ListNFTsPage(a.nft.filterOwner, requestLimit, offset)
 	} else {
-		rows, err = a.services.ListAllNFTsPage(requestLimit, offset)
+		// The text search is a storage query, not a filter over the loaded rows: an
+		// asset on an older page must be reachable by typing its name. The applied
+		// term is the one the rows describe, so a paged move keeps matching what the
+		// reader saw when they pressed Next.
+		rows, err = a.services.ListMatchingNFTs(a.nft.appliedSearch, requestLimit, offset)
 	}
 	a.nft.loadErr = err
 	if err != nil {

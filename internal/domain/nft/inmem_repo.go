@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"database/sql"
 	"sort"
+	"strings"
 	"sync"
 )
 
@@ -145,6 +146,37 @@ func (r *inmemRepo) GetNFTsByOwner(owner []byte, limit, offset int) ([]*NFT, err
 // ListNFTs returns every NFT, paged like GetNFTsByOwner, newest first. The
 // order is write order (the SQLite repo's rowid), reversed, so a test that
 // lists assets sees the same sequence the API serves.
+// ListMatchingNFTs filters the in-memory collection the way storage does, by id
+// and name, so callers see one behaviour whichever repository backs them.
+func (r *inmemRepo) ListMatchingNFTs(term string, limit, offset int) ([]*NFT, error) {
+	term = strings.TrimSpace(term)
+	if term == "" {
+		return r.ListNFTs(limit, offset)
+	}
+	all, err := r.ListNFTs(0, 0)
+	if err != nil {
+		return nil, err
+	}
+	matching := make([]*NFT, 0, len(all))
+	for _, n := range all {
+		if strings.Contains(strings.ToLower(n.ID), strings.ToLower(term)) ||
+			strings.Contains(strings.ToLower(n.Name), strings.ToLower(term)) {
+			matching = append(matching, n)
+		}
+	}
+	if offset < 0 {
+		offset = 0
+	}
+	if offset >= len(matching) {
+		return nil, nil
+	}
+	matching = matching[offset:]
+	if limit > 0 && len(matching) > limit {
+		matching = matching[:limit]
+	}
+	return matching, nil
+}
+
 func (r *inmemRepo) ListNFTs(limit, offset int) ([]*NFT, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()

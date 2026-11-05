@@ -567,6 +567,9 @@ func (f *failingNFTRepo) GetNFT(string) (*nft.NFT, error) {
 	return nil, f.err
 }
 func (f *failingNFTRepo) ListNFTs(_ int, _ int) ([]*nft.NFT, error) { return nil, nil }
+func (f *failingNFTRepo) ListMatchingNFTs(_ string, _ int, _ int) ([]*nft.NFT, error) {
+	return nil, nil
+}
 func (f *failingNFTRepo) GetNFTsByOwner(_ []byte, _ int, _ int) ([]*nft.NFT, error) {
 	return nil, f.err
 }

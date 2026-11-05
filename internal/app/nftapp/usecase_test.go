@@ -57,6 +57,9 @@ func (m *mockNFTService) GetNFTByID(id string) (*nft.NFT, error) {
 	return nil, nil
 }
 
+func (m *mockNFTService) ListMatchingNFTs(term string, limit, offset int) ([]*nft.NFT, error) {
+	return m.ListNFTs(limit, offset)
+}
 func (m *mockNFTService) ListNFTs(limit, offset int) ([]*nft.NFT, error) {
 	all := m.nfts
 	if limit > 0 {

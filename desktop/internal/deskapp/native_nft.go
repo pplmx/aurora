@@ -63,8 +63,14 @@ func (s *nativeServices) ListAllNFTs() ([]nativeui.NFTRow, error) {
 }
 
 func (s *nativeServices) ListAllNFTsPage(limit, offset int) ([]nativeui.NFTRow, error) {
+	return s.ListMatchingNFTs("", limit, offset)
+}
+
+// ListMatchingNFTs is the same read with a storage-side search term, so the
+// window's collection search spans every asset rather than the loaded page.
+func (s *nativeServices) ListMatchingNFTs(term string, limit, offset int) ([]nativeui.NFTRow, error) {
 	uc := nftapp.NewListAll(nft.NewService(s.nftRepo, s.nftTx))
-	resp, err := uc.Execute(&nftapp.ListNFTsRequest{Limit: limit, Offset: offset})
+	resp, err := uc.Execute(&nftapp.ListNFTsRequest{Search: term, Limit: limit, Offset: offset})
 	if err != nil {
 		return nil, err
 	}

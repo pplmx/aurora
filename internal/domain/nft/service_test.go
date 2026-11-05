@@ -859,6 +859,9 @@ func (r *FailingRepo) GetNFT(id string) (*NFT, error) {
 	return r.inmemRepo.GetNFT(id)
 }
 
+func (r *FailingRepo) ListMatchingNFTs(term string, limit, offset int) ([]*NFT, error) {
+	return r.ListNFTs(limit, offset)
+}
 func (r *FailingRepo) ListNFTs(limit, offset int) ([]*NFT, error) {
 	return nil, errors.New("list failed")
 }

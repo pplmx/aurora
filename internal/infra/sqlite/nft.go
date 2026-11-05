@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/pplmx/aurora/internal/domain/nft"
 	"github.com/pplmx/aurora/internal/utils"
@@ -319,17 +320,38 @@ func (r *NFTRepository) GetNFTsByOwner(owner []byte, limit, offset int) ([]*nft.
 // ListNFTs returns every NFT, newest first. It shares the row decoding with
 // GetNFTsByOwner so a listed asset carries the same fields a fetched one does.
 func (r *NFTRepository) ListNFTs(limit, offset int) ([]*nft.NFT, error) {
+	return r.listNFTs("", nil, limit, offset)
+}
+
+// ListMatchingNFTs searches the stored assets by id and name, so a search finds an
+// NFT whose row is not on the loaded page. The escaping and case-folding mirror the
+// token, lottery and audit searches.
+func (r *NFTRepository) ListMatchingNFTs(term string, limit, offset int) ([]*nft.NFT, error) {
+	term = strings.TrimSpace(term)
+	if term == "" {
+		return r.ListNFTs(limit, offset)
+	}
+	escaped := strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`).Replace(strings.ToLower(term))
+	like := "%" + escaped + "%"
+	where := `WHERE lower(id) LIKE ? ESCAPE '\' OR lower(name) LIKE ? ESCAPE '\'`
+	return r.listNFTs(where, []any{like, like}, limit, offset)
+}
+
+// listNFTs is the one paged read: ListNFTs and ListMatchingNFTs differ only in
+// the WHERE clause, and both keep the newest-first order.
+func (r *NFTRepository) listNFTs(where string, args []any, limit, offset int) ([]*nft.NFT, error) {
 	if limit <= 0 {
 		limit = -1
 	}
 	if offset < 0 {
 		offset = 0
 	}
+	queryArgs := append(append([]any{}, args...), limit, offset)
 	rows, err := r.q().Query(`
 		SELECT id, name, description, image_url, token_uri, owner, creator, block_height, timestamp
-		FROM nfts ORDER BY rowid DESC
+		FROM nfts `+where+` ORDER BY rowid DESC
 		LIMIT ? OFFSET ?
-	`, limit, offset)
+	`, queryArgs...)
 	if err != nil {
 		return nil, err
 	}

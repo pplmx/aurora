@@ -667,3 +667,45 @@ func TestASearchThatMatchesNothingIsNotAnEmptyStore(t *testing.T) {
 	require.False(t, tester.HasText("No tokens yet"),
 		"a populated store must not be described as empty")
 }
+
+// TestTheNFTSearchSpansTheWholeStore is the NFT half of the token rule: the
+// collection is paged, so an asset on an older page is not in memory and a
+// page-local filter could not find it.
+func TestTheNFTSearchSpansTheWholeStore(t *testing.T) {
+	rows := make([]NFTRow, 150)
+	for i := range rows {
+		rows[i] = NFTRow{ID: "n" + strconv.Itoa(i), Name: "NFT " + strconv.Itoa(i), Owner: "owner"}
+	}
+	rows[130].Name = "Needle"
+	fake := &fakeServices{nftRows: rows}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 3000)
+	app.ShowPage("NFT")
+	tester.Frame()
+	require.False(t, tester.HasText("Needle"), "the row is not on the loaded page")
+
+	app.nft.search = "needle"
+	tester.Frame()
+
+	require.True(t, tester.HasText("Needle"), "the search must find a row outside the loaded page")
+	require.Equal(t, "needle", fake.lastNFTSearch, "and it must be the term storage was asked for")
+	require.Len(t, app.nft.list, 1)
+}
+
+// TestAnNFTSearchThatMatchesNothingIsNotAnEmptyCollection keeps the two sentences
+// apart, as the token list does: clearing the field is the fix for one and
+// minting the first asset is the fix for the other.
+func TestAnNFTSearchThatMatchesNothingIsNotAnEmptyCollection(t *testing.T) {
+	fake := &fakeServices{nftRows: []NFTRow{{ID: "n1", Name: "Star", Owner: "owner"}}}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 3000)
+	app.ShowPage("NFT")
+	tester.Frame()
+
+	app.nft.search = "nothing-like-this"
+	tester.Frame()
+
+	require.True(t, tester.HasText("No NFTs match “nothing-like-this”."))
+	require.False(t, tester.HasText("No NFTs yet"),
+		"a populated collection must not be described as empty")
+}

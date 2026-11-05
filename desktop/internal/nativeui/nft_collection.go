@@ -125,25 +125,31 @@ func (a *App) nftListBody(c *ui.Context) {
 	if a.nft.loadErr != nil && !loadWarning(c, "Failed to load NFTs", a.nft.loadErr, len(a.nft.list) > 0) {
 		return
 	}
-	if len(a.nft.list) == 0 {
-		// Recorded before the return, as on the other lists: a query cleared
-		// while the collection is empty must not stay applied, or the
-		// first-record panel stays hidden behind a work bench over nothing.
-		if a.nft.search != a.nft.appliedSearch {
-			a.nft.appliedSearch = a.nft.search
-			a.nft.selected = -1
-		}
-		if a.nft.filterOwner != "" {
-			emptyNote(c, "No NFTs for this owner. Show All restores the collection.")
-			return
-		}
-		emptyState(c, pageNFT, "No NFTs yet", "Mint an asset below to start the collection; it becomes the first holder’s token.")
-		return
-	}
+	// A new term is a new query over the whole collection, so it re-reads from the
+	// first page: keeping the old offset would show "page 3" of a result set that
+	// may hold one asset. This runs before the empty-state branch, because a search
+	// that matches nothing leaves the previous rows in place and would otherwise be
+	// recorded as applied without ever being read.
 	queryChanged := a.nft.search != a.nft.appliedSearch
 	if queryChanged {
 		a.nft.appliedSearch = a.nft.search
 		a.nft.selected = -1
+		a.loadNFTPage(0)
+	}
+	if len(a.nft.list) == 0 {
+		if a.nft.filterOwner != "" {
+			emptyNote(c, "No NFTs for this owner. Show All restores the collection.")
+			return
+		}
+		// An empty result is not always an empty collection: a search over a store
+		// that holds assets needs "no match", because clearing the field is the fix
+		// and the mint guide's advice would be wrong.
+		if strings.TrimSpace(a.nft.appliedSearch) != "" {
+			emptyNote(c, fmt.Sprintf(tr("No NFTs match “%s”."), strings.TrimSpace(a.nft.appliedSearch)))
+			return
+		}
+		emptyState(c, pageNFT, "No NFTs yet", "Mint an asset below to start the collection; it becomes the first holder’s token.")
+		return
 	}
 	limit := int(a.nft.limit)
 	if limit < 10 {
@@ -161,7 +167,7 @@ func (a *App) nftListBody(c *ui.Context) {
 		}
 	}
 	previous, next := collectionToolbar(c, &a.nft.search, "Search NFTs",
-		"Search narrows the current page; use Previous/Next for older assets.",
+		"Search matches id or name across the whole collection.",
 		"NFT collection", a.nft.offset, len(a.nft.list), a.nft.hasMore)
 	if previous || next {
 		target := a.nft.offset
@@ -175,17 +181,10 @@ func (a *App) nftListBody(c *ui.Context) {
 		}
 		return
 	}
-	list := make([]NFTRow, 0, len(a.nft.list))
-	for _, n := range a.nft.list {
-		if containsFold(a.nft.search, n.ID, n.Name) {
-			list = append(list, n)
-		}
-	}
+	// The rows already answer the applied term: storage selected them. Filtering
+	// again by the field would disagree with storage about what a term matches.
+	list := a.nft.list
 	announceSearchResults(c, queryChanged, len(list))
-	if len(list) == 0 {
-		emptyNote(c, fmt.Sprintf(tr("No NFTs match “%s”."), strings.TrimSpace(a.nft.search)))
-		return
-	}
 	collectionList(c, "NFT collection",
 		collectionRecords(list, nftCollectionRecord),
 		a.nft.selected, func(i int) { a.chooseNFT(list, i) })

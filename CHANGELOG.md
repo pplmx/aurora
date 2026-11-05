@@ -34,6 +34,16 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Added
 
+- **The NFT collection's search spans the whole store**: the same rule and the same shape as the token
+  list — a paged collection means an asset on an older page is not in memory, so a page-local filter
+  concluded it did not exist. The repository gained a matching read with the same escaping, and the
+  window now orders its work the way the token list had to learn: re-read first, then the empty-state
+  branch, so a term that matches nothing is not recorded as applied without ever being read. An owner
+  filter stays its own query, because combining it with text would need a rule for what an owner string
+  does to a name match.
+
+### Added
+
 - **The token collection's search spans the whole store**: the list is paged, so a token on an older
   page was not in memory and the search could not find it — the reader concluded it did not exist. The
   field now queries storage by id, name and symbol, following the pattern the lottery and audit

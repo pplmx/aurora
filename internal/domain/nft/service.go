@@ -8,6 +8,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -23,6 +24,10 @@ type Service interface {
 	GetNFTsByOwner(ownerPub []byte, limit, offset int) ([]*NFT, error)
 	// ListNFTs returns every NFT, newest first.
 	ListNFTs(limit, offset int) ([]*NFT, error)
+	// ListMatchingNFTs returns one page of assets whose id or name contains term.
+	// Storage does the filtering, so the search spans the whole collection rather
+	// than the rows already loaded.
+	ListMatchingNFTs(term string, limit, offset int) ([]*NFT, error)
 	GetOperations(nftID string, limit, offset int) ([]*Operation, error)
 }
 
@@ -276,6 +281,17 @@ func (s *NFTService) GetNFTsByOwner(ownerPub []byte, limit, offset int) ([]*NFT,
 // ListNFTs returns every NFT, newest first.
 func (s *NFTService) ListNFTs(limit, offset int) ([]*NFT, error) {
 	return s.repo.ListNFTs(limit, offset)
+}
+
+// ListMatchingNFTs pages through the assets a search term selects. An empty term
+// is the plain list, which keeps a cleared search field from being a special case
+// at every caller.
+func (s *NFTService) ListMatchingNFTs(term string, limit, offset int) ([]*NFT, error) {
+	term = strings.TrimSpace(term)
+	if term == "" {
+		return s.repo.ListNFTs(limit, offset)
+	}
+	return s.repo.ListMatchingNFTs(term, limit, offset)
 }
 
 func (s *NFTService) GetOperations(nftID string, limit, offset int) ([]*Operation, error) {

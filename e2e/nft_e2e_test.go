@@ -36,6 +36,9 @@ func (r *inMemoryNFTRepo) GetNFT(id string) (*nft.NFT, error) {
 	return r.nfts[id], nil
 }
 
+func (r *inMemoryNFTRepo) ListMatchingNFTs(term string, limit, offset int) ([]*nft.NFT, error) {
+	return r.ListNFTs(limit, offset)
+}
 func (r *inMemoryNFTRepo) ListNFTs(limit, offset int) ([]*nft.NFT, error) {
 	var all []*nft.NFT
 	for _, byOwner := range r.nftsByOwner {

@@ -86,6 +86,9 @@ type Services interface {
 	GetNFT(id string) (NFTRow, error)
 	ListNFTs(owner string) ([]NFTRow, error)
 	ListNFTsPage(owner string, limit, offset int) ([]NFTRow, error)
+	// ListMatchingNFTs searches the stored assets by id and name in storage, so a
+	// search finds an NFT whose row is not on the loaded page.
+	ListMatchingNFTs(term string, limit, offset int) ([]NFTRow, error)
 	// ListAllNFTs returns every NFT, newest first. Without it the page could
 	// only reach an asset whose owner key the operator already had.
 	ListAllNFTs() ([]NFTRow, error)

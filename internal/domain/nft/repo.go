@@ -23,6 +23,9 @@ type Repository interface {
 	// key, which is the one thing a caller who did not mint the asset does not
 	// have: without this, an NFT's id was reachable only from the mint output.
 	ListNFTs(limit, offset int) ([]*NFT, error)
+	// ListMatchingNFTs searches the stored assets by id and name, so a term finds
+	// an NFT whose row is not on the loaded page. An empty term is the plain list.
+	ListMatchingNFTs(term string, limit, offset int) ([]*NFT, error)
 	UpdateNFT(nft *NFT) error
 
 	// TryTransferOwnership atomically transfers ownership from
