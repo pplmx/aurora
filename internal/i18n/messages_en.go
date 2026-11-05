@@ -306,7 +306,7 @@ nft, token) and operational commands (migrate, backup, version).`,
 	// Flags
 	"token.name":        "Token name, at most 100 bytes",
 	"token.symbol":      "Token symbol, at most 10 bytes",
-	"token.supply":      "Total supply (positive decimal amount)",
+	"token.supply":      "Total supply (a whole number of base units)",
 	"token.decimals":    "Decimals, 0-127",
 	"token.owner":       "Owner public key",
 	"token.to":          "Recipient public key",

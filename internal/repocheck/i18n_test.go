@@ -183,3 +183,38 @@ func mayHoldTranslationCall(source []byte) bool {
 	}
 	return false
 }
+
+// TestTheSupplyFlagDoesNotPromiseDecimals pins the one place a help string
+// contradicted the code. `aurora token create --supply` parsed with
+// token.NewAmountFromString, which takes a whole number of base units, while the
+// flag's description said "positive decimal amount" — so a reader who followed
+// the help got a parse error. The description is now true, and this keeps a
+// later edit from quietly promising decimals again.
+func TestTheSupplyFlagDoesNotPromiseDecimals(t *testing.T) {
+	root := repoRoot(t)
+	for _, name := range []string{"messages_en.go", "messages_zh.go", "messages_zh_hant.go"} {
+		body, err := os.ReadFile(filepath.Join(root, "internal", "i18n", name))
+		require.NoError(t, err)
+		text := string(body)
+
+		start := strings.Index(text, `"token.supply":`)
+		require.GreaterOrEqualf(t, start, 0, "%s must define token.supply", name)
+		end := strings.Index(text[start:], "\n")
+		require.Greater(t, end, 0)
+		line := text[start : start+end]
+
+		require.NotContainsf(t, strings.ToLower(line), "decimal",
+			"%s: the supply flag takes a whole number, so its help must not say decimal", name)
+		require.NotContainsf(t, line, "正数金额",
+			"%s: 金额 暗示可以带小数，实际只接受整数", name)
+		require.NotContainsf(t, line, "正數金額",
+			"%s: 金額 暗示可以帶小數，實際只接受整數", name)
+	}
+
+	// The code side of the same fact: the parser refuses a decimal, so the help
+	// above is describing what really happens.
+	entity, err := os.ReadFile(filepath.Join(root, "internal", "domain", "token", "entity.go"))
+	require.NoError(t, err)
+	require.Contains(t, string(entity), "new(big.Int).SetString(s, 10)",
+		"a base-ten integer parse is what makes the help text accurate")
+}

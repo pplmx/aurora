@@ -303,7 +303,7 @@ nft、token）和运维命令（migrate、backup、version）。`,
 	// Flags
 	"token.name":        "代币名称，最多 100 字节",
 	"token.symbol":      "代币符号，最多 10 字节",
-	"token.supply":      "总供应量（正数金额）",
+	"token.supply":      "总供应量（最小单位的整数）",
 	"token.decimals":    "精度，0-127",
 	"token.owner":       "所有者公钥",
 	"token.to":          "接收者公钥",

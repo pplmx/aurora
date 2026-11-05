@@ -34,6 +34,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **The supply flag no longer promises decimals**: `aurora token create --supply` parses with
+  `token.NewAmountFromString`, which takes a whole number of base units, while the flag's help said
+  "positive decimal amount" — a reader who followed the help got a parse error. The English and both
+  Chinese catalogs now state what the parser accepts, and a repo check keeps a later edit from quietly
+  promising decimals again.
+
+### Fixed
+
 - **A refused amount says what it expected**: the parse error is the only feedback a form or CLI flag gets
   when a value cannot be stored, and an amount is a whole number of base units. `"invalid amount"` alone
   left a reader who typed `1.5` or a grouped `1,000` unable to tell which part was wrong — the reader that

@@ -539,7 +539,7 @@ var traditionalMessages = map[string]string{
 	"token.owner_public_key":                    "所有者公鑰",
 	"token.private_key":                         "私鑰（base64）",
 	"token.spender":                             "被授權方公鑰",
-	"token.supply":                              "總供應量（正數金額）",
+	"token.supply":                              "總供應量（最小單位的整數）",
 	"token.symbol":                              "代幣符號，最多 10 字節",
 	"token.to":                                  "接收者公鑰",
 	"token.token_id":                            "代幣 ID/符號",
