@@ -1,6 +1,8 @@
 package token
 
 import (
+	"crypto/ed25519"
+	"crypto/rand"
 	"math"
 	"math/big"
 	"testing"
@@ -426,4 +428,26 @@ func TestNewAmountFromStringSaysWhatItExpects(t *testing.T) {
 	require.ErrorIs(t, err, ErrInvalidAmount)
 	require.Contains(t, err.Error(), "whole number of base units",
 		"an empty value gets the rule, not a quote of nothing")
+}
+
+// TestTheUnauthorizedMessageNamesTheProblem pins the sentence a reader gets when
+// the presented private key is not the one the operation needs. "unauthorized"
+// said the key was rejected but not why, and the wrong-key mistake is the one a
+// reader can fix — the NFT module already words it this way.
+func TestTheUnauthorizedMessageNamesTheProblem(t *testing.T) {
+	require.Contains(t, ErrUnauthorized.Error(), "private key",
+		"the message should say the key is the problem")
+	require.Contains(t, ErrUnauthorized.Error(), "does not match",
+		"and that it is a mismatch rather than a broader refusal")
+	require.NotEqual(t, "unauthorized", ErrUnauthorized.Error(),
+		"the bare word left the reader to guess")
+
+	// The sentinel is what callers match on, so it must keep working. Two freshly
+	// generated pairs never share a public key.
+	_, ownerPriv, err := ed25519.GenerateKey(rand.Reader)
+	require.NoError(t, err)
+	otherPub, _, err := ed25519.GenerateKey(rand.Reader)
+	require.NoError(t, err)
+	require.ErrorIs(t, VerifyPrivateKeyMatches(PublicKey(otherPub), PrivateKey(ownerPriv)),
+		ErrUnauthorized, "callers still match the sentinel, whatever the message says")
 }

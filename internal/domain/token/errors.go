@@ -13,11 +13,17 @@ var (
 	ErrAmountMustBePositive = errors.New("amount must be positive")
 	// ErrNotTokenOwner and ErrDuplicateTransfer are reserved: the guards
 	// that would raise them are not wired to a caller yet.
-	ErrNotTokenOwner     = errors.New("not token owner")
-	ErrZeroOwner         = errors.New("token owner must not be the zero address")
-	ErrTokenNotMintable  = errors.New("token not mintable")
-	ErrTokenNotBurnable  = errors.New("token not burnable")
-	ErrUnauthorized      = errors.New("unauthorized")
+	ErrNotTokenOwner    = errors.New("not token owner")
+	ErrZeroOwner        = errors.New("token owner must not be the zero address")
+	ErrTokenNotMintable = errors.New("token not mintable")
+	ErrTokenNotBurnable = errors.New("token not burnable")
+	// ErrUnauthorized means the presented private key does not belong to the
+	// public key the operation claims. The message says so, the way the NFT
+	// module's ErrKeyMismatch does: "unauthorized" told a reader their key was
+	// rejected but not that it was the wrong key, which is the one thing that
+	// points at the fix. The API code stays UNAUTHORIZED, so clients that branch
+	// on it keep working.
+	ErrUnauthorized      = errors.New("private key does not match the key this operation requires")
 	ErrTransferToZero    = errors.New("cannot transfer to zero address")
 	ErrInvalidAmount     = errors.New("invalid amount")
 	ErrDuplicateTransfer = errors.New("duplicate transfer")

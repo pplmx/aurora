@@ -32,6 +32,14 @@ The milestone notes under `.planning/` are history, not current instructions.
   module. The hue is resolved per frame, because which palette answers depends on the appearance being
   painted; pages and commands keep the accent, since they belong to no module.
 
+### Fixed
+
+- **A rejected private key says it is the wrong key**: `token.ErrUnauthorized` read "unauthorized", which told a
+  reader their key was refused but not that it was the wrong one — the single fact that points at the fix.
+  The NFT module already worded its equivalent `KEY_MISMATCH` this way; the token sentence now matches it,
+  while the API's `UNAUTHORIZED` code is unchanged so clients that branch on it keep working. The Chinese
+  catalogs carry the new sentence, which the domain-error audit requires.
+
 ### Added
 
 - **A source check keeps format verbs translated before they are formatted**: last round's hint was built
