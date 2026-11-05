@@ -690,3 +690,34 @@ func TestEveryDetailReadStopsForAWrite(t *testing.T) {
 	require.Equal(t, before+1, fake.nftHistoryCalls,
 		"and it is read once the write finishes")
 }
+
+// TestADecimalSupplyIsRefusedUnderItsOwnField covers the create form's one
+// numeric field. The name and symbol were already validated with the domain's own
+// sentences; the supply was not, so a decimal travelled to storage and came back
+// as a status line naming no control. It uses the same parser the store does, so
+// the window cannot describe a rule storage does not apply.
+func TestADecimalSupplyIsRefusedUnderItsOwnField(t *testing.T) {
+	app := New(workbenchFakes())
+	app.SetActions(Actions{Version: "0.0.1", SetPageTitle: func(string) {}, SetBadgeCount: func(int) {}})
+	tester := ui.NewTester(app.View, 1280, 2000)
+	app.ShowPage("Token")
+	tester.Frame()
+
+	app.token.name, app.token.symbol = "Gold", "GLD"
+	app.token.supply, app.token.owner = "100.5", "pk"
+	app.createToken()
+	tester.Frame()
+
+	require.NotEmpty(t, app.token.supplyErr)
+	require.Contains(t, app.token.supplyErr, "whole number",
+		"the refusal is the parser's own sentence")
+	require.True(t, tester.HasText("whole number"),
+		"and it is drawn, rather than only living in the state")
+
+	// Fixing the value clears the message and lets the write through.
+	app.token.supply = "100"
+	app.createToken()
+	tester.Frame()
+	require.Empty(t, app.token.supplyErr, "a corrected value clears the refusal")
+	require.False(t, app.token.status.isErr, "and the write proceeds")
+}

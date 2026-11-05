@@ -34,6 +34,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **A decimal supply is refused under its own field**: the create form validated the name and symbol with
+  the domain's sentences, but not the supply — the one create field the store parses as a number — so a
+  decimal travelled to storage and came back as a status line naming no control. The form now runs the
+  same parser the store does, so the sentence appears under the control that needs fixing and the window
+  cannot describe a rule storage does not apply.
+
+### Fixed
+
 - **The API reference describes amounts correctly**: it called them "decimal strings", but
   `token.NewAmountFromString` parses with `big.Int.SetString(s, 10)`, so `"100.5"` and `"1,000"` are
   refused with `INVALID_AMOUNT` — verified against a running server. The paragraph now says amounts are
