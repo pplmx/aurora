@@ -34,6 +34,20 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **MyGo 0.7.4**: the desktop module moves from 0.7.3. The build and the whole suite pass unchanged, and
+  the window renders the same; the new release adds a decimal input, which is worth having for amounts but
+  cannot be adopted yet — see below.
+
+### Note
+
+- A trial switch of the token amount fields to `ui.DecimalInput` was reverted before commit. The widget
+  writes fixed-width decimals (`"1234.50000000"`), and the domain's `NewAmountFromString` parses with
+  `big.Int.SetString(s, 10)`, which accepts integers only: every token write would have failed with
+  "invalid amount". Adopting the widget needs a decimal parser in the token domain first, which is a
+  larger change than a widget swap and belongs in its own commit.
+
+### Changed
+
 - **One answer to "may this window read right now"**: sixteen read paths each wrote `a.busy != ""` for
   themselves, which is why three rounds were spent finding the ones that had been missed — a list read, a
   search-triggered read, four detail buttons. They all ask `readBlocked` now, and a source-level test
