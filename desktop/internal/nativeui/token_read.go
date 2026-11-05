@@ -83,6 +83,13 @@ func (a *App) readTokenBalance() {
 // keeps the rows only when they were loaded for the same token; the caller
 // invalidates them when the subject changes.
 func (a *App) loadTokenInfo(id string) error {
+	// A background write owns the database. The page body is drawn disabled while
+	// one runs, but ui.Disabled is a paint-time state — a programmatic caller, or
+	// a test's click, reaches the handler anyway. A read that landed on the locked
+	// database would record an error for a card that was never really asked.
+	if a.busy != "" {
+		return nil
+	}
 	subjectChanged := a.token.resolvedOwnerID != id
 	info, err := a.services.TokenInfo(id)
 	if err != nil {
@@ -116,6 +123,11 @@ func (a *App) clearTokenInfoForAnotherSubject(id string) {
 // loadTokenBalance reads one account's balance for one token. Both are part of
 // the key: changing either makes the shown number describe something else.
 func (a *App) loadTokenBalance(tokenID, owner string) error {
+	// A background write owns the database; see loadTokenInfo for why the
+	// painted-disabled page body is not enough.
+	if a.busy != "" {
+		return nil
+	}
 	balance, err := a.services.TokenBalance(tokenID, owner)
 	if err != nil {
 		a.token.balanceErr = err
@@ -141,6 +153,11 @@ func (a *App) clearTokenBalanceForAnotherRead(tokenID, owner string) {
 // limit and offset are the key; a failure keeps the rows only when they were
 // produced by that same query.
 func (a *App) loadTokenHistory(tokenID, owner string, limit, offset int) error {
+	// A background write owns the database; see loadTokenInfo for why the
+	// painted-disabled page body is not enough.
+	if a.busy != "" {
+		return nil
+	}
 	rows, err := a.services.TokenHistory(tokenID, owner, limit, offset)
 	if err != nil {
 		a.token.historyErr = err
@@ -245,6 +262,11 @@ func (a *App) loadAllowance() {
 }
 
 func (a *App) loadTokenAllowance(tokenID, owner, spender string) error {
+	// A background write owns the database; see loadTokenInfo for why the
+	// painted-disabled page body is not enough.
+	if a.busy != "" {
+		return nil
+	}
 	amount, err := a.services.TokenAllowance(tokenID, owner, spender)
 	a.token.allowanceLoadedToken = tokenID
 	a.token.allowanceLoadedOwner = owner

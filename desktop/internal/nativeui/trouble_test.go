@@ -639,3 +639,29 @@ func TestEveryListReaderStopsForAWrite(t *testing.T) {
 		})
 	}
 }
+
+// TestTheTokenReadCardsStopForAWrite covers the reads behind the buttons. The
+// page body is drawn disabled while a write runs, but ui.Disabled is a paint-time
+// state — a programmatic caller, or a test's click, reaches the handler anyway.
+// A read that landed on the locked database recorded an error for a card that was
+// never really asked.
+func TestTheTokenReadCardsStopForAWrite(t *testing.T) {
+	fake := workbenchFakes()
+	app := New(fake)
+	app.SetActions(Actions{Version: "0.0.1", SetPageTitle: func(string) {}, SetBadgeCount: func(int) {}})
+	tester := ui.NewTester(app.View, 1280, 2000)
+	app.ShowPage("Token")
+	tester.Frame()
+
+	app.busy = "Creating…"
+	app.token.tokenID = "GLD"
+	before := fake.tokenInfoCalls
+	app.readTokenInfo()
+	require.Equal(t, before, fake.tokenInfoCalls,
+		"the info card must not query storage while a write owns it")
+
+	app.busy = ""
+	app.readTokenInfo()
+	require.Equal(t, before+1, fake.tokenInfoCalls,
+		"and it does read once the write finishes")
+}

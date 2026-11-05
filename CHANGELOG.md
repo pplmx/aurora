@@ -34,6 +34,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **The token read cards stop for a background write**: the page body is drawn disabled while a write runs,
+  but `ui.Disabled` is a paint-time state — a programmatic caller, or a test's click, reaches the handler
+  anyway, and the read landed on the locked database to record an error for a card nobody had asked for.
+  The four readers (info, balance, allowance, history) now check the write themselves.
+
+### Fixed
+
 - **Every list reader stops for a background write**: last round's fix covered the token loader; a probe
   over the rest found the same bypass in four more — the NFT page, the oracle sources and all three
   voting lists. Each page's search field reads on its own when a term changes, and every one of those
