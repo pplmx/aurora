@@ -34,6 +34,14 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **Every voting field is refused under its own field**: the candidate name and session title already used
+  the domain's validators; the voter name, party and program did not, so an over-long value travelled to
+  storage and came back as a sentence naming no control. All three now run the domain's own check and draw
+  its own wording under the control. The voter name's hand-written sentence is gone, and with it the two
+  catalog entries nothing produced any more.
+
+### Fixed
+
 - **An over-long mint field is refused under its own field**: the NFT form's four bounded fields (name,
   description, image URL, token URI) used to reach storage, which refused them in a status line naming no
   control. Each is now checked against the domain's own length constant and reports the domain's own

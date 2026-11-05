@@ -102,8 +102,13 @@ type votingState struct {
 	rosterErr       error
 
 	voterNameErr string
-	candNameErr  string
-	loadErr      error
+	// candPartyErr and candProgramErr hold the domain's refusal for the two
+	// optional candidate fields it bounds. The form already states the limits in a
+	// hint; these put the sentence on the control that needs shortening.
+	candPartyErr   string
+	candProgramErr string
+	candNameErr    string
+	loadErr        error
 	// loaded records that a read completed, so an unread page is not mistaken for
 	// an empty store. Any of the three lists counts: each is a read of the store.
 	loaded bool

@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/pplmx/aurora/internal/domain/nft"
+	"github.com/pplmx/aurora/internal/domain/voting"
 	"testing"
 	"time"
 
@@ -781,4 +782,41 @@ func TestAnOverLongMintFieldIsRefusedUnderItsOwnField(t *testing.T) {
 	app.mintNFT()
 	tester.Frame()
 	require.Empty(t, app.nft.mintErrs, "a name at the limit is accepted")
+}
+
+// TestEveryVotingFieldIsRefusedUnderItsOwnField completes the field-level rule for
+// the voting page. The candidate name and session title already used the domain's
+// validators; the voter name, party and program did not, so an over-long value
+// travelled to storage and came back as a sentence naming no control.
+func TestEveryVotingFieldIsRefusedUnderItsOwnField(t *testing.T) {
+	app := New(workbenchFakes())
+	app.SetActions(Actions{Version: "0.0.1", SetPageTitle: func(string) {}, SetBadgeCount: func(int) {}})
+	tester := ui.NewTester(app.View, 1400, 2500)
+	app.ShowPage("Voting")
+	tester.Frame()
+
+	app.voting.voterName = strings.Repeat("v", voting.MaxVoterNameLength+1)
+	app.registerVoter()
+	require.Equal(t, voting.ErrVoterNameTooLong.Error(), app.voting.voterNameErr,
+		"the voter name uses the domain's own sentence")
+
+	app.voting.voterName = strings.Repeat("v", voting.MaxVoterNameLength)
+	app.voting.voterNameErr = ""
+	app.registerVoter()
+	require.Empty(t, app.voting.voterNameErr,
+		"a name at the limit is accepted; the bound is inclusive")
+
+	app.voting.candName = "Alice"
+	app.voting.candParty = strings.Repeat("p", voting.MaxCandidatePartyLength+1)
+	app.registerCandidate()
+	require.Equal(t, voting.ErrCandidatePartyTooLong.Error(), app.voting.candPartyErr)
+
+	app.voting.candParty = ""
+	app.voting.candProgram = strings.Repeat("g", voting.MaxCandidateProgramLength+1)
+	app.registerCandidate()
+	require.Equal(t, voting.ErrCandidateProgramTooLong.Error(), app.voting.candProgramErr,
+		"the program has its own field, not the party's")
+	tester.Frame()
+	require.True(t, tester.HasText(voting.ErrCandidateProgramTooLong.Error()),
+		"and it is drawn")
 }

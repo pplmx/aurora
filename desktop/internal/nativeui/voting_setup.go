@@ -124,7 +124,8 @@ func (a *App) votingRegister(c *ui.Context) {
 
 func (a *App) votingRegisterCandidateBody(c *ui.Context) {
 	validatedField(c, "Candidate Name", &a.voting.candName, &a.voting.candNameErr)
-	fieldPair(c, "Party (optional)", &a.voting.candParty, "Program (optional)", &a.voting.candProgram)
+	fieldPairError(c, "Party (optional)", &a.voting.candParty, &a.voting.candPartyErr,
+		"Program (optional)", &a.voting.candProgram, &a.voting.candProgramErr)
 	// The store bounds all three fields, and the refusal names no number. The
 	// limits come from the domain constants the store enforces, so this sentence
 	// cannot describe a different rule than the one applied.
@@ -160,8 +161,17 @@ func (a *App) registerCandidate() {
 	// the length here turns the same rule into a message on the field it applies
 	// to, so the operator can fix it without matching a sentence in the status
 	// line back to one of three controls.
+	a.voting.candPartyErr, a.voting.candProgramErr = "", ""
 	if err := voting.ValidateCandidateName(name); err != nil {
 		a.voting.candNameErr = err.Error()
+		return
+	}
+	if err := voting.ValidateCandidateParty(party); err != nil {
+		a.voting.candPartyErr = err.Error()
+		return
+	}
+	if err := voting.ValidateCandidateProgram(program); err != nil {
+		a.voting.candProgramErr = err.Error()
 		return
 	}
 	a.runWrite("Registering candidate…", func() func() {
@@ -208,8 +218,11 @@ func (a *App) registerVoter() {
 	a.voting.voterNameErr = ""
 	a.voting.status = statusLine{}
 	name := strings.TrimSpace(a.voting.voterName)
-	if name == "" {
-		a.voting.voterNameErr = "Voter name is required."
+	// The store bounds the name and its refusal names no number. The domain's own
+	// validator gives the same answer here, in the same words, for both the empty
+	// and the over-long case.
+	if err := voting.ValidateVoterName(name); err != nil {
+		a.voting.voterNameErr = err.Error()
 		return
 	}
 	a.runWrite("Registering voter…", func() func() {

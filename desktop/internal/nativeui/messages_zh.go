@@ -199,9 +199,8 @@ var desktopMessages = map[string]string{
 	// Voting.
 	"Register Voter": "注册选民",
 	"Returns the key pair the voter signs ballots with; keep the private half.": "返回选民签署选票用的密钥对；请保存私钥。",
-	"Voter Name":              "选民姓名",
-	"Voter name is required.": "选民姓名不能为空。",
-	"Register Candidate":      "注册候选人",
+	"Voter Name":         "选民姓名",
+	"Register Candidate": "注册候选人",
 	"Only the name is required; party and program are shown on the ballot when present.": "只有姓名必填；党派和纲领如有会显示在选票上。",
 	"Candidate Name":              "候选人姓名",
 	"Candidate name is required.": "候选人姓名不能为空。",

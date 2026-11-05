@@ -634,7 +634,6 @@ var desktopMessagesHant = map[string]string{
 	"Voter Name":                  "選民姓名",
 	"Voter Private Key":           "選民私鑰",
 	"Voter Public Key":            "選民公鑰",
-	"Voter name is required.":     "選民姓名不能為空。",
 	"Voter public key and private key are required.": "選民公鑰和私鑰均為必填項。",
 	"Voters": "選民",
 	"Votes":  "票數",
