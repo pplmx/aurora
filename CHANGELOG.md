@@ -6501,6 +6501,22 @@ The milestone notes under `.planning/` are history, not current instructions.
   The Docker builder keeps `golang:1.27-alpine`, which tracks the major.minor
   and picks up the patch from the registry.
 
+### Changed
+
+- **The README is restructured, and its coverage table re-measured**: the file
+  opens on the title, tagline and badge row (including the Awesome MyGo listing),
+  then a table of contents, then the three entry points, install, quick start and
+  one section per surface. The reference material that used to be scattered
+  through prose — the per-platform artifact names, the full recipe list, the tech
+  stack — is now in tables, so a reader scans instead of reading. The coverage
+  table was re-measured rather than carried over, and six of its twelve numbers
+  had drifted: NFT domain 87.5 → 80.6, Oracle domain 92.3 → 84.8, Token domain
+  91.7 → 91.1, Lottery app 87.4 → 89.3, SQLite 81.5 → 80.8 and the composition
+  root 87.9 → 87.1. Every row still clears the 80% floor the recipes enforce,
+  which is what `TestReadmeCoverageTableNamesEveryModule` checks. The drift is
+  the argument for that check existing: a number in a README is a claim about the
+  tree, and nothing but re-running the suite keeps it true.
+
 ## [v1.99] - 2026-10-21
 
 ### Added
