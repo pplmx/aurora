@@ -187,11 +187,11 @@ desktop-coverage-floor:
 
 # The timeout is load-bearing, not decoration. This package rasterizes hundreds
 # of full windows through MyGo's software renderer, and `-race` instruments that
-# work, so the suite needs about 12 minutes against Go's 10-minute default.
-# At the default it fails as "panic: test timed out" naming whichever test was
-# running, which reads as a deadlock and sent two investigations after a hang
-# that was not there. Measured: 602s locally at GOMAXPROCS=2, and the same
-# failure on CI before this change.
+# work, so the suite needs far more than Go's 10-minute default: measured 1160s
+# (19 minutes) at GOMAXPROCS=2, a two-core box like a CI runner. At the default
+# it fails as "panic: test timed out" naming whichever test was running, which
+# reads as a deadlock and sent two investigations after a hang that was not
+# there. 40m leaves room for a slower runner without hiding a real hang forever.
 
 # Run the desktop tests under the race detector
 desktop-race:
