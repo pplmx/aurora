@@ -755,8 +755,11 @@ func TestBackgroundWriteShowsBusyThenApplies(t *testing.T) {
 	require.True(t, app.asyncCh != nil)
 
 	close(release)
-	tester.Advance(60 * time.Millisecond)
-	tester.Frame()
+	require.Eventually(t, func() bool {
+		tester.Frame()
+		return app.busy == ""
+	}, time.Second, 10*time.Millisecond,
+		"the settled write must clear the busy banner")
 	require.False(t, tester.HasText("Minting…"))
 	require.Equal(t, "done", app.token.status.text)
 }
@@ -921,9 +924,11 @@ func TestBusyWriteDisablesTheFrame(t *testing.T) {
 	tester.Frame()
 	require.Equal(t, pageDashboard, app.page, "the dashboard must not navigate while a write owns the window")
 	close(release)
-	tester.Advance(60 * time.Millisecond)
-	tester.Frame()
-	require.Equal(t, "", app.busy)
+	require.Eventually(t, func() bool {
+		tester.Frame()
+		return app.busy == ""
+	}, time.Second, 10*time.Millisecond,
+		"the settled write must clear the busy banner")
 }
 
 // TestAllSetIsTheFormReadinessContract keeps the disabled-action helper

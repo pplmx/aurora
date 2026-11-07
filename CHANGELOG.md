@@ -6458,6 +6458,18 @@ The milestone notes under `.planning/` are history, not current instructions.
   rejects duplicate version files and missing down files instead of silently
   choosing one or skipping a rollback.
 
+### Fixed
+
+- **The two busy-write tests no longer race the poll**: both painted a frame after
+  releasing the worker and asserted the busy banner was gone, which holds only if
+  the frame that polls `asyncCh` happens to run after the worker has written its
+  apply closure. Measured as it stood: `TestBusyWriteDisablesTheFrame` failed 7
+  runs in 30 and `TestBackgroundWriteShowsBusyThenApplies` 14 in 30, with the
+  failure following the machine's scheduling rather than the assertions. Both now
+  wait on the condition with `require.Eventually`, the pattern this package
+  already uses for `TestBackgroundBurnReturnsFocusAfterCompletion`, and 30
+  consecutive runs of the pair pass.
+
 ## [v1.99] - 2026-10-21
 
 ### Added
