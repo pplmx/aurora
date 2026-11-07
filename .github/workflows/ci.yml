@@ -151,10 +151,18 @@ jobs:
 
       # Keep the stronger race gate explicit: the detector itself needs cgo,
       # even though the desktop production build no longer does.
+      #
+      # The timeout is deliberately raised. This package rasterizes hundreds of
+      # full windows through MyGo's software renderer, and `-race` instruments
+      # that work, so the suite needs about 12 minutes on a runner against Go's
+      # 10-minute default. At the default it fails as "panic: test timed out"
+      # naming whichever test happened to be running, which reads as a deadlock
+      # and sent two investigations after a hang that was not there. Measured:
+      # 602s locally at GOMAXPROCS=2, the same failure CI hit.
       - name: Test (race)
         env:
           CGO_ENABLED: '1'
-        run: go test -race -count=1 ./...
+        run: go test -race -count=1 -timeout 40m ./...
         working-directory: desktop
 
       # `just desktop-coverage-floor` runs the same check locally. The views are

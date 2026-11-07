@@ -67,10 +67,12 @@ func TestCIWiresTheDesktopModule(t *testing.T) {
 	// the same behaviour.
 	assert.Contains(t, workflow, "test -f coverage-desktop.out ||",
 		"the coverage step must reuse the profile the test step wrote")
+	// The timeout travels with the command: at Go's 10-minute default this
+	// suite fails as "panic: test timed out", naming a different test each run.
 	require.Contains(t, workflow, "      - name: Test (race)\n"+
 		"        env:\n"+
 		"          CGO_ENABLED: '1'\n"+
-		"        run: go test -race -count=1 ./...\n"+
+		"        run: go test -race -count=1 -timeout 40m ./...\n"+
 		"        working-directory: desktop",
 		"the race detector must be a separate, explicit cgo gate")
 
@@ -85,8 +87,11 @@ func TestCIWiresTheDesktopModule(t *testing.T) {
 	}
 	require.Contains(t, local, "cd desktop && CGO_ENABLED=0 go test -count=1 ./...",
 		"`just desktop-check` must run the cgo-free tests")
-	require.Contains(t, local, "desktop-race:\n    cd desktop && CGO_ENABLED=1 go test -race -count=1 ./...",
-		"the cgo race gate must remain available as an explicit command")
+	// The timeout is part of the contract, not decoration: this suite needs
+	// about 12 minutes under `-race` and Go's 10-minute default turned a slow
+	// gate into "panic: test timed out" on a different test each run.
+	require.Contains(t, local, "desktop-race:\n    cd desktop && CGO_ENABLED=1 go test -race -count=1 -timeout 40m ./...",
+		"the cgo race gate must remain available as an explicit command, with a timeout that fits the suite")
 }
 
 // TestRootGateCoversTheNestedModule pins the reason the job exists, so the
@@ -592,7 +597,7 @@ func TestReleaseAttestsPublishedArtifacts(t *testing.T) {
 	readme := string(readmeSrc)
 	require.Contains(t, readme,
 		"gh attestation verify <artifact> --repo pplmx/aurora")
-	require.Contains(t, readme, "不能替代 macOS/Windows 的操作系统级签名")
+	require.Contains(t, readme, "不能替代操作系统级签名")
 
 	guide := desktopGuide(t)
 	require.Contains(t, guide, "## 发布来源证明")

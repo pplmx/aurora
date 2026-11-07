@@ -185,9 +185,17 @@ desktop-coverage-floor:
 # Go. Keep it as an explicit opt-in so `desktop-check` remains usable in a
 # sandbox with no C compiler while CI still runs the stronger gate.
 
+# The timeout is load-bearing, not decoration. This package rasterizes hundreds
+# of full windows through MyGo's software renderer, and `-race` instruments that
+# work, so the suite needs about 12 minutes against Go's 10-minute default.
+# At the default it fails as "panic: test timed out" naming whichever test was
+# running, which reads as a deadlock and sent two investigations after a hang
+# that was not there. Measured: 602s locally at GOMAXPROCS=2, and the same
+# failure on CI before this change.
+
 # Run the desktop tests under the race detector
 desktop-race:
-    cd desktop && CGO_ENABLED=1 go test -race -count=1 ./...
+    cd desktop && CGO_ENABLED=1 go test -race -count=1 -timeout 40m ./...
 
 # The capture scratch tests (zz_*_test.go, excluded from git) render and PNG-encode
 # a dozen full windows, which the detector turns into a near-hang while it times the
