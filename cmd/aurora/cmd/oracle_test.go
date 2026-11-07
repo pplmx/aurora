@@ -353,31 +353,33 @@ func extractSourceIDs(t *testing.T, out string) []string {
 // TestOracleTemplateAdd_JSON: creating a source from a template returns the
 // source document, so a script gets the new id without scraping the message.
 func TestOracleTemplateAdd_JSON(t *testing.T) {
-	resetCliForTest()
-	skipWhenTemplateHostIsBlocked(t)
+	withTempDir(t, func(t *testing.T) {
+		skipWhenTemplateHostIsBlocked(t)
 
-	out, err := runCmd(t, "oracle", "template", "add", "--template", "eth-price", "--json")
-	require.NoError(t, err)
-	var source struct {
-		ID   string `json:"id"`
-		Name string `json:"name"`
-		URL  string `json:"url"`
-	}
-	require.NoError(t, json.Unmarshal([]byte(out), &source), "got %q", out)
-	assert.NotEmpty(t, source.ID)
-	assert.Equal(t, "Ethereum Price", source.Name)
-	assert.Contains(t, source.URL, "ethereum")
+		out, err := runCmd(t, "oracle", "template", "add", "--template", "eth-price", "--json")
+		require.NoError(t, err)
+		var source struct {
+			ID   string `json:"id"`
+			Name string `json:"name"`
+			URL  string `json:"url"`
+		}
+		require.NoError(t, json.Unmarshal([]byte(out), &source), "got %q", out)
+		assert.NotEmpty(t, source.ID)
+		assert.Equal(t, "Ethereum Price", source.Name)
+		assert.Contains(t, source.URL, "ethereum")
+	})
 }
 
 func TestOracleTemplateAdd_SecondTemplate(t *testing.T) {
-	resetCliForTest()
-	skipWhenTemplateHostIsBlocked(t)
+	withTempDir(t, func(t *testing.T) {
+		skipWhenTemplateHostIsBlocked(t)
 
-	// Interval & type defaulting are exercised in the usecase layer; here we
-	// just ensure the CLI accepts the other built-in template.
-	out, err := runCmd(t, "oracle", "template", "add", "--template", "eth-price")
-	require.NoError(t, err)
-	assert.Contains(t, out, "Ethereum Price")
+		// Interval & type defaulting are exercised in the usecase layer; here
+		// we just ensure the CLI accepts the other built-in template.
+		out, err := runCmd(t, "oracle", "template", "add", "--template", "eth-price")
+		require.NoError(t, err)
+		assert.Contains(t, out, "Ethereum Price")
+	})
 }
 
 // TestOracleSourceList_SearchSpansTheStore pins the term and the fourth answer.
