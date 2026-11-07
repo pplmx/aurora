@@ -44,78 +44,78 @@ func runCmd(t *testing.T, args ...string) (string, error) {
 }
 
 func TestOracleSourceAdd_List_Delete(t *testing.T) {
-	resetCliForTest()
+	withTempDir(t, func(t *testing.T) {
+		out, err := runCmd(t, "oracle", "source", "add", "--name", "btc", "--url", "https://api.example.com/price")
+		require.NoError(t, err, "source add should succeed")
+		assert.Contains(t, out, "Data source created")
+		assert.Contains(t, out, "btc")
 
-	out, err := runCmd(t, "oracle", "source", "add", "--name", "btc", "--url", "https://api.example.com/price")
-	require.NoError(t, err, "source add should succeed")
-	assert.Contains(t, out, "Data source created")
-	assert.Contains(t, out, "btc")
+		// second source, different name
+		out, err = runCmd(t, "oracle", "source", "add", "--name", "eth", "--url", "https://api.example.com/eth")
+		require.NoError(t, err)
+		assert.Contains(t, out, "eth")
 
-	// second source, different name
-	out, err = runCmd(t, "oracle", "source", "add", "--name", "eth", "--url", "https://api.example.com/eth")
-	require.NoError(t, err)
-	assert.Contains(t, out, "eth")
+		// list shows both; a source without a path omits the field instead of
+		// printing "Path: " with nothing after it.
+		out, err = runCmd(t, "oracle", "source", "list")
+		require.NoError(t, err)
+		assert.Contains(t, out, "btc")
+		assert.Contains(t, out, "eth")
+		assert.NotContains(t, out, "Path:", "a source without a path must not print the label")
 
-	// list shows both; a source without a path omits the field instead of
-	// printing "Path: " with nothing after it.
-	out, err = runCmd(t, "oracle", "source", "list")
-	require.NoError(t, err)
-	assert.Contains(t, out, "btc")
-	assert.Contains(t, out, "eth")
-	assert.NotContains(t, out, "Path:", "a source without a path must not print the label")
+		// delete one, list again
+		list, _ := runCmd(t, "oracle", "source", "list")
+		ids := extractSourceIDs(t, list)
+		require.GreaterOrEqual(t, len(ids), 2, "expected at least 2 sources listed")
 
-	// delete one, list again
-	list, _ := runCmd(t, "oracle", "source", "list")
-	ids := extractSourceIDs(t, list)
-	require.GreaterOrEqual(t, len(ids), 2, "expected at least 2 sources listed")
+		out, err = runCmd(t, "oracle", "source", "delete", "--id", ids[0], "--confirm")
+		require.NoError(t, err)
+		assert.Contains(t, out, "deleted")
 
-	out, err = runCmd(t, "oracle", "source", "delete", "--id", ids[0], "--confirm")
-	require.NoError(t, err)
-	assert.Contains(t, out, "deleted")
+		out, err = runCmd(t, "oracle", "source", "list")
+		require.NoError(t, err)
+		assert.NotContains(t, out, ids[0])
+		assert.Contains(t, out, ids[1])
 
-	out, err = runCmd(t, "oracle", "source", "list")
-	require.NoError(t, err)
-	assert.NotContains(t, out, ids[0])
-	assert.Contains(t, out, ids[1])
+		// delete a non-existent id now fails loudly: DeleteSource reports not-found
+		// (mirroring enable/disable and the REST 404) instead of a silent success
+		// that lied about the delete (TASK-233, ISS-231).
+		_, err = runCmd(t, "oracle", "source", "delete", "--id", "no-such-id", "--confirm")
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "source not found")
 
-	// delete a non-existent id now fails loudly: DeleteSource reports not-found
-	// (mirroring enable/disable and the REST 404) instead of a silent success
-	// that lied about the delete (TASK-233, ISS-231).
-	_, err = runCmd(t, "oracle", "source", "delete", "--id", "no-such-id", "--confirm")
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "source not found")
-
-	// Without --confirm the delete is refused (non-zero exit).
-	_, err = runCmd(t, "oracle", "source", "delete", "--id", "no-such-id")
-	require.Error(t, err, "source delete without --confirm must be refused")
-	assert.Contains(t, err.Error(), "--confirm")
+		// Without --confirm the delete is refused (non-zero exit).
+		_, err = runCmd(t, "oracle", "source", "delete", "--id", "no-such-id")
+		require.Error(t, err, "source delete without --confirm must be refused")
+		assert.Contains(t, err.Error(), "--confirm")
+	})
 }
 
 func TestOracleSourceEnable_Disable(t *testing.T) {
-	resetCliForTest()
+	withTempDir(t, func(t *testing.T) {
+		out, err := runCmd(t, "oracle", "source", "add", "--name", "gas", "--url", "https://api.example.com/gas")
+		require.NoError(t, err)
+		id := extractSourceIDs(t, out)
+		require.Len(t, id, 1, "source add should print the new id")
 
-	out, err := runCmd(t, "oracle", "source", "add", "--name", "gas", "--url", "https://api.example.com/gas")
-	require.NoError(t, err)
-	id := extractSourceIDs(t, out)
-	require.Len(t, id, 1, "source add should print the new id")
+		_, err = runCmd(t, "oracle", "source", "disable", "--id", id[0])
+		require.NoError(t, err)
 
-	_, err = runCmd(t, "oracle", "source", "disable", "--id", id[0])
-	require.NoError(t, err)
+		// disabled source fetch -> ErrSourceDisabled (pre-network)
+		_, err = runCmd(t, "oracle", "fetch", "--id", id[0])
+		require.Error(t, err)
+		assert.Contains(t, strings.ToLower(err.Error()), "disabled")
 
-	// disabled source fetch -> ErrSourceDisabled (pre-network)
-	_, err = runCmd(t, "oracle", "fetch", "--id", id[0])
-	require.Error(t, err)
-	assert.Contains(t, strings.ToLower(err.Error()), "disabled")
+		_, err = runCmd(t, "oracle", "source", "enable", "--id", id[0])
+		require.NoError(t, err)
 
-	_, err = runCmd(t, "oracle", "source", "enable", "--id", id[0])
-	require.NoError(t, err)
-
-	// benign: fetch now attempts a real HTTP call via http.NewFetcher; the
-	// URL is unreachable so it errors after a network attempt. We only assert
-	// an error path here and cover the enable/disable happy path above.
-	out, err = runCmd(t, "oracle", "source", "list")
-	require.NoError(t, err)
-	assert.Contains(t, out, "enabled")
+		// benign: fetch now attempts a real HTTP call via http.NewFetcher; the
+		// URL is unreachable so it errors after a network attempt. We only assert
+		// an error path here and cover the enable/disable happy path above.
+		out, err = runCmd(t, "oracle", "source", "list")
+		require.NoError(t, err)
+		assert.Contains(t, out, "enabled")
+	})
 }
 
 func TestOracleSourceList_Pages(t *testing.T) {
@@ -223,13 +223,13 @@ func TestOracleSourceAdd_RejectsInvalidHTTPConfig(t *testing.T) {
 }
 
 func TestOracleFetch_SourceNotFound(t *testing.T) {
-	resetCliForTest()
-
-	// No sources at all: fetch of unknown id returns ErrSourceNotFound
-	// before any network call.
-	_, err := runCmd(t, "oracle", "fetch", "--id", "missing")
-	require.Error(t, err)
-	assert.Contains(t, strings.ToLower(err.Error()), "source not found")
+	withTempDir(t, func(t *testing.T) {
+		// No sources at all: fetch of unknown id returns ErrSourceNotFound
+		// before any network call.
+		_, err := runCmd(t, "oracle", "fetch", "--id", "missing")
+		require.Error(t, err)
+		assert.Contains(t, strings.ToLower(err.Error()), "source not found")
+	})
 }
 
 // TestOracleLatest_NamesTheEmptyAnswer: a source with no readings is not an
@@ -255,19 +255,19 @@ func TestOracleLatest_NamesTheEmptyAnswer(t *testing.T) {
 }
 
 func TestOracleData_Latest(t *testing.T) {
-	resetCliForTest()
+	withTempDir(t, func(t *testing.T) {
+		// Unknown sources are rejected consistently across `data` and `latest`
+		// (ISS-130). Historically `data` silently returned "(none)" for an unknown
+		// source while `latest` surfaced an unclassified error; both now surface
+		// the ~source not found~ sentinel (404 on the REST surface).
+		_, err := runCmd(t, "oracle", "data", "--id", "missing", "--limit", "5")
+		require.Error(t, err)
+		assert.Contains(t, strings.ToLower(err.Error()), "source not found")
 
-	// Unknown sources are rejected consistently across `data` and `latest`
-	// (ISS-130). Historically `data` silently returned "(none)" for an unknown
-	// source while `latest` surfaced an unclassified error; both now surface
-	// the ~source not found~ sentinel (404 on the REST surface).
-	_, err := runCmd(t, "oracle", "data", "--id", "missing", "--limit", "5")
-	require.Error(t, err)
-	assert.Contains(t, strings.ToLower(err.Error()), "source not found")
-
-	_, err = runCmd(t, "oracle", "latest", "--id", "missing")
-	require.Error(t, err)
-	assert.Contains(t, strings.ToLower(err.Error()), "source not found")
+		_, err = runCmd(t, "oracle", "latest", "--id", "missing")
+		require.Error(t, err)
+		assert.Contains(t, strings.ToLower(err.Error()), "source not found")
+	})
 }
 
 // templateAddHostBlocked reports whether this environment resolves the template
@@ -298,38 +298,38 @@ func skipWhenTemplateHostIsBlocked(t *testing.T) {
 }
 
 func TestOracleTemplateList_Add(t *testing.T) {
-	resetCliForTest()
+	withTempDir(t, func(t *testing.T) {
+		out, err := runCmd(t, "oracle", "template", "list")
+		require.NoError(t, err)
+		assert.Contains(t, out, "btc-price")
+		assert.Contains(t, out, "eth-price")
 
-	out, err := runCmd(t, "oracle", "template", "list")
-	require.NoError(t, err)
-	assert.Contains(t, out, "btc-price")
-	assert.Contains(t, out, "eth-price")
+		out, err = runCmd(t, "oracle", "template", "list", "--json")
+		require.NoError(t, err)
+		var templates []struct {
+			ID string `json:"id"`
+		}
+		require.NoError(t, json.Unmarshal([]byte(out), &templates), "got %q", out)
+		ids := make([]string, 0, len(templates))
+		for _, template := range templates {
+			ids = append(ids, template.ID)
+		}
+		assert.Contains(t, ids, "btc-price")
+		assert.Contains(t, ids, "eth-price")
 
-	out, err = runCmd(t, "oracle", "template", "list", "--json")
-	require.NoError(t, err)
-	var templates []struct {
-		ID string `json:"id"`
-	}
-	require.NoError(t, json.Unmarshal([]byte(out), &templates), "got %q", out)
-	ids := make([]string, 0, len(templates))
-	for _, template := range templates {
-		ids = append(ids, template.ID)
-	}
-	assert.Contains(t, ids, "btc-price")
-	assert.Contains(t, ids, "eth-price")
+		// unknown template -> clean error, before any URL is validated
+		_, err = runCmd(t, "oracle", "template", "add", "--template", "no-such-template")
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "template not found")
 
-	// unknown template -> clean error, before any URL is validated
-	_, err = runCmd(t, "oracle", "template", "add", "--template", "no-such-template")
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "template not found")
-
-	// template add for a known template -> source created. The skip only
-	// applies to this last step: the list and unknown-template assertions above
-	// have already run.
-	skipWhenTemplateHostIsBlocked(t)
-	out, err = runCmd(t, "oracle", "template", "add", "--template", "btc-price")
-	require.NoError(t, err)
-	assert.Contains(t, out, "Bitcoin Price")
+		// template add for a known template -> source created. The skip only
+		// applies to this last step: the list and unknown-template assertions above
+		// have already run.
+		skipWhenTemplateHostIsBlocked(t)
+		out, err = runCmd(t, "oracle", "template", "add", "--template", "btc-price")
+		require.NoError(t, err)
+		assert.Contains(t, out, "Bitcoin Price")
+	})
 }
 
 // extractSourceIDs pulls every "ID: <uuid>" line out of command output.
