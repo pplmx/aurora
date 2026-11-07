@@ -4,8 +4,9 @@ import (
 	"encoding/json"
 	"strings"
 
-	"github.com/pplmx/aurora/internal/domain/voting"
 	"testing"
+
+	"github.com/pplmx/aurora/internal/domain/voting"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
