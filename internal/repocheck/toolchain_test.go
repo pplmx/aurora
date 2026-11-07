@@ -66,7 +66,7 @@ func TestGoModVersionIsPinnedEverywhere(t *testing.T) {
 	require.NotNil(t, m, "go.mod must declare a pinned go directive")
 	goVersion := m[1]
 	majorMinor := strings.Join(strings.Split(goVersion, ".")[:2], ".")
-	assert.Equal(t, "1.27.2", goVersion,
+	assert.Equal(t, "1.27.3", goVersion,
 		"this assertion pins the release toolchain; update it together with go.mod")
 
 	for _, name := range []string{"ci.yml", "build.yml", "release.yml"} {

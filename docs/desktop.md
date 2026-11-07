@@ -973,11 +973,14 @@ Developer ID、公证或 Authenticode，也不会让未签名包变成可发布�
 
 - **为什么是嵌套模块**：MyGo 依赖在 `desktop/go.mod` 中声明，嵌套模块让
   `go build ./...` / `go test ./...`（根模块）不被桌面壳的工具链牵连。
-  两个模块都要求 Go 1.27，但补丁号各随自己的依赖走：根 `go.mod` 是
-  `go 1.27.2`，`desktop/go.mod` 是 `go 1.27.3`（MyGo 0.8.3 的 `go` 指令即为
-  1.27.3，`go get` 会把它抬到依赖的下限）。CI 的根模块任务用固定
-  `GO_VERSION`，桌面任务用 `go-version-file: desktop/go.mod`，两者不会互相
-  拉平。注意 `golangci-lint` 必须与其内置的 Go 版本一致：旧版本
+  两个模块都要求 Go 1.27，但补丁号各随自己的依赖走：根 `go.mod` 与
+  `desktop/go.mod` 现在都是 `go 1.27.3`（根模块原本是 1.27.2，升到 1.27.3
+  是为了拿到该补丁版对 `crypto/x509` 的安全修复；桌面模块早先已被 MyGo 的
+  `go` 指令抬到这个下限）。两边补丁号相同只是当下的事实，不是契约：`go get`
+  会把模块抬到其依赖的下限，所以下次依赖上涨时仍应先看两个文件而不是假设它们
+  一致。CI 的根模块任务用固定 `GO_VERSION`，桌面任务用
+  `go-version-file: desktop/go.mod`，两者不会互相拉平。注意
+  `golangci-lint` 必须与其内置的 Go 版本一致：旧版本
   二进制读不了新 Go 标准库的 export data 会直接 panic。
 - **纯 Go**：核心用 `modernc.org/sqlite`，桌面壳和 CLI 都可以在
   `CGO_ENABLED=0` 下构建与交叉编译，不再需要本机 C 工具链或 Zig。

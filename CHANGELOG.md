@@ -6486,6 +6486,21 @@ The milestone notes under `.planning/` are history, not current instructions.
   The one assertion that pins a driver version — `TestSQLiteStorageStaysPureGo` —
   moved with it, so a later upgrade cannot leave it claiming the old release.
 
+### Changed
+
+- **The root module builds on Go 1.27.3, the patched release**: 1.27.3 carries
+  the `crypto/x509` security fix of its line, which is the package that decides
+  whether an oracle's HTTPS source is who it claims to be, so the release
+  toolchain moves with it. `go.mod`'s directive, the pinned `GO_VERSION` in
+  `ci.yml`, `build.yml` and `release.yml`, and the assertion in
+  `TestGoModVersionIsPinnedEverywhere` all move together — that check exists
+  because they drifted apart once and the Docker build failed for a reason
+  nobody could reproduce locally. The two modules now declare the same patch
+  version, which the docs record as the current state rather than a rule: the
+  desktop module's floor still comes from MyGo's own `go` directive.
+  The Docker builder keeps `golang:1.27-alpine`, which tracks the major.minor
+  and picks up the patch from the registry.
+
 ## [v1.99] - 2026-10-21
 
 ### Added

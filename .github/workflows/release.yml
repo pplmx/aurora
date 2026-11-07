@@ -19,7 +19,7 @@ permissions:
   contents: write
 
 env:
-  GO_VERSION: '1.27.2'
+  GO_VERSION: '1.27.3'
 
 # Publishing replaces release files one by one. Serialize every path that can
 # target the same tag (tag push and manual retries) so one complete asset set
