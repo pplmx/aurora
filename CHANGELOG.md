@@ -6470,6 +6470,22 @@ The milestone notes under `.planning/` are history, not current instructions.
   already uses for `TestBackgroundBurnReturnsFocusAfterCompletion`, and 30
   consecutive runs of the pair pass.
 
+### Changed
+
+- **The dependency graph is refreshed, MyGo included**: the desktop module moves
+  from MyGo 0.7.4 to 0.8.3 and its own transitive pins follow it (purego 0.11.3,
+  `golang.org/x/image` 0.47.0, `x/net` 0.62.0), while both modules move to
+  `modernc.org/sqlite` 1.62.0 with `modernc.org/libc` 1.80.1, `spf13/pflag` 1.1.0
+  and `go.yaml.in/yaml/v3` 3.0.6. Every gate ran on the new set: root `check` /
+  `test` / `lint` / coverage floor, desktop build / vet / lint / suite, and the
+  desktop coverage floor. The 0.8 release notes name two behaviour changes, and
+  neither reaches this window: raw key input now arrives by physical position
+  (`InputEvent.Code`), but the window binds no `HandleInput`/`ObserveInput`
+  handler and reads shortcuts through `Context.Shortcut` by name; and an inactive
+  window fades the accent, which is the platform-native look the window wants.
+  The one assertion that pins a driver version — `TestSQLiteStorageStaysPureGo` —
+  moved with it, so a later upgrade cannot leave it claiming the old release.
+
 ## [v1.99] - 2026-10-21
 
 ### Added

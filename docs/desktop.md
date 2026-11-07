@@ -66,7 +66,7 @@ secrets 时得到未签名开发包；配置好 secrets 后，可用 `-f` 显式
 ## 依赖更新
 
 MyGo 仍然是快速演进的年轻项目，桌面模块固定使用当前最新版本（当前为
-`v0.7.1`）。改桌面代码前先运行 `just desktop-deps` 看是否有新版本；确认要升级时
+`v0.8.3`）。改桌面代码前先运行 `just desktop-deps` 看是否有新版本；确认要升级时
 用 `just desktop-update-mygo`，然后跑完整门槛：
 
 ```bash
@@ -75,8 +75,15 @@ just desktop-race
 just check && just test
 ```
 
-升级可能同时抬高 `desktop/go.mod` 的 `go` 指令（MyGo 0.7.1 要求 1.27.3），
-也会更新 `go.sum`；把 `desktop/go.mod` 和 `go.sum` 与代码改动一起提交。
+升级可能同时抬高 `desktop/go.mod` 的 `go` 指令（MyGo 0.8.3 要求 1.27.3），
+也会更新 `go.sum`；把 `desktop/go.mod` 和 `go.sum` 与代码改动一起提交。0.8 的
+变更说明里有两处行为变化需要在升级时逐条确认：按键现在按物理位置上报
+（`InputEvent.Code`，布局打不出 `ui.Key` 的键落成 `ui.KeyUnknown`），非活动
+窗口则把 accent 淡成灰色。第一条不触及本仓库——窗口没有用 `HandleInput` /
+`ObserveInput` 接原始按键，快捷键一律经 `Context.Shortcut` 按名匹配
+（`chrome.go`、`actions.go`、`zoom.go`），所以“每个键都到处理器”没有接收方；
+第二条按平台惯例保留了默认值：窗口失焦时内置控件的 accent 变灰正是原生应用的
+画法，要整窗保留颜色才需要显式写 `Theme.InactiveAccent = Theme.Accent`。
 
 ## 架构
 
@@ -967,7 +974,7 @@ Developer ID、公证或 Authenticode，也不会让未签名包变成可发布�
 - **为什么是嵌套模块**：MyGo 依赖在 `desktop/go.mod` 中声明，嵌套模块让
   `go build ./...` / `go test ./...`（根模块）不被桌面壳的工具链牵连。
   两个模块都要求 Go 1.27，但补丁号各随自己的依赖走：根 `go.mod` 是
-  `go 1.27.2`，`desktop/go.mod` 是 `go 1.27.3`（MyGo 0.7.1 的 `go` 指令即为
+  `go 1.27.2`，`desktop/go.mod` 是 `go 1.27.3`（MyGo 0.8.3 的 `go` 指令即为
   1.27.3，`go get` 会把它抬到依赖的下限）。CI 的根模块任务用固定
   `GO_VERSION`，桌面任务用 `go-version-file: desktop/go.mod`，两者不会互相
   拉平。注意 `golangci-lint` 必须与其内置的 Go 版本一致：旧版本

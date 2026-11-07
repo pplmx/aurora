@@ -124,11 +124,11 @@ func TestDockerBuildStaysPureGo(t *testing.T) {
 // replace directive.
 func TestSQLiteStorageStaysPureGo(t *testing.T) {
 	goMod := readRepoFile(t, "go.mod")
-	assert.Contains(t, goMod, "modernc.org/sqlite v1.61.0")
+	assert.Contains(t, goMod, "modernc.org/sqlite v1.62.0")
 	assert.NotContains(t, goMod, "github.com/mattn/go-sqlite3")
 
 	desktopGoMod := readRepoFile(t, "desktop", "go.mod")
-	assert.Contains(t, desktopGoMod, "modernc.org/sqlite v1.61.0 // indirect")
+	assert.Contains(t, desktopGoMod, "modernc.org/sqlite v1.62.0 // indirect")
 	assert.NotContains(t, desktopGoMod, "github.com/mattn/go-sqlite3")
 
 	assertGoSourcesUsePureSQLite(t, ".")
