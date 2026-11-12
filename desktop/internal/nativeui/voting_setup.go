@@ -109,7 +109,7 @@ func (a *App) votingRegister(c *ui.Context) {
 			copyRow(c, "Public key", a.voting.voterPub, func() {
 				a.voting.status = okStatus("Public key copied.")
 			})
-			copyRow(c, "Private key", a.voting.voterPriv, func() {
+			copySecretRow(c, "Private key", a.voting.voterPriv, func() {
 				a.voting.status = okStatus("Private key copied. The store keeps only the public half; keep it safe.")
 			})
 			ui.Text(c, tr("The store keeps only the public half, so this is the only copy of the signing key.")).

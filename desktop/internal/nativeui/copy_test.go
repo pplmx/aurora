@@ -47,6 +47,7 @@ func TestCurrentIdentifiersAreCopyable(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			app := New(tc.fake)
+			writes := recordClipboard(t)
 			tester := ui.NewTester(app.View, 1280, 5000)
 			app.ShowPage(tc.page)
 			tc.setup(app)
@@ -55,6 +56,8 @@ func TestCurrentIdentifiersAreCopyable(t *testing.T) {
 			require.NoError(t, tester.Click(tc.button))
 			tester.Frame()
 			require.Equal(t, tc.want, tester.Clipboard())
+			require.Equal(t, []clipboardWrite{{text: tc.want}}, *writes,
+				"an identifier is not confidential")
 		})
 	}
 }

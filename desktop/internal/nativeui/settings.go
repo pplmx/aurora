@@ -344,7 +344,7 @@ func (a *App) displayFacts() []string {
 // copyDiagnostics puts diagnosticsText on the clipboard and confirms where the
 // pointer is.
 func (a *App) copyDiagnostics(c *ui.Context) {
-	c.Services().WriteClipboard(a.diagnosticsText())
+	writeClipboard(c, a.diagnosticsText(), false)
 	c.Toast(tr("Diagnostics are on the clipboard"))
 }
 

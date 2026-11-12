@@ -53,6 +53,17 @@ func emptyNote(c *ui.Context, text string) {
 // key. Without the button the operator would have to retype an 88-character
 // base64 key, or lose it.
 func copyRow(c *ui.Context, label, value string, onCopied func()) ui.Element {
+	return copyRowWith(c, label, value, false, onCopied)
+}
+
+// copySecretRow is copyRow for a value the operator must keep secret. The
+// clipboard write is marked confidential, so a clipboard manager can leave the
+// private key out of its history and its synced devices.
+func copySecretRow(c *ui.Context, label, value string, onCopied func()) ui.Element {
+	return copyRowWith(c, label, value, true, onCopied)
+}
+
+func copyRowWith(c *ui.Context, label, value string, concealed bool, onCopied func()) ui.Element {
 	if value == "" {
 		return ui.Element{}
 	}
@@ -66,7 +77,7 @@ func copyRow(c *ui.Context, label, value string, onCopied func()) ui.Element {
 		copyButton = quietButton(c, copyActionLabel(label))
 		if copyButton.Clicked() {
 			// The whole value is copied, not the shortened cell.
-			c.Services().WriteClipboard(value)
+			writeClipboard(c, value, concealed)
 			// The status line lives above the cards and may be scrolled out of
 			// sight; the toast confirms the copy where the pointer is.
 			c.Toast(fmt.Sprintf(tr("%s is on the clipboard"), label))

@@ -146,6 +146,7 @@ func TestStatusAppearanceKeepsPageFocus(t *testing.T) {
 	app := New(&fakeServices{})
 	app.token.owner = "owner-pk"
 	app.token.ownerPriv = "owner-sk"
+	recordClipboard(t)
 	tester := ui.NewTester(app.View, 1280, 4000)
 	app.ShowPage(pageIDs[pageToken])
 	tester.Frame()

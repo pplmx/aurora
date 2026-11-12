@@ -13,6 +13,7 @@ import (
 // The public half fills the field; the private half is offered once with Copy.
 func TestTokenFormGeneratesAnOwnerKey(t *testing.T) {
 	app := New(&fakeServices{})
+	writes := recordClipboard(t)
 	tester := ui.NewTester(app.View, 1280, 4000)
 	app.ShowPage("Token")
 	tester.Frame()
@@ -25,6 +26,8 @@ func TestTokenFormGeneratesAnOwnerKey(t *testing.T) {
 	require.NoError(t, tester.Click("Copy Owner private key"))
 	tester.Frame()
 	require.Equal(t, "sk-generated", tester.Clipboard())
+	require.Equal(t, []clipboardWrite{{text: "sk-generated", concealed: true}}, *writes,
+		"a private key must be marked confidential on the clipboard")
 
 	require.NoError(t, tester.Click("Dismiss key"))
 	tester.Frame()
@@ -34,6 +37,7 @@ func TestTokenFormGeneratesAnOwnerKey(t *testing.T) {
 // TestNFTFormGeneratesACreatorKey covers the same handover on the mint form.
 func TestNFTFormGeneratesACreatorKey(t *testing.T) {
 	app := New(&fakeServices{})
+	writes := recordClipboard(t)
 	tester := ui.NewTester(app.View, 1280, 4000)
 	app.ShowPage("NFT")
 	tester.Frame()
@@ -46,6 +50,8 @@ func TestNFTFormGeneratesACreatorKey(t *testing.T) {
 	require.NoError(t, tester.Click("Copy Creator private key"))
 	tester.Frame()
 	require.Equal(t, "sk-generated", tester.Clipboard())
+	require.Equal(t, []clipboardWrite{{text: "sk-generated", concealed: true}}, *writes,
+		"a private key must be marked confidential on the clipboard")
 }
 
 // TestDismissingGeneratedKeyRestoresFocus covers the key card's keyboard path

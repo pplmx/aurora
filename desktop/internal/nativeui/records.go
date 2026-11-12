@@ -304,7 +304,7 @@ func recordPayloadBody(c *ui.Context, payload string) {
 				// or a report; selecting a wrapped block by hand is busywork. Copy
 				// takes the whole payload even when the view is cut short.
 				if quietButton(c, "Copy payload").Clicked() {
-					c.Services().WriteClipboard(payload)
+					writeClipboard(c, payload, false)
 					c.Toast(fmt.Sprintf(tr("%s is on the clipboard"), tr("Payload")))
 				}
 			})

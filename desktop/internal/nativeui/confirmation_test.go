@@ -432,6 +432,7 @@ func containsSourceID(sources []SourceRow, id string) bool {
 // clicked, so the confirmation is a toast at the pointer.
 func TestCopyConfirmsWithAToast(t *testing.T) {
 	app := New(&voterKeyRecorder{fakeServices: &fakeServices{}})
+	writes := recordClipboard(t)
 	tester := ui.NewTester(app.View, 1280, 4000)
 	app.ShowPage("Voting")
 	tester.Frame()
@@ -443,6 +444,7 @@ func TestCopyConfirmsWithAToast(t *testing.T) {
 	require.NoError(t, tester.Click("Copy Private key"))
 	tester.Frame()
 	require.Equal(t, "sk-Alice", tester.Clipboard())
+	require.Equal(t, []clipboardWrite{{text: "sk-Alice", concealed: true}}, *writes)
 	require.True(t, tester.HasText("Private key is on the clipboard"), "a toast must confirm the copy")
 }
 

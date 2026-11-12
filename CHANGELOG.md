@@ -12,6 +12,17 @@ current instructions.
 
 ## [Unreleased]
 
+### Changed
+
+- **Copied private keys are marked confidential for clipboard managers**: the one-time owner,
+  creator and voter keys exist only in the window and reach the operator through Copy, so the
+  platform now gets its mark for content that must not linger (nspasteboard's `ConcealedType`,
+  Windows' clipboard-history exclusion, KDE's `x-kde-passwordManagerHint`). Managers that read
+  the mark can leave the key out of their history and synced devices; public keys, ids,
+  payloads and diagnostics are copied without it, because hiding them would only remove
+  something the operator may want back. The mark comes from MyGo 0.9.0's
+  `ClipboardOptions.Concealed`, which the desktop now requires.
+
 ### Added
 
 - **The window content zooms from the keyboard**: Ctrl/Cmd+= enlarges, Ctrl/Cmd+− shrinks and

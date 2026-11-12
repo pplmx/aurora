@@ -430,7 +430,7 @@ func actionSubject(c *ui.Context, id, emptyBadge, emptyHint, copyLabel, copyToas
 			Font("monospace").
 			SingleLine().Ellipsis("…").Tooltip(id)
 		if quietButton(c, copyLabel).Clicked() {
-			c.Services().WriteClipboard(id)
+			writeClipboard(c, id, false)
 			c.Toast(tr(copyToast))
 		}
 	})

@@ -4,6 +4,8 @@ import (
 	"os"
 	"testing"
 
+	"github.com/egoist/mygo/ui"
+
 	"github.com/pplmx/aurora/internal/i18n"
 )
 
@@ -14,5 +16,14 @@ import (
 // localization tests set the language themselves and restore it.
 func TestMain(m *testing.M) {
 	i18n.Init("en")
+	// A view test has no running app, so the native clipboard would wait for a
+	// main thread that never runs. Fail fast instead of hanging the suite when a
+	// test copies a private key without recordClipboard.
+	writeClipboard = func(c *ui.Context, text string, concealed bool) {
+		if concealed {
+			panic("nativeui: a test copied confidential text without recordClipboard")
+		}
+		c.Services().WriteClipboard(text)
+	}
 	os.Exit(m.Run())
 }

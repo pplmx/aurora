@@ -39,7 +39,7 @@ func (a *App) nftMintBody(c *ui.Context) {
 		}
 	})
 	if a.nft.creatorPriv != "" {
-		copyRow(c, "Creator private key", a.nft.creatorPriv, func() {
+		copySecretRow(c, "Creator private key", a.nft.creatorPriv, func() {
 			a.nft.status = okStatus("Creator private key copied.")
 		}).Bind(&a.nft.creatorKeyCopy)
 		ui.Text(c, tr("This is the only copy of the creator key; the store keeps the public half.")).

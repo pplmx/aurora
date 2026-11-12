@@ -426,7 +426,7 @@ func (a *App) tokenCreate(c *ui.Context) {
 			}
 		})
 		if a.token.ownerPriv != "" {
-			copyRow(c, "Owner private key", a.token.ownerPriv, func() {
+			copySecretRow(c, "Owner private key", a.token.ownerPriv, func() {
 				a.token.status = okStatus("Owner private key copied.")
 			}).Bind(&a.token.ownerKeyCopy)
 			ui.Text(c, tr("This is the only copy of the owner key; the store keeps the public half.")).

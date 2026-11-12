@@ -175,6 +175,7 @@ func (s *gatedSessionControls) StartSession(string) error {
 // signing key the registration generated.
 func TestVoterKeyPairLeavesTheWindow(t *testing.T) {
 	app := New(&voterKeyRecorder{fakeServices: &fakeServices{}})
+	writes := recordClipboard(t)
 	tester := ui.NewTester(app.View, 1280, 4000)
 	app.ShowPage("Voting")
 	tester.Frame()
@@ -190,11 +191,17 @@ func TestVoterKeyPairLeavesTheWindow(t *testing.T) {
 	tester.Frame()
 	require.Equal(t, "sk-Alice", tester.Clipboard(),
 		"the private key must reach the clipboard, not just the screen")
+	require.Equal(t, []clipboardWrite{{text: "sk-Alice", concealed: true}}, *writes,
+		"the signing key must be marked confidential on the clipboard")
 	require.Contains(t, app.voting.status.text, "Private key copied")
 
 	require.NoError(t, tester.Click("Copy Public key"))
 	tester.Frame()
 	require.Equal(t, "pk-Alice", tester.Clipboard())
+	require.Equal(t, []clipboardWrite{
+		{text: "sk-Alice", concealed: true},
+		{text: "pk-Alice", concealed: false},
+	}, *writes, "a public key is not confidential")
 }
 
 // TestNewCandidateAndSessionIDsCanBeCopied covers the two identifiers the
