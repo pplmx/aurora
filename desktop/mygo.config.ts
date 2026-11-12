@@ -61,6 +61,12 @@ export default {
     maintainer: "Aurora contributors <noreply@pplmx.dev>",
     comment: "Blockchain toolkit: provably fair lotteries, voting, tokens, NFTs and oracles",
     categories: ["Utility"],
+    // The release publishes both package managers' formats. MyGo's default
+    // also writes a PKGBUILD, but a PKGBUILD has one name for every
+    // architecture and GitHub Releases flatten assets into one directory, so
+    // the two builds would overwrite each other; the release does not carry
+    // it, and asking for it here would only leave an unpublished file behind.
+    formats: ["deb", "rpm"],
   },
 
   windows: {

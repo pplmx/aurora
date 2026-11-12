@@ -158,13 +158,14 @@ jobs:
             aurora-desktop-linux-amd64 aurora-desktop-linux-arm64 \
             aurora-desktop-windows-amd64 \
             -maxdepth 1 -type f \
-            \( -name '*.dmg' -o -name '*.deb' -o -name '*.tar.gz' -o -name 'install.sh' -o -name 'Aurora.exe' -o -name '*Setup*.exe' \) \
+            \( -name '*.dmg' -o -name '*.deb' -o -name '*.rpm' -o -name '*.tar.gz' -o -name 'install.sh' -o -name 'Aurora.exe' -o -name '*Setup*.exe' \) \
             -print0 |
             sort -z |
             xargs -0 -r sha256sum >> checksums.txt
-          # Six CLI binaries plus nine desktop distributables (two DMGs, two
-          # debs, two tarballs, install.sh, Aurora.exe and one NSIS installer).
-          test "$(wc -l < checksums.txt)" -ge 15
+          # Six CLI binaries plus eleven desktop distributables (two DMGs, two
+          # debs, two RPMs, two tarballs, install.sh, Aurora.exe and one NSIS
+          # installer).
+          test "$(wc -l < checksums.txt)" -ge 17
           sha256sum -c checksums.txt
           # GitHub Releases flatten assets into one directory. Drop the local
           # artifact directory from each line so a downloaded checksums.txt
@@ -200,6 +201,8 @@ jobs:
             artifacts/aurora-desktop-darwin-arm64/*.dmg
             artifacts/aurora-desktop-linux-amd64/*.deb
             artifacts/aurora-desktop-linux-arm64/*.deb
+            artifacts/aurora-desktop-linux-amd64/*.rpm
+            artifacts/aurora-desktop-linux-arm64/*.rpm
             artifacts/aurora-desktop-linux-amd64/*.tar.gz
             artifacts/aurora-desktop-linux-arm64/*.tar.gz
             artifacts/aurora-desktop-linux-amd64/install.sh

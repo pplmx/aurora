@@ -245,6 +245,7 @@ jobs:
               test -f "${{ matrix.path }}/install.sh"
               test -f "${{ matrix.path }}/build-time.txt"
               test -n "$(find "${{ matrix.path }}" -maxdepth 1 -name '*.deb' -print -quit)"
+              test -n "$(find "${{ matrix.path }}" -maxdepth 1 -name '*.rpm' -print -quit)"
               test -n "$(find "${{ matrix.path }}" -maxdepth 1 -name '*.tar.gz' -print -quit)"
               grep -q 'MimeType=x-scheme-handler/aurora;' "${{ matrix.path }}/aurora.desktop"
               test -z "$(find "${{ matrix.path }}" -name '*.go' -print -quit)"

@@ -235,6 +235,7 @@ jobs:
           test -f dist/desktop/linux-amd64/install.sh
           test -f dist/desktop/linux-amd64/build-time.txt
           test -n "$(find dist/desktop/linux-amd64 -maxdepth 1 -name '*.deb' -print -quit)"
+          test -n "$(find dist/desktop/linux-amd64 -maxdepth 1 -name '*.rpm' -print -quit)"
           test -n "$(find dist/desktop/linux-amd64 -maxdepth 1 -name '*.tar.gz' -print -quit)"
           grep -q 'MimeType=x-scheme-handler/aurora;' dist/desktop/linux-amd64/aurora.desktop
           test -z "$(find dist/desktop/linux-amd64 -name '*.go' -print -quit)"

@@ -40,7 +40,7 @@ just desktop          # 构建 ./aurora-desktop（需 Go 1.27+ 与 WebKitGTK / W
 just desktop-test                                  # 桌面模块测试（just test 只覆盖核心模块）
 just desktop-check                                 # gofmt + build + vet + lint + 纯 Go 测试
 just desktop-race                                  # 可选 race detector（显式启用 cgo）
-just desktop-package                               # 产出 .deb / tar.gz / desktop entry
+just desktop-package                               # 产出 .deb / .rpm / tar.gz / desktop entry
 ```
 
 发布包由 `.github/workflows/desktop-build.yml` 在原生 runner 上构建：
@@ -872,8 +872,10 @@ just check && just test
 ## 打包与版本
 
 `desktop/mygo.config.ts` 描述应用身份（name/identifier/版本/版权/Linux 描述），
-`go tool mygo build` 产出可安装的 `.deb`、`install.sh`、`.tar.gz` 与带
-`MimeType=x-scheme-handler/aurora;` 的 desktop entry。
+`go tool mygo build` 产出可安装的 `.deb`、`.rpm`、`install.sh`、`.tar.gz` 与带
+`MimeType=x-scheme-handler/aurora;` 的 desktop entry。配置只请求 `deb` 与 `rpm`：
+MyGo 默认还写 PKGBUILD，但它两个架构同名，发布资产又会扁平化到同一目录，保留它
+只会互相覆盖。
 
 版本由 `git describe` 在配置里计算，并由 `mygo build` 链接进二进制——**不用**
 `-X main.Version`（`mygo build` 自带 ldflags，实测那样打出的包会把 `--version`
@@ -1018,7 +1020,7 @@ Developer ID、公证或 Authenticode，也不会让未签名包变成可发布�
   `mygo build` 后立即校验桌面二进制的元数据，避免纯 Go 契约只在文档里成立。
 - **打包门禁**：`ci.yml` 的 `desktop-package` job 在 Ubuntu 上跑
   `go tool mygo build -platform linux/amd64`，校验可执行文件、desktop entry、
-  `.deb`、tarball 与 `aurora://` MIME 注册，并用 Xvfb 启动真实产物、等
+  `.deb`、`.rpm`、tarball 与 `aurora://` MIME 注册，并用 Xvfb 启动真实产物、等
   `aurora.db` 出现且进程仍存活——只检查文件存在无法发现缺少 WebKitGTK 运行时
   或内嵌 UI 损坏。发版用的 `desktop-build.yml` 在 Linux 两个架构上执行同样的
   启动冒烟，并校验 `--version` 不是 `0.0.1`、构建时间不是 `unknown`；

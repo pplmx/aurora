@@ -55,7 +55,7 @@ SQLite 数据库，因此窗口里创建的记录 CLI 立刻能读到。设计�
 
 | 平台        | 桌面端                                              | CLI                          |
 | ----------- | --------------------------------------------------- | ---------------------------- |
-| **Linux**   | `.deb` / `.tar.gz` + `install.sh`（amd64、arm64）   | `aurora-linux-<arch>`        |
+| **Linux**   | `.deb` / `.rpm` / `.tar.gz` + `install.sh`（amd64、arm64） | `aurora-linux-<arch>` |
 | **macOS**   | `.dmg` + `Aurora.app`（arm64、amd64）               | `aurora-darwin-<arch>`       |
 | **Windows** | `Aurora.exe` / `*Setup*.exe`（amd64）               | `aurora-windows-<arch>.exe`  |
 
@@ -305,7 +305,7 @@ just desktop-coverage-floor # 桌面 deskapp/nativeui 覆盖率底线（70%）
 just desktop-shot     # 真实窗口逐页截图（MyGo automation，无显示器时起 Xvfb）
 just desktop-verbose [包] [测试名]  # 单包 verbose 跑一次，输出留档便于定位失败测试
 just desktop-stress [次数] [包]     # 单包重复 N 次，偶发失败也会带出测试名
-just desktop-package  # mygo build：.deb / tar.gz / desktop entry
+just desktop-package  # mygo build：.deb / .rpm / tar.gz / desktop entry
 just desktop-deps     # 检查 MyGo 是否有新版本
 just desktop-update-mygo # 升级 MyGo 依赖
 just gen-zh-hant <OpenCC 词典目录> # 从简体表重新生成繁体表
