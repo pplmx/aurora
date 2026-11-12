@@ -23,7 +23,24 @@ current instructions.
   something the operator may want back. The mark comes from MyGo 0.9.0's
   `ClipboardOptions.Concealed`, which the desktop now requires.
 
+- **The ledger builds only the records on screen**: a 10,000-record page laid out
+  every card before the first frame, which measured about 450 ms per frame at
+  1280x860 — two frames a second while scrolling a page the Show control invites.
+  The rows are now a MyGo virtual `ui.List` that builds the visible window plus
+  overscan, and the same page costs about 1.4 ms; arrow keys, Home/End and
+  Page Up/Page Down move through the records, and the list announces itself as
+  the blockchain ledger. Changing the page, search or Show resets it, because a
+  different set of records starts at its first row.
+
 ### Added
+
+- **Desktop releases carry an RPM package**: `mygo build` now writes
+  `aurora-<version>-1.x86_64.rpm` on amd64 and the `aarch64` build beside it,
+  next to the Debian package, so Fedora, RHEL and openSUSE users install through
+  their package manager instead of unpacking the tarball. The build asks for
+  `deb` and `rpm` only: MyGo's default PKGBUILD has one name for both
+  architectures, and GitHub Releases flatten assets into one directory, so the
+  two builds would overwrite each other and the release never carried it.
 
 - **The window content zooms from the keyboard**: Ctrl/Cmd+= enlarges, Ctrl/Cmd+− shrinks and
   Ctrl/Cmd+0 returns to 100%, along a fixed ladder from 80% to 200%. It uses MyGo's own content zoom,

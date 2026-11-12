@@ -60,6 +60,9 @@ func (a *App) loadBlockchainAt(search string, rawLimit float64, offset int) bool
 		// The backlog list is re-read below and the open row is an index into it,
 		// so a page move closes it for the same reason a block's payload closes.
 		a.blockchain.pendingExpanded = -1
+		// A different set of records starts at its first row, as a new page of
+		// a virtual list would otherwise keep the old scroll position.
+		a.blockchain.blockList = ui.ListState{}
 	}
 	a.blockchain.rows = page.Rows
 	a.blockchain.blockTotal = page.Total
@@ -219,14 +222,33 @@ func (a *App) blockchainBlocks(c *ui.Context) {
 	// The list carries the same name as its pager: a screen reader entering it
 	// must say which records these are before reading the first one, and the
 	// pager above already taught the reader that name.
-	ui.Column(c).FillWidth().Gap(10).Role(ui.RoleList).Label(tr("Blockchain ledger")).Children(func() {
-		for i, entry := range a.blockchain.rows {
-			i, entry := i, entry
-			blockRecord(c, entry, a.blockchain.expanded == i, func() {
-				a.toggleBlockPayload(i)
-			})
-		}
-	})
+	//
+	// MyGo's List builds the rows in view and two beyond each edge, as the
+	// author's own apps do, instead of laying out every record of the page.
+	// Show allows 10,000 rows, and laying all of them out cost about 450ms a
+	// frame: the page answered a keystroke a hand's width of time later.
+	//
+	// The list is given a height even when its page is short: inside the page's
+	// scroll it has no height of its own to lay out against, and a list with
+	// none draws no rows. The estimate is deliberately a little under a resting
+	// record, so a short page keeps its stream look without a band of empty
+	// panel under the last row.
+	rows := a.blockchain.rows
+	_, pageHeight := c.Size()
+	visibleHeight := max(pageHeight-textSize(c, 320), textSize(c, 200))
+	estimatedHeight := float32(len(rows)) * textSize(c, 88)
+	if a.blockchain.expanded >= 0 && a.blockchain.expanded < len(rows) {
+		// The open payload adds its own lines under one record.
+		estimatedHeight += textSize(c, 300)
+	}
+	listHeight := min(estimatedHeight, visibleHeight)
+	a.blockchain.blockList.Key = func(i int) any { return rows[i].Height }
+	ui.List(c, &a.blockchain.blockList, len(rows), func(i int) {
+		entry := rows[i]
+		blockRecord(c, entry, a.blockchain.expanded == i, func() {
+			a.toggleBlockPayload(i)
+		}).Margin(0, 0, space2+2, 0)
+	}).FillWidth().Height(listHeight).Label(tr("Blockchain ledger"))
 }
 
 // toggleBlockPayload opens or closes one record's exact payload. Only one is

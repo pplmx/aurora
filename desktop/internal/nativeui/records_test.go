@@ -259,6 +259,9 @@ func TestChangingThePageSizeClosesTheOpenPayload(t *testing.T) {
 	tester.Frame()
 
 	app.blockchain.expanded = 15
+	// The ledger builds only the rows in view, so scroll to the record opened:
+	// a reader would have reached it before clicking.
+	app.blockchain.blockList.ScrollTo(15, ui.Center)
 	tester.Frame()
 	require.True(t, tester.HasText(`{"n":15}`), "the opened record shows its payload")
 

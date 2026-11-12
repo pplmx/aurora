@@ -394,11 +394,12 @@ func functionSource(t *testing.T, src, declaration string) string {
 // which records it holds before reading the first one. collectionList names its
 // own list from the argument every caller passes; the lists built by hand have to
 // set Role and Label themselves, which is where one was missing — the ledger's
-// records, whose pager was named while the list under it was not.
+// records, whose pager was named while the list under it was not. The ledger now
+// uses MyGo's virtual ui.List, which sets RoleList itself, so only its name is
+// left for this repo to keep.
 func TestEveryRecordListIsNamed(t *testing.T) {
 	// Files that build a list by hand rather than through collectionList.
 	handBuilt := []struct{ file, label string }{
-		{"blockchain.go", `tr("Blockchain ledger")`},
 		{"voting_results.go", `tr("Voting results")`},
 		{"layout.go", `tr("What opens next")`},
 	}
@@ -407,6 +408,12 @@ func TestEveryRecordListIsNamed(t *testing.T) {
 		assert.Containsf(t, body, "Role(ui.RoleList)", "%s must mark its list as a list", want.file)
 		assert.Containsf(t, body, want.label, "%s must name that list", want.file)
 	}
+	// ui.List sets RoleList itself (ui/list.go:508); the label is still ours.
+	ledger := readRepoFile(t, "desktop", "internal", "nativeui", "blockchain.go")
+	assert.Contains(t, ledger, "ui.List(c, &a.blockchain.blockList",
+		"the ledger must stay a virtual list")
+	assert.Contains(t, ledger, `tr("Blockchain ledger")`,
+		"the ledger list must be named")
 
 	// The shared builder names from its argument; a caller passing an empty name
 	// would produce an unnamed list that no assertion above would see.
@@ -641,7 +648,9 @@ func TestEveryActionButtonLooksDisabledBeforeItsFieldsAreReady(t *testing.T) {
 //
 // The check is that every clipboard write is followed by a toast in the same
 // function. One that only updated the status line would look, from the pointer, like
-// a copy that did nothing.
+// a copy that did nothing. Writes go through nativeui.writeClipboard so the
+// confidential copies can be marked; the scan follows that seam and rejects a
+// direct services write, which would bypass both the mark and this check.
 func TestEveryCopyConfirmsItselfNearby(t *testing.T) {
 	files := []string{
 		"controls.go", "lottery.go", "records.go", "settings.go", "values.go",
@@ -649,7 +658,9 @@ func TestEveryCopyConfirmsItselfNearby(t *testing.T) {
 	writes := 0
 	for _, file := range files {
 		body := readRepoFile(t, "desktop", "internal", "nativeui", file)
-		for _, after := range strings.Split(body, "WriteClipboard(")[1:] {
+		require.NotContainsf(t, body, "Services().WriteClipboard(",
+			"%s: copy through writeClipboard so confidential values can be marked", file)
+		for _, after := range strings.Split(body, "writeClipboard(")[1:] {
 			writes++
 			// The toast is the next statement in every case; look far enough for
 			// a message built across a line or two.

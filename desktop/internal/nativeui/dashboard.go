@@ -70,6 +70,11 @@ type blockchainState struct {
 	// the frame would query storage on every repaint — including the idle
 	// repaints the window does for a hover or a caret blink.
 	pending []PendingEvent
+	// blockList is the ledger's virtual list: it builds the records in view,
+	// not the whole page, so the Show control's 10,000-row page costs a screen
+	// of widgets rather than ten thousand. Its state is reset when a new page
+	// or query replaces the rows under it.
+	blockList ui.ListState
 	// expanded is the index of the record whose exact payload is open, or -1
 	// when every record shows its decoded sentence only.
 	expanded int
