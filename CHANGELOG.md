@@ -2,11 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
-Sections are labelled with the git tag they were cut from (0.0.1-alpha.0 in 2024
-through v1.99 on 2026-10-21). Binaries report the tag at build time
+The v1.x sections are milestone labels, not git tags: the repository tags only
+`v0.0.1` and `v1.1`, and `release.yml` publishes from a tag that already exists
+rather than creating one. Binaries report the ref they were built from
 (`-ldflags -X …Version=$(git describe …)`), so a build without those flags prints
-the source default 0.0.1; `[Unreleased]` collects the work since the last tag.
-The milestone notes under `.planning/` are history, not current instructions.
+the source default 0.0.1. `[Unreleased]` collects the work since the v1.99
+milestone (2026-10-21). The milestone notes under `.planning/` are history, not
+current instructions.
 
 ## [Unreleased]
 
