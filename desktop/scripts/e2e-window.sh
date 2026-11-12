@@ -185,13 +185,13 @@ stageMarkerEmpty() {
   local spec=$1 lang=${2:-en}
   case "$lang:$spec" in
     zh:*) case "$spec" in
-        voting:Ballot) echo "选票需要会期" ;;
-        voting:Results) echo "计票属于会期" ;;
+        voting:Ballot) echo "选票需要指定会期" ;;
+        voting:Results) echo "计票属于某个会期" ;;
         *) return 1 ;;
       esac ;;
     zh-hant:*) case "$spec" in
-        voting:Ballot) echo "選票需要會期" ;;
-        voting:Results) echo "計票屬於會期" ;;
+        voting:Ballot) echo "選票需要指定會期" ;;
+        voting:Results) echo "計票屬於某個會期" ;;
         *) return 1 ;;
       esac ;;
     *) case "$spec" in
