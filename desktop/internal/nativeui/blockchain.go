@@ -230,13 +230,14 @@ func (a *App) blockchainBlocks(c *ui.Context) {
 	//
 	// The list is given a height even when its page is short: inside the page's
 	// scroll it has no height of its own to lay out against, and a list with
-	// none draws no rows. The estimate is deliberately a little under a resting
-	// record, so a short page keeps its stream look without a band of empty
-	// panel under the last row.
+	// none draws no rows. The estimate is a resting record plus its gap as they
+	// measure at the default zoom (about 112): a short page then ends under its
+	// last record instead of leaving a band of empty panel, without cutting the
+	// second record's facts off at the list's edge.
 	rows := a.blockchain.rows
 	_, pageHeight := c.Size()
 	visibleHeight := max(pageHeight-textSize(c, 320), textSize(c, 200))
-	estimatedHeight := float32(len(rows)) * textSize(c, 88)
+	estimatedHeight := float32(len(rows)) * textSize(c, 112)
 	if a.blockchain.expanded >= 0 && a.blockchain.expanded < len(rows) {
 		// The open payload adds its own lines under one record.
 		estimatedHeight += textSize(c, 300)
