@@ -169,7 +169,7 @@ func TestCIPackagesTheDesktopApp(t *testing.T) {
 	require.Contains(t, workflow, "fetch-depth: 0",
 		"the packaging gate must fetch tags for git describe")
 	require.Contains(t, workflow, "go-version-file: desktop/go.mod")
-	require.Contains(t, workflow, "node-version: '22'")
+	require.Contains(t, workflow, "node-version: '26'")
 	require.Contains(t, workflow, "CGO_ENABLED: '0'")
 	require.NotContains(t, workflow, "CC: gcc")
 	require.Contains(t, workflow, "go tool mygo build -platform linux/amd64")
