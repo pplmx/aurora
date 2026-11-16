@@ -66,7 +66,7 @@ secrets 时得到未签名开发包；配置好 secrets 后，可用 `-f` 显式
 ## 依赖更新
 
 MyGo 仍然是快速演进的年轻项目，桌面模块固定使用当前最新版本（当前为
-`v0.8.3`）。改桌面代码前先运行 `just desktop-deps` 看是否有新版本；确认要升级时
+`v0.9.1`）。改桌面代码前先运行 `just desktop-deps` 看是否有新版本；确认要升级时
 用 `just desktop-update-mygo`，然后跑完整门槛：
 
 ```bash
@@ -75,7 +75,7 @@ just desktop-race
 just check && just test
 ```
 
-升级可能同时抬高 `desktop/go.mod` 的 `go` 指令（MyGo 0.8.3 要求 1.27.3），
+升级可能同时抬高 `desktop/go.mod` 的 `go` 指令（MyGo 0.9.1 要求 1.27.3），
 也会更新 `go.sum`；把 `desktop/go.mod` 和 `go.sum` 与代码改动一起提交。0.8 的
 变更说明里有两处行为变化需要在升级时逐条确认：按键现在按物理位置上报
 （`InputEvent.Code`，布局打不出 `ui.Key` 的键落成 `ui.KeyUnknown`），非活动
