@@ -70,13 +70,13 @@ jobs:
             fi
           fi
           BUILDTIME="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          go build -trimpath -ldflags="-s -w -X github.com/pplmx/aurora/cmd/aurora/cmd.Version=${VERSION} -X github.com/pplmx/aurora/cmd/aurora/cmd.BuildTime=${BUILDTIME}" -o aurora-${GOOS}-${GOARCH} ./cmd/aurora
+          go build -trimpath -ldflags="-s -w -X github.com/pplmx/aurora/cmd/aurora/cmd.Version=${VERSION} -X github.com/pplmx/aurora/cmd/aurora/cmd.BuildTime=${BUILDTIME}" -o aurora-cli-${GOOS}-${GOARCH} ./cmd/aurora
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v7
         with:
-          name: aurora-${{ matrix.goos }}-${{ matrix.goarch }}
-          path: aurora-*
+          name: aurora-cli-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: aurora-cli-*
           retention-days: 5
 
   windows:
@@ -123,7 +123,7 @@ jobs:
           }
           $buildTime = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
           $ldflags = "-s -w -X github.com/pplmx/aurora/cmd/aurora/cmd.Version=$version -X github.com/pplmx/aurora/cmd/aurora/cmd.BuildTime=$buildTime"
-          go build -trimpath -ldflags $ldflags -o "aurora-windows-$env:GOARCH.exe" ./cmd/aurora
+          go build -trimpath -ldflags $ldflags -o "aurora-cli-windows-$env:GOARCH.exe" ./cmd/aurora
 
       # An unsigned development build stays usable; a release build has
       # already failed closed above if the certificate contract is incomplete.
@@ -133,7 +133,7 @@ jobs:
         env:
           WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
         run: |
-          $exe = "aurora-windows-${{ matrix.goarch }}.exe"
+          $exe = "aurora-cli-windows-${{ matrix.goarch }}.exe"
           $signArgs = @("sign", "/f", $env:WINDOWS_CERTIFICATE_FILE, "/fd", "sha256", "/tr", "http://timestamp.digicert.com", "/td", "sha256")
           if (-not [string]::IsNullOrEmpty($env:WINDOWS_CERTIFICATE_PASSWORD)) {
             $signArgs += @("/p", $env:WINDOWS_CERTIFICATE_PASSWORD)
@@ -166,6 +166,6 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v7
         with:
-          name: aurora-windows-${{ matrix.goarch }}
-          path: aurora-*
+          name: aurora-cli-windows-${{ matrix.goarch }}
+          path: aurora-cli-*
           retention-days: 5

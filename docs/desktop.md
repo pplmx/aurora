@@ -938,7 +938,8 @@ CI、自签名证书或仓库管理员权限都不能替代这项外部身份与
 
 ## Windows 发布签名
 
-未签名的 `Aurora.exe` 与安装器会让 SmartScreen 对每次下载报警，也无法向用户
+未签名的桌面程序（安装后名为 `Aurora.exe`，发布时叫 `aurora-windows-amd64.exe`）
+与安装器会让 SmartScreen 对每次下载报警，也无法向用户
 证明发布者。`desktop-build.yml` 在原生 Windows runner 上从 2 个仓库 secrets
 读取 Authenticode 证书，把 base64 解码到 job 的临时目录，再由 MyGo 的
 `windows.certificate` 用 `signtool` 签名 app、资源中的可执行文件和 NSIS

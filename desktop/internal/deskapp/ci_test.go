@@ -238,7 +238,7 @@ func TestReleasePackagesEveryDesktopPlatform(t *testing.T) {
 	assert.NotContains(t, releaseWorkflow, "files: artifacts/**/*",
 		"the release must list installable artifacts, not every file in the .app bundle")
 	for _, releaseFile := range []string{
-		"artifacts/aurora-linux-amd64/aurora-linux-amd64",
+		"artifacts/aurora-cli-linux-amd64/aurora-cli-linux-amd64",
 		"artifacts/aurora-desktop-darwin-amd64/*.dmg",
 		"artifacts/aurora-desktop-linux-amd64/*.deb",
 		"artifacts/aurora-desktop-linux-amd64/*.tar.gz",
@@ -314,7 +314,10 @@ func TestReleasePackagesEveryDesktopPlatform(t *testing.T) {
 		assert.Contains(t, desktopWorkflow, target,
 			"the startup smoke test must cover %s", target)
 	}
-	assert.Contains(t, releaseWorkflow, "artifacts/aurora-desktop-windows-amd64/Aurora.exe")
+	assert.Contains(t, releaseWorkflow, "artifacts/aurora-desktop-windows-amd64/aurora-windows-amd64.exe",
+		"the published Windows executable must follow the asset scheme of the other platforms")
+	require.Contains(t, releaseWorkflow, "mv Aurora.exe aurora-windows-amd64.exe",
+		"the window keeps its display name inside the installer")
 }
 
 // TestReleaseRequiresAnExistingVersionTag pins the retry path against tag

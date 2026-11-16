@@ -76,13 +76,13 @@ api-ldflags := `printf '%s' "-s -w -X main.Version=$(git describe --tags --alway
 # module), so this is the last ldflags var; it mirrors the two above.
 desktop-ldflags := `printf '%s' "-s -w -X main.Version=$(git describe --tags --always --dirty 2>/dev/null || git rev-parse --short HEAD) -X main.BuildTime=$(date -u +%Y-%m-%dT%H:%M:%SZ)"`
 
-# Build all platforms
+# Build all platforms, under the names the release publishes.
 build: check test
-    CGO_ENABLED=0 GOARCH=arm64 GOOS=darwin go build -trimpath -ldflags="{{ldflags}}" -o aurora-darwin-arm64 ./cmd/aurora
-    CGO_ENABLED=0 GOARCH=amd64 GOOS=darwin go build -trimpath -ldflags="{{ldflags}}" -o aurora-darwin-amd64 ./cmd/aurora
-    CGO_ENABLED=0 GOARCH=amd64 GOOS=linux go build -trimpath -ldflags="{{ldflags}}" -o aurora-linux-amd64 ./cmd/aurora
-    CGO_ENABLED=0 GOARCH=arm64 GOOS=linux go build -trimpath -ldflags="{{ldflags}}" -o aurora-linux-arm64 ./cmd/aurora
-    CGO_ENABLED=0 GOARCH=amd64 GOOS=windows go build -trimpath -ldflags="{{ldflags}}" -o aurora-windows.exe ./cmd/aurora
+    CGO_ENABLED=0 GOARCH=arm64 GOOS=darwin go build -trimpath -ldflags="{{ldflags}}" -o aurora-cli-darwin-arm64 ./cmd/aurora
+    CGO_ENABLED=0 GOARCH=amd64 GOOS=darwin go build -trimpath -ldflags="{{ldflags}}" -o aurora-cli-darwin-amd64 ./cmd/aurora
+    CGO_ENABLED=0 GOARCH=amd64 GOOS=linux go build -trimpath -ldflags="{{ldflags}}" -o aurora-cli-linux-amd64 ./cmd/aurora
+    CGO_ENABLED=0 GOARCH=arm64 GOOS=linux go build -trimpath -ldflags="{{ldflags}}" -o aurora-cli-linux-arm64 ./cmd/aurora
+    CGO_ENABLED=0 GOARCH=amd64 GOOS=windows go build -trimpath -ldflags="{{ldflags}}" -o aurora-cli-windows-amd64.exe ./cmd/aurora
 
 # Build for current platform
 build-current:

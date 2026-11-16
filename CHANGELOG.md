@@ -14,6 +14,12 @@ current instructions.
 
 ### Changed
 
+- **Published binaries say what they are**: every release asset now carries the
+  platform it runs on, so nothing is published as a bare `Aurora.exe`. The six
+  CLI builds ship as `aurora-cli-<os>-<arch>[.exe]`, and the portable Windows
+  window as `aurora-windows-amd64.exe`; the installer keeps installing
+  `Aurora.exe`, which is why `release.yml` renames the copy it publishes instead
+  of the build renaming itself. `just build` writes the same CLI names locally.
 - **Unsigned releases are the standing posture, not a one-release exception**:
   `release.yml` keeps `require_signed_macos` and `require_signed_windows` at
   `false` because the repository has no Developer ID identity and no

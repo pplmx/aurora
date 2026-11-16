@@ -128,12 +128,12 @@ jobs:
             grep -Fq $'\tbuild\tGOOS='"$goos" <<<"$metadata"
             grep -Fq $'\tbuild\tGOARCH='"$goarch" <<<"$metadata"
           done <<EOF
-          artifacts/aurora-darwin-amd64/aurora-darwin-amd64 darwin amd64
-          artifacts/aurora-darwin-arm64/aurora-darwin-arm64 darwin arm64
-          artifacts/aurora-linux-amd64/aurora-linux-amd64 linux amd64
-          artifacts/aurora-linux-arm64/aurora-linux-arm64 linux arm64
-          artifacts/aurora-windows-amd64/aurora-windows-amd64.exe windows amd64
-          artifacts/aurora-windows-arm64/aurora-windows-arm64.exe windows arm64
+          artifacts/aurora-cli-darwin-amd64/aurora-cli-darwin-amd64 darwin amd64
+          artifacts/aurora-cli-darwin-arm64/aurora-cli-darwin-arm64 darwin arm64
+          artifacts/aurora-cli-linux-amd64/aurora-cli-linux-amd64 linux amd64
+          artifacts/aurora-cli-linux-arm64/aurora-cli-linux-arm64 linux arm64
+          artifacts/aurora-cli-windows-amd64/aurora-cli-windows-amd64.exe windows amd64
+          artifacts/aurora-cli-windows-arm64/aurora-cli-windows-arm64.exe windows arm64
           artifacts/aurora-desktop-darwin-amd64/Aurora.app/Contents/MacOS/Aurora darwin amd64
           artifacts/aurora-desktop-darwin-arm64/Aurora.app/Contents/MacOS/Aurora darwin arm64
           artifacts/aurora-desktop-linux-amd64/aurora linux amd64
@@ -143,7 +143,7 @@ jobs:
 
           # upload-artifact does not preserve the executable bit. Restore it
           # before the only release artifact that this Linux job can run.
-          cli="artifacts/aurora-linux-amd64/aurora-linux-amd64"
+          cli="artifacts/aurora-cli-linux-amd64/aurora-cli-linux-amd64"
           chmod +x "$cli"
           output="$("$cli" version)"
           grep -Fq "Version: $RELEASE_VERSION" <<<"$output"
@@ -152,15 +152,25 @@ jobs:
             exit 1
           fi
 
+      # The window keeps its display name inside the installer, where NSIS
+      # installs Aurora.exe. The published copy follows the asset scheme of
+      # every other platform, so the release is where the rename happens.
+      - name: Name the published Windows executable
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd artifacts/aurora-desktop-windows-amd64
+          mv Aurora.exe aurora-windows-amd64.exe
+
       - name: Generate release checksums
         shell: bash
         run: |
           set -euo pipefail
           cd artifacts
           find \
-            aurora-darwin-amd64 aurora-darwin-arm64 \
-            aurora-linux-amd64 aurora-linux-arm64 \
-            aurora-windows-amd64 aurora-windows-arm64 \
+            aurora-cli-darwin-amd64 aurora-cli-darwin-arm64 \
+            aurora-cli-linux-amd64 aurora-cli-linux-arm64 \
+            aurora-cli-windows-amd64 aurora-cli-windows-arm64 \
             -maxdepth 1 -type f -print0 |
             sort -z |
             xargs -0 -r sha256sum > checksums.txt
@@ -169,7 +179,7 @@ jobs:
             aurora-desktop-linux-amd64 aurora-desktop-linux-arm64 \
             aurora-desktop-windows-amd64 \
             -maxdepth 1 -type f \
-            \( -name '*.dmg' -o -name '*.deb' -o -name '*.rpm' -o -name '*.tar.gz' -o -name 'Aurora.exe' -o -iname '*setup*.exe' \) \
+            \( -name '*.dmg' -o -name '*.deb' -o -name '*.rpm' -o -name '*.tar.gz' -o -name 'aurora-windows-amd64.exe' -o -iname '*setup*.exe' \) \
             -print0 |
             sort -z |
             xargs -0 -r sha256sum >> checksums.txt
@@ -180,8 +190,8 @@ jobs:
             aurora-desktop-linux-arm64/install.sh
           sha256sum aurora-desktop-linux-amd64/install.sh >> checksums.txt
           # Six CLI binaries plus eleven desktop distributables (two DMGs, two
-          # debs, two RPMs, two tarballs, install.sh, Aurora.exe and one NSIS
-          # installer).
+          # debs, two RPMs, two tarballs, install.sh, the portable Windows
+          # executable and one NSIS installer).
           test "$(wc -l < checksums.txt)" -eq 17
           sha256sum -c checksums.txt
           # GitHub Releases flatten assets into one directory. Drop the local
@@ -241,12 +251,12 @@ jobs:
           # files inside the macOS .app bundle, which cannot be installed on
           # their own and would collide between the two Mac builds.
           files: |
-            artifacts/aurora-darwin-amd64/aurora-darwin-amd64
-            artifacts/aurora-darwin-arm64/aurora-darwin-arm64
-            artifacts/aurora-linux-amd64/aurora-linux-amd64
-            artifacts/aurora-linux-arm64/aurora-linux-arm64
-            artifacts/aurora-windows-amd64/aurora-windows-amd64.exe
-            artifacts/aurora-windows-arm64/aurora-windows-arm64.exe
+            artifacts/aurora-cli-darwin-amd64/aurora-cli-darwin-amd64
+            artifacts/aurora-cli-darwin-arm64/aurora-cli-darwin-arm64
+            artifacts/aurora-cli-linux-amd64/aurora-cli-linux-amd64
+            artifacts/aurora-cli-linux-arm64/aurora-cli-linux-arm64
+            artifacts/aurora-cli-windows-amd64/aurora-cli-windows-amd64.exe
+            artifacts/aurora-cli-windows-arm64/aurora-cli-windows-arm64.exe
             artifacts/aurora-desktop-darwin-amd64/*.dmg
             artifacts/aurora-desktop-darwin-arm64/*.dmg
             artifacts/aurora-desktop-linux-amd64/*.deb
@@ -256,7 +266,7 @@ jobs:
             artifacts/aurora-desktop-linux-amd64/*.tar.gz
             artifacts/aurora-desktop-linux-arm64/*.tar.gz
             artifacts/aurora-desktop-linux-amd64/install.sh
-            artifacts/aurora-desktop-windows-amd64/Aurora.exe
+            artifacts/aurora-desktop-windows-amd64/aurora-windows-amd64.exe
             artifacts/aurora-desktop-windows-amd64/*setup*.exe
             artifacts/checksums.txt
           # Curated notes from CHANGELOG.md, not GitHub's generated list: that

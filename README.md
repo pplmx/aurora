@@ -53,11 +53,11 @@ SQLite 数据库，因此窗口里创建的记录 CLI 立刻能读到。设计�
 
 从 [Releases](https://github.com/pplmx/aurora/releases) 下载：
 
-| 平台        | 桌面端                                              | CLI                          |
-| ----------- | --------------------------------------------------- | ---------------------------- |
-| **Linux**   | `.deb` / `.rpm` / `.tar.gz` + `install.sh`（amd64、arm64） | `aurora-linux-<arch>` |
-| **macOS**   | `.dmg` + `Aurora.app`（arm64、amd64）               | `aurora-darwin-<arch>`       |
-| **Windows** | `Aurora.exe` / `aurora-setup-<version>-amd64.exe`（amd64） | `aurora-windows-<arch>.exe`  |
+| 平台        | 桌面端                                                     | CLI                               |
+| ----------- | ----------------------------------------------------------- | --------------------------------- |
+| **Linux**   | `.deb` / `.rpm` / `.tar.gz` + `install.sh`（amd64、arm64）   | `aurora-cli-linux-<arch>`         |
+| **macOS**   | `.dmg` + `Aurora.app`（arm64、amd64）                       | `aurora-cli-darwin-<arch>`        |
+| **Windows** | `aurora-windows-amd64.exe` / `aurora-setup-<version>-amd64.exe` | `aurora-cli-windows-<arch>.exe`   |
 
 CLI 覆盖 linux/darwin/windows 的 amd64 与 arm64；桌面端发布 linux amd64+arm64、
 macOS arm64+amd64、Windows amd64。
