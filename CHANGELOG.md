@@ -3,14 +3,50 @@
 All notable changes to this project will be documented in this file.
 
 The v1.x sections are milestone labels, not git tags: the repository tags only
-`v0.0.1` and `v1.1`, and `release.yml` publishes from a tag that already exists
-rather than creating one. Binaries report the ref they were built from
-(`-ldflags -X …Version=$(git describe …)`), so a build without those flags prints
-the source default 0.0.1. `[Unreleased]` collects the work since the v1.99
-milestone (2026-10-21). The milestone notes under `.planning/` are history, not
+`v0.0.1`, `v1.1` and `v2.0.0`, and `release.yml` publishes from a tag that
+already exists rather than creating one. Binaries report the ref they were built
+from (`-ldflags -X …Version=$(git describe …)`), so a build without those flags
+prints the source default 0.0.1. The sections label the work itself, not the
+release it shipped in. The milestone notes under `.planning/` are history, not
 current instructions.
 
 ## [Unreleased]
+
+## [v2.0.0] - 2026-11-16
+
+The first tag since `v1.1` (2026-04-26). It is a major version because the
+removals below delete CLI subcommands and exported APIs; nothing that the
+current window, CLI or REST surface offers was taken away.
+
+### Highlights
+
+- **The window is the product**: the four Bubble Tea TUIs are gone with
+  `internal/ui/` (about 7.9k lines, `charm.land` dropped). The desktop app, the
+  CLI and the REST API share one app layer and one SQLite store, so no operation
+  lives on only one surface.
+- **A release that is checked before it is published**: every shipped executable
+  is inspected with `go version -m` for `CGO_ENABLED=0`, `GOOS` and `GOARCH`, the
+  Linux CLI is run for its `Version:` and a real build time, the artifact set is
+  checksummed and attested, and a missing signing secret stops the Windows and
+  macOS legs instead of publishing an unsigned installer.
+- **Linux got packages, not just a tarball**: RPM joined deb, tar.gz and
+  `install.sh`; macOS ships a DMG and Windows an NSIS installer next to
+  `Aurora.exe`.
+- **The ledger stays responsive at scale**: a 10,000-record page lays out only
+  the records on screen (about 450 ms per frame becomes about 1.4 ms), copied
+  private keys carry the platform's confidential mark, and window content zooms
+  along a fixed ladder from 80% to 200%.
+- **Reads stop cleanly for a background write**: one predicate answers "may this
+  window read right now", every reader asks it before touching the store, and a
+  read that had to stop is no longer recorded as a page failure.
+- **A refused write names its own field**: a refused import says which record was
+  refused and why, and amount, supply, mint and voting fields each report under
+  their own name rather than under a shared one.
+- **Search and paging reach the whole store**: `--search`/`?search=` on all three
+  voting lists and on the REST collections, and token history pages past its
+  first window.
+- **The window speaks Chinese**: the desktop shell is translated end to end, with
+  the English catalog as the fallback for any missing key.
 
 ### Changed
 
