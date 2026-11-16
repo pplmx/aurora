@@ -968,8 +968,8 @@ Aurora 正在申请 [SignPath Foundation](https://signpath.org/) 的免费开源
 Aurora 的 macOS 与 Windows 签名边界相互独立：SignPath Foundation 不是 Apple
 Developer 账号，不能提供 Developer ID 或公证身份；Apple 的 Apple ID 也不能
 签 Windows 安装器。v2.0.0 两端都没有凭据，两个 `require_signed_*` 因此是
-`false`，发布的是未签名包，发布说明里如实写了这一点；任一端补齐凭据后，单独
-把该端改回 `true` 即可，不需要等另一端。
+`false`，发布的是未签名包，CHANGELOG 的 v2.0.0 小节与 README 下载节都写明
+这一点；任一端补齐凭据后，单独把该端改回 `true` 即可，不需要等另一端。
 
 ## 发布来源证明
 
