@@ -243,7 +243,7 @@ func TestReleasePackagesEveryDesktopPlatform(t *testing.T) {
 		"artifacts/aurora-desktop-linux-amd64/*.deb",
 		"artifacts/aurora-desktop-linux-amd64/*.tar.gz",
 		"artifacts/aurora-desktop-linux-amd64/install.sh",
-		"artifacts/aurora-desktop-windows-amd64/*Setup*.exe",
+		"artifacts/aurora-desktop-windows-amd64/*setup*.exe",
 	} {
 		assert.Contains(t, releaseWorkflow, releaseFile,
 			"the release must publish %s", releaseFile)
@@ -275,7 +275,8 @@ func TestReleasePackagesEveryDesktopPlatform(t *testing.T) {
 	assert.Contains(t, desktopWorkflow, "Verify package")
 	assert.Contains(t, desktopWorkflow, `-name '*.deb'`)
 	assert.Contains(t, desktopWorkflow, `-name '*.dmg'`)
-	assert.Contains(t, desktopWorkflow, `-name '*Setup*.exe'`)
+	assert.Contains(t, desktopWorkflow, `-iname '*setup*.exe'`,
+		"MyGo names the NSIS installer <slug>-setup-<version>-<arch>.exe; a case-sensitive find for 'Setup' fails the Windows leg")
 	assert.Contains(t, desktopWorkflow, "Contents/Resources/build-time.txt",
 		"the macOS package must carry the build stamp in its bundle resources")
 	assert.Contains(t, desktopWorkflow, `"${{ matrix.path }}/build-time.txt"`,
@@ -653,7 +654,7 @@ func TestReleaseRequiresAuthenticodeSignedWindowsPackages(t *testing.T) {
 		assert.Contains(t, signingContract, step,
 			"the Windows release contract must include %q", step)
 	}
-	assert.Contains(t, desktopWorkflow, `Get-ChildItem "${{ matrix.path }}" -File -Filter "*Setup*.exe"`,
+	assert.Contains(t, desktopWorkflow, `Get-ChildItem "${{ matrix.path }}" -File -Filter "*setup*.exe"`,
 		"every Windows installer must be signature-checked")
 	require.Contains(t, desktopWorkflow,
 		`if ($env:REQUIRE_SIGNED_WINDOWS -eq "true" -and $env:WINDOWS_SIGNING -ne "enabled") {`,

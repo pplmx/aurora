@@ -268,7 +268,7 @@ jobs:
             Windows)
               test -f "${{ matrix.path }}/Aurora.exe"
               test -f "${{ matrix.path }}/build-time.txt"
-              test -n "$(find "${{ matrix.path }}" -maxdepth 1 -name '*Setup*.exe' -print -quit)"
+              test -n "$(find "${{ matrix.path }}" -maxdepth 1 -iname '*setup*.exe' -print -quit)"
               test -z "$(find "${{ matrix.path }}" -name '*.go' -print -quit)"
               ;;
           esac
@@ -351,7 +351,7 @@ jobs:
 
           $files = @()
           $files += Get-Item "${{ matrix.path }}/Aurora.exe" -ErrorAction Stop
-          $files += @(Get-ChildItem "${{ matrix.path }}" -File -Filter "*Setup*.exe" -ErrorAction Stop)
+          $files += @(Get-ChildItem "${{ matrix.path }}" -File -Filter "*setup*.exe" -ErrorAction Stop)
           foreach ($file in $files) {
             $signature = Get-AuthenticodeSignature -FilePath $file.FullName
             if ($signature.Status -ne "Valid") {
