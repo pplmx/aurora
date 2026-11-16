@@ -22,6 +22,13 @@ current instructions.
   future signature. Both flags stay fail-closed: turning one on without its
   secrets fails the release rather than shipping an unsigned package.
 
+### Fixed
+
+- **`checksums.txt` names the Linux installer once**: both Linux legs produce an
+  identical `install.sh`, and a release flattens the two artifact names into one,
+  so the checksum step now hashes it once after `cmp` proves the copies agree.
+  The count assertion became exact (`-eq 17`) instead of a lower bound.
+
 ## [v2.0.0] - 2026-11-16
 
 The first tag since `v1.1` (2026-04-26). It is a major version because the
