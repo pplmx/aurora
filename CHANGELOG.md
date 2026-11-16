@@ -12,6 +12,16 @@ current instructions.
 
 ## [Unreleased]
 
+### Changed
+
+- **Unsigned releases are the standing posture, not a one-release exception**:
+  `release.yml` keeps `require_signed_macos` and `require_signed_windows` at
+  `false` because the repository has no Developer ID identity and no
+  Authenticode certificate, and none is expected soon. The README, the signing
+  section of `docs/desktop.md` and the release body say so instead of promising a
+  future signature. Both flags stay fail-closed: turning one on without its
+  secrets fails the release rather than shipping an unsigned package.
+
 ## [v2.0.0] - 2026-11-16
 
 The first tag since `v1.1` (2026-04-26). It is a major version because the

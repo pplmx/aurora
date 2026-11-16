@@ -78,10 +78,12 @@ gh attestation verify <artifact> --repo pplmx/aurora
 它绑定仓库、commit、工作流和文件摘要，能发现校验和文件本身被整体替换；但它
 不改变 Gatekeeper / SmartScreen 的发布者判断，不能替代操作系统级签名。
 
-**签名状态**：Windows 包正在申请 SignPath Foundation 的免费开源签名；macOS 包
-需要维护者持有的 Apple Developer Program 身份。发布门槛、角色与验收方式见
-[代码签名策略](docs/code-signing-policy.md)，本机数据与网络边界见
-[隐私说明](docs/privacy.md)。
+**签名状态**：桌面包均未签名，且在可见的将来不会签名——仓库既没有
+Authenticode 证书，也没有 Apple Developer Program 身份，安装时 Gatekeeper 与
+SmartScreen 会报警。免费路径只对 Windows 存在（[SignPath
+Foundation](https://signpath.org/)），macOS 必须自购 Developer ID；两者的门槛、
+角色与验收方式见[代码签名策略](docs/code-signing-policy.md)，本机数据与网络
+边界见[隐私说明](docs/privacy.md)。
 
 ### 从源码构建
 

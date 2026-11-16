@@ -60,10 +60,12 @@ gh workflow run desktop-build.yml --ref main
 SHA。每个原生 runner 都会打包并上传 artifact，但不会创建 Release。默认
 `require_signed_macos` / `require_signed_windows` 为 `false`，仓库没有签名
 secrets 时得到未签名开发包；配置好 secrets 后，可用 `-f` 显式要求签名验证。
-正式 tag 发布仍由 `release.yml` 触发。从 v2.0.0 起，`release.yml` 的
-`require_signed_macos` / `require_signed_windows` 也是 `false`：仓库还没有任何
-签名凭据，这一版发布的是未签名包，安装时 Gatekeeper 与 SmartScreen 会报警。
-拿到证书后把这两处改回 `true`，发布流程就重新要求签名。
+正式 tag 发布由 `release.yml` 触发，它的 `require_signed_macos` /
+`require_signed_windows` 也是 `false`，这是当前的常态而不是某一版的例外：仓库
+没有任何签名凭据，可见的将来也不会有，因此发布出去的就是未签名包，安装时
+Gatekeeper 与 SmartScreen 会报警。两个开关是 fail-closed 的——改成 `true` 而
+凭据缺失，发布直接失败，不会静默产出“看起来已签名”的包；真正拿到证书后把对应
+一端改成 `true`，发布流程立刻重新要求签名。
 
 ## 依赖更新
 
@@ -958,18 +960,19 @@ gh secret set WINDOWS_CERTIFICATE_PASSWORD
 `WINDOWS_CERTIFICATE_FILE` 与 `MYGO_WINDOWS_CERTIFICATE_PASSWORD` 时仍生成
 未签名包，仅供本机测试。
 
-Aurora 正在申请 [SignPath Foundation](https://signpath.org/) 的免费开源签名。
-该项目用仓库来源校验与人工批准代替个人代码签名证书的购买和身份验证，适合
-当前没有商业 Authenticode 证书的情况。SignPath 在服务端 HSM 中签名并返回
+[SignPath Foundation](https://signpath.org/) 是 Windows 端唯一不需要自购证书的
+路径。该项目用仓库来源校验与人工批准代替个人代码签名证书的购买和身份验证，
+适合当前没有商业 Authenticode 证书的情况。SignPath 在服务端 HSM 中签名并返回
 产物，不会交出 `.pfx` 私钥，因此获批后要把本节的临时 PFX 流程改成 SignPath
 签名请求，而不能把现有两个 secrets 填成伪造值。完整资格、角色、产物和隐私
-边界见[代码签名策略](code-signing-policy.md)。
+边界见[代码签名策略](code-signing-policy.md)。仓库目前没有提交申请，也没有
+在可见的将来提交的计划。
 
 Aurora 的 macOS 与 Windows 签名边界相互独立：SignPath Foundation 不是 Apple
 Developer 账号，不能提供 Developer ID 或公证身份；Apple 的 Apple ID 也不能
-签 Windows 安装器。v2.0.0 两端都没有凭据，两个 `require_signed_*` 因此是
-`false`，发布的是未签名包，CHANGELOG 的 v2.0.0 小节与 README 下载节都写明
-这一点；任一端补齐凭据后，单独把该端改回 `true` 即可，不需要等另一端。
+签 Windows 安装器。两端都没有凭据，两个 `require_signed_*` 因此是 `false`，
+发布的是未签名包，CHANGELOG 的 v2.0.0 小节与 README 下载节都写明这一点；
+任一端补齐凭据后，单独把该端改成 `true` 即可，不需要等另一端。
 
 ## 发布来源证明
 

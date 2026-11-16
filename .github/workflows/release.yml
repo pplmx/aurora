@@ -69,10 +69,11 @@ jobs:
     secrets: inherit
     with:
       ref: ${{ inputs.tag || github.ref }}
-      # v2.0.0 goes out with unsigned packages: the repository holds no
-      # Authenticode certificate and no Developer ID identity, and a release
-      # that cannot be signed is better than one that claims to be. Turn both
-      # back to true once the secrets in docs/desktop.md exist.
+      # Signing stays off: the repository holds no Authenticode certificate and
+      # no Developer ID identity, and none is expected in the foreseeable
+      # future. Both flags are fail-closed, so a release that cannot be signed
+      # is better than one that claims to be. Flip a flag to true only when its
+      # secrets in docs/desktop.md exist.
       require_signed_windows: false
 
   desktop-build:
@@ -83,6 +84,8 @@ jobs:
     secrets: inherit
     with:
       ref: ${{ inputs.tag || github.ref }}
+      # Same policy as the build job above: unsigned until the credentials in
+      # docs/desktop.md exist.
       require_signed_macos: false
       require_signed_windows: false
 
