@@ -233,7 +233,17 @@ jobs:
             in_kept {print}
           ' CHANGELOG.md | sed -e '/./,$!d' > release-notes.md
           test -s release-notes.md
-          previous="$(git describe --tags --abbrev=0 "${RELEASE_VERSION}^")"
+          # The compare link needs the release before this one. Ask the tag
+          # list for the newest tag that is not this release: a commit walk
+          # from the tag (git describe) depends on every fetched branch and on
+          # tag objects resolving, which a workflow_dispatch checkout of a
+          # branch does not guarantee. Older tags may point outside this
+          # branch's history, and comparing them is still what GitHub does.
+          previous="$(git tag --sort=-creatordate | grep -vx "$RELEASE_VERSION" | head -n 1 || true)"
+          if [ -z "$previous" ]; then
+            echo "$RELEASE_VERSION is the only tag, so there is no release to compare against" >&2
+            exit 1
+          fi
           {
             cat release-notes.md
             printf '\nSee [CHANGELOG.md](%s/%s/blob/%s/CHANGELOG.md) for the full list of changes.\n' \

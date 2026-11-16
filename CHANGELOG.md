@@ -60,7 +60,7 @@ current window, CLI or REST surface offers was taken away.
   not rebuild from the tag.
 - **Linux got packages, not just a tarball**: RPM joined deb, tar.gz and
   `install.sh`; macOS ships a DMG and Windows an NSIS installer next to
-  `Aurora.exe`.
+  `aurora-windows-amd64.exe`.
 - **The ledger stays responsive at scale**: a 10,000-record page lays out only
   the records on screen (about 450 ms per frame becomes about 1.4 ms), copied
   private keys carry the platform's confidential mark, and window content zooms
@@ -82,9 +82,10 @@ current window, CLI or REST surface offers was taken away.
 - **The desktop packages of this tag are unsigned**: the repository holds no
   Developer ID identity and no Authenticode certificate, so `release.yml` keeps
   `require_signed_macos` and `require_signed_windows` at `false`. Gatekeeper and
-  SmartScreen will warn on the first launch of `Aurora.app`, `Aurora.exe` and the
-  NSIS installer. Both flags go back to `true` once the credentials documented in
-  `docs/desktop.md` exist; signing is not otherwise weakened.
+  SmartScreen will warn on the first launch of `Aurora.app`,
+  `aurora-windows-amd64.exe` and the NSIS installer. Both flags go back to
+  `true` once the credentials documented in `docs/desktop.md` exist; signing is
+  not otherwise weakened.
 
 ### Changed
 
