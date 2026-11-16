@@ -60,8 +60,10 @@ gh workflow run desktop-build.yml --ref main
 SHA。每个原生 runner 都会打包并上传 artifact，但不会创建 Release。默认
 `require_signed_macos` / `require_signed_windows` 为 `false`，仓库没有签名
 secrets 时得到未签名开发包；配置好 secrets 后，可用 `-f` 显式要求签名验证。
-正式 tag 发布仍由 `release.yml` 触发，并要求 macOS 与 Windows 的签名 secrets
-全部配置。
+正式 tag 发布仍由 `release.yml` 触发。从 v2.0.0 起，`release.yml` 的
+`require_signed_macos` / `require_signed_windows` 也是 `false`：仓库还没有任何
+签名凭据，这一版发布的是未签名包，安装时 Gatekeeper 与 SmartScreen 会报警。
+拿到证书后把这两处改回 `true`，发布流程就重新要求签名。
 
 ## 依赖更新
 
@@ -910,12 +912,14 @@ gh secret set APPLE_TEAM_ID
 gh secret set APPLE_APP_PASSWORD
 ```
 
-`release.yml` 通过 `secrets: inherit` 传入这些值，并设置
-`require_signed_macos: true`：缺少任意一个时，“Configure macOS signing”在
-打包前失败，不会发布只能在本机运行的 ad-hoc DMG；只配置一部分也会明确报错。
-证书和 `notarytool` 凭据只进入 job 的临时 keychain，日志不打印密码。签名完成
-后 CI 用 `codesign`、`spctl` 和 `stapler validate` 验收 app 与 DMG。本地
-`just desktop-package` 不设置这些环境变量时仍生成 ad-hoc 包，仅供本机测试。
+`release.yml` 通过 `secrets: inherit` 传入这些值，并用
+`require_signed_macos` 控制是否强制：为 `true` 时缺少任意一个 secret，“Configure
+macOS signing”在打包前失败，不会发布只能在本机运行的 ad-hoc DMG；只配置一部分
+也会明确报错。v2.0.0 该值为 `false`，因为仓库没有 Apple 凭据，这一版 DMG 是
+ad-hoc 签名且未公证；补齐 secrets 后改回 `true`。证书和 `notarytool` 凭据只进入
+job 的临时 keychain，日志不打印密码。签名完成后 CI 用 `codesign`、`spctl` 和
+`stapler validate` 验收 app 与 DMG。本地 `just desktop-package` 不设置这些环境
+变量时仍生成 ad-hoc 包，仅供本机测试。
 
 Apple Developer Program 是 Developer ID 证书与公证凭据的唯一合法来源。
 注册者必须有启用双重认证的 Apple Account，由本人接受开发者协议并支付年费；
@@ -943,11 +947,13 @@ base64 -i certificate.pfx | gh secret set WINDOWS_CERTIFICATE
 gh secret set WINDOWS_CERTIFICATE_PASSWORD
 ```
 
-`release.yml` 设置 `require_signed_windows: true`：缺少任意一个 secret 时，
+`release.yml` 设置 `require_signed_windows`：为 `true` 时缺少任意一个 secret，
 “Configure Windows signing”在打包前失败；只配置一个也会明确报错，不会发布
-未签名安装器。证书密码通过 `MYGO_WINDOWS_CERTIFICATE_PASSWORD` 传给 MyGo，
+未签名安装器。v2.0.0 该值为 `false`，因为仓库没有 Authenticode 证书，这一版
+`Aurora.exe` 与安装器都未签名；补齐 secrets 后改回 `true`。证书密码通过
+`MYGO_WINDOWS_CERTIFICATE_PASSWORD` 传给 MyGo，
 日志不打印；证书只落在 `$RUNNER_TEMP`。打包后 CI 对 `Aurora.exe` 和每个
-`*Setup*.exe` 运行 `Get-AuthenticodeSignature`，要求状态为 `Valid`、签名者
+`*setup*.exe` 运行 `Get-AuthenticodeSignature`，要求状态为 `Valid`、签名者
 证书与导入证书一致且带 RFC 3161 时间戳。本地 `just desktop-package` 不设置
 `WINDOWS_CERTIFICATE_FILE` 与 `MYGO_WINDOWS_CERTIFICATE_PASSWORD` 时仍生成
 未签名包，仅供本机测试。
@@ -961,7 +967,9 @@ Aurora 正在申请 [SignPath Foundation](https://signpath.org/) 的免费开源
 
 Aurora 的 macOS 与 Windows 签名边界相互独立：SignPath Foundation 不是 Apple
 Developer 账号，不能提供 Developer ID 或公证身份；Apple 的 Apple ID 也不能
-签 Windows 安装器。两端都通过真实签名验收前，`release.yml` 不会发布桌面包。
+签 Windows 安装器。v2.0.0 两端都没有凭据，两个 `require_signed_*` 因此是
+`false`，发布的是未签名包，发布说明里如实写了这一点；任一端补齐凭据后，单独
+把该端改回 `true` 即可，不需要等另一端。
 
 ## 发布来源证明
 

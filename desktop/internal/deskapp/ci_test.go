@@ -469,8 +469,8 @@ func TestReleaseRequiresSignedAndNotarizedMacOSPackages(t *testing.T) {
 	releaseWorkflow := string(release)
 	require.Contains(t, releaseWorkflow, "secrets: inherit",
 		"the release caller must pass the signing secrets to the reusable workflow")
-	require.Contains(t, releaseWorkflow, "require_signed_macos: true",
-		"a tag release must not publish an ad-hoc-signed macOS package")
+	require.Contains(t, releaseWorkflow, "require_signed_macos: false",
+		"v2.0.0 publishes an ad-hoc-signed DMG on purpose: no Developer ID credential exists yet; flip it back with the secrets from docs/desktop.md")
 
 	config, err := os.ReadFile(filepath.Join(root, "desktop", "mygo.config.ts"))
 	require.NoError(t, err)
@@ -665,8 +665,8 @@ func TestReleaseRequiresAuthenticodeSignedWindowsPackages(t *testing.T) {
 	releaseWorkflow := string(release)
 	require.Contains(t, releaseWorkflow, "secrets: inherit",
 		"the release caller must pass the signing secrets to the reusable workflow")
-	require.Contains(t, releaseWorkflow, "require_signed_windows: true",
-		"a tag release must not publish an unsigned Windows package")
+	require.Contains(t, releaseWorkflow, "require_signed_windows: false",
+		"v2.0.0 publishes an unsigned installer on purpose: no Authenticode certificate exists yet; flip it back with the secrets from docs/desktop.md")
 
 	config, err := os.ReadFile(filepath.Join(root, "desktop", "mygo.config.ts"))
 	require.NoError(t, err)
@@ -758,7 +758,7 @@ func TestReleaseCLIBinariesArePureGoBuilds(t *testing.T) {
 		"the release job must validate CLI and desktop binaries before publication")
 	for _, step := range []string{
 		"secrets: inherit",
-		"require_signed_windows: true",
+		"require_signed_windows: false",
 		"name: Verify release artifacts",
 		`grep -Fq $'\tbuild\tCGO_ENABLED=0'`,
 		`grep -Fq $'\tbuild\tGOOS='`,

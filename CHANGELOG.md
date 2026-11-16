@@ -27,8 +27,8 @@ current window, CLI or REST surface offers was taken away.
 - **A release that is checked before it is published**: every shipped executable
   is inspected with `go version -m` for `CGO_ENABLED=0`, `GOOS` and `GOARCH`, the
   Linux CLI is run for its `Version:` and a real build time, the artifact set is
-  checksummed and attested, and a missing signing secret stops the Windows and
-  macOS legs instead of publishing an unsigned installer.
+  checksummed and attested, and the workflow refuses to publish a file it could
+  not rebuild from the tag.
 - **Linux got packages, not just a tarball**: RPM joined deb, tar.gz and
   `install.sh`; macOS ships a DMG and Windows an NSIS installer next to
   `Aurora.exe`.
@@ -47,6 +47,15 @@ current window, CLI or REST surface offers was taken away.
   first window.
 - **The window speaks Chinese**: the desktop shell is translated end to end, with
   the English catalog as the fallback for any missing key.
+
+### Note
+
+- **The desktop packages of this tag are unsigned**: the repository holds no
+  Developer ID identity and no Authenticode certificate, so `release.yml` keeps
+  `require_signed_macos` and `require_signed_windows` at `false`. Gatekeeper and
+  SmartScreen will warn on the first launch of `Aurora.app`, `Aurora.exe` and the
+  NSIS installer. Both flags go back to `true` once the credentials documented in
+  `docs/desktop.md` exist; signing is not otherwise weakened.
 
 ### Changed
 

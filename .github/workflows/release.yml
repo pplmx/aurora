@@ -69,7 +69,11 @@ jobs:
     secrets: inherit
     with:
       ref: ${{ inputs.tag || github.ref }}
-      require_signed_windows: true
+      # v2.0.0 goes out with unsigned packages: the repository holds no
+      # Authenticode certificate and no Developer ID identity, and a release
+      # that cannot be signed is better than one that claims to be. Turn both
+      # back to true once the secrets in docs/desktop.md exist.
+      require_signed_windows: false
 
   desktop-build:
     uses: ./.github/workflows/desktop-build.yml
@@ -79,8 +83,8 @@ jobs:
     secrets: inherit
     with:
       ref: ${{ inputs.tag || github.ref }}
-      require_signed_macos: true
-      require_signed_windows: true
+      require_signed_macos: false
+      require_signed_windows: false
 
   release:
     name: Create Release

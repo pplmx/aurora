@@ -65,6 +65,10 @@ macOS arm64+amd64、Windows amd64。
 发布时会附 `checksums.txt`，并校验版本号与构建时间——不会发布 `0.0.1` /
 `Build Time: unknown` 的产物。
 
+v2.0.0 的桌面包**未签名**：仓库还没有 Developer ID 与 Authenticode 凭据，
+macOS 的 Gatekeeper 与 Windows 的 SmartScreen 会在首次启动时提示。校验
+`checksums.txt` 与 artifact attestation 仍可确认文件来源。
+
 **构建来源证明**：发布前为最终资产生成 GitHub artifact attestation，下载后可验证：
 
 ```bash
