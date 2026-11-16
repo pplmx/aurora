@@ -887,6 +887,13 @@ MyGo 默认还写 PKGBUILD，但它两个架构同名，发布资产又会扁平
 前把时间写入 `resources/build-time.txt`，随资源一起安装并由 `--version` 读取；
 CI 会拒绝仍报告 `Build Time: unknown` 的包。
 
+Release 页面正文由 `release.yml` 的 `Build release notes` 步骤从 `CHANGELOG.md`
+抽取：取 `## [<tag>]` 小节顶部的 `### Highlights` 与 `### Note`，命中第一个非
+精选小节即停止，末尾附完整 CHANGELOG 链接和上一 tag 的 compare 链接。不用
+GitHub 的 `generate_release_notes`——没有合并 PR 时它只剩一条 commit 链接，
+正文里也就没有发布说明该有的取舍与背景。`CHANGELOG.md` 缺对应小节时这一步
+直接失败，不会发布一个空正文。
+
 ## macOS 发布签名
 
 发布 tag 的 DMG 必须是 Developer ID 签名并公证的，否则 Gatekeeper 只在构建

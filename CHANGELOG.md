@@ -21,6 +21,12 @@ current instructions.
   section of `docs/desktop.md` and the release body say so instead of promising a
   future signature. Both flags stay fail-closed: turning one on without its
   secrets fails the release rather than shipping an unsigned package.
+- **The release page carries the changelog's summary, not a generated list**:
+  `release.yml` now writes the body from the `### Highlights` and `### Note`
+  blocks that open the version's `CHANGELOG.md` section, then links the full
+  changelog and the previous tag. GitHub's generated notes produced one commit
+  link and no prose, so a release page read like a diff pointer instead of a
+  release.
 
 ### Fixed
 

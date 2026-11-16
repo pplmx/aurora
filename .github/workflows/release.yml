@@ -99,7 +99,11 @@ jobs:
       id-token: write
 
     steps:
+      # The release body names the previous tag, so the job needs the full tag
+      # list rather than the single commit the default depth-1 fetch leaves.
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
       - uses: actions/download-artifact@v8
         with:
@@ -196,6 +200,39 @@ jobs:
         with:
           subject-checksums: artifacts/checksums.txt
 
+      - name: Build release notes
+        shell: bash
+        env:
+          RELEASE_VERSION: ${{ inputs.tag || github.ref_name }}
+        run: |
+          set -euo pipefail
+          heading="## [$RELEASE_VERSION]"
+          if ! grep -Fq "$heading" CHANGELOG.md; then
+            echo "CHANGELOG.md has no section for $RELEASE_VERSION" >&2
+            exit 1
+          fi
+          # The release body is the curated summary that opens the version's
+          # changelog section. The thousand-odd per-commit entries below it stay
+          # in CHANGELOG.md; pasting them here is what made the release page
+          # unreadable.
+          awk -v want="$heading" '
+            index($0, want) == 1 {in_version = 1; next}
+            in_version && /^## \[/ {exit}
+            in_version && /^### (Highlights|Note)$/ {in_kept = 1}
+            in_kept && /^### / && !/^### (Highlights|Note)$/ {exit}
+            in_kept {print}
+          ' CHANGELOG.md | sed -e '/./,$!d' > release-notes.md
+          test -s release-notes.md
+          previous="$(git describe --tags --abbrev=0 "${RELEASE_VERSION}^")"
+          {
+            cat release-notes.md
+            printf '\nSee [CHANGELOG.md](%s/%s/blob/%s/CHANGELOG.md) for the full list of changes.\n' \
+              "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$RELEASE_VERSION"
+            printf '\n**Full Changelog**: %s/%s/compare/%s...%s\n' \
+              "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$previous" "$RELEASE_VERSION"
+          } > release-body.md
+          cat release-body.md
+
       - name: Create Release
         uses: softprops/action-gh-release@v3
         with:
@@ -222,5 +259,7 @@ jobs:
             artifacts/aurora-desktop-windows-amd64/Aurora.exe
             artifacts/aurora-desktop-windows-amd64/*setup*.exe
             artifacts/checksums.txt
-          generate_release_notes: true
+          # Curated notes from CHANGELOG.md, not GitHub's generated list: that
+          # list has no prose and, with no merged pull requests, was one link.
+          body_path: release-body.md
           overwrite_files: true
